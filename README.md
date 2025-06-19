@@ -61,3 +61,7 @@ Si deseas contribuir al proyecto, abre un **Pull Request** o contacta al equipo 
 ---
 
 **¡Gracias por explorar MagicboARd!** 🎮✨
+
+---
+Anotaciones nuevas, acomodar luego:
+- Usar Python 3.12.10
