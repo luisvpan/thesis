@@ -19,7 +19,7 @@ def piano(device, videobeam_resolution=(1280, 800), min_contour_area=500, max_co
     dmax_map = np.loadtxt("./config/dmax_map.txt", dtype=int)
 
     # Cargar las coordenadas desde el archivo JSON
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         config = json.load(file)
 
     # Asignar las coordenadas del viewport y la ventana
@@ -348,7 +348,7 @@ def show_captured_shape(contours, color_names, sounds, view_width, view_height, 
 
 def juego_memoria(device):
     # Cargar las coordenadas desde el archivo JSON
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         config = json.load(file)
 
     # Asignar las coordenadas del viewport y la ventana
@@ -681,7 +681,7 @@ def juego_memoria(device):
 def juego_clasificacion(device, modo_clasificacion, piezas_fisicas, num_piezas):
     # Cargar las coordenadas desde el archivo JSON
     import json
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         coordenadas = json.load(file)
 
     xw_min = coordenadas["xw_min"]
@@ -694,7 +694,7 @@ def juego_clasificacion(device, modo_clasificacion, piezas_fisicas, num_piezas):
     yv_max = coordenadas["yv_max"]
 
     # Cargar el archivo dmax_map.txt
-    dmax_map = np.loadtxt("code/config/dmax_map.txt", dtype=np.uint16)
+    dmax_map = np.loadtxt("config/dmax_map.txt", dtype=np.uint16)
 
     # Dimensiones del área de trabajo
     w = xw_max - xw_min
@@ -1169,11 +1169,11 @@ def juego_handprint(device, offset=10):
     videobeam_screen = np.zeros((view_height, view_width, 3), dtype=np.uint8)  # Pantalla negra
 
     # Leer el mapa dmax desde el archivo
-    with open("code/config/dmax_map.txt", "r") as file:
+    with open("config/dmax_map.txt", "r") as file:
         dmax_map = np.loadtxt(file, dtype=int)
 
     # Cargar las coordenadas de calibración desde el archivo JSON
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         coordenadas = json.load(file)
 
     xw_min = coordenadas["xw_min"]
@@ -1351,7 +1351,7 @@ def juego_handprint(device, offset=10):
     cv2.destroyAllWindows()
 
 def juego_personalizacion(device):
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         coordenadas = json.load(file)
 
     xw_min = coordenadas["xw_min"]
@@ -1364,7 +1364,7 @@ def juego_personalizacion(device):
     yv_max = coordenadas["yv_max"]
 
     # Cargar el archivo dmax_map.txt
-    dmax_map = np.loadtxt("code/config/dmax_map.txt", dtype=np.uint16)
+    dmax_map = np.loadtxt("config/dmax_map.txt", dtype=np.uint16)
 
     # Dimensiones del área de trabajo
     w = xw_max - xw_min
@@ -1800,7 +1800,7 @@ def juego_personalizacion(device):
 
 def simon_dice(device):
     # Cargar la configuración de coordenadas
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         coordenadas = json.load(file)
 
     xw_min = coordenadas["xw_min"]
@@ -1813,7 +1813,7 @@ def simon_dice(device):
     yv_max = coordenadas["yv_max"]
 
     # Cargar el archivo dmax_map.txt
-    dmax_map = np.loadtxt("code/config/dmax_map.txt", dtype=np.uint16)
+    dmax_map = np.loadtxt("config/dmax_map.txt", dtype=np.uint16)
 
     # Dimensiones del área de trabajo
     w = xw_max - xw_min
@@ -2323,7 +2323,7 @@ def detect_color_and_shape(image, min_contour_area=250):
 
 def juego_tic_tac_toe(device):
     # Cargar las coordenadas desde el archivo JSON
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         coordenadas = json.load(file)
 
     xw_min = coordenadas["xw_min"]
@@ -2655,7 +2655,7 @@ def mostrar_menu_juegos(device):
 
     # 1. Cargar Configuraciones
     try:
-        with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+        with open("config/ultima_configuracion_coordenadas.json", "r") as file:
             coordenadas = json.load(file)
     except FileNotFoundError:
         print("Error: No se encontró el archivo 'ultima_configuracion_coordenadas.json'.")
@@ -2675,7 +2675,7 @@ def mostrar_menu_juegos(device):
 
     # Cargar el archivo dmax_map.txt
     try:
-        dmax_map = np.loadtxt("code/config/dmax_map.txt", dtype=np.uint16)
+        dmax_map = np.loadtxt("config/dmax_map.txt", dtype=np.uint16)
     except FileNotFoundError:
         print("Error: No se encontró el archivo 'dmax_map.txt'.")
         return
@@ -3268,11 +3268,11 @@ def mostrar_menu_juegos(device):
 
 def juego_dataflow(device):
     """
-    Juego que simula un dataflow detectando figuras físicas en dos áreas cuadradas.
-    Muestra qué figura está dentro de cada área y la invoca debajo del cuadrado.
+    Juego que simula un dataflow detectando figuras físicas en dos áreas rectangulares.
+    Áreas dispuestas verticalmente a la izquierda y resultado centrado a la derecha.
     """
     # Cargar las coordenadas desde el archivo JSON
-    with open("code/config/ultima_configuracion_coordenadas.json", "r") as file:
+    with open("config/ultima_configuracion_coordenadas.json", "r") as file:
         coordenadas = json.load(file)
 
     xw_min = coordenadas["xw_min"]
@@ -3285,24 +3285,30 @@ def juego_dataflow(device):
     yv_max = coordenadas["yv_max"]
 
     # Dimensiones del área de trabajo
-    work_area_width = xv_max - xv_min
-    work_area_height = yv_max - yv_min
+    work_area_width = xw_max - xw_min
+    work_area_height = yw_max - yw_min
 
     # Tamaño de la pantalla del videobeam
     view_width = 1280
     view_height = 800
     videobeam_screen = np.zeros((view_height, view_width, 3), dtype=np.uint8)
 
-    # Crear dos áreas cuadradas
-    square_size = 150  # Tamaño de cada área cuadrada
+    # Crear dos áreas rectangulares verticales a la izquierda
+    square_height = 150  # Altura de cada área rectangular
+    square_width = square_height * 2  # Ancho es el doble de la altura
+    left_margin = (view_width // 4)  # Margen izquierdo centrado
 
-    # Posiciones de las dos áreas cuadradas (más abajo en la pantalla)
-    square1_x = xv_min + 50
-    square1_y = yv_min + 200  # Bajado de 50 a 200
-    square2_x = xv_max - square_size - 50
-    square2_y = yv_min + 200  # Bajado de 50 a 200
+    # Calcular posición vertical centrada para ambas áreas
+    total_vertical_space = 2 * square_height + 50  # 50px de espacio entre áreas
+    start_y = (view_height - total_vertical_space) // 2
 
-    # Función para detectar figuras y colores
+    # Posiciones de las áreas (verticales a la izquierda)
+    rect1_x = left_margin
+    rect1_y = start_y
+    rect2_x = left_margin
+    rect2_y = start_y + square_height + 50  # 50px debajo del primer área
+
+    # Función para detectar figuras y colores (igual que antes)
     def detect_color_and_shape(image, min_contour_area=250):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
@@ -3348,59 +3354,38 @@ def juego_dataflow(device):
 
         return detected_shapes
 
-    # Función para verificar si una figura está dentro de un área cuadrada
-    def figura_en_area_cuadrada(figura_centro, square_x, square_y, square_size):
+    # Función para verificar si una figura está dentro de un área rectangular
+    def figura_en_area_rectangular(figura_centro, rect_x, rect_y, rect_width, rect_height):
         fx, fy = figura_centro
-        if (square_x <= fx <= square_x + square_size and 
-            square_y <= fy <= square_y + square_size):
+        if (rect_x <= fx <= rect_x + rect_width and 
+            rect_y <= fy <= rect_y + rect_height):
             return True
         return False
 
-    # Función para dibujar las áreas cuadradas
-    def dibujar_areas_cuadradas(screen, square1_x, square1_y, square2_x, square2_y, square_size):
-        # Dibujar primera área cuadrada
-        cv2.rectangle(screen, (square1_x, square1_y), 
-                     (square1_x + square_size, square1_y + square_size), (255, 255, 255), 3)
+    # Función para dibujar las áreas rectangulares verticales
+    def dibujar_areas_rectangulares(screen):
+        # Dibujar primera área rectangular (verde)
+        cv2.rectangle(screen, (rect1_x, rect1_y), 
+                     (rect1_x + square_width, rect1_y + square_height), (0, 255, 0), 3)
+        cv2.putText(screen, "Area 1", (rect1_x, rect1_y - 20), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
         
-        # Dibujar segunda área cuadrada
-        cv2.rectangle(screen, (square2_x, square2_y), 
-                     (square2_x + square_size, square2_y + square_size), (255, 255, 255), 3)
+        # Dibujar segunda área rectangular (verde)
+        cv2.rectangle(screen, (rect2_x, rect2_y), 
+                     (rect2_x + square_width, rect2_y + square_height), (0, 255, 0), 3)
+        cv2.putText(screen, "Area 2", (rect2_x, rect2_y - 20), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
-        # Etiquetar las áreas
-        cv2.putText(screen, "Area 1", (square1_x, square1_y - 20), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-        cv2.putText(screen, "Area 2", (square2_x, square2_y - 20), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-
-    # Función para mostrar solo texto de la figura detectada
-    def mostrar_figura_detectada(screen, shape, color, area_x, area_y, square_size, area_num):
-        # Posición para mostrar el texto (debajo del cuadrado)
-        text_y = area_y + square_size + 30
-        text_x = area_x + square_size // 2
-
-        # Mostrar texto con la información de la figura
-        texto = f"Area {area_num}: {shape} {color}"
-        cv2.putText(screen, texto, (text_x - 80, text_y), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
-    # Función para mostrar múltiples figuras detectadas
-    def mostrar_figura_detectada_multiple(screen, shape, color, area_x, area_y, square_size, area_num, y_offset=0):
-        # Posición para mostrar el texto (debajo del cuadrado con offset)
-        text_y = area_y + square_size + 30 + y_offset
-        text_x = area_x + square_size // 2
-
-        # Mostrar texto con la información de la figura
+    # Función para mostrar figuras detectadas
+    def mostrar_figura_detectada_multiple(screen, shape, color, area_x, area_y, rect_width, rect_height, area_num, y_offset=0):
+        text_y = area_y + rect_height + 30 + y_offset
+        text_x = area_x + rect_width // 2
         texto = f"Area {area_num}: {shape} {color}"
         cv2.putText(screen, texto, (text_x - 80, text_y), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-    # Función para realizar operaciones de conjuntos
+    # Función para realizar operaciones de conjuntos (igual que antes)
     def realizar_operacion_conjuntos(set1, set2, operacion):
-        """
-        Realiza operaciones de conjuntos entre dos conjuntos de figuras.
-        set1, set2: conjuntos de figuras (shape, color)
-        operacion: 'union', 'interseccion', 'diferencia', 'diferencia_simetrica'
-        """
         if operacion == 'union':
             return set1.union(set2)
         elif operacion == 'interseccion':
@@ -3412,30 +3397,39 @@ def juego_dataflow(device):
         else:
             return set()
 
-    # Función para dibujar el resultado de la operación de conjuntos
-    def dibujar_resultado_conjuntos(screen, resultado, center_x, center_y, operacion):
-        # Convertir el resultado a lista si es un set (para evitar problemas con elementos únicos)
-        resultado = list(resultado) if isinstance(resultado, set) else resultado
+    # Función para dibujar el resultado a la derecha
+    # Función para dibujar el resultado a la derecha
+    def dibujar_resultado_conjuntos(screen, resultado, operacion):
+        right_margin = view_width - 300
+        center_y = view_height // 2
         
+        # Nombre de la operación
+        nombres_operaciones = {
+            'union': 'UNION',
+            'interseccion': 'INTERSECCION', 
+            'diferencia': 'DIFERENCIA',
+            'diferencia_simetrica': 'DIF. SIMETRICA'
+        }
+        nombre_operacion = nombres_operaciones.get(operacion, operacion)
+        cv2.putText(screen, f"RESULTADO ({nombre_operacion}):", 
+                (right_margin, center_y - 80), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 200, 255), 2)
+        
+        # Dibujar figuras resultantes
         if not resultado:
-            cv2.putText(screen, "Resultado: Conjunto vacio", (center_x - 100, center_y), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-            return
-
-        # Mostrar solo las figuras horizontalmente
-        print("Elementos a dibujar:", resultado)
-        
-        # Calcular el ancho total necesario para todas las figuras
+            cv2.putText(screen, "CONJUNTO VACIO", 
+                    (right_margin + 50, center_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 150, 150), 2)
+    
+        resultado = list(resultado)
         size = 25
-        spacing = 80  # Espacio entre figuras
-        total_width = len(resultado) * spacing
-        start_x = center_x - (total_width // 2)
+        spacing = 80
+        start_x = right_margin + (view_width - right_margin - len(resultado) * spacing) // 2
         
         for i, (shape, color) in enumerate(resultado):
-            invoke_x = start_x + (i * spacing)
-            invoke_y = center_y
+            pos_x = start_x + i * spacing
+            pos_y = center_y
 
-            # Mapear colores a BGR
             color_bgr = {
                 "Rojo": (0, 0, 255),
                 "Verde": (0, 255, 0),
@@ -3443,39 +3437,36 @@ def juego_dataflow(device):
                 "Amarillo": (0, 255, 255),
                 "Naranja": (0, 165, 255),
                 "Morado": (128, 0, 128)
-            }
-            
-            color_value = color_bgr.get(color, (255, 255, 255))  # Blanco por defecto
+            }.get(color, (255, 255, 255))
 
-            # Dibujar la figura según su tipo
+            # Dibujar la figura en el área de resultados
             if shape == "Círculo":
-                cv2.circle(screen, (invoke_x, invoke_y), size, color_value, -1)
+                cv2.circle(screen, (pos_x, pos_y), size, color_bgr, -1)
             elif shape == "Cuadrado":
-                cv2.rectangle(screen, (invoke_x - size, invoke_y - size), 
-                             (invoke_x + size, invoke_y + size), color_value, -1)
+                cv2.rectangle(screen, (pos_x - size, pos_y - size), 
+                            (pos_x + size, pos_y + size), color_bgr, -1)
             elif shape == "Triángulo":
                 pts = np.array([
-                    [invoke_x, invoke_y - size],
-                    [invoke_x - size, invoke_y + size],
-                    [invoke_x + size, invoke_y + size]
+                    [pos_x, pos_y - size],
+                    [pos_x - size, pos_y + size],
+                    [pos_x + size, pos_y + size]
                 ], np.int32)
                 pts = pts.reshape((-1, 1, 2))
-                cv2.fillPoly(screen, [pts], color_value)
+                cv2.fillPoly(screen, [pts], color_bgr)
 
+            # Etiqueta con el nombre
+            cv2.putText(screen, f"{shape[:3]}.{color[:3]}", 
+                    (pos_x - 30, pos_y + size + 20), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
 
     # Iniciar los streams de la cámara
     rgb_stream = device.create_color_stream()
     rgb_stream.start()
 
-    # Variables para almacenar el estado de las áreas
-    area1_figura = None
-    area2_figura = None
-    
     # Variables para operaciones de conjuntos
-    operacion_actual = 'interseccion'  # Operación por defecto
+    operacion_actual = 'interseccion'
     operaciones_disponibles = ['union', 'interseccion', 'diferencia', 'diferencia_simetrica']
     indice_operacion = 0
-
 
     while True:
         frame = rgb_stream.read_frame()
@@ -3495,14 +3486,13 @@ def juego_dataflow(device):
         # Limpiar la pantalla
         videobeam_screen.fill(0)
 
-        # Dibujar las áreas cuadradas
-        dibujar_areas_cuadradas(videobeam_screen, square1_x, square1_y, square2_x, square2_y, square_size)
+        # Dibujar las áreas rectangulares verticales
+        dibujar_areas_rectangulares(videobeam_screen)
 
-        # Reiniciar el estado de las áreas (ahora listas para múltiples figuras)
+        # Procesar figuras detectadas
         area1_figuras = []
         area2_figuras = []
 
-        # Procesar cada figura detectada
         for shape, color, contour in figuras_detectadas:
             # Calcular el centro de la figura
             M = cv2.moments(contour)
@@ -3510,135 +3500,71 @@ def juego_dataflow(device):
                 cx = int(M['m10'] / M['m00']) + xw_min
                 cy = int(M['m01'] / M['m00']) + yw_min
 
-                # Mapear coordenadas de ventana a viewport
+                # Mapear coordenadas
                 sx = float(xv_max - xv_min) / (xw_max - xw_min)
                 sy = float(yv_max - yv_min) / (yw_max - yw_min)
-                
                 fx = int(xv_min + (cx - xw_min) * sx)
                 fy = int(yv_min + (cy - yw_min) * sy)
 
-                # Verificar si la figura está en la primera área
-                if figura_en_area_cuadrada((fx, fy), square1_x, square1_y, square_size):
+                # Verificar presencia en áreas
+                if figura_en_area_rectangular((fx, fy), rect1_x, rect1_y, square_width, square_height):
                     figura = (shape, color)
-                    if figura not in area1_figuras:  # Evitar duplicados
+                    if figura not in area1_figuras:
                         area1_figuras.append(figura)
 
-                # Verificar si la figura está en la segunda área
-                if figura_en_area_cuadrada((fx, fy), square2_x, square2_y, square_size):
+                if figura_en_area_rectangular((fx, fy), rect2_x, rect2_y, square_width, square_height):
                     figura = (shape, color)
-                    if figura not in area2_figuras:  # Evitar duplicados
+                    if figura not in area2_figuras:
                         area2_figuras.append(figura)
 
-        # Crear conjuntos para las operaciones
-        set1 = set(area1_figuras)
-        set2 = set(area2_figuras)
-        
-        # Mostrar figuras detectadas en cada área
+        # Mostrar detecciones por área
         for i, (shape, color) in enumerate(area1_figuras):
-            y_offset = i * 30  # Espaciado vertical para múltiples figuras
-            mostrar_figura_detectada_multiple(videobeam_screen, shape, color, square1_x, square1_y, square_size, 1, y_offset)
+            mostrar_figura_detectada_multiple(videobeam_screen, shape, color, 
+                                             rect1_x, rect1_y, square_width, square_height, 1, i * 30)
 
         for i, (shape, color) in enumerate(area2_figuras):
-            y_offset = i * 30  # Espaciado vertical para múltiples figuras
-            mostrar_figura_detectada_multiple(videobeam_screen, shape, color, square2_x, square2_y, square_size, 2, y_offset)
+            mostrar_figura_detectada_multiple(videobeam_screen, shape, color, 
+                                             rect2_x, rect2_y, square_width, square_height, 2, i * 30)
 
-        # Realizar operación de conjuntos
+        # Dibujar figuras detectadas en una capa separada
+        for shape, color, contour in figuras_detectadas:
+            M = cv2.moments(contour)
+            if M['m00'] != 0:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                cv2.drawContours(videobeam_screen, [contour], -1, (255, 255, 255), 2)
+                cv2.putText(videobeam_screen, f"{shape} {color}", (cx, cy), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+        # Realizar y mostrar operación de conjuntos
+        set1 = set(area1_figuras)
+        set2 = set(area2_figuras)
         resultado_conjuntos = realizar_operacion_conjuntos(set1, set2, operacion_actual)
-        
-        # Dibujar el resultado de la operación en el centro, más arriba
-        center_x = (square1_x + square2_x + square_size) // 2
-        center_y = square1_y + square_size + 80  # Más cerca de las áreas de detección
-        
-        # Mostrar la operación actual
-        nombres_operaciones = {
-            'union': 'Union',
-            'interseccion': 'Interseccion', 
-            'diferencia': 'Diferencia',
-            'diferencia_simetrica': 'Diferencia Simetrica'
-        }
-        nombre_operacion = nombres_operaciones.get(operacion_actual, operacion_actual)
-        cv2.putText(videobeam_screen, f"Operacion: {nombre_operacion}", (center_x - 100, center_y - 30), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-        
-        # Dibujar el resultado real de la operación de conjuntos
-        dibujar_resultado_conjuntos(videobeam_screen, resultado_conjuntos, center_x, center_y, operacion_actual)
-        
-        # Mostrar información detallada de todos los conjuntos en la parte inferior
-        info_y_start = videobeam_screen.shape[0] - 200  # 200 píxeles desde abajo
-        
-        # Título de la sección de información
-        cv2.putText(videobeam_screen, "INFORMACION DE CONJUNTOS:", (50, info_y_start - 20), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-        
-        # Información del Conjunto 1
-        cv2.putText(videobeam_screen, "Conjunto 1:", (50, info_y_start + 10), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-        if area1_figuras:
-            for i, (shape, color) in enumerate(area1_figuras):
-                texto = f"  {i+1}. {shape} {color}"
-                cv2.putText(videobeam_screen, texto, (70, info_y_start + 30 + i*20), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-        else:
-            cv2.putText(videobeam_screen, "  (Vacio)", (70, info_y_start + 30), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (128, 128, 128), 1)
-        
-        # Información del Conjunto 2
-        conjunto2_y = info_y_start + 80
-        cv2.putText(videobeam_screen, "Conjunto 2:", (50, conjunto2_y), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-        if area2_figuras:
-            for i, (shape, color) in enumerate(area2_figuras):
-                texto = f"  {i+1}. {shape} {color}"
-                cv2.putText(videobeam_screen, texto, (70, conjunto2_y + 20 + i*20), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-        else:
-            cv2.putText(videobeam_screen, "  (Vacio)", (70, conjunto2_y + 20), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (128, 128, 128), 1)
-        
-        # Información del Resultado
-        resultado_y = info_y_start + 150
-        cv2.putText(videobeam_screen, f"Resultado ({nombre_operacion}):", (50, resultado_y), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-        if resultado_conjuntos:
-            for i, (shape, color) in enumerate(resultado_conjuntos):
-                texto = f"  {i+1}. {shape} {color}"
-                cv2.putText(videobeam_screen, texto, (70, resultado_y + 20 + i*20), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
-        else:
-            cv2.putText(videobeam_screen, "  (Conjunto vacio)", (70, resultado_y + 20), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (128, 128, 128), 1)
+        dibujar_resultado_conjuntos(videobeam_screen, resultado_conjuntos, operacion_actual)
 
-        # Mostrar información de las áreas en la consola
-       
+        # Mostrar información en la parte inferior (opcional)
+        info_y = view_height - 50
+        cv2.putText(videobeam_screen, "Presiona 'o' para cambiar operacion | 'q' para salir", 
+                   (50, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
 
-        # Mostrar la pantalla del videobeam
+        # Mostrar ventanas
         cv2.namedWindow("Dataflow", cv2.WND_PROP_FULLSCREEN)
         cv2.moveWindow("Dataflow", 1920, 0)
         cv2.setWindowProperty("Dataflow", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow("Dataflow", videobeam_screen)
-
-        # Mostrar la detección en una ventana separada
         cv2.imshow("Detección", area_trabajo)
 
-        # Verificar teclas presionadas
+        # Manejo de teclas
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
         elif key == ord('o'):
-            # Cambiar operación de conjuntos
             indice_operacion = (indice_operacion + 1) % len(operaciones_disponibles)
             operacion_actual = operaciones_disponibles[indice_operacion]
-            nombres_operaciones = {
-                'union': 'Unión',
-                'interseccion': 'Intersección', 
-                'diferencia': 'Diferencia',
-                'diferencia_simetrica': 'Diferencia Simétrica'
-            }
-            nombre_operacion = nombres_operaciones.get(operacion_actual, operacion_actual)
-            print(f"\nOperación cambiada a: {nombre_operacion}")
 
     rgb_stream.stop()
     cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     # Inicializar OpenNI2

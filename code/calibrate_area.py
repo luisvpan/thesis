@@ -49,7 +49,7 @@ def calculate_dmax(device, calibrated_area, xv_min, yv_min, xv_max, yv_max, num_
     # Generar el mapa dmax basado en la moda de la profundidad
     dmax_map = np.argmax(depth_accum, axis=2) + min_depth
 
-    np.savetxt("code/config/dmax_map.txt", dmax_map.flatten(), fmt="%d")
+    np.savetxt("config/dmax_map.txt", dmax_map.flatten(), fmt="%d")
     
     # Mostrar mensaje de finalización
     cv2.rectangle(proyeccion, (xv_min, yv_min), (xv_max, yv_max), (0,0,0), -1)
