@@ -3400,7 +3400,7 @@ def juego_dataflow(device):
     # Función para dibujar el resultado a la derecha
     # Función para dibujar el resultado a la derecha
     def dibujar_resultado_conjuntos(screen, resultado, operacion):
-        right_margin = view_width - 300
+        right_margin = view_width - 600
         center_y = view_height // 2
         
         # Nombre de la operación
