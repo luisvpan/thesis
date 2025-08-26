@@ -134,5 +134,5 @@ Una vez definidos los requerimientos, se implementará una metodología basada e
 Una vez completado este proceso, los incrementos validados se integran para obtener el producto final.
 
 // Capítulo IV
-Capítulo IV. Desarrollo y Resultados
+= Capítulo IV. Desarrollo y Resultados
 ¿Basarnos en el cronograma de actividades original para iniciar con la redacción?
