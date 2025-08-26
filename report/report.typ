@@ -132,3 +132,7 @@ En el modelo de desarrollo de software por prototipos, se desarrollan rápidamen
 En este caso, se utilizará como base el trabajo de investigación “Entorno de Realidad Aumentada Espacial para el Desarrollo de Juegos Sociales Dirigidos a Niños de Educación Preescolar”, que servirá como punto de partida para el modelado y diseño de los primeros prototipos. A partir de los resultados obtenidos con los prototipos, se definirán los requerimientos finales del entorno a desarrollar.
 Una vez definidos los requerimientos, se implementará una metodología basada en el modelo de desarrollo de software incremental, dividiendo el proyecto en incrementos que se desarrollarán de forma secuencial y segura. Según Pressman (2013), el modelo incremental se divide en cinco fases: Comunicación, Planeación, Modelado (que incluye análisis y diseño), Construcción y Despliegue. En la fase de Comunicación, los miembros del equipo se reúnen para definir los objetivos del incremento. Luego, en la fase de Planeación, se planifica la iteración y se realiza un modelado rápido. Finalmente, se lleva a cabo la construcción del incremento y se valida el resultado final.
 Una vez completado este proceso, los incrementos validados se integran para obtener el producto final.
+
+// Capítulo IV
+Capítulo IV. Desarrollo y Resultados
+¿Basarnos en el cronograma de actividades original para iniciar con la redacción?
