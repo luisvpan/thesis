@@ -115,3 +115,20 @@ La Preparatoria Panamericana (2020) define al aprendizaje colaborativo como el �
 García-Bullé del Tecnológico de Monterrey (2021) define la neurodiversidad como “los individuos que viven con autismo principalmente, pero también abarca dislexia, dispraxia, déficit atencional con hiperactividad (TDAH), u otras condiciones que les llevan a navegar procesos cognitivos y emocionales de manera distinta a la norma.” El término se originó en los años 90 para promover la aceptación y el trato normal a personas que pueden actuar de forma diferente. Judy Singer (socióloga que acuñó el término en los años 90) visualiza la neurodiversidad como un “movimiento de justicia social”, con el objetivo de resaltar aquellos beneficios que tienen estas personas y generar comprensión con respecto a las limitaciones que conlleva la neurodiversidad. (Miller, 2024)
 === Visión por computador.
 EDS Robotics (2022) la define como “un grupo de tecnologías o herramientas que permiten a los equipos captar imágenes del mundo real, procesarlas y generar información a través de ellas”. Gracias a estas tecnologías, se puede obtener información del entorno físico para posteriormente ser procesada y plasmada en una pantalla de entorno digital. Esta información se capta a través de un sensor, que envía las imágenes o datos a un dispositivo de interpretación que busca reconocer patrones previamente obtenidos.
+
+// Capítulo III
+= Capítulo III. Marco Metodológico
+
+== Tipo de Investigación
+¿Experimental Explicativa? (Tal y como las define Arias)
+
+== Técnicas e Instrumentos de Recolección de Datos
+¿Revisiones documentales que hicimos? ¿Investigaciones? ¿Revistas, foros y demás del internet que revisamos?
+
+== Metodología de Desarrollo Utilizada
+// TODO: Revisar esto bien.
+Al analizar las características del trabajo de investigación, se considera el enfoque a adoptar. Dado que no se prevé un contacto constante con el cliente y que los requisitos aún no están bien definidos, se decidió optar por un enfoque tradicional. Se partirá de una metodología basada en el modelo de desarrollo de software por prototipos, con el fin de definir los requisitos finales a través de los prototipos realizados y las pruebas correspondientes.
+En el modelo de desarrollo de software por prototipos, se desarrollan rápidamente prototipos antes del producto final para validar la funcionalidad y el diseño del software, permitiendo obtener resultados tempranos que reduzcan riesgos. Además, establecen puntos de partida que aclaran la visión del producto final, ya que, aunque se tiene una idea de lo que se quiere lograr, no siempre se conoce la viabilidad del producto.
+En este caso, se utilizará como base el trabajo de investigación “Entorno de Realidad Aumentada Espacial para el Desarrollo de Juegos Sociales Dirigidos a Niños de Educación Preescolar”, que servirá como punto de partida para el modelado y diseño de los primeros prototipos. A partir de los resultados obtenidos con los prototipos, se definirán los requerimientos finales del entorno a desarrollar.
+Una vez definidos los requerimientos, se implementará una metodología basada en el modelo de desarrollo de software incremental, dividiendo el proyecto en incrementos que se desarrollarán de forma secuencial y segura. Según Pressman (2013), el modelo incremental se divide en cinco fases: Comunicación, Planeación, Modelado (que incluye análisis y diseño), Construcción y Despliegue. En la fase de Comunicación, los miembros del equipo se reúnen para definir los objetivos del incremento. Luego, en la fase de Planeación, se planifica la iteración y se realiza un modelado rápido. Finalmente, se lleva a cabo la construcción del incremento y se valida el resultado final.
+Una vez completado este proceso, los incrementos validados se integran para obtener el producto final.
