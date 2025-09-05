@@ -355,13 +355,20 @@ def juego_dataflow(device):
         if frame is None:
             continue
 
-        rgb_data = np.frombuffer(frame.get_buffer_as_uint8(), dtype=np.uint8).reshape(480, 640, 3)
+        rgb_data = np.frombuffer(frame.get_buffer_as_uint8(), dtype=np.uint8).reshape((frame.height, frame.width, 3))
         bgr_data = cv2.cvtColor(rgb_data, cv2.COLOR_RGB2BGR)
         bgr_data = cv2.flip(bgr_data, 1)
 
         # Recortar el área de trabajo
         area_trabajo = bgr_data[yw_min:yw_max, xw_min:xw_max]
 
+        # Verificar que el área de trabajo no esté vacía
+        if area_trabajo.size == 0:
+            print("Área de trabajo vacía. Verifica las coordenadas de recorte.")
+            continue
+
+        # Detectar figuras en el área de trabajo
+        figuras_detectadas = detect_color_and_shape(area_trabajo)
         # Detectar figuras en el área de trabajo
         figuras_detectadas = detect_color_and_shape(area_trabajo)
 
