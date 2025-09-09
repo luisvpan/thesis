@@ -3,8 +3,8 @@
     "xv_max": 1005,
     "yv_min": 275,
     "yv_max": 775,
-    "xw_min": 746,
-    "xw_max": 889,
-    "yw_min": 52,
-    "yw_max": 197
+    "xw_min": 154,
+    "xw_max": 600,
+    "yw_min": 99,
+    "yw_max": 368
 }
