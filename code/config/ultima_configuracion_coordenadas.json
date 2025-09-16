@@ -1,10 +1,10 @@
 {
-    "xv_min": 275,
-    "xv_max": 1005,
-    "yv_min": 275,
-    "yv_max": 775,
-    "xw_min": 154,
-    "xw_max": 600,
-    "yw_min": 99,
-    "yw_max": 368
+    "xv_min": 25,
+    "xv_max": 1895,
+    "yv_min": 25,
+    "yv_max": 1055,
+    "xw_min": 502,
+    "xw_max": 512,
+    "yw_min": 107,
+    "yw_max": 295
 }
