@@ -7,7 +7,7 @@ import json
 
 depth_camera_resolution = (424, 512)  # Resolución de la cámara de profundidad del Kinect v2, altura * ancho
 color_camera_resolution = (1080, 1920)  # Resolución de la cámara de color del Kinect v2, altura * ancho
-video_beam_resolution = (1080, 1920)  # Resolución del videobeam, altura * ancho
+video_beam_resolution = (1080, 1920) # Resolución del videobeam, altura * ancho
 white = (255, 255, 255)
 
 # Función para mostrar un mensaje en pantalla
@@ -27,8 +27,8 @@ def calculate_dmax(device, calibrated_area, xv_min, yv_min, xv_max, yv_max, num_
     print(f"{w} * {h} = {w * h} ")
 
     # Definir un rango de profundidad para optimizar el uso de memoria
-    min_depth = 500  # Ajusta según tu aplicación
-    max_depth = 2900
+    min_depth = 650  # Ajusta según tu aplicación
+    max_depth = 6300
     depth_accum = np.zeros((h, w, max_depth - min_depth + 1), dtype=int)
 
     # Crear una ventana de proyección para mostrar el mensaje
@@ -69,10 +69,10 @@ def proyectar_cuadrados(view_width, view_height):
     proyeccion = np.zeros((view_height, view_width, 3), dtype=np.uint8)
     cuadrado_size = 50
     margen = 0
-
+    margen_derecho = 300
     # Cuadrado inferior izquierdo
     x_izquierda = margen
-    y_izquierda = view_height - cuadrado_size 
+    y_izquierda = view_height - cuadrado_size
     cv2.rectangle(proyeccion, (x_izquierda, y_izquierda),
                   (x_izquierda + cuadrado_size, y_izquierda + cuadrado_size), white, -1)
 
@@ -80,8 +80,8 @@ def proyectar_cuadrados(view_width, view_height):
     cy_izquierda = y_izquierda + cuadrado_size // 2
 
     # Cuadrado superior derecho
-    y_derecha = margen
-    x_derecha = view_width - margen - cuadrado_size
+    y_derecha = margen + margen_derecho
+    x_derecha = view_width - margen - cuadrado_size - margen_derecho
     cv2.rectangle(proyeccion, (x_derecha, y_derecha),
                   (x_derecha + cuadrado_size, y_derecha + cuadrado_size), white, -1)
 
@@ -107,7 +107,7 @@ def detectar_cuadrados_blancos(frame):
     cuadrados = []
     for i, cnt in enumerate(contours):
         area = cv2.contourArea(cnt)
-        if area > 300:
+        if area > 250:
             epsilon = 0.02 * cv2.arcLength(cnt, True)
             approx = cv2.approxPolyDP(cnt, epsilon, True)
             if len(approx) == 4:
@@ -122,6 +122,7 @@ def calibrar_mesa_y_detectar_toques(device):
 
     # Crear una ventana para la proyección
     cv2.namedWindow("Proyeccion", cv2.WINDOW_NORMAL)
+    cv2.moveWindow("Proyeccion", 1920, 0)
     cv2.setWindowProperty("Proyeccion", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     # Iniciar los streams de color y profundidad
@@ -179,14 +180,14 @@ def calibrar_mesa_y_detectar_toques(device):
                 print(f"Luego de max: {yw_max}")
 
                 # Escalar las coordenadas de la ROI de profundidad
-                factor_escala_x = 1.16
-                factor_escala_y = 1.12
+                factor_escala_x = 1
+                factor_escala_y = 1
 
                 xw_centro = (xw_min + xw_max) // 2
                 yw_centro = (yw_min + yw_max) // 2
 
                 # Aplicar escalado
-                xw_min = xw_min - 10
+                #xw_min = xw_min - 10
                 xw_max_escalado = min(depth_camera_resolution[1], int(xw_centro + (xw_max - xw_centro) * factor_escala_x))
                 yw_min_escalado = max(0, int(yw_centro - (yw_centro - yw_min) * factor_escala_y))
 
@@ -236,7 +237,7 @@ def calibrar_mesa_y_detectar_toques(device):
             previous_roi = None
             touch_history = []
             vibration_threshold = 15  # Umbral para vibraciones
-            touch_duration_threshold = 5  # Duración de toque requerida
+            touch_duration_threshold = 1  # Duración de toque requerida
 
             # Crear la proyección usando las dimensiones del área de trabajo
             proyeccion = np.zeros((view_height, view_width, 3), dtype=np.uint8)
@@ -281,9 +282,9 @@ def calibrar_mesa_y_detectar_toques(device):
 
                 # Identificar componentes conectados
                 num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(touch_mask_final, connectivity=8)
-                min_size = 100  # Tamaño mínimo para considerar un área como toque válido
+                min_size = 4  # Tamaño mínimo para considerar un área como toque válido
                 for i in range(1, num_labels):
-                    if stats[i, cv2.CC_STAT_AREA] < min_size:
+                    if stats[i, cv2.CC_STAT_AREA] <= min_size:
                         touch_mask_final[labels == i] = 0
 
                 touch_history.append(touch_mask_final)
@@ -360,7 +361,7 @@ def calibrar_mesa_y_detectar_toques(device):
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    openni2.initialize("C:/Development Program Files/OpenNI2/Redist")  # Cambia esta ruta según tu instalación
+    openni2.initialize("C:/Program Files/OpenNI2/Redist")  # Cambia esta ruta según tu instalación
     device = openni2.Device.open_any()
 
     calibrar_mesa_y_detectar_toques(device)
