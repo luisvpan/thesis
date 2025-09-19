@@ -86,6 +86,32 @@ while True:
 	edges_sobel = np.uint8(np.clip(edges_sobel, 0, 255))
 	cv2.imshow("Sobel Edges", edges_sobel)
 
+	# --- MÁSCARA BASADA EN SOBEL Y RANGO DE ESCALA DE GRISES ---
+	# Normalizar la imagen de Sobel a 0-255
+	sobel_norm = cv2.normalize(edges_sobel, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+	# Definir el rango de escala de grises (ajusta estos valores a tu necesidad)
+	min_val = 50  # valor mínimo del rango
+	max_val = 150 # valor máximo del rango
+
+	# Crear la máscara: blanco (255) si está dentro del rango, negro (0) si no
+	mask_range = cv2.inRange(sobel_norm, min_val, max_val)
+
+	# Mostrar la máscara resultante
+	cv2.imshow("Sobel Mask Range", mask_range)
+
+
+	# --- Aplicar la máscara de contornos a la máscara de rango ---
+	# Crear una máscara binaria de los contornos de Sobel
+	mask_contours = np.zeros_like(mask_range)
+	cv2.drawContours(mask_contours, contours_sobel, -1, 255, thickness=2)
+
+	# AND entre la máscara de rango y la de contornos
+	mask_final = cv2.bitwise_and(mask_range, mask_contours)
+
+	# Mostrar la máscara combinada
+	cv2.imshow("Sobel Mask Range + Contours", mask_final)
+
 	# Umbral adaptativo para separar mejor los objetos
 	thresh = cv2.adaptiveThreshold(mask_clean, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
 								   cv2.THRESH_BINARY, 11, 2)
