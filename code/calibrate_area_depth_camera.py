@@ -1,0 +1,106 @@
+import cv2
+from openni import openni2
+import numpy as np
+import time
+
+# Configuración de la cámara
+depth_camera_resolution = (512, 424) # px
+depth_camera_fps = 30
+
+# Inicializar OpenNI
+openni2.initialize("C:/Program Files/OpenNI2/Redist")
+device = openni2.Device.open_any()
+
+depth_stream = device.create_depth_stream()
+if depth_stream is None:
+	print("No depth stream found")
+	exit(1)
+
+depth_stream.set_video_mode(
+	openni2.VideoMode(
+		pixelFormat=openni2.PIXEL_FORMAT_DEPTH_1_MM,
+		resolutionX=depth_camera_resolution[0],
+		resolutionY=depth_camera_resolution[1],
+		fps=depth_camera_fps
+	)
+)
+depth_stream.start()
+
+cv2.namedWindow("Depth Contours", cv2.WINDOW_NORMAL)
+
+
+while True:
+	depth_frame = depth_stream.read_frame()
+	depth_image = np.frombuffer(depth_frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[::-1])
+	depth_image = cv2.flip(depth_image, 1)
+
+	# Mostrar valores de profundidad para depuración
+	# print(f"Profundidad min: {np.min(depth_image)}, max: {np.max(depth_image)}, media: {np.mean(depth_image):.2f}", end='\r')
+
+	# Normalizar y convertir para visualización
+	# depth_vis = cv2.convertScaleAbs(depth_image, alpha=255.0/1000)
+	# depth_vis_color = cv2.applyColorMap(depth_vis, cv2.COLORMAP_JET)
+
+	# Definir profundidad mínima y máxima en milímetros (ajusta estos valores según la salida de depuración)
+	max_depth = np.max(depth_image)  # ejemplo: 1500mm
+	min_depth = np.min(depth_image)   # ejemplo: 500mm
+
+	print("Profundidad máxima: ", max_depth)
+	print("Profundidad minima: ", min_depth)
+	print("Moda:", np.bincount(depth_image.flatten()).argmax())
+
+	depth_frame = depth_stream.read_frame()
+	depth_image = np.frombuffer(depth_frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[::-1])
+	depth_image = cv2.flip(depth_image, 1)
+	# depth_image = cv2.convertScaleAbs(depth_image, alpha=255.0/max_depth)
+
+	# Crear máscara para el rango de profundidad
+	# depth_image = cv2.threshold(depth_image, min_depth, -1, cv2.THRESH_TOZERO)[1]  # Eliminar valores cercanos a 0
+	# depth_image = cv2.threshold(depth_image, max_depth, -1, cv2.THRESH_TOZERO_INV)[1]  # Eliminar valores cercanos a 0
+
+	depth_min = np.min(depth_image)
+	depth_max = np.max(depth_image)
+	# Escalar depth_image a [0, 255] usando su rango real
+	# depth_image = ((depth_image - depth_min) / (depth_max - depth_min) * 255).astype(np.uint8)
+	# Mostrar la máscara para depuración
+	# cv2.imshow("Depth Image", depth_image)
+
+	# print("Profundidad maxima tras transformación: ", np.max(depth_image))
+	# print("Profundidad minima tras transformación: ", np.min(depth_image))
+
+	# Calcula los percentiles para ignorar outliers
+	lower = np.percentile(depth_image, 2)
+	upper = np.percentile(depth_image, 98)
+	depth_clipped = np.clip(depth_image, lower, upper)
+	mask_clean = cv2.normalize(depth_clipped, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+	cv2.imshow("Mask clean", mask_clean)
+
+	# Opcional: limpiar la máscara
+	# mask_clean = cv2.morphologyEx(mask_clean, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8))
+
+	# Realce de bordes con Canny
+	edges = cv2.Canny(mask_clean, np.mean(mask_clean) * 0.66, np.mean(mask_clean) * 1.33, L2gradient=True)
+
+	# Umbral adaptativo para separar mejor los objetos
+	thresh = cv2.adaptiveThreshold(mask_clean, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+								   cv2.THRESH_BINARY, 11, 2)
+
+	# Encontrar contornos en la imagen umbralizada
+	contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+	# Dibujar solo contornos que sean cuadrados (4 lados y convexos)
+	output = cv2.cvtColor(mask_clean, cv2.COLOR_GRAY2BGR)
+	for cnt in contours:
+		approx = cv2.approxPolyDP(cnt, 0.04*cv2.arcLength(cnt, True), True)
+		# if len(approx) == 4 and cv2.isContourConvex(approx):u
+		cv2.drawContours(output, [approx], -1, (0,255,0), 2)
+
+	cv2.imshow("Depth Contours", output)
+	key = cv2.waitKey()
+	if key == 27:  # ESC para salir
+		break
+
+depth_stream.stop()
+openni2.unload()
+cv2.destroyAllWindows()
