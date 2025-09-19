@@ -8,7 +8,7 @@ depth_camera_resolution = (512, 424) # px
 depth_camera_fps = 30
 
 # Inicializar OpenNI
-openni2.initialize("C:/Program Files/OpenNI2/Redist")
+openni2.initialize("C:/Development Program Files/OpenNI2/Redist")
 device = openni2.Device.open_any()
 
 depth_stream = device.create_depth_stream()
@@ -88,21 +88,32 @@ while True:
 
 	# --- MÁSCARA BASADA EN SOBEL Y RANGO DE ESCALA DE GRISES ---
 	# Normalizar la imagen de Sobel a 0-255
-	sobel_norm = cv2.normalize(edges_sobel, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+	# sobel_norm = cv2.normalize(edges_sobel, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
 	# Definir el rango de escala de grises (ajusta estos valores a tu necesidad)
 	min_val = 50  # valor mínimo del rango
-	max_val = 150 # valor máximo del rango
+	max_val = 100 # valor máximo del rango
 
 	# Crear la máscara: blanco (255) si está dentro del rango, negro (0) si no
-	mask_range = cv2.inRange(sobel_norm, min_val, max_val)
+	mask_range = cv2.inRange(edges_sobel, min_val, max_val)
+	mask_range = cv2.morphologyEx(mask_range, cv2.MORPH_GRADIENT, np.ones((5,5), np.uint8))
 
 	# Mostrar la máscara resultante
 	cv2.imshow("Sobel Mask Range", mask_range)
 
-
 	# --- Aplicar la máscara de contornos a la máscara de rango ---
 	# Crear una máscara binaria de los contornos de Sobel
+	# --- NUEVO: aplicar el mismo proceso para la máscara de Sobel ---
+	# Encontrar contornos en la máscara de Sobel
+	contours_sobel, _ = cv2.findContours(mask_range, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+	output_sobel = cv2.cvtColor(mask_range, cv2.COLOR_GRAY2BGR)
+	for cnt in contours_sobel:
+		area = cv2.contourArea(cnt)
+		if area >= 400 and area :
+			approx = cv2.approxPolyDP(cnt, 0.04*cv2.arcLength(cnt, True), True)
+			if len(approx) == 4 and cv2.isContourConvex(approx):
+				cv2.drawContours(output_sobel, [approx], -1, (0,255,0), 2)
+
 	mask_contours = np.zeros_like(mask_range)
 	cv2.drawContours(mask_contours, contours_sobel, -1, 255, thickness=2)
 
@@ -127,15 +138,6 @@ while True:
 			cv2.drawContours(output, [approx], -1, (0,255,0), 2)
 
 	cv2.imshow("Depth Contours", output)
-
-	# --- NUEVO: aplicar el mismo proceso para la máscara de Sobel ---
-	# Encontrar contornos en la máscara de Sobel
-	contours_sobel, _ = cv2.findContours(edges_sobel, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-	output_sobel = cv2.cvtColor(edges_sobel, cv2.COLOR_GRAY2BGR)
-	for cnt in contours_sobel:
-		approx = cv2.approxPolyDP(cnt, 0.04*cv2.arcLength(cnt, True), True)
-		if len(approx) == 4 and cv2.isContourConvex(approx):
-			cv2.drawContours(output_sobel, [approx], -1, (0,255,0), 2)
 
 	cv2.imshow("Sobel Contours", output_sobel)
 	key = cv2.waitKey()
