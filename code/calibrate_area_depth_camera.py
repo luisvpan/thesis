@@ -77,10 +77,14 @@ while True:
 	cv2.imshow("Mask clean", mask_clean)
 
 	# Opcional: limpiar la máscara
-	# mask_clean = cv2.morphologyEx(mask_clean, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8))
+	mask_clean = cv2.morphologyEx(mask_clean, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8))
 
-	# Realce de bordes con Canny
-	edges = cv2.Canny(mask_clean, np.mean(mask_clean) * 0.66, np.mean(mask_clean) * 1.33, L2gradient=True)
+	# Detector de bordes con Sobel
+	sobelx = cv2.Sobel(mask_clean, cv2.CV_64F, 1, 0, ksize=3)
+	sobely = cv2.Sobel(mask_clean, cv2.CV_64F, 0, 1, ksize=3)
+	edges_sobel = cv2.magnitude(sobelx, sobely)
+	edges_sobel = np.uint8(np.clip(edges_sobel, 0, 255))
+	cv2.imshow("Sobel Edges", edges_sobel)
 
 	# Umbral adaptativo para separar mejor los objetos
 	thresh = cv2.adaptiveThreshold(mask_clean, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
@@ -89,14 +93,25 @@ while True:
 	# Encontrar contornos en la imagen umbralizada
 	contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-	# Dibujar solo contornos que sean cuadrados (4 lados y convexos)
+	# Dibujar solo contornos que sean cuadrados (4 lados y convexos) en la máscara original
 	output = cv2.cvtColor(mask_clean, cv2.COLOR_GRAY2BGR)
 	for cnt in contours:
 		approx = cv2.approxPolyDP(cnt, 0.04*cv2.arcLength(cnt, True), True)
-		# if len(approx) == 4 and cv2.isContourConvex(approx):u
-		cv2.drawContours(output, [approx], -1, (0,255,0), 2)
+		if len(approx) == 4 and cv2.isContourConvex(approx):
+			cv2.drawContours(output, [approx], -1, (0,255,0), 2)
 
 	cv2.imshow("Depth Contours", output)
+
+	# --- NUEVO: aplicar el mismo proceso para la máscara de Sobel ---
+	# Encontrar contornos en la máscara de Sobel
+	contours_sobel, _ = cv2.findContours(edges_sobel, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+	output_sobel = cv2.cvtColor(edges_sobel, cv2.COLOR_GRAY2BGR)
+	for cnt in contours_sobel:
+		approx = cv2.approxPolyDP(cnt, 0.04*cv2.arcLength(cnt, True), True)
+		if len(approx) == 4 and cv2.isContourConvex(approx):
+			cv2.drawContours(output_sobel, [approx], -1, (0,255,0), 2)
+
+	cv2.imshow("Sobel Contours", output_sobel)
 	key = cv2.waitKey()
 	if key == 27:  # ESC para salir
 		break
