@@ -1,6 +1,9 @@
 import cv2
 from openni import openni2
 import numpy as np
+from tqdm import tqdm
+import PySimpleGUI as sg
+import json
 
 # Configuración de la cámara
 depth_camera_resolution = (512, 424) # px
@@ -12,24 +15,58 @@ white = (255, 255, 255)
 
 
 # Inicializar OpenNI
-openni2.initialize("C:/Development Program Files/OpenNI2/Redist")
+openni2.initialize("C:/Program Files/OpenNI2/Redist")
 device = openni2.Device.open_any()
 
-depth_stream = device.create_depth_stream()
-if depth_stream is None:
-	print("No depth stream found")
-	exit(1)
+# Función para mostrar un mensaje en pantalla
+def mostrar_mensaje(proyeccion, texto, xv_min, yv_min, xv_max, yv_max):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text_size = cv2.getTextSize(texto, font, 2, 4)[0]  # Obtener el tamaño del texto
+    text_x = xv_min + (xv_max - xv_min - text_size[0]) // 2  # Centrar horizontalmente
+    text_y = yv_min + (yv_max - yv_min + text_size[1]) // 2  # Centrar verticalmente
+    cv2.putText(proyeccion, texto, (text_x, text_y), font, 2, (255, 255, 255), 4, cv2.LINE_AA)
 
-depth_stream.set_video_mode(
-	openni2.VideoMode(
-		pixelFormat=openni2.PIXEL_FORMAT_DEPTH_1_MM,
-		resolutionX=depth_camera_resolution[0],
-		resolutionY=depth_camera_resolution[1],
-		fps=depth_camera_fps
-	)
-)
-depth_stream.start()
+# Función para calcular dmax_map con barra de progreso y mensaje
+def calculate_dmax(depth_stream, calibrated_area, xv_min, yv_min, xv_max, yv_max, num_frames=500):
+    x, y, w, h = calibrated_area
+    print(f"{w} * {h} = {w * h} ")
 
+    # Definir un rango de profundidad para optimizar el uso de memoria
+    min_depth = 650  # Ajusta según tu aplicación
+    max_depth = 800
+
+    depth_accum = np.zeros((h, w, max_depth - min_depth), dtype=np.uint16)
+
+    # Crear una ventana de proyección para mostrar el mensaje
+    proyeccion = np.zeros((depth_camera_resolution[0], depth_camera_resolution[1], 3), dtype=np.uint8)
+    mostrar_mensaje(proyeccion, "Calibrando...", xv_min, yv_min, xv_max, yv_max)
+    cv2.imshow("Proyeccion", proyeccion)
+    cv2.waitKey(1)
+
+    for _ in tqdm(range(num_frames), desc="Numero de frames", unit="frames"):
+        frame = depth_stream.read_frame()
+        depth_frame = np.frombuffer(frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[::-1])
+        depth_frame = cv2.flip(depth_frame, 1)
+        depth_roi = depth_frame[y:y+h, x:x+w]
+
+        # Vectorizado para contar frecuencias
+        valid_mask = (depth_roi >= min_depth) & (depth_roi <= max_depth)
+        valid_depth = depth_roi[valid_mask] - min_depth
+        indices = np.where(valid_mask)
+        depth_accum[indices[0], indices[1], valid_depth] += 1
+
+    # Generar el mapa dmax basado en la moda de la profundidad
+    dmax_map = np.argmax(depth_accum, axis=2) + min_depth
+
+    np.savetxt("config/dmax_map.txt", dmax_map.flatten(), fmt="%d")
+    
+    # Mostrar mensaje de finalización
+    cv2.rectangle(proyeccion, (xv_min, yv_min), (xv_max, yv_max), (0,0,0), -1)
+    mostrar_mensaje(proyeccion, "Calibracion Completada", xv_min, yv_min, xv_max, yv_max)
+    cv2.imshow("Proyeccion", proyeccion)
+    cv2.waitKey(1000)
+    
+    return dmax_map
 
 # Función para proyectar cuadrados de calibración
 def proyectar_cuadrados(view_width, view_height):
@@ -41,7 +78,7 @@ def proyectar_cuadrados(view_width, view_height):
     px = 640
     # Cuadrado inferior izquierdo
     x_izquierda = center[1] - px - cuadrado_size // 2
-    y_izquierda = center[0] + py - cuadrado_size // 2
+    y_izquierda = 100 + center[0] + py - cuadrado_size // 2
     cv2.rectangle(proyeccion, (x_izquierda, y_izquierda),
                   (x_izquierda + cuadrado_size, y_izquierda + cuadrado_size), white, -1)
 
@@ -50,7 +87,7 @@ def proyectar_cuadrados(view_width, view_height):
 
     # Cuadrado superior derecho
     x_derecha = center[1] + px - cuadrado_size // 2
-    y_derecha = center[0] - py - cuadrado_size // 2
+    y_derecha = 100 + center[0] - py - cuadrado_size // 2
     cv2.rectangle(proyeccion, (x_derecha, y_derecha),
                   (x_derecha + cuadrado_size, y_derecha + cuadrado_size), white, -1)
 
@@ -60,13 +97,13 @@ def proyectar_cuadrados(view_width, view_height):
     return proyeccion, x_izquierda, y_izquierda, x_derecha, y_derecha, cuadrado_size, (cx_izquierda, cy_izquierda), (cx_derecha, cy_derecha)
 
 
-def detectar_cuadrados_blancos(frame):
+def detectar_cuadrados_blancos(depth_frame):
     print("Detectando cuadrados blancos con Sobel...")
 
-    lower = np.percentile(frame, 2)
-    upper = np.percentile(frame, 98)
-    frame_clipped = np.clip(frame, lower, upper)
-    mask_clean = cv2.normalize(frame_clipped, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    lower = np.percentile(depth_frame, 2)
+    upper = np.percentile(depth_frame, 98)
+    depth_clipped = np.clip(depth_frame, lower, upper)
+    mask_clean = cv2.normalize(depth_clipped, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
     cv2.imshow("Mask clean", mask_clean)
 
@@ -85,20 +122,25 @@ def detectar_cuadrados_blancos(frame):
     mask_range = cv2.inRange(edges_sobel, min_val, max_val)
     mask_range = cv2.morphologyEx(mask_range, cv2.MORPH_GRADIENT, np.ones((5,5), np.uint8))
 
+    cv2.imshow("Sobel Mask Range", mask_range)
+
     contours_sobel, _ = cv2.findContours(mask_range, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     output_sobel = cv2.cvtColor(mask_range, cv2.COLOR_GRAY2BGR)
-    cuadrados = []
+    squares = []
     for cnt in contours_sobel:
         area = cv2.contourArea(cnt)
-        if area >= 400 and area <= 800:
+        if area >= 400:
             approx = cv2.approxPolyDP(cnt, 0.04*cv2.arcLength(cnt, True), True)
+            print(approx)
             if len(approx) == 4 and cv2.isContourConvex(approx):
+                squares.append((approx, area))
                 cv2.drawContours(output_sobel, [approx], -1, (0,255,0), 2)
-                cuadrados.append((approx, area))
     # Mostrar la máscara combinada
-    cv2.imshow("Sobel Mask Range + Contours", output_sobel)
-    cuadrados = sorted(cuadrados, key=lambda x: x[1])
-    return [cuadrado[0] for cuadrado in cuadrados]
+    cv2.imshow("Sobel Contours", output_sobel)
+    print(len(squares))
+    squares = sorted(squares, key=lambda x: x[1])
+    print(squares)
+    return [square[0] for square in squares]
 
 def calibrate_area(device):
 
@@ -111,15 +153,23 @@ def calibrate_area(device):
     cv2.setWindowProperty("Proyeccion", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     depth_stream = device.create_depth_stream()
+    if depth_stream is None:
+        print("No depth stream found")
+        exit(1)
+
+    depth_stream.set_video_mode(
+        openni2.VideoMode(
+            pixelFormat=openni2.PIXEL_FORMAT_DEPTH_1_MM,
+            resolutionX=depth_camera_resolution[0],
+            resolutionY=depth_camera_resolution[1],
+            fps=depth_camera_fps
+        )
+    )
     depth_stream.start()
     depth_frame = depth_stream.read_frame()
     depth_image = np.frombuffer(depth_frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[::-1])
     depth_image = cv2.flip(depth_image, 1)
-
-    frame = depth_stream.read_frame()
-    frame_data = frame.get_buffer_as_uint8()
-    frame_array = np.ndarray((frame.height, frame.width), dtype=np.uint8, buffer=frame_data)
-    frame_array = cv2.flip(frame_array, 1)
+    frame_array = depth_image
 
     while True:
         
@@ -130,39 +180,6 @@ def calibrate_area(device):
         # print(f"Profundidad min: {np.min(depth_image)}, max: {np.max(depth_image)}, media: {np.mean(depth_image):.2f}", end='\r')ZZZ
         # Encontrar contornos en la máscara de Sobel
        
-        lower = np.percentile(depth_image, 2)
-        upper = np.percentile(depth_image, 98)
-        depth_clipped = np.clip(depth_image, lower, upper)
-        mask_clean = cv2.normalize(depth_clipped, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-
-        cv2.imshow("Mask clean", mask_clean)
-
-        # Opcional: limpiar la máscara
-        mask_clean = cv2.morphologyEx(mask_clean, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8))
-
-        sobelx = cv2.Sobel(mask_clean, cv2.CV_64F, 1, 0, ksize=3)
-        sobely = cv2.Sobel(mask_clean, cv2.CV_64F, 0, 1, ksize=3)
-        edges_sobel = cv2.magnitude(sobelx, sobely)
-        edges_sobel = np.uint8(np.clip(edges_sobel, 0, 255))
-
-        min_val = 50  # valor mínimo del rango
-        max_val = 100 # valor máximo del rango
-
-        # Crear la máscara: blanco (255) si está dentro del rango, negro (0) si no
-        mask_range = cv2.inRange(edges_sobel, min_val, max_val)
-        mask_range = cv2.morphologyEx(mask_range, cv2.MORPH_GRADIENT, np.ones((5,5), np.uint8))
-
-        contours_sobel, _ = cv2.findContours(mask_range, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        output_sobel = cv2.cvtColor(mask_range, cv2.COLOR_GRAY2BGR)
-        for cnt in contours_sobel:
-            area = cv2.contourArea(cnt)
-            if area >= 400 and area <= 800:
-                approx = cv2.approxPolyDP(cnt, 0.04*cv2.arcLength(cnt, True), True)
-                if len(approx) == 4 and cv2.isContourConvex(approx):
-                    cv2.drawContours(output_sobel, [approx], -1, (0,255,0), 2)
-        # Mostrar la máscara combinada
-        cv2.imshow("Sobel Mask Range + Contours", output_sobel)
-
         # Normalizar y convertir para visualización
         # depth_vis = cv2.convertScaleAbs(depth_image, alpha=255.0/1000)
         # depth_vis_color = cv2.applyColorMap(depth_vis, cv2.COLORMAP_JET)
@@ -170,115 +187,232 @@ def calibrate_area(device):
         print(len(cuadrados_detectados), " cuadrados detectados.")
         if len(cuadrados_detectados) >= 2:
             puntos_camara = []
-            for cuadrado in cuadrados_detectados[:2]:
+            for i, cuadrado in enumerate(cuadrados_detectados[:2]):
                 M = cv2.moments(cuadrado)
-                if M['m00'] != 0:
-                    cx = int(M['m10'] / M['m00'])
-                    cy = int(M['m01'] / M['m00'])
+                print("---------")
+                print(M)
+                area = int(M['m00'])
+                if area != 0:
+                    cx = int(M['m10']) // area
+                    cy = int(M['m01']) // area
+                    print(f"Area: {area}")
+                    print(f"Centroid: ({cx}, {cy})")
                     puntos_camara.append([cx, cy])
-                    cv2.drawContours(frame_array, [cuadrado], -1, (0, 255, 0), 2)
-                    cv2.circle(frame_array, (cx, cy), 5, (0, 0, 255), -1)
+                    lower = np.percentile(frame_array, 2)
+                    upper = np.percentile(frame_array, 98)
+                    depth_clipped = np.clip(frame_array, lower, upper)
+                    mask_clean = cv2.normalize(depth_clipped, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+                    img_contour = np.zeros_like(mask_clean)
+                    img_contour = cv2.cvtColor(img_contour, cv2.COLOR_GRAY2BGR)
+                    cv2.drawContours(img_contour, [cuadrado], -1, (0, 255, 0), 2)
+                    cv2.circle(img_contour, (cx, cy), 5, (0, 0, 255), -1)
+                    cv2.imshow(f"Detected squares centroids {i + 1}", img_contour)
 
             if len(puntos_camara) == 2:
-                xw_min, xw_max = sorted([puntos_camara[1][0], puntos_camara[0][0]]) #vmin, vmax
-                yw_min, yw_max = sorted([puntos_camara[0][1], puntos_camara[1][1]]) #umin, umax
+                print(puntos_camara)
+                xw_min, xw_max = [puntos_camara[1][0], puntos_camara[0][0]] #vmin, vmax
+                yw_min, yw_max = [puntos_camara[0][1], puntos_camara[1][1]] #umin, umax
 
-                x1, y1 = centroide_izquierda
-                x2, y2 = centroide_derecha
+                xv_min, yv_max = centroide_izquierda
+                xv_max, yv_min = centroide_derecha
 
-                xv_min, xv_max = sorted([x1, x2])
-                yv_min, yv_max = sorted([y1, y2])
+                print(f"xw_min: {xw_min}, xw_max: {xw_max}, yw_min: {yw_min}, yw_max: {yw_max}")
+                print(f"xv_min: {xv_min}, xv_max: {xv_max}, yv_min: {yv_min}, yv_max: {yv_max}")
 
-                xw_min = max(0, min(xw_min, depth_camera_resolution[1]))
-                xw_max = max(0, min(xw_max, depth_camera_resolution[1]))
-                yw_min = max(0, min(yw_min, depth_camera_resolution[0]))
-                yw_max = max(0, min(yw_max, depth_camera_resolution[0]))
-                print(f"Luego de max: {yw_max}")
+                # xv_min, xv_max = sorted([x1, x2])
+                # yv_min, yv_max = sorted([y1, y2])
+                # xv_min, yv_min = x1, y2
+                # xv_max, yv_max = x2, y1
+
+                sx = (xv_max - xv_min)/(xw_max - xw_min)
+                sy = (yv_max - yv_min)/(yw_max - yw_min)
+
+                def transform_depth_window_to_viewport(xw: int, yw: int) -> tuple[int, int]:
+                    return int(xv_min + (xw - xw_min) * sx), int(yv_min + (yw - yw_min) * sy)
+
+                xw_min_viewport_transformed, yw_min_viewport_transformed = transform_depth_window_to_viewport(xw_min, yw_min)
+                xw_max_viewport_transformed, yw_max_viewport_transformed = transform_depth_window_to_viewport(xw_max, yw_max)
+
+                # print(f"Transformed to viewport: ({xw_min_viewport_transformed}, {yw_min_viewport_transformed}) | ({xw_max_viewport_transformed}, {yw_max_viewport_transformed})")
+
+                # xw_min = max(0, min(xw_min, depth_camera_resolution[1]))
+                # xw_max = max(0, min(xw_max, depth_camera_resolution[1]))
+                # yw_min = max(0, min(yw_min, depth_camera_resolution[0]))
+                # yw_max = max(0, min(yw_max, depth_camera_resolution[0]))
+                # print(f"Luego de max: {yw_max}")
 
                 # Escalar las coordenadas de la ROI de profundidad
-                factor_escala_x = 1
-                factor_escala_y = 1
+                # factor_escala_x = 1
+                # factor_escala_y = 1
 
-                xw_centro = (xw_min + xw_max) // 2
-                yw_centro = (yw_min + yw_max) // 2
+                # xw_centro = (xw_min + xw_max) // 2
+                # yw_centro = (yw_min + yw_max) // 2
+                # xw_centro = center[1]
+                # yw_centro = 100 + center[0]
 
                 # Aplicar escalado
                 #xw_min = xw_min - 10
-                xw_max_escalado = min(depth_camera_resolution[1], int(xw_centro + (xw_max - xw_centro) * factor_escala_x))
-                yw_min_escalado = max(0, int(yw_centro - (yw_centro - yw_min) * factor_escala_y))
+                # xw_max_escalado = min(depth_camera_resolution[1], int(xw_centro + (xw_max - xw_centro) * factor_escala_x))
+                # yw_min_escalado = max(0, int(yw_centro - (yw_centro - yw_min) * factor_escala_y))
 
                 # Dibujar el rectángulo de depuración sobre la proyección para verificar que pasa por los cuadrados
-                cv2.rectangle(proyeccion, (xv_min, yv_min), (xv_max, yv_max), (0, 255, 0), 2)
+                cv2.rectangle(proyeccion, (xw_min_viewport_transformed, yw_min_viewport_transformed), (xw_max_viewport_transformed, yw_max_viewport_transformed), (0, 255, 0), 2)
 
                 # Mostrar el rectángulo en la proyección
                 cv2.imshow("Proyeccion", proyeccion)
 
-                cv2.rectangle(frame_array, (xw_min, yw_min_escalado), (xw_max_escalado, yw_max), (255, 0, 0), 2)
+                frame_array = cv2.cvtColor(frame_array, cv2.COLOR_GRAY2BGR)
+                cv2.rectangle(frame_array, (xw_min, yw_min), (xw_max, yw_max), (255, 0, 0), 2)
                 cv2.imshow("Camara", frame_array)
                 print("Calibración completada.")
-                cv2.waitKey(5000)
+                cv2.waitKey()
                 break
 
-        # Definir profundidad mínima y máxima en milímetros (ajusta estos valores según la salida de depuración)
-        max_depth = np.max(depth_image)  # ejemplo: 1500mm
-        min_depth = np.min(depth_image)   # ejemplo: 500mm
+    calibrated_area = (xw_min, yw_min_viewport_transformed, xw_max_viewport_transformed - xw_min, yw_max - yw_min_viewport_transformed)
+    print("Calibrated area =>", calibrated_area)
+    dmax_map = calculate_dmax(depth_stream, calibrated_area, xv_min, yv_min, xv_max, yv_max)
 
-        print("Profundidad máxima: ", max_depth)
-        print("Profundidad minima: ", min_depth)
-        print("Moda:", np.bincount(depth_image.flatten()).argmax())
+    # Detección de toques
+    if 'xw_min' in locals():
+        print("Iniciando detección de toques...")
 
-        depth_frame = depth_stream.read_frame()
-        depth_image = np.frombuffer(depth_frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[::-1])
-        depth_image = cv2.flip(depth_image, 1)
-        # depth_image = cv2.convertScaleAbs(depth_image, alpha=255.0/max_depth)
+        # Preguntar al usuario si desea proceder con la detección de toques
+        layout = [[sg.Text('¿Desea proceder con la detección de toques?')],
+                  [sg.Button('Sí'), sg.Button('No')]]
+        window = sg.Window('Verificación de Detección', layout)
+        event, values = window.read()
+        window.close()
+        if event == 'Sí':
+            # Calcular dmax_map
+            dmax_map = dmax_map - 4
+            dmin_map = dmax_map - 10
+            # Usa los mismos límites que en area_calibrada
+            x, y, w, h = calibrated_area
+            print(x, y, w, h)
+            # Iniciar la detección de toques
+            previous_roi = None
+            touch_history = []
+            vibration_threshold = 15  # Umbral para vibraciones
+            touch_duration_threshold = 1  # Duración de toque requerida
 
-        # Crear máscara para el rango de profundidad
-        # depth_image = cv2.threshold(depth_image, min_depth, -1, cv2.THRESH_TOZERO)[1]  # Eliminar valores cercanos a 0
-        # depth_image = cv2.threshold(depth_image, max_depth, -1, cv2.THRESH_TOZERO_INV)[1]  # Eliminar valores cercanos a 0
+            # Crear la proyección usando las dimensiones del área de trabajo
+            proyeccion = np.zeros((view_height, view_width, 3), dtype=np.uint8)
 
-        depth_min = np.min(depth_image)
-        depth_max = np.max(depth_image)
-        # Escalar depth_image a [0, 255] usando su rango real
-        # depth_image = ((depth_image - depth_min) / (depth_max - depth_min) * 255).astype(np.uint8)
-        # Mostrar la máscara para depuración
-        # cv2.imshow("Depth Image", depth_image)
+            while True:
+                # Leer frame de la cámara de profundidad
+                depth_frame = depth_stream.read_frame()
+                depth_data = np.frombuffer(depth_frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[0], depth_camera_resolution[1])
+                depth_data = cv2.flip(depth_data, 1)
+                # Extraer la ROI escalada
+                print("depth data =>", depth_data.shape)
+                depth_roi = depth_data[y:y+h, x:x+w]
 
-        # print("Profundidad maxima tras transformación: ", np.max(depth_image))
-        # print("Profundidad minima tras transformación: ", np.min(depth_image))
+                if previous_roi is not None:
+                    print("Detectando vibraciones...")
+                    # Detectar vibraciones y ajustar el ROI
+                    roi_diff = cv2.absdiff(depth_roi, previous_roi)
+                    vibration_mask = cv2.threshold(roi_diff, vibration_threshold, 255, cv2.THRESH_BINARY)[1]
+                    vibration_mask = cv2.medianBlur(vibration_mask, ksize=5)
 
-        # Calcula los percentiles para ignorar outliers
-        lower = np.percentile(depth_image, 2)
-        upper = np.percentile(depth_image, 98)
-        depth_clipped = np.clip(depth_image, lower, upper)
-        mask_clean = cv2.normalize(depth_clipped, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+                    depth_roi[vibration_mask > 0] = previous_roi[vibration_mask > 0]
 
-        cv2.imshow("Mask clean", mask_clean)
+                previous_roi = depth_roi.copy()
 
-        # Opcional: limpiar la máscara
-        mask_clean = cv2.morphologyEx(mask_clean, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8))
+                # Crear la "coraza" entre dmin y dmax
+                touch_mask = np.logical_and(depth_roi > dmin_map, depth_roi < dmax_map).astype(np.uint8) * 255
 
-        # Detector de bordes con Sobel
-        sobelx = cv2.Sobel(mask_clean, cv2.CV_64F, 1, 0, ksize=3)
-        sobely = cv2.Sobel(mask_clean, cv2.CV_64F, 0, 1, ksize=3)
-        edges_sobel = cv2.magnitude(sobelx, sobely)
-        edges_sobel = np.uint8(np.clip(edges_sobel, 0, 255))
-        cv2.imshow("Sobel Edges", edges_sobel)
+                # Aplicar filtros para eliminar ruido
+                touch_mask_filtered = cv2.medianBlur(touch_mask, ksize=5)
+                touch_mask_filtered = cv2.GaussianBlur(touch_mask_filtered, (7, 7), 0)
 
-        # --- MÁSCARA BASADA EN SOBEL Y RANGO DE ESCALA DE GRISES ---
-        # Normalizar la imagen de Sobel a 0-255
-        # sobel_norm = cv2.normalize(edges_sobel, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+                touch_mask_lowpass = cv2.boxFilter(touch_mask_filtered, ddepth=-1, ksize=(3, 3))
 
-        # Definir el rango de escala de grises (ajusta estos valores a tu necesidad)
-        min_val = 50  # valor mínimo del rango
-        max_val = 100 # valor máximo del rango
+                # Aplicar umbral para consolidar áreas de toque
+                _, touch_mask_final = cv2.threshold(touch_mask_lowpass, 150, 255, cv2.THRESH_BINARY)
 
-        # Crear la máscara: blanco (255) si está dentro del rango, negro (0) si no
-        mask_range = cv2.inRange(edges_sobel, min_val, max_val)
-        mask_range = cv2.morphologyEx(mask_range, cv2.MORPH_GRADIENT, np.ones((5,5), np.uint8))
+                # Aplicar apertura morfológica para eliminar ruido pequeño
+                kernel = np.ones((3, 3), np.uint8)
+                touch_mask_final = cv2.morphologyEx(touch_mask_final, cv2.MORPH_OPEN, kernel)
 
-        key = cv2.waitKey()
-        if key == 27:  # ESC para salir
-            break
+                # Identificar componentes conectados
+                num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(touch_mask_final, connectivity=8)
+                min_size = 4  # Tamaño mínimo para considerar un área como toque válido
+                for i in range(1, num_labels):
+                    if stats[i, cv2.CC_STAT_AREA] <= min_size:
+                        touch_mask_final[labels == i] = 0
+
+                touch_history.append(touch_mask_final)
+
+                # Acumular las máscaras para identificar toques persistentes
+                accumulated_mask = np.sum(touch_history, axis=0)
+                accumulated_mask = np.clip(accumulated_mask, 0, 255).astype(np.uint8)
+
+                # Considerar solo toques que persisten durante varios cuadros
+                _, final_touch_mask = cv2.threshold(accumulated_mask, touch_duration_threshold * 255, 255, cv2.THRESH_BINARY)
+                
+                num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(touch_mask_final, connectivity=8)
+                for i in range(1, num_labels):
+                    if stats[i, cv2.CC_STAT_AREA] >= min_size:
+                        centroid = centroids[i]
+                        x_touch, y_touch = int(centroid[0]), int(centroid[1])
+
+                        # Calcular los factores de escala
+                        # sx = float(xv_max - xv_min) / depth_roi.shape[1]
+                        # sy = float(yv_max - yv_min) / depth_roi.shape[0]
+
+                        # Mapeo directo sin restar xw_min y yw_min
+                        # x_viewport = int(xv_min + (x_touch * sx))
+                        # y_viewport = int(yv_min + (y_touch * sy))
+
+                        # Asegurar que las coordenadas estén dentro de los límites del viewport
+                        # x_viewport = np.clip(x_viewport, 0, view_width - 1)
+                        # y_viewport = np.clip(y_viewport, 0, view_height - 1)
+
+                        x_viewport, y_viewport = transform_depth_window_to_viewport(x_touch, y_touch)
+
+                        # Dibujar en la ROI para visualización
+                        # cv2.circle(frame_roi, (x_touch, y_touch), 5, (255, 0, 0), -1)
+
+                        # Dibujar en la proyección
+                        cv2.circle(proyeccion, (x_viewport, y_viewport), 5, (0, 0, 255), -1)
+
+                        # Opcional: Mostrar coordenadas mapeadas
+                        cv2.putText(proyeccion, f"({x_viewport}, {y_viewport})", (x_viewport + 10, y_viewport + 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+                # print(f"{xv_min}, {yv_min}")
+                # print(f"{xv_max}, {yv_max}")
+                cv2.rectangle(proyeccion, (xv_min, yv_min), (xv_max, yv_max), (0, 255, 0), 2)
+
+                # Mostrar la proyección y las máscaras
+                full_mask = np.zeros_like(depth_data, dtype=np.uint8)
+                # full_mask[yw_min_escalado:yw_max, xw_min:xw_max_escalado] = touch_mask_final
+                cv2.imshow("Proyeccion", proyeccion)
+                cv2.imshow("Mascara de Toque", touch_mask_final)
+                # cv2.imshow("Camara", frame_bgr)
+                # cv2.imshow("Camara2", frame_roi)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+
+        print(f"Guardando coordenadas, yw_max: {yw_max}")
+        coordenadas = {
+            "xv_min": xv_min,
+            "xv_max": xv_max,
+            "yv_min": yv_min,
+            "yv_max": yv_max,
+            "xw_min": xw_min,
+            "xw_max": xw_max_viewport_transformed,  # Usamos xw_max_escalado como xw_max
+            "yw_min": yw_min_viewport_transformed,   # Usamos yw_min_escalado como yw_min
+            "yw_max": yw_max
+            }
+
+         # Guardar las coordenadas en un archivo JSON en la carpeta config
+        with open("config/ultima_configuracion_coordenadas.json", "w") as file:
+            json.dump(coordenadas, file, indent=4)            
+        # Detener los streams y destruir las ventanas           
+    
 
     depth_stream.stop()
     openni2.unload()
