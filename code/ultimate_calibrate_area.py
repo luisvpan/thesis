@@ -4,6 +4,7 @@ import numpy as np
 from tqdm import tqdm
 import PySimpleGUI as sg
 import json
+import math
 
 # Configuración de la cámara
 depth_camera_resolution = (512, 424) # px
@@ -12,11 +13,6 @@ depth_camera_fps = 30
 color_camera_resolution = (1080, 1920)  # Resolución de la cámara de color del Kinect v2, altura * ancho
 video_beam_resolution = (1080, 1920) # Resolución del videobeam, altura * ancho
 white = (255, 255, 255)
-
-
-# Inicializar OpenNI
-openni2.initialize("C:/Program Files/OpenNI2/Redist")
-device = openni2.Device.open_any()
 
 # Función para mostrar un mensaje en pantalla
 def mostrar_mensaje(proyeccion, texto, xv_min, yv_min, xv_max, yv_max):
@@ -29,13 +25,14 @@ def mostrar_mensaje(proyeccion, texto, xv_min, yv_min, xv_max, yv_max):
 # Función para calcular dmax_map con barra de progreso y mensaje
 def calculate_dmax(depth_stream, calibrated_area, xv_min, yv_min, xv_max, yv_max, num_frames=500):
     x, y, w, h = calibrated_area
-    print(f"{w} * {h} = {w * h} ")
+    print(f"{w} * {h} = {w * h}")
 
     # Definir un rango de profundidad para optimizar el uso de memoria
     min_depth = 650  # Ajusta según tu aplicación
     max_depth = 800
 
     depth_accum = np.zeros((h, w, max_depth - min_depth), dtype=np.uint16)
+    print("Depth accum shape:", depth_accum.shape)
 
     # Crear una ventana de proyección para mostrar el mensaje
     proyeccion = np.zeros((depth_camera_resolution[0], depth_camera_resolution[1], 3), dtype=np.uint8)
@@ -58,7 +55,7 @@ def calculate_dmax(depth_stream, calibrated_area, xv_min, yv_min, xv_max, yv_max
     # Generar el mapa dmax basado en la moda de la profundidad
     dmax_map = np.argmax(depth_accum, axis=2) + min_depth
 
-    np.savetxt("config/dmax_map.txt", dmax_map.flatten(), fmt="%d")
+    np.savetxt("config/dmax_map.txt", dmax_map, fmt="%d")
     
     # Mostrar mensaje de finalización
     cv2.rectangle(proyeccion, (xv_min, yv_min), (xv_max, yv_max), (0,0,0), -1)
@@ -265,10 +262,9 @@ def calibrate_area(device):
                 cv2.rectangle(frame_array, (xw_min, yw_min), (xw_max, yw_max), (255, 0, 0), 2)
                 cv2.imshow("Camara", frame_array)
                 print("Calibración completada.")
-                cv2.waitKey()
                 break
 
-    calibrated_area = (xw_min, yw_min_viewport_transformed, xw_max_viewport_transformed - xw_min, yw_max - yw_min_viewport_transformed)
+    calibrated_area = (xw_min, yw_min, xw_max - xw_min, yw_max - yw_min)
     print("Calibrated area =>", calibrated_area)
     dmax_map = calculate_dmax(depth_stream, calibrated_area, xv_min, yv_min, xv_max, yv_max)
 
@@ -284,7 +280,7 @@ def calibrate_area(device):
         window.close()
         if event == 'Sí':
             # Calcular dmax_map
-            dmax_map = dmax_map - 4
+            dmax_map = dmax_map - 2
             dmin_map = dmax_map - 10
             # Usa los mismos límites que en area_calibrada
             x, y, w, h = calibrated_area
@@ -301,14 +297,15 @@ def calibrate_area(device):
             while True:
                 # Leer frame de la cámara de profundidad
                 depth_frame = depth_stream.read_frame()
-                depth_data = np.frombuffer(depth_frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[0], depth_camera_resolution[1])
+                depth_data = np.frombuffer(depth_frame.get_buffer_as_uint16(), dtype=np.uint16).reshape(depth_camera_resolution[::-1])
                 depth_data = cv2.flip(depth_data, 1)
                 # Extraer la ROI escalada
-                print("depth data =>", depth_data.shape)
+                # print("depth data =>", depth_data.shape)
+                # print("dmax map =>", dmax_map.shape)
                 depth_roi = depth_data[y:y+h, x:x+w]
 
                 if previous_roi is not None:
-                    print("Detectando vibraciones...")
+                    # print("Detectando vibraciones...")
                     # Detectar vibraciones y ajustar el ROI
                     roi_diff = cv2.absdiff(depth_roi, previous_roi)
                     vibration_mask = cv2.threshold(roi_diff, vibration_threshold, 255, cv2.THRESH_BINARY)[1]
@@ -336,7 +333,7 @@ def calibrate_area(device):
 
                 # Identificar componentes conectados
                 num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(touch_mask_final, connectivity=8)
-                min_size = 4  # Tamaño mínimo para considerar un área como toque válido
+                min_size = 5  # Tamaño mínimo para considerar un área como toque válido
                 for i in range(1, num_labels):
                     if stats[i, cv2.CC_STAT_AREA] <= min_size:
                         touch_mask_final[labels == i] = 0
@@ -354,7 +351,7 @@ def calibrate_area(device):
                 for i in range(1, num_labels):
                     if stats[i, cv2.CC_STAT_AREA] >= min_size:
                         centroid = centroids[i]
-                        x_touch, y_touch = int(centroid[0]), int(centroid[1])
+                        x_touch, y_touch = centroid[0] + xw_min, centroid[1] + yw_min
 
                         # Calcular los factores de escala
                         # sx = float(xv_max - xv_min) / depth_roi.shape[1]
@@ -367,17 +364,18 @@ def calibrate_area(device):
                         # Asegurar que las coordenadas estén dentro de los límites del viewport
                         # x_viewport = np.clip(x_viewport, 0, view_width - 1)
                         # y_viewport = np.clip(y_viewport, 0, view_height - 1)
-
-                        x_viewport, y_viewport = transform_depth_window_to_viewport(x_touch, y_touch)
+                        print("X touch:", x_touch, "Y touch:", y_touch)
+                        x_touch_viewport, y_touch_viewport = transform_depth_window_to_viewport(x_touch, y_touch)
+                        print("X viewport:", x_touch_viewport, "Y viewport:", y_touch_viewport)
 
                         # Dibujar en la ROI para visualización
                         # cv2.circle(frame_roi, (x_touch, y_touch), 5, (255, 0, 0), -1)
 
                         # Dibujar en la proyección
-                        cv2.circle(proyeccion, (x_viewport, y_viewport), 5, (0, 0, 255), -1)
+                        cv2.circle(proyeccion, (x_touch_viewport, y_touch_viewport), 5, (0, 0, 255), -1)
 
                         # Opcional: Mostrar coordenadas mapeadas
-                        cv2.putText(proyeccion, f"({x_viewport}, {y_viewport})", (x_viewport + 10, y_viewport + 10),
+                        cv2.putText(proyeccion, f"({x_touch_viewport}, {y_touch_viewport})", (x_touch_viewport + 10, y_touch_viewport + 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
                 # print(f"{xv_min}, {yv_min}")
@@ -418,9 +416,8 @@ def calibrate_area(device):
     openni2.unload()
     cv2.destroyAllWindows()
 
-
 if __name__ == "__main__":
-    openni2.initialize("C:/Program Files/OpenNI2/Redist")  # Cambia esta ruta según tu instalación
+    openni2.initialize("C:/Development Program Files/OpenNI2/Redist")  # Cambia esta ruta según tu instalación
     device = openni2.Device.open_any()
 
     calibrate_area(device)
