@@ -9,6 +9,7 @@ Los orígenes de datos, operaciones sobre datos, programas que se pueden desarro
 == El lenguaje de programación tangible propuesto
 Aquí se propone un lenguaje de programación basado en el concepto del dataflow, haciendo uso de figuras tangibles, por resumir bloques, que se componen de una tarjeta con vocabulario con un espacio para una figura y la correspondiente figura (más detalles en orígenes de datos y operaciones sobre datos). Los flujos de datos son representados mediante estos bloques en conjunto con una serie de conexiones (más detalles en conexiones entre orígenes de datos y operaciones sobre datos) #strike[quizás valga la pena abstraer más y hablar del lenguaje de programación como un todo, que tiene partes tangibles y partes digitales, para luego caer en detalles concretos], y las operaciones son también representadas mediante bloques.
 Las figuras provistas por el ambiente están hechas en foami. #strike[¿de qué material hacemos las tarjetas con vocabulario?]
+Este lenguaje de programación no está pensado para ser Turing completo, sino para ser lo suficientemente expresivo para resolver un subconjunto de los problemas planteables en el currículo previamente mencionado, y que a su vez sea sencillo de entender y usar por niños de 6 a 9 años. #strike[se puede incluir una cita de que los lenguajes de programación tangibles tienden a ser así]
 
 === Orígenes de datos
 Estos pueden ser:
@@ -30,7 +31,7 @@ Estas pueden ser:
 == La interfaz gráfica de usuario propuesta
 
 === Representación de lo tangible
-Cada bloque del lenguaje de programación tangible tiene su contraparte digital, la cual depende de su tipo.
+Los bloques del lenguaje de programación tangible tienen su contraparte digital, la cual depende de su tipo.
 
 ==== Orígenes de datos
 
@@ -41,7 +42,7 @@ Cada bloque del lenguaje de programación tangible tiene su contraparte digital,
 === Conexiones entre orígenes de datos y operaciones sobre datos
 
 === Ejecución y salida
-Haciendo uso de las contrapartes digitales del lenguaje de programación tangible, se renderiza en la interfaz gráfica la ejecución del programa descrito (que conformarían los pasos de un algoritmo) y la salida del mismo, siendo el conjunto de ambos una representación visual de cómo solucionar el problema planteado por la actividad.
+Haciendo uso de las contrapartes digitales del lenguaje de programación tangible, se muestra en la interfaz gráfica la salida del programa descrito. El conjunto de ambos elementos, físicos y digitales, son la representación visual de un programa que implementa una solución al problema planteado por la actividad.
 
 == Actividades
 
