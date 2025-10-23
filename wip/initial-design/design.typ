@@ -1,3 +1,4 @@
+//TODO: prototipar y formalizar este diseño, referenciar, etc. etc. etc.
 = Diseño preliminar del ambiente
 
 == Aspectos generales
