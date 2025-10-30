@@ -10,3 +10,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Pytorch models
+*.pt
+
+# Yolo specific folders
+runs
