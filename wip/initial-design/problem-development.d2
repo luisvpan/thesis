@@ -1,10 +1,41 @@
 # Conceptos/Bases teóricas
+vars: {
+  d2-config: {
+    layout-engine: elk
+    sketch: true
+  }
+}
+direction: up
 
 programming: Programación {
   shape: rectangle
 }
 
-programming-ambient: Ambiente de programación {
+hci: Interacción Humano-Computador (HCI) {
+  shape: rectangle
+}
+
+programming-paradigms: Paradigmas de programación {
+  shape: rectangle
+}
+
+imperative-programming: Programación imperativa {
+  shape: rectangle
+}
+
+control-flow: Control flow {
+  shape: rectangle
+}
+
+declarative-programming: Programación declarativa {
+  shape: rectangle
+}
+
+programming-ambient: Ambiente de programación/Entorno de desarrollo {
+  shape: rectangle
+}
+
+ide: Entorno de desarrollo integrado (IDE) {
   shape: rectangle
 }
 
@@ -13,6 +44,10 @@ programming-language: Lenguaje de programación {
 }
 
 tangible-programming: Programación tangible {
+  shape: rectangle
+}
+
+tangible-programming-language: Lenguaje de programación tangible {
   shape: rectangle
 }
 
@@ -36,7 +71,15 @@ media-use-in-children: Uso de medios digitales en niños {
   shape: rectangle
 }
 
-tangible-user-interfaces: Interfaces de usuario tangibles {
+tangible-user-interfaces: Interfaces de usuario tangibles (TUIs) {
+  shape: rectangle
+}
+
+tui-types: Tipos de TUIs {
+  shape: rectangle
+}
+
+tabletop-tui: Superficies interactivas (TUIs de mesa) {
   shape: rectangle
 }
 
@@ -56,7 +99,7 @@ dataflow: Dataflow {
   shape: rectangle
 }
 
-control-flow: Control flow {
+dataflow-programming: Programación dataflow {
   shape: rectangle
 }
 
@@ -64,17 +107,40 @@ dataflow-programming-language: Lenguaje de programación dataflow {
   shape: rectangle
 }
 
-programming-ambient -- programming
+thesis: Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años {
+  shape: rectangle
+}
 
-tangible-programming -- programming
+programming-paradigms -- programming
+
+imperative-programming -- programming-paradigms
+
+control-flow -- imperative-programming
+
+declarative-programming -- programming-paradigms
+
+dataflow -- dataflow-programming
+
+dataflow-programming -- programming-paradigms
+
+dataflow-programming-language -- programming-language
+
+programming-ambient -- programming
+programming-ambient -- thesis
+
+ide -- programming-ambient
 
 programming-language -- programming
 
-computational-thinking -- programming
-computational-thinking -- programming-for-kids
-# computational-thinking -- tangible-programming
+tangible-programming -- programming
+tangible-programming -- thesis
+
 computational-thinking -- computational-thinking-unplugged
-computational-thinking -- merrills-principles-of-instruction
+computational-thinking -- thesis
+
+computational-thinking-unplugged -- merrills-principles-of-instruction
+# computational-thinking -- programming-for-kids
+# computational-thinking -- tangible-programming
 
 # programming-for-kids -- tangible-programming
 programming-for-kids -- programming
@@ -82,5 +148,17 @@ programming-for-kids -- media-use-in-children
 programming-for-kids -- constructionism
 programming-for-kids -- kids-6-to-9
 
+kids-6-to-9 -- thesis
+
 tangible-user-interfaces -- tangible-programming
 tangible-user-interfaces -- spatial-augmented-reality
+
+tui-types -- tangible-user-interfaces
+
+tabletop-tui -- tui-types
+
+hci -- tangible-user-interfaces
+
+spatial-augmented-reality -- thesis
+
+tangible-programming-language -- programming-language
