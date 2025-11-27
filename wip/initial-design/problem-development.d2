@@ -95,6 +95,22 @@ constructionism: Construccionismo {
   shape: rectangle
 }
 
+constructivism: Constructivismo {
+  shape: rectangle
+}
+
+collaborative-learning: Aprendizaje colaborativo {
+  shape: rectangle
+}
+
+significant-learning: Aprendizaje significativo {
+  shape: rectangle
+}
+
+learning-theories: Teorías del aprendizaje {
+  shape: rectangle
+}
+
 dataflow: Dataflow {
   shape: rectangle
 }
@@ -147,6 +163,14 @@ programming-for-kids -- programming
 programming-for-kids -- media-use-in-children
 programming-for-kids -- constructionism
 programming-for-kids -- kids-6-to-9
+
+constructionism -- learning-theories
+constructionism -- constructivism
+constructionism -- collaborative-learning
+
+constructivism -- learning-theories
+
+collaborative-learning -- learning-theories
 
 kids-6-to-9 -- thesis
 
