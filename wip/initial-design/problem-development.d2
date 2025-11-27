@@ -107,6 +107,26 @@ learning-theories: Teorías del aprendizaje {
   shape: rectangle
 }
 
+instructional-design: Diseño instruccional {
+  shape: rectangle
+}
+
+didactic-strategies: Estrategias didácticas {
+  shape: rectangle
+}
+
+didactic-resources: Recursos didácticos {
+  shape: rectangle
+}
+
+didactic-materials: Materiales didácticos {
+  shape: rectangle
+}
+
+didactic-media: Medios didácticos {
+  shape: rectangle
+}
+
 dataflow: Dataflow {
   shape: rectangle
 }
@@ -166,7 +186,19 @@ constructionism -- collaborative-learning
 
 constructivism -- learning-theories
 
-collaborative-learning -- learning-theories
+learning-theories -- didactic-strategies
+
+instructional-design -- didactic-strategies
+
+merrills-principles-of-instruction -- instructional-design
+
+collaborative-learning -- didactic-strategies
+
+didactic-strategies -- didactic-resources
+
+didactic-resources -- didactic-materials
+
+didactic-materials -- didactic-media
 
 kids-6-to-9 -- thesis
 
