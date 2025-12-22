@@ -1,11 +1,11 @@
 = Requerimientos
 
 == Requerimientos funcionales
-- El sistema debe permitir a los niños construir programas utilizando elementos tangibles y digitales que representen datos y operaciones.
-- El sistema debe capturar la disposición de los elementos tangibles y digitales, y procesar la información para reconocer los elementos y sus conexiones.
-- El sistema debe compilar los programas representados por los elementos tangibles y digitales en instrucciones ejecutables por la computadora.
+- El sistema debe permitir a los niños construir programas utilizando elementos tangibles y conexiones digitales que representen datos, flujos y operaciones.
+- El sistema debe capturar la disposición de los elementos tangibles y conexiones digitales, y procesar la información para reconocer los elementos y sus conexiones.
+- El sistema debe compilar los programas representados por los elementos tangibles y conexiones digitales en instrucciones ejecutables por la computadora.
 - El sistema debe ejecutar los programas y mostrar la salida en una interfaz gráfica proyectada sobre una superficie plana.
-- El sistema debe permitir a los profesores crear y gestionar actividades basadas en problemas que puedan ser resueltos con los elementos tangibles y digitales.
+- El sistema debe permitir a los profesores crear y gestionar actividades basadas en problemas que puedan ser resueltos con los elementos tangibles y conexiones digitales.
 - El sistema debe proveer instrucciones y retroalimentación para guiar a los niños durante la construcción de programas.
 
 == Requerimientos no funcionales
