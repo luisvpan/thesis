@@ -1,0 +1,77 @@
+vars: {
+  d2-config: {
+    theme-id: 303
+  }
+}
+
+kids: |md
+  # Kids 
+  [Person]
+
+  Main user of the system, who plays with it
+| {
+  shape: c4-person
+}
+
+# teacher: |md
+#   # Teacher
+#   [Person]
+
+#   Supervisor of the kids in the system, who monitors the playing session
+# | {
+#   shape: c4-person
+# }
+
+system: |md
+  # System
+  [Software system]
+| {
+  shape: rectangle
+  label.near: bottom-left
+}
+
+system.cvm: |md
+  # Computer Vision Manager
+  [Container]
+
+  Deals with detecting interactions from real world and translating them to digital ones
+| {
+  shape: rectangle
+}
+
+system.dlee: |md
+  # Dataflow Language Execution Environment
+  [Container]
+
+  Executes the code from the language and returns results
+| {
+  shape: rectangle
+}
+
+system.ide: |md
+  # Integrated Development Environment
+  [Container]
+
+  Tailored specifically for the language we are making, main view of the user
+| {
+  shape: rectangle
+}
+
+system.adb: |md
+  # Activities Database
+  [Container]
+
+  Registry of the activities that can be loaded by the system and their state per user
+| {
+  shape: rectangle
+}
+
+kids -> system.cvm: "Interacts via tangible pieces or gestures with"
+
+system.cvm -> system.ide: "Sends tangible details to"
+system.cvm -> system.dlee: "Sends intermediate language to"
+
+system.dlee -> system.ide: "Sends execution details to"
+
+system.ide <-> system.adb: "Retrieves activities from"
+system.ide -> kids: "Shows to"
