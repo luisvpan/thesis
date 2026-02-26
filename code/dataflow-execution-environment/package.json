@@ -1,0 +1,7 @@
+{
+  "name": "dataflow-execution-environment",
+  "version": "0.0.1",
+  "workspaces": [
+    "packages/*"
+  ]
+}
