@@ -7,7 +7,7 @@ Implement a **compiler and runtime** for a dataflow programming language designe
 **Scope:** 
 - ✅ Compiler (parser, validator, type checker)
 - ✅ Runtime (demand-driven evaluator)
-- ✅ Integration interfaces (LSP for IDE, HTTP API for CV system, incremental runtime)
+- ✅ Integration interfaces (LSP for IDE, HTTP API for CV system)
 
 **Out of Scope:**
 - ❌ Computer Vision system (external - generates JSON input)
@@ -41,6 +41,7 @@ CV System → JSON → [Compiler → Runtime] → Results → IDE/AR
 - Type safety (compile-time type checking)
 
 **Negotiable:**
+- Choice of TypeScript vs other strongly-typed languages
 - Specific cache implementation (LRU, Map, etc.)
 - Use of Workers for CPU parallelism (Promise.all sufficient for MVP)
 
@@ -71,24 +72,27 @@ CV System → JSON → [Compiler → Runtime] → Results → IDE/AR
 
 **Success Metrics:**
 - JSON input schema clearly documented and validated
-- LSP server provides IDE features (errors, autocomplete, hover info)
-- HTTP API allows CV system to compile + execute programs
-- Clear separation of concerns (Compiler ↔ Runtime ↔ Interfaces)
+- HTTP API for batch compilation/execution (CV system use case)
+- WebSocket server for live validation feedback (IDE use case)
+- Incremental runtime for REPL-like evaluation during construction
+- Clear separation of concerns (Compiler ↔ Runtime ↔ Integration)
 
 **Non-Negotiable:**
 - Accepts JSON input (CV system output format)
-- Provides structured output (results + execution trace for AR visualization)
-- Stateless API (no session management in compiler/runtime)
+- Provides structured output (results + execution trace for AR)
+- Stateless core (Compiler/Runtime have no session state)
+- Real-time feedback capability (for live construction)
 
 **Negotiable:**
-- LSP vs custom protocol for IDE integration
-- HTTP vs WebSocket for CV integration (Elysiajs is the preferred choice for this)
-- Synchronous vs async API endpoints
+- HTTP vs other sync protocol for batch mode
+- WebSocket vs SSE for live updates
+- Custom protocol vs GLSP (graphical LSP - too green/heavy)
+- ~~LSP~~ (wrong fit - designed for text, not graphs)
 
 ---
 
 ### 4. Performance for Educational Context
-**Goal:** Reasonable performance for classroom use (30 children).
+**Goal:** Reasonable performance for classroom use (5 children per session).
 
 **Success Metrics:**
 - Compilation <100ms for programs with <100 nodes (p95)
@@ -102,7 +106,7 @@ CV System → JSON → [Compiler → Runtime] → Results → IDE/AR
 **Negotiable:**
 - Exact latency targets (can be 100-200ms if acceptable)
 - Hardware requirements (can require decent machines)
-- Scalability beyond 5 users (not needed for MVP)
+- Scalability beyond 30 users (not needed for MVP)
 
 ---
 
@@ -136,7 +140,10 @@ Build in **functional layers**, each completely working before moving to the nex
 6. **Layer 6:** + Streams (continuous data)
    - Tests: stream of sensor events
 
-7. **Layer 7:** + Integration interfaces (LSP, HTTP API)
+7. **Layer 7:** + Integration interfaces
+   - HTTP API (batch mode for CV system)
+   - WebSocket server (live validation for IDE)
+   - Incremental Runtime (REPL-like evaluation)
    - Tests: external systems can compile/execute programs
 
 ### Why This Order? (Rationale for Negotiation)
@@ -205,7 +212,7 @@ Each acceptance criterion maps to ≥1 test in IMPLEMENTATION_PLAN.md
 **Non-Negotiable:**
 - Must have acceptance criteria before implementing
 - Tests must verify acceptance criteria (no "fake" tests)
-- Can't claim feature complete without passing tests
+- Can't claim feature complete without all tests passing
 
 ---
 
@@ -267,6 +274,7 @@ Planner should **challenge** unclear requirements but **defer** to user decision
 - ✅ 10-15 operations working
 - ✅ JSON input/output well-defined
 - ✅ Basic HTTP API and LSP/custom for integration
+- ✅ Handles 5 concurrent users without degradation
 
 ### Version 1.0
 - ✅ Layers 1-6 implemented (including streams)
@@ -291,7 +299,7 @@ Planner should **challenge** unclear requirements but **defer** to user decision
 **Decision:** Strict correctness - this is a learning tool, must be semantically correct
 
 ### Performance vs Simplicity
-**Constraint:** Must handle 5 concurrent users
+**Constraint:** Must handle 30 concurrent users
 **Tradeoff:** Simple architecture (single-process) vs complex (multi-process)
 **Decision:** Simple for MVP, optimize if profiling shows bottlenecks
 
@@ -313,11 +321,17 @@ When planning begins, planner should ask:
    - Sets (UNION, INTERSECTION)
 
 2. **Integration Protocol:** Preference for IDE integration?
-   - LSP (standard, more features, more complex)
-   - Custom JSON-RPC (simpler, faster to implement)
+   - Custom WebSocket (simple, tailored, real-time)
+   - GLSP (graphical LSP - standard but green/heavy)
+   - ~~LSP~~ (designed for text languages, poor fit for graphs)
    - Direct library usage (no protocol, just import)
 
-3. **Execution Trace Detail:** How much execution info for AR visualization?
+3. **Execution Modes:** Which evaluation modes are critical?
+   - Batch mode (complete program → results) - for CV system
+   - Incremental mode (partial graph → partial results) - for live construction
+   - Both?
+
+4. **Execution Trace Detail:** How much execution info for AR visualization?
    - Minimal (just final results)
    - Medium (node-by-node state)
    - Detailed (every evaluation step, cache hits/misses)
