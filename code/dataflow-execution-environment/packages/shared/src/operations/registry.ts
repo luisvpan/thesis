@@ -26,7 +26,7 @@ export type OperationSignature = {
   category: string;
 };
 
-export const OPERATION_REGISTRY: Record<Operation, OperationSignature> = {
+export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
   ADD: {
     arity: 2,
     inputTypes: ["natural", "natural"],
