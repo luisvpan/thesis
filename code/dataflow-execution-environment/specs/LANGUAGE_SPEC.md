@@ -437,6 +437,68 @@ interface DataflowEdge {
 2. **Type Compatibility:** Inputs match operation's type signature
 3. **Property Requirements:** Types have required properties (e.g., `color` for FILTER_BY_COLOR)
 
+### 7.2 Child-Friendly Error Messages (CRITICAL)
+
+**Educational Rationale**: Children aged 6-9 need clear, intuitive feedback to learn from mistakes.
+
+**Error Message Requirements:**
+- Simple language (no technical jargon)
+- Clear indication of problem location
+- Actionable suggestions
+- Spanish language only
+- Examples of correct usage
+
+**Error Type Definition:**
+```typescript
+export type ValidationError = {
+  code: string;
+  message: string;           // Technical message for developers
+  childMessage?: string;      // Simplified message for children (Spanish)
+  nodeId?: string;
+  suggestion?: string;        // Actionable suggestion (Spanish)
+  example?: string;          // Example of correct usage
+};
+```
+
+**Error Messages (Spanish):**
+
+**WRONG_ARITY**:
+```
+⚠️ ¡Ups! El bloque [OPERATION] necesita [N] entradas.
+   Solo conectaste [ACTUAL] entradas.
+
+   Intenta esto:
+   [SUGGESTION]
+```
+
+**CYCLE_DETECTED**:
+```
+⚠️ ¡Ups! Hay un ciclo en el programa.
+   Los bloques se conectan en círculo y no se puede calcular.
+
+   Intenta esto:
+   Busca dónde un bloque apunta a sí mismo y desconecta una línea.
+```
+
+**TYPE_ERROR**:
+```
+⚠️ ¡Ups! El bloque [OPERATION] no acepta ese tipo de dato.
+   Espera: [EXPECTED_TYPE]
+   Recibiste: [ACTUAL_TYPE]
+
+   Intenta esto:
+   Usa un bloque con el tipo correcto.
+```
+
+**MISSING_INPUT** (Incremental mode - supports multiple):
+```
+⚠️ El bloque [NODE_ID] está esperando entradas:
+   - Puerto 0: [DESCRIPTION_1]
+   - Puerto 1: [DESCRIPTION_2]
+
+   Conecta estos bloques para continuar.
+```
+
 **Example Validation:**
 ```typescript
 class TypeChecker {

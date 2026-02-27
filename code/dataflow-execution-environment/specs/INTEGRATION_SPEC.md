@@ -92,12 +92,18 @@ Validate a program without executing.
     {
       "code": "CYCLE_DETECTED",
       "message": "Graph contains a cycle",
-      "nodeId": "node_5"
+      "nodeId": "node_5",
+      "childMessage": "⚠️ ¡Ups! Hay un ciclo en el programa. Los bloques se conectan en círculo y no se puede calcular.",
+      "suggestion": "Busca dónde un bloque apunta a sí mismo y desconecta una línea.",
+      "example": "[A] → [B] → [C] ❌\n[A] → [B] ✅ (rompe el ciclo)"
     },
     {
       "code": "TYPE_ERROR",
       "message": "FILTER_BY_COLOR requires elements with 'color' property",
-      "nodeId": "filter_1"
+      "nodeId": "filter_1",
+      "childMessage": "⚠️ ¡Ups! Este bloque necesita elementos con color.",
+      "suggestion": "Usa bloques con color como formas o carros.",
+      "example": "[forma roja] 🎨 [rojo] ✅"
     }
   ],
   "warnings": []
@@ -161,12 +167,14 @@ Health check endpoint.
 - ✓ POST /execute compiles and runs valid programs
 - ✓ POST /execute returns outputs + execution trace
 - ✓ All endpoints return proper HTTP status codes
+- ✓ Error responses include child-friendly Spanish messages for ages 6-9
 
 ### Observable Results
 - Valid program → 200 OK, success: true
 - Invalid program (cycle) → 200 OK, success: false, errors: [...]
 - Malformed JSON → 400 Bad Request
 - Server error → 500 Internal Server Error
+- **Error responses include child-friendly Spanish messages**
 
 ### Performance
 - /compile endpoint <100ms (p95) for 100-node programs
@@ -239,7 +247,14 @@ ws://localhost:3000/live
   "type": "validation_result",
   "messageId": "msg_001",
   "errors": [
-    { "code": "TYPE_ERROR", "nodeId": "filter_1", "message": "..." }
+    {
+      "code": "TYPE_ERROR",
+      "nodeId": "filter_1",
+      "message": "Elements must have 'color' property",
+      "childMessage": "⚠️ ¡Ups! Este bloque necesita elementos con color.",
+      "suggestion": "Usa bloques con color como formas o carros.",
+      "example": "[forma roja] 🎨 [rojo] ✅"
+    }
   ],
   "warnings": []
 }
@@ -254,7 +269,21 @@ ws://localhost:3000/live
     "n1": { "status": "completed", "value": 5 },
     "n2": { "status": "completed", "value": 3 },
     "add": { "status": "completed", "value": 8 },
-    "filter": { "status": "pending", "reason": "Missing input at port 1" }
+    "filter": {
+      "status": "pending",
+      "missingInputs": [
+        {
+          "port": 0,
+          "description": "set of shapes",
+          "childMessage": "Esperando un conjunto de formas"
+        },
+        {
+          "port": 1,
+          "description": "color",
+          "childMessage": "Esperando una tarjeta de color"
+        }
+      ]
+    }
   }
 }
 ```
@@ -267,6 +296,24 @@ ws://localhost:3000/live
   "state": {
     "status": "completed",
     "value": [...]
+  }
+}
+```
+
+**Note**: For pending states, include child-friendly Spanish messages:
+```json
+{
+  "type": "node_state_changed",
+  "nodeId": "filter_1",
+  "state": {
+    "status": "pending",
+    "missingInputs": [
+      {
+        "port": 1,
+        "description": "color",
+        "childMessage": "Esperando una tarjeta de color"
+      }
+    ]
   }
 }
 ```
@@ -294,6 +341,7 @@ ws://localhost:3000/live
 - ✓ Server pushes node_state_changed when subscribed
 - ✓ Multiple clients can connect simultaneously
 - ✓ Connection is resilient (reconnects on disconnect)
+- ✓ Error messages include child-friendly Spanish text for ages 6-9
 
 ### Observable Results
 - Valid program → validation_result with empty errors
@@ -378,16 +426,32 @@ class IncrementalRuntime {
 ### 4.4 Node States
 
 ```typescript
-type NodeState = 
+type NodeState =
   | { status: "completed", value: any }
-  | { status: "pending", reason: string }
+  | { status: "pending", missingInputs: MissingInput[] }
   | { status: "processing" }
   | { status: "error", error: string };
 
+type MissingInput = {
+  port: number;
+  description: string;      // e.g., "número", "color", "forma"
+  childMessage: string;      // Spanish description
+};
+
 // Examples:
 { status: "completed", value: 5 }
-{ status: "pending", reason: "Missing input at port 1 (color)" }
-{ status: "pending", reason: "Input node 'n1' not evaluated yet" }
+{ status: "pending", missingInputs: [
+  {
+    "port": 0,
+    "description": "set of shapes",
+    "childMessage": "Esperando un conjunto de formas"
+  },
+  {
+    "port": 1,
+    "description": "color",
+    "childMessage": "Esperando una tarjeta de color"
+  }
+]}
 { status: "error", error: "Division by zero" }
 ```
 
@@ -422,19 +486,19 @@ class IncrementalRuntime {
       try {
         const value = this.evaluate(source.id, timestep);
         results[source.id] = { status: "completed", value };
-      } catch (e) {
-        if (e instanceof MissingInputError) {
-          results[source.id] = { 
-            status: "pending", 
-            reason: e.message 
-          };
-        } else {
-          results[source.id] = { 
-            status: "error", 
-            error: e.message 
-          };
+        } catch (e) {
+          if (e instanceof MissingInputError) {
+            results[source.id] = {
+              status: "pending",
+              missingInputs: this.extractMissingInputs(source)
+            };
+          } else {
+            results[source.id] = {
+              status: "error",
+              error: e.message
+            };
+          }
         }
-      }
     }
     
     return { nodeStates: results };
@@ -468,6 +532,43 @@ class IncrementalRuntime {
     // Cache and return
     this.cache.set(nodeId, time, value);
     return value;
+  }
+
+  /**
+   * Extract all missing inputs for a node
+   */
+  private extractMissingInputs(node: DataflowNode): MissingInput[] {
+    const missing: MissingInput[] = [];
+    const signature = OPERATION_REGISTRY[node.operation];
+    const actualInputs = this.graph.getInputs(node.id);
+
+    for (let i = 0; i < signature.arity; i++) {
+      if (!actualInputs[i] || !actualInputs[i].hasValue()) {
+        missing.push({
+          port: i,
+          description: this.getInputDescription(node.operation, i),
+          childMessage: this.getChildMessageForMissingInput(node.operation, i)
+        });
+      }
+    }
+
+    return missing;
+  }
+
+  /**
+   * Get child-friendly Spanish message for missing input
+   */
+  private getChildMessageForMissingInput(operation: string, port: number): string {
+    if (operation === "FILTER_BY_COLOR" && port === 1) {
+      return "Esperando una tarjeta de color";
+    }
+    if (operation.startsWith("FILTER_") && port === 1) {
+      return "Esperando una tarjeta de criterio";
+    }
+    if (operation.startsWith("COMPARE_")) {
+      return "Esperando un elemento para comparar";
+    }
+    return "Esperando una entrada";
   }
 }
 ```
@@ -518,13 +619,19 @@ evaluatePartial():
     → getInputs(filter) = []  // No edges!
     → filter.evaluate({})  // Empty inputs
     → Throws: MissingInputError("Missing input at port 0")
-  → Return: { 
-      filter: { 
-        status: "pending", 
-        reason: "Missing input at port 0" 
-      } 
+  → Return: {
+      filter: {
+        status: "pending",
+        missingInputs: [
+          {
+            "port": 0,
+            "description": "set of shapes",
+            "childMessage": "Esperando un conjunto de formas"
+          }
+        ]
+      }
     }
-```
+  ```
 
 **Example 4: Cascade of pending nodes**
 ```
@@ -548,12 +655,18 @@ evaluatePartial():
     → evaluate(???, 0)  // No node connected to port 1
     → Throws: MissingInputError("Missing input at port 1")
   → Return: {
-      add: { 
-        status: "pending", 
-        reason: "Missing input at port 1" 
+      add: {
+        status: "pending",
+        "missingInputs": [
+          {
+            "port": 1,
+            "description": "número",
+            "childMessage": "Esperando un número"
+          }
+        ]
       }
     }
-    
+
 Note: n1 WAS evaluated (due to demand from add),
 but we don't return its state unless it's demanded directly.
 ```
@@ -599,7 +712,16 @@ Step 2: Place filter operation (no color yet)
   }
   Eval: {
     shapes: { status: "completed", value: [...] },
-    filter: { status: "pending", reason: "Missing input at port 1 (color)" }
+    filter: {
+      status: "pending",
+      missingInputs: [
+        {
+          "port": 1,
+          "description": "color",
+          "childMessage": "Esperando una tarjeta de color"
+        }
+      ]
+    }
   }
 
 Step 3: Place color card "red"
@@ -623,6 +745,7 @@ Step 3: Place color card "red"
 - ✓ Evaluates partial graphs (incomplete programs)
 - ✓ Returns results for computable nodes
 - ✓ Marks nodes as "pending" when inputs missing
+- ✓ Missing input messages in Spanish with multiple inputs support
 - ✓ Updates incrementally when graph changes
 - ✓ Only re-evaluates affected nodes on update
 - ✓ Subscribers receive notifications on state changes
@@ -630,8 +753,9 @@ Step 3: Place color card "red"
 ### Observable Results
 - Partial graph (just "5") → { n1: { status: "completed", value: 5 } }
 - Add "3" + "ADD" → { add: { status: "completed", value: 8 } }
-- FILTER missing color → { filter: { status: "pending", reason: "..." } }
+- FILTER missing color → { filter: { status: "pending", missingInputs: [...] } }
 - Update "5" to "7" → only re-evaluate nodes depending on n1
+- Multiple missing inputs reported in missingInputs array with Spanish descriptions
 
 ### Performance
 - updateGraph() <10ms (p95)

@@ -345,7 +345,10 @@ export class DagValidator {
         errors.push({
           code: "DUPLICATE_IDENTIFIER",
           message: `Identifier '${stmt.id}' already defined`,
-          nodeId: stmt.id
+          nodeId: stmt.id,
+          childMessage: `⚠️ ¡Ups! Ya tienes un bloque llamado "${stmt.id}". Cada bloque necesita un nombre único.`,
+          suggestion: `Cambia el nombre de uno de los bloques "${stmt.id}"`,
+          example: `[${stmt.id}_1] y [${stmt.id}_2] ✅`
         });
       }
       defined.add(stmt.id);
@@ -356,7 +359,10 @@ export class DagValidator {
     if (hasCycle) {
       errors.push({
         code: "CYCLE_DETECTED",
-        message: "Graph contains a cycle"
+        message: "Graph contains a cycle",
+        childMessage: "⚠️ ¡Ups! Hay un ciclo en el programa. Los bloques se conectan en círculo y no se puede calcular.",
+        suggestion: "Busca dónde un bloque apunta a sí mismo y desconecta una línea.",
+        example: "[A] → [B] → [C] ❌\n[A] → [B] ✅ (rompe el ciclo)"
       });
     }
 
@@ -524,13 +530,14 @@ export function ADD(inputs: { id: string; value: unknown }[]): Natural {
 
 **From Acceptance Criteria (INTEGRATION_SPEC.md):**
 - ✓ POST /api/v1/compile validates program
-- ✓ Returns validation errors or success
+- ✓ Returns validation errors or success with child-friendly messages
 - ✓ <100ms for 100-node programs
 
 **Required Tests:**
 - [ ] Test: Valid program returns { success: true }
-- [ ] Test: Invalid program (cycle) returns errors array
+- [ ] Test: Invalid program (cycle) returns errors array with childMessage
 - [ ] Test: Malformed JSON returns 400
+- [ ] Test: Error messages in Spanish are child-friendly
 - [ ] Benchmark: <100ms for 100 nodes
 
 **Implementation Notes:**
@@ -557,6 +564,23 @@ export const compileRoute = (app: Elysia) =>
       })
     }
   });
+
+// Response now includes child-friendly Spanish messages:
+// {
+//   "success": false,
+//   "programId": "prog_001",
+//   "errors": [
+//     {
+//       "code": "WRONG_ARITY",
+//       "nodeId": "add_1",
+//       "message": "Operation ADD requires 2 inputs, got 1",
+//       "childMessage": "⚠️ ¡Ups! El bloque \"+\" necesita 2 números conectados. Solo conectaste 1 número.",
+//       "suggestion": "Conecta otro bloque número al \"+\"",
+//       "example": "[5] + [3] ✅"
+//     }
+//   ],
+//   "warnings": []
+// }
 ```
 
 ---
@@ -761,7 +785,10 @@ export class ArityChecker {
           errors.push({
             code: "UNKNOWN_OPERATION",
             message: `Unknown operation: ${stmt.operation}`,
-            nodeId: stmt.id
+            nodeId: stmt.id,
+            childMessage: `⚠️ ¡Ups! No reconozco el bloque "${stmt.operation}".`,
+            suggestion: `Revisa si el bloque está conectado correctamente.`,
+            example: `Usa un bloque conocido como "+", "-", "×", "÷"`
           });
           continue;
         }
@@ -770,7 +797,10 @@ export class ArityChecker {
           errors.push({
             code: "WRONG_ARITY",
             message: `Operation ${stmt.operation} requires ${signature.arity} inputs, got ${stmt.inputs.length}`,
-            nodeId: stmt.id
+            nodeId: stmt.id,
+            childMessage: `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita ${signature.arity} ${signature.arity === 1 ? 'entrada' : 'entradas'}. Solo conectaste ${stmt.inputs.length}.`,
+            suggestion: `Conecta ${signature.arity - stmt.inputs.length} bloque${signature.arity - stmt.inputs.length === 1 ? '' : 's'} más al bloque "${stmt.operation}".`,
+            example: this.generateExample(stmt.operation, signature.arity)
           });
         }
       }
@@ -781,6 +811,17 @@ export class ArityChecker {
       errors,
       warnings: []
     };
+  }
+
+  private generateExample(operation: string, arity: number): string {
+    // Generate visual example based on operation type
+    if (operation === "ADD") {
+      return "[5] + [3] ✅";
+    }
+    if (operation === "FILTER_BY_COLOR") {
+      return "[formas] 🎨 [rojo] ✅";
+    }
+    return `Conecta ${arity} bloques al bloque "${operation}" ✅`;
   }
 }
 ```
@@ -1237,6 +1278,44 @@ case "FBY":
 - [ ] Test: Duplicate subscribe idempotent
 - [ ] Test: Unsubscribe removes subscription
 
+**Implementation Notes:**
+```typescript
+// packages/websocket-server/src/types/messages.ts
+export type NodeState =
+  | { status: "completed", value: any }
+  | { status: "pending", missingInputs: MissingInput[] }
+  | { status: "processing" }
+  | { status: "error", error: string };
+
+export type MissingInput = {
+  port: number;
+  description: string;
+  childMessage: string;
+};
+
+// Pending state with multiple missing inputs:
+// {
+//   "type": "evaluation_result",
+//   "nodeStates": {
+//     "filter_1": {
+//       "status": "pending",
+//       "missingInputs": [
+//         {
+//           "port": 0,
+//           "description": "set of shapes",
+//           "childMessage": "Esperando un conjunto de formas"
+//         },
+//         {
+//           "port": 1,
+//           "description": "color",
+//           "childMessage": "Esperando una tarjeta de color"
+//         }
+//       ]
+//     }
+//   }
+// }
+```
+
 ---
 
 #### Feature: Push Notifications
@@ -1266,6 +1345,127 @@ case "FBY":
 - [ ] Test: Partial graph with single source evaluates
 - [ ] Test: Partial graph with missing inputs shows pending
 - [ ] Test: No output nodes → no evaluation (demand-driven)
+- [ ] Test: Multiple missing inputs reported in missingInputs array
+- [ ] Test: Missing input messages in Spanish
+
+**Implementation Notes:**
+```typescript
+// packages/runtime/src/incremental/incremental-runtime.ts
+export class IncrementalRuntime {
+  private partialGraph: DataflowGraph;
+  private cache: Map<string, Map<number, NodeEvaluation>>;
+  private subscriptions: Map<string, Set<Subscriber>>();
+
+  /**
+   * Update the graph with new/changed/removed nodes or edges
+   */
+  updateGraph(delta: GraphDelta): UpdateResult {
+    // Apply delta to internal graph
+    // Invalidate affected cache entries
+    // Return list of changed nodes
+  }
+
+  /**
+   * Evaluate the partial graph as far as possible
+   */
+  evaluatePartial(timestep: number = 0): PartialEvaluation {
+    const results: Record<string, NodeState> = {};
+
+    // Find OUTPUT nodes (demand sources)
+    const outputNodes = this.partialGraph.getOutputNodes();
+
+    // If no output nodes, find SUBSCRIBED nodes
+    const demandSources = outputNodes.length > 0
+      ? outputNodes
+      : Array.from(this.subscriptions.keys())
+          .map(id => this.partialGraph.nodes.get(id))
+          .filter(n => n !== undefined);
+
+    // For each demand source, try to evaluate (demand-driven!)
+    for (const source of demandSources) {
+      try {
+        const value = this.evaluate(source.id, timestep);
+        results[source.id] = { status: "completed", value };
+      } catch (e) {
+        if (e instanceof MissingInputError) {
+          // Extract multiple missing inputs
+          const missingInputs = this.extractMissingInputs(source);
+          results[source.id] = {
+            status: "pending",
+            missingInputs
+          };
+        } else {
+          results[source.id] = {
+            status: "error",
+            error: this.formatChildFriendlyError(e)
+          };
+        }
+      }
+    }
+
+    return { nodeStates: results };
+  }
+
+  /**
+   * Extract all missing inputs for a node
+   */
+  private extractMissingInputs(node: DataflowNode): MissingInput[] {
+    const missing: MissingInput[] = [];
+    const signature = OPERATION_REGISTRY[node.operation];
+    const actualInputs = this.partialGraph.getInputs(node.id);
+
+    for (let i = 0; i < signature.arity; i++) {
+      if (!actualInputs[i] || !actualInputs[i].hasValue()) {
+        missing.push({
+          port: i,
+          description: this.getInputDescription(node.operation, i),
+          childMessage: this.getChildMessageForMissingInput(node.operation, i)
+        });
+      }
+    }
+
+    return missing;
+  }
+
+  /**
+   * Get child-friendly Spanish message for missing input
+   */
+  private getChildMessageForMissingInput(operation: string, port: number): string {
+    // Spanish messages for different operation types
+    if (operation === "FILTER_BY_COLOR" && port === 1) {
+      return "Esperando una tarjeta de color";
+    }
+    if (operation.startsWith("FILTER_") && port === 1) {
+      return "Esperando una tarjeta de criterio";
+    }
+    if (operation.startsWith("COMPARE_")) {
+      return "Esperando un elemento para comparar";
+    }
+    return "Esperando una entrada";
+  }
+
+  /**
+   * Get current state of a specific node
+   */
+  getNodeState(nodeId: string): NodeState {
+    // Return cached state or compute if possible
+  }
+
+  /**
+   * Subscribe to changes on a specific node
+   */
+  subscribe(nodeId: string, callback: StateCallback): void {
+    // Add callback to subscriptions
+  }
+
+  /**
+   * Unsubscribe from node changes
+   */
+  unsubscribe(nodeId: string, callback: StateCallback): void {
+    // Remove callback from subscriptions
+  }
+}
+```
 
 ---
 
@@ -1655,12 +1855,138 @@ Co-authored-by: Ralph (OpenCode Agent)
 
 ---
 
-## Open Questions for User
+## Decisions from User
 
-1. **Priority Operations**: Which 10-15 operations are most critical for MVP?
-2. **Execution Modes**: Both batch and incremental required?
-3. **Error Handling**: Fail compilation or best-effort execution?
-4. **Performance Targets**: Specific latency requirements?
+1. **Priority Operations**: Layer 1-2 operations confirmed as MVP priority (already aligned with plan)
+2. **Execution Modes**: Both batch and incremental evaluation are **required and mandatory**
+3. **Error Handling Strategy**:
+   - **Batch evaluation**: Compilation should FAIL with clear errors
+   - **Incremental evaluation**: Best-effort execution with partial results
+   - **Critical requirement**: Failure reasons must be **traceable and clear** for children to understand (intuitive feedback for ages 6-9)
+4. **Error Messages**: Spanish only for now (child-friendly)
+5. **Error Categorization**: Simple - just errors (no warning/info severity levels)
+6. **Pending State Messages**: Factual descriptions supporting multiple missing inputs simultaneously
+7. **Performance Targets**: Specified latencies acceptable; can be more flexible for MVP
+
+---
+
+## Child-Friendly Error Messages (CRITICAL REQUIREMENT)
+
+**Educational Rationale**: Children aged 6-9 need clear, intuitive feedback to learn from mistakes. Error messages should:
+- Use simple language (no technical jargon)
+- Show clear indication of where problem is
+- Provide actionable suggestions
+- Spanish language only
+- Include examples of correct usage
+
+### Error Types with Spanish Messages
+
+**WRONG_ARITY**:
+```
+⚠️ ¡Ups! El bloque [OPERATION] necesita [N] entradas.
+   Solo conectaste [ACTUAL] entradas.
+
+   Intenta esto:
+   [SUGGESTION]
+```
+
+**CYCLE_DETECTED**:
+```
+⚠️ ¡Ups! Hay un ciclo en el programa.
+   Los bloques se conectan en círculo y no se puede calcular.
+
+   Intenta esto:
+   Busca dónde un bloque apunta a sí mismo y desconecta una línea.
+```
+
+**TYPE_ERROR**:
+```
+⚠️ ¡Ups! El bloque [OPERATION] no acepta ese tipo de dato.
+   Espera: [EXPECTED_TYPE]
+   Recibiste: [ACTUAL_TYPE]
+
+   Intenta esto:
+   Usa un bloque con el tipo correcto.
+```
+
+**MISSING_INPUT** (Incremental mode - supports multiple):
+```
+⚠️ El bloque [NODE_ID] está esperando entradas:
+   - Puerto 0: [DESCRIPTION_1]
+   - Puerto 1: [DESCRIPTION_2]
+
+   Conecta estos bloques para continuar.
+```
+
+### Type Definitions
+
+```typescript
+// packages/shared/src/types/validation.ts
+export type ValidationError = {
+  code: string;
+  message: string;           // Technical message for developers
+  childMessage?: string;      // Simplified message for children (Spanish)
+  nodeId?: string;
+  suggestion?: string;        // Actionable suggestion (Spanish)
+  example?: string;          // Example of correct usage
+};
+
+export type MissingInput = {
+  port: number;
+  description: string;      // e.g., "número", "color", "forma"
+  childMessage: string;      // Spanish description
+};
+
+export type NodeState =
+  | { status: "completed", value: any }
+  | { status: "pending", missingInputs: MissingInput[] }
+  | { status: "processing" }
+  | { status: "error", error: string };
+```
+
+### Example API Responses (Spanish)
+
+**HTTP API - Batch Mode**:
+```json
+{
+  "success": false,
+  "programId": "prog_001",
+  "errors": [
+    {
+      "code": "WRONG_ARITY",
+      "nodeId": "add_1",
+      "message": "Operation ADD requires 2 inputs, got 1",
+      "childMessage": "⚠️ ¡Ups! El bloque \"+\" necesita 2 números conectados. Solo conectaste 1 número.",
+      "suggestion": "Conecta otro bloque número al \"+\"",
+      "example": "[5] + [3] ✅"
+    }
+  ]
+}
+```
+
+**WebSocket - Incremental Mode (Multiple Missing Inputs)**:
+```json
+{
+  "type": "evaluation_result",
+  "nodeStates": {
+    "filter_1": {
+      "status": "pending",
+      "missingInputs": [
+        {
+          "port": 0,
+          "description": "set of shapes",
+          "childMessage": "Esperando un conjunto de formas"
+        },
+        {
+          "port": 1,
+          "description": "color",
+          "childMessage": "Esperando una tarjeta de color"
+        }
+      ]
+    }
+  }
+}
+```
 
 ---
 
