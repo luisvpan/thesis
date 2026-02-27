@@ -7,8 +7,12 @@ RUN apk add --no-cache git bash curl unzip
 
 RUN curl -fsSL https://bun.sh/install | bash
 
+RUN git config --global --add safe.directory '/app'
+
 ENV PATH="/root/.bun/bin:$PATH"
 
 ENV OPENCODE_ENABLE_EXA=1
+
+ENV GIT_DISCOVERY_ACROSS_FILESYSTEM=1
 
 WORKDIR /app
