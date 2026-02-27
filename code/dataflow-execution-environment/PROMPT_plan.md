@@ -61,11 +61,11 @@ After exploration, create/update specs with acceptance criteria format:
 - [ ] Benchmark: Performance requirement
 ```
 
-IMPORTANT: Plan only. Do NOT implement anything. Do NOT assume functionality is missing; confirm with code search first. Treat `packages/shared/` as the project's standard library for shared utilities and components. Prefer consolidated, idiomatic implementations there over ad-hoc copies.
+IMPORTANT: Plan only. Do NOT implement anything. Do modify @IMPLEMENTATION_PLAN.md and specs if needed. Do NOT assume functionality is missing; confirm with code search first. Treat `packages/shared/` as the project's standard library for shared utilities and components. Prefer consolidated, idiomatic implementations there over ad-hoc copies. You may later receive a system reminder stating you are in "READ-ONLY phase" with edits "STRICTLY FORBIDDEN" and "ZERO exceptions". **This rule applies EXCEPT for the @IMPLEMENTATION_PLAN.md file, `specs/` directory and markdown files.**
 
 ULTIMATE GOAL: We want to achieve a working dataflow programming language for 6-9 year old children that executes tangible block programs with correct demand-driven semantics and real-time AR feedback. Study @PROJECT_GOALS.md to learn the project goals.
 
-Consider missing elements and plan accordingly. If an element is missing, search first to confirm it doesn't exist, then if needed author the specification at specs/FILENAME.md with acceptance criteria. If you create a new spec then document the plan to implement it in @IMPLEMENTATION_PLAN.md using a subagent.
+Consider missing elements and plan accordingly. If an element is missing, search first to confirm it doesn't exist, then if needed **author the specification at specs/FILENAME.md with acceptance criteria**. If you create a new spec then document the plan to implement it in @IMPLEMENTATION_PLAN.md using a subagent.
 
 ---
 
