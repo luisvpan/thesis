@@ -32,16 +32,14 @@ bun test
 # Tests (specific package)
 bun test ./packages/{package-name}
 
-# Tests (specific layer - Ralph Wiggum method)
-bun test -- layer1
-bun test -- layer2
-
 # Typecheck
 bun run typecheck
 
 # Lint
 bun run lint
 ```
+
+Use bun's test runner to implement tests. Tests should be placed in the same package as the code they test, following the convention `*.test.ts` alongside the code files. Use the test specifications in `specs/*.md` and @IMPLEMENTATION_PLAN.md to guide your test implementation.
 
 ## Operational Notes
 
@@ -67,7 +65,6 @@ bun run lint
 
 ### Critical Commands
 - Run `bun test` after changes - catches regressions
-- Use `bun test -- layer1` to verify current layer before moving on
 - Build errors often mean missing inter-package dependencies
 
 ### Common Pitfalls
