@@ -21,6 +21,8 @@ bun run --filter '*' dev
 bun run --filter '*' start
 ```
 
+Important: The order of --filter '*' matters, `bun run <command> --filter '*'` is wrong and will not work. Always put the command **after** the filter `bun run --filter '*' <command>`. 
+
 ## Validation
 
 Run after implementing to get immediate feedback:
