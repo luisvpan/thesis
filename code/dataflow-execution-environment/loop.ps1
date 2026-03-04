@@ -70,15 +70,15 @@ try {
         # Ejecutamos a Ralph pasando el Prompt
         # Importante: Montamos la carpeta .git y pasamos config de usuario
         docker run --rm --name "ralph-agent" `
-          -v "${PWD}../../:/thesis" `
+          -v "${PWD}/../../:/thesis" `
           --env-file .env `
           --add-host=host.docker.internal:host-gateway `
           opencode-ralph `
-          -y --message "$(Get-Content $PromptFile -Raw)"
+          run "$(Get-Content $PromptFile -Raw)"
 
         if ($Push) {
             Write-Host "Sincronizando con repositorio remoto..." -ForegroundColor Gray
-            git push origin "$CurrentBranch"
+            # git push origin "$CurrentBranch"
         }
 
         $Iteration++
