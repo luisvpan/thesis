@@ -2,17 +2,16 @@
 FROM ghcr.io/anomalyco/opencode:latest
 
 RUN apk add --no-cache ca-certificates && update-ca-certificates
-
 RUN apk add --no-cache git bash curl unzip
 
 RUN curl -fsSL https://bun.sh/install | bash
 
-RUN git config --global --add safe.directory '/app'
+RUN git config --global --add safe.directory '/thesis' && \
+  git config --global --add safe.directory '/thesis/code' && \
+  git config --global --add safe.directory '/thesis/code/dataflow-execution-environment'
 
 ENV PATH="/root/.bun/bin:$PATH"
-
 ENV OPENCODE_ENABLE_EXA=1
-
 ENV GIT_DISCOVERY_ACROSS_FILESYSTEM=1
 
-WORKDIR /app
+WORKDIR /thesis/code/dataflow-execution-environment

@@ -70,8 +70,7 @@ try {
         # Ejecutamos a Ralph pasando el Prompt
         # Importante: Montamos la carpeta .git y pasamos config de usuario
         docker run --rm --name "ralph-agent" `
-          -v "${PWD}:/app" `
-          -v "${PWD}/../../.git:/app/.git" `
+          -v "${PWD}../../:/thesis" `
           --env-file .env `
           --add-host=host.docker.internal:host-gateway `
           opencode-ralph `
