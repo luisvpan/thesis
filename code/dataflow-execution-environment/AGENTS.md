@@ -16,6 +16,9 @@ bun run --filter './packages/{package-name}' build
 
 # Development (watch mode)
 bun run --filter '*' dev
+
+# Start
+bun run --filter '*' start
 ```
 
 ## Validation
