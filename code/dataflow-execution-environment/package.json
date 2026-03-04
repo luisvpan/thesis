@@ -5,10 +5,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run build --filter='*'",
-    "dev": "bun run dev --filter='*'",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun tsc --noEmit",
     "lint": "echo 'Lint not configured'"
   },
   "devDependencies": {

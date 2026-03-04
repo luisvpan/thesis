@@ -9,13 +9,13 @@ This is a monorepo with TypeScript. The project uses bun workspaces for package 
 bun install
 
 # Build all packages
-bun run build
+bun run --filter '*' build
 
 # Build specific package
-bun run build --workspace=packages/compiler
+bun run --filter './packages/{package-name}' build 
 
 # Development (watch mode)
-bun run dev
+bun run --filter '*' dev
 ```
 
 ## Validation
@@ -26,12 +26,12 @@ Run after implementing to get immediate feedback:
 # Tests (all)
 bun test
 
+# Tests (specific package)
+bun test ./packages/{package-name}
+
 # Tests (specific layer - Ralph Wiggum method)
 bun test -- layer1
 bun test -- layer2
-
-# Tests (watch mode)
-bun test -- --watch
 
 # Typecheck
 bun run typecheck
