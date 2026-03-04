@@ -87,11 +87,11 @@ export class DataflowParser extends CstParser {
 
   outputStatement = this.RULE("outputStatement", () => {
     this.CONSUME(Output);
-    const id = this.CONSUME(Identifier);
+    this.CONSUME1(Identifier);
     this.CONSUME(Colon);
     this.SUBRULE(this.typeDeclaration);
     this.CONSUME(Equals);
-    this.CONSUME(Identifier);
+    this.CONSUME2(Identifier);
     this.CONSUME(Semicolon);
   });
 

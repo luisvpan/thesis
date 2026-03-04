@@ -11,6 +11,7 @@ export class Compiler {
   private parser: DataflowParser;
   private astBuilder: AstBuilder;
   private validator: DagValidator;
+  private edgeCounter = 0;
 
   constructor() {
     this.lexer = new Lexer(allTokens);
@@ -19,19 +20,26 @@ export class Compiler {
     this.validator = new DagValidator();
   }
 
-  compile(program: DataflowProgram): ValidationResult & { graph?: { nodes: DataflowNode[]; edges: DataflowEdge[] } } {
-    const { graph } = program;
-
-    const validationResult = this.validate(graph);
+  compile(source: string): ValidationResult & { program?: DataflowProgram } {
+    const ast = this.parse(source);
+    
+    const { nodes, edges } = this.buildProgramFromAst(ast);
+    
+    const validationResult = this.validator.validate(ast.statements);
     if (!validationResult.success) {
       return validationResult;
     }
-
+    
     return {
       success: true,
       errors: [],
       warnings: [],
-      graph: this.buildGraph(graph)
+      program: {
+        metadata: {
+          programId: `prog_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        },
+        graph: { nodes, edges }
+      }
     };
   }
 
@@ -45,23 +53,30 @@ export class Compiler {
     return this.astBuilder.program(cst);
   }
 
-  private validate(graph: { nodes: DataflowNode[]; edges: DataflowEdge[] }): ValidationResult {
-    const statements = graph.nodes.map(node => ({
-      type: node.type === "DataSource" ? "SourceStatement" as const :
-             node.type === "Transformation" ? "TransformStatement" as const :
-             "OutputStatement" as const,
-      id: node.id,
-      dataType: typeof node.dataType === "string" ? node.dataType : JSON.stringify(node.dataType),
-      value: (node as any).value,
-      operation: (node as any).operation,
-      inputs: (node as any).inputs,
-      input: (node as any).input
-    }));
-
-    return this.validator.validate(statements);
-  }
-
-  private buildGraph(graph: { nodes: DataflowNode[]; edges: DataflowEdge[] }): { nodes: DataflowNode[]; edges: DataflowEdge[] } {
-    return graph;
+  private buildProgramFromAst(ast: Program): { nodes: DataflowNode[]; edges: DataflowEdge[] } {
+    this.edgeCounter = 0;
+    const nodes: DataflowNode[] = ast.statements.map(stmt => statementToNode(stmt));
+    const edges: DataflowEdge[] = [];
+    
+    for (const stmt of ast.statements) {
+      if (stmt.type === "TransformStatement") {
+        for (let i = 0; i < stmt.inputs.length; i++) {
+          edges.push({
+            id: `edge_${this.edgeCounter++}`,
+            from: stmt.inputs[i],
+            to: stmt.id,
+            toPort: i
+          });
+        }
+      } else if (stmt.type === "OutputStatement") {
+        edges.push({
+          id: `edge_${this.edgeCounter++}`,
+          from: stmt.input,
+          to: stmt.id
+        });
+      }
+    }
+    
+    return { nodes, edges };
   }
 }

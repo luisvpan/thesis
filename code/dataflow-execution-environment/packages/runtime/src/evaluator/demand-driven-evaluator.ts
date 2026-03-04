@@ -1,5 +1,6 @@
 import { DataflowGraph } from "../graph/dataflow-graph.js";
 import { ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE } from "../operations/numeric.js";
+import type { Natural, Integer, Decimal } from "@dataflow/shared/types";
 
 export class DemandDrivenEvaluator {
   private cache = new Map<string, Map<number, unknown>>();
@@ -18,7 +19,7 @@ export class DemandDrivenEvaluator {
 
     let value: unknown;
     if (node.type === "DataSource") {
-      value = node.value;
+      value = this.wrapDataSourceValue(node);
     } else if (node.type === "Transformation") {
       const inputNodes = graph.getInputs(nodeId);
       value = this.evaluateOperation(node.operation, inputNodes, time, graph);
@@ -36,6 +37,22 @@ export class DemandDrivenEvaluator {
     this.cache.get(nodeId)!.set(time, value);
 
     return value;
+  }
+
+  private wrapDataSourceValue(node: { type: "DataSource"; dataType: string | { kind: string; elementType?: any }; value: unknown }): unknown {
+    const numValue = typeof node.value === "number" ? node.value : node.value;
+    const dataType = typeof node.dataType === "string" ? node.dataType : (node.dataType as { kind: string; elementType?: any }).kind;
+    
+    switch (dataType) {
+      case "natural":
+        return { kind: "natural" as const, value: numValue as number };
+      case "integer":
+        return { kind: "integer" as const, value: numValue as number };
+      case "decimal":
+        return { kind: "decimal" as const, value: numValue as number };
+      default:
+        return node.value;
+    }
   }
 
   private evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {

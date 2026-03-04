@@ -1,87 +1,87 @@
-import type { Natural } from "@dataflow/shared/types";
+import type { Natural, Integer, Decimal } from "@dataflow/shared/types";
+
+function unwrapValue(value: unknown): number {
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "object" && value !== null && "value" in value) {
+    return (value as { value: number }).value;
+  }
+  throw new TypeError("Expected number value");
+}
 
 export function ADD(inputs: Array<{ id: string; value: unknown }>): Natural {
   const [a, b] = inputs;
-
-  if (typeof a.value !== "number" || typeof b.value !== "number") {
-    throw new TypeError("ADD requires number inputs");
-  }
-
-  if (a.value < 0 || b.value < 0) {
+  const aVal = unwrapValue(a.value);
+  const bVal = unwrapValue(b.value);
+  
+  if (aVal < 0 || bVal < 0) {
     throw new RangeError("ADD requires natural numbers (>= 0)");
   }
-
+  
   return {
     kind: "natural",
-    value: a.value + b.value
+    value: aVal + bVal
   };
 }
 
-export function SUBTRACT(inputs: Array<{ id: string; value: unknown }>): Natural {
+export function SUBTRACT(inputs: Array<{ id: string; value: unknown }>): Integer {
   const [a, b] = inputs;
-
-  if (typeof a.value !== "number" || typeof b.value !== "number") {
-    throw new TypeError("SUBTRACT requires number inputs");
-  }
-
+  const aVal = unwrapValue(a.value);
+  const bVal = unwrapValue(b.value);
+  
   return {
-    kind: "natural",
-    value: a.value - b.value
+    kind: "integer",
+    value: aVal - bVal
   };
 }
 
 export function MULTIPLY(inputs: Array<{ id: string; value: unknown }>): Natural {
   const [a, b] = inputs;
-
-  if (typeof a.value !== "number" || typeof b.value !== "number") {
-    throw new TypeError("MULTIPLY requires number inputs");
-  }
-
-  if (a.value < 0 || b.value < 0) {
+  const aVal = unwrapValue(a.value);
+  const bVal = unwrapValue(b.value);
+  
+  if (aVal < 0 || bVal < 0) {
     throw new RangeError("MULTIPLY requires natural numbers (>= 0)");
   }
-
+  
   return {
     kind: "natural",
-    value: a.value * b.value
+    value: aVal * bVal
   };
 }
 
-export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Natural {
+export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Decimal {
   const [a, b] = inputs;
-
-  if (typeof a.value !== "number" || typeof b.value !== "number") {
-    throw new TypeError("DIVIDE requires number inputs");
-  }
-
-  if (b.value === 0) {
+  const aVal = unwrapValue(a.value);
+  const bVal = unwrapValue(b.value);
+  
+  if (bVal === 0) {
     throw new Error("DIVIDE: Division by zero");
   }
-
+  
   return {
-    kind: "natural",
-    value: a.value / b.value
+    kind: "decimal",
+    value: aVal / bVal
   };
 }
 
-export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Natural {
+export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Integer {
   const [a, b] = inputs;
-
-  if (typeof a.value !== "number" || typeof b.value !== "number") {
-    throw new TypeError("COMPARE requires number inputs");
-  }
-
+  const aVal = unwrapValue(a.value);
+  const bVal = unwrapValue(b.value);
+  
   let result: number;
-  if (a.value < b.value) {
+  if (aVal < bVal) {
     result = -1;
-  } else if (a.value > b.value) {
+  } else if (aVal > bVal) {
     result = 1;
   } else {
     result = 0;
   }
-
+  
   return {
-    kind: "natural",
+    kind: "integer",
     value: result
   };
 }
