@@ -1,12 +1,14 @@
 import type { DataflowNode, DataflowEdge } from "@dataflow/shared/types";
 import type { ValidationError, ValidationResult } from "@dataflow/shared/types";
 import type { Statement } from "../ast/ast-types.js";
-import { OPERATION_REGISTRY } from "@dataflow/shared/operations";
+import { OPERATION_REGISTRY, TypeConstraint } from "@dataflow/shared/operations";
+import type { Curriculum } from "@dataflow/shared/types";
 
 export class DagValidator {
   validate(statements: Statement[]): ValidationResult {
     const errors: ValidationError[] = [];
     const defined = new Set<string>();
+    const typeTable = new Map<string, string>();
 
     for (const stmt of statements) {
       if (defined.has(stmt.id)) {
@@ -20,6 +22,10 @@ export class DagValidator {
         });
       }
       defined.add(stmt.id);
+
+      if (stmt.type === "SourceStatement") {
+        typeTable.set(stmt.id, stmt.dataType);
+      }
     }
 
     const hasCycle = this.detectCycles(statements);
@@ -57,6 +63,26 @@ export class DagValidator {
             suggestion: `Conecta ${signature.arity - stmt.inputs.length} bloque${signature.arity - stmt.inputs.length === 1 ? '' : 's'} más al bloque "${stmt.operation}".`,
             example: this.generateExample(stmt.operation, signature.arity)
           });
+        }
+
+        for (let i = 0; i < stmt.inputs.length; i++) {
+          const inputType = this.getInputType(stmt.inputs[i], typeTable);
+          const expectedType = signature.inputTypes[i];
+
+          if (inputType === "unknown") {
+            continue;
+          }
+
+          if (!this.isTypeCompatible(inputType, expectedType, stmt.operation, i)) {
+            const errorDetails = this.generateTypeError(
+              stmt.operation,
+              expectedType,
+              inputType,
+              stmt.inputs[i],
+              i
+            );
+            errors.push(errorDetails);
+          }
         }
       }
 
@@ -147,5 +173,144 @@ export class DagValidator {
       return "[formas] 🎨 [rojo] ✅";
     }
     return `Conecta ${arity} bloques al bloque "${operation}" ✅`;
+  }
+
+  private getInputType(identifier: string, typeTable: Map<string, string>): string {
+    const inferredType = typeTable.get(identifier);
+    if (!inferredType) {
+      return "unknown";
+    }
+    return inferredType;
+  }
+
+  private isTypeCompatible(
+    actualType: string,
+    expectedType: string | { kind: string; elementType?: string } | TypeConstraint,
+    operation: string,
+    inputIndex: number
+  ): boolean {
+    if (typeof expectedType === "string") {
+      return actualType === expectedType;
+    }
+
+    if (expectedType.kind === "set" || expectedType.kind === "stream") {
+      const actualElementType = this.extractElementType(actualType);
+      const expectedElementType = expectedType.elementType;
+
+      if (actualElementType !== expectedElementType) {
+        return false;
+      }
+
+      if (expectedType.kind === "set") {
+        return this.validatePropertyConstraints(expectedType.elementType, operation);
+      }
+
+      return true;
+    }
+
+    return actualType === expectedType.kind;
+  }
+
+  private extractElementType(compositeType: string): string {
+    const match = compositeType.match(/^(set|stream)<(.+)>$/);
+    if (!match) {
+      return "unknown";
+    }
+    return match[1];
+  }
+
+  private validatePropertyConstraints(elementType: string, operation: string): boolean {
+    const propertyConstraints: Record<string, string[]> = {
+      "FILTER_BY_COLOR": ["color"],
+      "FILTER_BY_SIZE": ["size"],
+      "FILTER_BY_TYPE": ["type"],
+      "FILTER_BY_TASTE": ["taste"],
+      "FILTER_BY_AGE_GROUP": ["ageGroup"],
+      "FILTER_BY_GENDER": ["gender"],
+      "COMPARE_BY_COLOR": ["color"],
+      "COMPARE_BY_SIZE": ["size"],
+      "COMPARE_BY_TYPE": ["type"],
+      "COMPARE_BY_TASTE": ["taste"],
+      "COMPARE_BY_AGE_GROUP": ["ageGroup"],
+      "COMPARE_BY_GENDER": ["gender"]
+    };
+
+    const requiredProperties = propertyConstraints[operation];
+    if (!requiredProperties) {
+      return true;
+    }
+
+    for (const prop of requiredProperties) {
+      if (!this.typeHasProperty(elementType, prop)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private typeHasProperty(type: string, property: string): boolean {
+    const curriculumTypes: Record<string, string[]> = {
+      "shape": ["size", "color"],
+      "car": ["color"],
+      "food": ["taste", "color"],
+      "animal": ["type", "color"],
+      "person": ["ageGroup", "gender"]
+    };
+
+    const properties = curriculumTypes[type];
+    return properties ? properties.includes(property) : false;
+  }
+
+  private generateTypeError(
+    operation: string,
+    expectedType: string | { kind: string; elementType?: string },
+    actualType: string,
+    inputId: string,
+    inputIndex: number
+  ): ValidationError {
+    const expectedTypeName = typeof expectedType === "string" ? expectedType : expectedType.kind;
+    const error: ValidationError = {
+      code: "TYPE_ERROR",
+      message: "",
+      nodeId: inputId,
+      childMessage: "",
+      suggestion: "",
+      example: ""
+    };
+
+    if (operation === "ADD") {
+      const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal";
+      const hasText = actualType === "text";
+
+      if (!isNumeric && hasText) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita números, no palabras. "${actualType}" no es un número.`;
+        error.suggestion = `Conecta bloques de números (natural, integer, decimal) al bloque "${operation}".`;
+        error.example = `[número 5] + [número 3] ✅`;
+      } else if (!isNumeric) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita ${expectedTypeName}, recibiste "${actualType}".`;
+        error.suggestion = `Conecta un bloque de tipo ${expectedTypeName}.`;
+        error.example = `[${expectedTypeName} 5] + [${expectedTypeName} 3] ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" recibió ${actualType} pero esperaba ${expectedTypeName}. Verifica tus conexiones.`;
+        error.suggestion = `Revisa que "${inputId}" está conectado a un bloque de tipo ${expectedTypeName}.`;
+        error.example = this.generateExample(operation, 2);
+      }
+    } else if (operation.startsWith("FILTER_BY_") || operation.startsWith("COMPARE_BY_")) {
+      const property = operation.split("_BY_")[1].toLowerCase();
+      const expectedTypeWithProperty = typeof expectedType === "object" ? `${expectedType.kind}<${expectedType.elementType}>` : expectedType;
+      const elementType = this.extractElementType(actualType);
+
+      error.message = `Operation ${operation} requires elements with '${property}' property, got ${actualType}`;
+      error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita elementos con propiedad "${property}". "${elementType}" no tiene "${property}".`;
+      error.suggestion = `Usa un tipo que tenga propiedad "${property}" (ej. ${expectedTypeWithProperty}).`;
+      error.example = `${expectedTypeWithProperty} [elemento con ${property}] → filtrados ✅`;
+    } else {
+      error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" espera ${expectedTypeName}, recibiste "${actualType}".`;
+      error.suggestion = `Revisa el tipo de "${inputId}". Debe ser ${expectedTypeName}.`;
+      error.example = `${expectedTypeName} → [${actualType}] ❌`;
+    }
+
+    return error;
   }
 }
