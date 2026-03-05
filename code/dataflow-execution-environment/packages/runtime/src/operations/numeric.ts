@@ -60,6 +60,10 @@ export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Decimal {
     throw new Error("DIVIDE: Division by zero");
   }
   
+  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal / bVal)) {
+    throw new Error("DIVIDE: Invalid operation (NaN result)");
+  }
+  
   return {
     kind: "decimal",
     value: aVal / bVal
