@@ -2,7 +2,7 @@ import type { Program, Statement, SourceStatement, TransformStatement, OutputSta
 
 export class AstBuilder {
   program(ctx: any): Program {
-    const statements = ctx.children?.statement || ctx.statement || [];
+    const statements = ctx.children?.statement || [];
     return {
       type: "Program",
       statements: statements.map((s: any) => this.statement(s))
@@ -10,13 +10,12 @@ export class AstBuilder {
   }
 
   statement(ctx: any): Statement {
-    const name = ctx.name;
-    if (name === "sourceStatement") {
-      return this.sourceStatement(ctx);
-    } else if (name === "transformStatement") {
-      return this.transformStatement(ctx);
-    } else if (name === "outputStatement") {
-      return this.outputStatement(ctx);
+    if (ctx.children?.sourceStatement) {
+      return this.sourceStatement(ctx.children.sourceStatement[0]);
+    } else if (ctx.children?.transformStatement) {
+      return this.transformStatement(ctx.children.transformStatement[0]);
+    } else if (ctx.children?.outputStatement) {
+      return this.outputStatement(ctx.children.outputStatement[0]);
     }
     throw new Error('Unknown statement type');
   }
@@ -45,7 +44,7 @@ export class AstBuilder {
       type: "TransformStatement",
       id: ctx.children.Identifier[0].image,
       dataType: this.typeDeclaration(ctx.children.typeDeclaration[0]),
-      operation: ctx.children.operationExpression[0].children.operationName[0].tokenType.name.toUpperCase(),
+      operation: this.extractOperationName(ctx.children.operationExpression[0]),
       inputs: args
     };
   }
@@ -57,6 +56,25 @@ export class AstBuilder {
       dataType: this.typeDeclaration(ctx.children.typeDeclaration[0]),
       input: ctx.children.Identifier[1].image
     };
+  }
+
+  private extractOperationName(operationExprCtx: any): string {
+    const operationNameCtx = operationExprCtx.children.operationName?.[0];
+    if (!operationNameCtx) return "UNKNOWN";
+    
+    const operationKeys = [
+      "Add", "Subtract", "Multiply", "Divide", "Compare",
+      "Filter", "Union", "Intersection", "Difference", "Complement",
+      "Next", "First", "Fby", "Accumulate", "Sort"
+    ];
+    
+    for (const key of operationKeys) {
+      if (operationNameCtx.children[key]?.[0]?.image) {
+        return operationNameCtx.children[key][0].image.toUpperCase();
+      }
+    }
+    
+    return "UNKNOWN";
   }
 
   typeDeclaration(ctx: any): string {

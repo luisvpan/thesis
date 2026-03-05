@@ -185,7 +185,8 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(First) },
       { ALT: () => this.CONSUME(Fby) },
       { ALT: () => this.CONSUME(Accumulate) },
-      { ALT: () => this.CONSUME(Sort) }
+      { ALT: () => this.CONSUME(Sort) },
+      { ALT: () => this.CONSUME(Identifier) }
     ]);
   });
 

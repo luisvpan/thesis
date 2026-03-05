@@ -50,6 +50,9 @@ export class Compiler {
     }
     this.parser.input = lexResult.tokens;
     const cst = this.parser.program();
+    if (!cst) {
+      throw new Error('Parser failed to generate CST');
+    }
     return this.astBuilder.program(cst);
   }
 

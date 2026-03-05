@@ -92,46 +92,28 @@ describe('Compiler - Lexing and Parsing', () => {
 describe('Compiler - Validation', () => {
   it('should validate correct program', () => {
     const compiler = new Compiler();
+    const source = `
+      source a: natural = 3;
+      source b: natural = 2;
+      transform add: natural = ADD(a, b);
+      output result: natural = add;
+    `;
     
-    const program: DataflowProgram = {
-      metadata: { programId: 'prog_001' },
-      graph: {
-        nodes: [
-          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
-          { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
-          { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
-          { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
-        ],
-        edges: [
-          { id: 'e1', from: 'a', to: 'add', toPort: 0 },
-          { id: 'e2', from: 'b', to: 'add', toPort: 1 },
-          { id: 'e3', from: 'add', to: 'result' }
-        ]
-      }
-    };
-    
-    const result = compiler.compile(program);
+    const result = compiler.compile(source);
     
     expect(result.success).toBe(true);
     expect(result.errors).toHaveLength(0);
-    expect(result.graph).toBeDefined();
+    expect(result.program).toBeDefined();
   });
 
   it('should detect duplicate identifiers', () => {
     const compiler = new Compiler();
+    const source = `
+      source a: natural = 3;
+      source a: natural = 2;
+    `;
     
-    const program: DataflowProgram = {
-      metadata: { programId: 'prog_001' },
-      graph: {
-        nodes: [
-          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
-          { id: 'a', type: 'DataSource', dataType: 'natural', value: 2 }
-        ],
-        edges: []
-      }
-    };
-    
-    const result = compiler.compile(program);
+    const result = compiler.compile(source);
     
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
@@ -141,21 +123,12 @@ describe('Compiler - Validation', () => {
 
   it('should detect undefined references', () => {
     const compiler = new Compiler();
+    const source = `
+      source a: natural = 3;
+      transform add: natural = ADD(a, b);
+    `;
     
-    const program: DataflowProgram = {
-      metadata: { programId: 'prog_001' },
-      graph: {
-        nodes: [
-          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
-          { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] }
-        ],
-        edges: [
-          { id: 'e1', from: 'a', to: 'add', toPort: 0 }
-        ]
-      }
-    };
-    
-    const result = compiler.compile(program);
+    const result = compiler.compile(source);
     
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
@@ -164,24 +137,16 @@ describe('Compiler - Validation', () => {
 
   it('should detect cycles', () => {
     const compiler = new Compiler();
+    const source = `
+      source x: natural = 3;
+      source y: natural = 2;
+      source z: natural = 1;
+      transform a: natural = ADD(z, b);
+      transform b: natural = ADD(a, c);
+      transform c: natural = ADD(a, b);
+    `;
     
-    const program: DataflowProgram = {
-      metadata: { programId: 'prog_001' },
-      graph: {
-        nodes: [
-          { id: 'a', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['c', 'b'] },
-          { id: 'b', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'c'] },
-          { id: 'c', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] }
-        ],
-        edges: [
-          { id: 'e1', from: 'a', to: 'b', toPort: 0 },
-          { id: 'e2', from: 'b', to: 'c', toPort: 0 },
-          { id: 'e3', from: 'c', to: 'a', toPort: 0 }
-        ]
-      }
-    };
-    
-    const result = compiler.compile(program);
+    const result = compiler.compile(source);
     
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
@@ -191,21 +156,12 @@ describe('Compiler - Validation', () => {
 
   it('should detect wrong arity', () => {
     const compiler = new Compiler();
+    const source = `
+      source a: natural = 3;
+      transform add: natural = ADD(a);
+    `;
     
-    const program: DataflowProgram = {
-      metadata: { programId: 'prog_001' },
-      graph: {
-        nodes: [
-          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
-          { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a'] }
-        ],
-        edges: [
-          { id: 'e1', from: 'a', to: 'add', toPort: 0 }
-        ]
-      }
-    };
-    
-    const result = compiler.compile(program);
+    const result = compiler.compile(source);
     
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
@@ -215,22 +171,12 @@ describe('Compiler - Validation', () => {
 
   it('should detect unknown operation', () => {
     const compiler = new Compiler();
+    const source = `
+      source a: natural = 3;
+      transform badop: natural = UNKNOWN_OP(a, a);
+    `;
     
-    const program: DataflowProgram = {
-      metadata: { programId: 'prog_001' },
-      graph: {
-        nodes: [
-          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
-          { id: 'badop', type: 'Transformation', dataType: 'natural', operation: 'UNKNOWN_OP', inputs: ['a', 'a'] }
-        ],
-        edges: [
-          { id: 'e1', from: 'a', to: 'badop', toPort: 0 },
-          { id: 'e2', from: 'a', to: 'badop', toPort: 1 }
-        ]
-      }
-    };
-    
-    const result = compiler.compile(program);
+    const result = compiler.compile(source);
     
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);

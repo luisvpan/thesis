@@ -97,6 +97,7 @@ export class DagValidator {
     for (const stmt of statements) {
       if (stmt.type === "TransformStatement") {
         for (const input of stmt.inputs) {
+          if (!allIds.has(input)) continue;
           if (!adj.has(input)) {
             adj.set(input, []);
           }
@@ -104,6 +105,7 @@ export class DagValidator {
           inDegree.set(stmt.id, (inDegree.get(stmt.id) || 0) + 1);
         }
       } else if (stmt.type === "OutputStatement") {
+        if (!allIds.has(stmt.input)) continue;
         if (!adj.has(stmt.input)) {
           adj.set(stmt.input, []);
         }
