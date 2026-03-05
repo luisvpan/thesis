@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-05
 
 ---
 
@@ -37,76 +37,152 @@ packages/
 
 ## Current Implementation Status
 
-**Last Updated:** 2026-03-04 (Updated 2026-03-04 during development session)
-**Analysis Date:** 2026-03-04
+**Last Updated:** 2026-03-05
+**Analysis Date:** 2026-03-05
 
-### Overall Progress: ~45% Complete (Progress made: +5%)
+### Overall Progress: ~45% Complete
 
-### Session Progress (2026-03-04 Development Session):
+### Test Status Summary
+- **Total Tests:** 44
+- **Passing:** 32 (73%)
+- **Failing:** 12 (27%)
+  - Compiler parsing tests: 6/6 failing (CRITICAL BUG #1)
+  - Compiler validation tests: 6/6 failing (CRITICAL BUG #2)
+  - Runtime tests: 16/16 passing ✓
+  - Shared type tests: 16/16 passing ✓
 
-**✅ COMPLETED:**
-- Test framework infrastructure created
-  - Created test files for shared types (index.test.ts)
-  - Created test files for compiler (compiler.test.ts)
-  - Created test files for runtime (runtime.test.ts)
-  - Using bun test runner framework
-  - Tests follow describe/it pattern
+### Layer Progress
 
-- Runtime operations fixed
-  - Added `unwrapValue()` helper to handle both raw numbers and tagged types
-  - Fixed SUBTRACT to return Integer type (was Natural)
-  - Fixed DIVIDE to return Decimal type (was Natural)
-  - Fixed COMPARE to return Integer type (was Natural)
-  - Added `wrapDataSourceValue()` in DemandDrivenEvaluator to tag raw DataSource values
-  - All numeric operations now return correct typed values
-
-- Type checking fixed
-  - Updated DemandDrivenEvaluator to handle DataType objects correctly
-  - Fixed type compatibility issues between nodes and values
-  - TypeScript compilation now passes with no errors
-
-**⚠️ IN PROGRESS:**
-- Compiler entry point refactoring
-  - Updated `compile()` method to accept source code strings
-  - Created `buildProgramFromAst()` method to convert AST to graph
-  - Created edge counter for unique edge IDs
-  - **BLOCKING ISSUE**: AST builder has deep CST access issues with Chevrotain
-    - CST structure uses nested `.children` and `.children.children.children` pattern
-    - Need to use `ctx.name` to determine rule name
-    - Parser output statement method needs consistent CST access pattern
-    - Statements array is empty after parsing (statements count = 0)
-
-**⏸ PENDING:**
-- Runtime entry point updates (dependent on compiler completion)
-- Complete Layer 1 test implementation (parsing tests failing due to AST issues)
-- All test passing and typecheck passing
-- Commit changes
-
-**🐛 KNOWN ISSUES:**
-- AST Builder CST Access Pattern:
-  - Chevrotain produces deeply nested CST structures
-  - Current pattern `ctx.children?.statement` works for some rules
-  - Need to implement robust CST traversal or use ctx.name-based dispatch
-  - Consider using visitor pattern for AST building
-
-- Test Status:
-  - 37/44 tests run (84% execute rate)
-  - 25 pass, 19 fail
-  - All runtime execution tests passing (13 pass)
-  - All shared type tests passing (18 pass)
-  - All compiler parsing/validation tests failing (0 pass)
-
-### Overall Progress: ~40% Complete
-
-| Layer | Status | Completion | Tests |
-|-------|--------|------------|--------|
-| Layer 1: Foundation | PARTIAL | 85% | 0% |
-| Layer 2: Arithmetic | PARTIAL | 75% | 0% |
+| Layer | Status | Completion | Tests Passing |
+|-------|--------|------------|---------------|
+| Layer 1: Foundation | PARTIAL | 85% | 0% (blocked by bugs) |
+| Layer 2: Arithmetic | PARTIAL | 75% | 100% (runtime tests) |
 | Layer 3: Curriculum Types | MISSING | 10% | 0% |
 | Layer 4: Set Operations | PARTIAL | 15% | 0% |
 | Layer 5: Temporal Operators | PARTIAL | 15% | 0% |
 | Layer 6: Streams | MISSING | 5% | 0% |
 | Layer 7: Integration | MISSING | 0% | 0% |
+
+---
+
+## CRITICAL BLOCKERS (Must Fix First)
+
+### Bug #1: AST Builder CST Access Pattern (PRIORITY -1)
+
+**Location:** `packages/compiler/src/ast/ast-builder.ts:12-22`
+
+**Root Cause:**
+```typescript
+// CURRENT (WRONG):
+statement(ctx: any): Statement {
+  const name = ctx.name;  // ❌ ctx.name doesn't exist in Chevrotain CST
+  if (name === "sourceStatement") {
+    return this.sourceStatement(ctx);
+  } else if (name === "transformStatement") {
+    return this.transformStatement(ctx);
+  } else if (name === "outputStatement") {
+    return this.outputStatement(ctx);
+  }
+  throw new Error('Unknown statement type');
+}
+```
+
+**Expected CST Structure:**
+```typescript
+// Chevrotain CST has nested children structure:
+{
+  children: {
+    sourceStatement: [...],  // or
+    transformStatement: [...],  // or
+    outputStatement: [...]
+  }
+}
+```
+
+**Fix Required:**
+```typescript
+statement(ctx: any): Statement {
+  if (ctx.children?.sourceStatement) {
+    return this.sourceStatement(ctx.children.sourceStatement[0]);
+  } else if (ctx.children?.transformStatement) {
+    return this.transformStatement(ctx.children.transformStatement[0]);
+  } else if (ctx.children?.outputStatement) {
+    return this.outputStatement(ctx.children.outputStatement[0]);
+  }
+  throw new Error('Unknown statement type');
+}
+```
+
+**Impact:** All 6 parsing tests fail with "Unknown statement type"
+
+**Estimated Time:** 30 minutes
+
+**Test Requirements:**
+- specs/GRAMMAR_SPEC.md: Statement parsing (lines 65-71)
+- specs/LANGUAGE_SPEC.md: Program structure validation
+
+**Success Criteria:**
+- All 6 parsing tests pass
+- No "Unknown statement type" errors
+- CST correctly traverses to build AST
+
+---
+
+### Bug #2: Compiler Tests Wrong API (PRIORITY -1)
+
+**Location:** `packages/compiler/src/compiler.test.ts:93-240`
+
+**Root Cause:**
+```typescript
+// CURRENT (WRONG):
+const program: DataflowProgram = {
+  metadata: { programId: 'prog_001' },
+  graph: {
+    nodes: [
+      { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
+      { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
+      { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
+      { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
+    ],
+    edges: [
+      { id: 'e1', from: 'a', to: 'add', toPort: 0 },
+      { id: 'e2', from: 'b', to: 'add', toPort: 1 },
+      { id: 'e3', from: 'add', to: 'result' }
+    ]
+  }
+};
+const result = compiler.compile(program);  // ❌ compile() expects string, not DataflowProgram
+```
+
+**Fix Required:**
+```typescript
+// CORRECT:
+const source = `
+  source a: natural = 3;
+  source b: natural = 2;
+  transform sum: natural = ADD(a, b);
+  output result: natural = sum;
+`;
+const result = compiler.compile(source);  // ✅ Pass source string
+```
+
+**Impact:** All 6 validation tests fail with `RangeError: Array length must be a positive integer`
+
+**Estimated Time:** 1 hour
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Program validation (lines 431-527)
+- specs/GRAMMAR_SPEC.md: Complete examples (lines 334-448)
+- specs/INTEGRATION_SPEC.md: Validation errors (lines 86-111)
+
+**Success Criteria:**
+- All 6 validation tests pass
+- No RangeError exceptions
+- Tests use correct compile(source: string) API
+
+---
+
+## COMPLETE FEATURE BREAKDOWN
 
 ### ✅ COMPLETE (Core Infrastructure)
 
@@ -115,20 +191,19 @@ packages/
 - ✓ TypeScript strict mode
 - ✓ All packages build individually
 - ✓ `bun tsc --noEmit` works for typecheck
-- ⚠️ Build script removed - use commands directly
 
 **Shared Types (packages/shared/src/types/):**
 - ✓ Primitive types: Natural, Integer, Decimal, Text, Boolean
 - ✓ Curriculum types: Shape, Car, Food, Animal, Person
-- ✓ Composite types: Set, Stream
+- ✓ Composite types: Set, Stream (missing `generator` field - see bugs below)
 - ✓ Validation types: ValidationError, ValidationResult, MissingInput
 - ✓ Program types: DataflowProgram, DataflowNode, DataflowEdge
 
 **Compiler (packages/compiler/src/):**
-- ✓ Lexer (Chevrotain) - All tokens defined
-- ✓ Parser (CstParser) - Complete grammar support
-- ✓ AST Builder - Visitor pattern implementation
-- ✓ DAG Validator - Cycle detection, arity checking
+- ✓ Lexer (Chevrotain) - 15/31 operations defined
+- ✓ Parser (CstParser) - 15/31 operations in grammar
+- ✓ AST Builder - Has CST access bug (see Bug #1)
+- ✓ DAG Validator - Cycle detection, arity checking, Spanish errors
 - ✓ Compiler class - Integration of all components
 - ✓ Child-friendly Spanish error messages
 
@@ -139,656 +214,1680 @@ packages/
 - ✓ Runtime class - Program loading and execution
 
 **Operation Registry (packages/shared/src/operations/):**
-- ✓ All 15 operations with signatures defined
+- ✓ 15 operations with signatures defined
 - ✓ getOperationSignature() utility
 - ✓ isOperation() utility
 
-### ❌ MISSING (Critical Blockers)
+---
 
-**Architecture Issues (High Priority):**
-- ❌ Compiler.compile() takes DataflowProgram instead of source code string
-- ❌ Runtime.loadProgram() takes DataflowProgram instead of parsed Program
-- ❌ No separation between source parsing and program representation
-- ❌ DataflowProgram should only be used by integrations (HTTP API, WebSocket, etc.)
+### ❌ MISSING CRITICAL FEATURES
 
-**Layer 1 (Foundation):**
-- ❌ HTTP API (packages/http-api/) - Package exists, directory empty
-- ❌ WebSocket Server (packages/websocket-server/) - Package exists, directory empty
-- ❌ Any test files - Zero tests across all packages
+#### Shared Types Issues:
 
-**Layer 2 (Arithmetic):**
-- ❌ Tests for SUBTRACT, MULTIPLY, DIVIDE, COMPARE
+1. **Fraction Type Missing** (Priority 0)
+   - **Location:** `packages/shared/src/types/primitives.ts`
+   - **Spec Ref:** specs/LANGUAGE_SPEC.md lines 93-109
+   - **Required:**
+   ```typescript
+   export type Fraction = {
+     kind: "fraction";
+     numerator: Integer;
+     denominator: Integer;
+   };
+   
+   // Update Primitive union
+   export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
+   ```
+   - **Estimated Time:** 30 minutes
+   - **Test Requirements:** specs/LANGUAGE_SPEC.md Fraction operations (lines 103-109)
+   - **Success Criteria:** Fraction type defined and exported, TypeScript compiles
 
-**Layer 3 (Curriculum Types):**
-- ❌ COMPARE_BY_SIZE, COMPARE_BY_COLOR, COMPARE_BY_TYPE implementations
-- ❌ FILTER_BY_SIZE, FILTER_BY_COLOR, FILTER_BY_TYPE implementations
-- ❌ Property constraint validation (hasProperty)
-- ❌ Type checking for curriculum types
+2. **Comparison Type Missing** (Priority 0)
+   - **Location:** `packages/shared/src/types/primitives.ts`
+   - **Spec Ref:** specs/LANGUAGE_SPEC.md lines 53, 70, 90, 107
+   - **Required:**
+   ```typescript
+   export type Comparison = {
+     kind: "comparison";
+     value: -1 | 0 | 1;  // less than, equal, greater than
+   };
+   
+   // Update Primitive union
+   export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction | Comparison;
+   ```
+   - **Estimated Time:** 30 minutes
+   - **Test Requirements:** specs/LANGUAGE_SPEC.md COMPARE operations (lines 53, 70, 90, 107)
+   - **Success Criteria:** Comparison type defined and exported, COMPARE returns Comparison
 
-**Layer 4 (Set Operations):**
-- ❌ UNION, INTERSECTION, DIFFERENCE, COMPLEMENT implementations
-- ❌ Type checking for set operations
+3. **Stream Type Missing Generator Field** (Priority 0)
+   - **Location:** `packages/shared/src/types/composite.ts`
+   - **Spec Ref:** specs/LANGUAGE_SPEC.md lines 283-288, specs/DEMAND_DRIVEN_INCREMENTAL.md
+   - **Current:**
+   ```typescript
+   export type StreamType<T = DataType> = {
+     kind: "stream";
+     elementType: T;
+   };
+   ```
+   - **Required:**
+   ```typescript
+   export type StreamType<T = DataType> = {
+     kind: "stream";
+     elementType: T;
+     generator: Generator<T>;  // ADD THIS FIELD
+   };
+   ```
+   - **Estimated Time:** 15 minutes
+   - **Test Requirements:** specs/LANGUAGE_SPEC.md Stream type (lines 279-310), specs/DEMAND_DRIVEN_INCREMENTAL.md
+   - **Success Criteria:** Stream type has generator field, TypeScript compiles
 
-**Layer 5 (Temporal Operators):**
-- ❌ NEXT, FIRST, FBY, ACCUMULATE implementations
-- ❌ Time parameter support in evaluator
-- ❌ Stream value handling
+#### Compiler Issues:
 
-**Layer 6 (Streams):**
-- ❌ Stream generator support
-- ❌ Stream type evaluation
+4. **Missing Operation Tokens** (Priority 1)
+   - **Location:** `packages/compiler/src/lexer/tokens.ts` and `packages/compiler/src/parser/dataflow-parser.ts`
+   - **Spec Ref:** specs/GRAMMAR_SPEC.md lines 200-260 (Operations by Category)
+   - **Missing from spec:**
+   
+   **Comparison Operations (8 missing):**
+   - COMPARE_BY_SIZE
+   - COMPARE_BY_COLOR
+   - COMPARE_BY_TYPE
+   - COMPARE_BY_TASTE
+   - COMPARE_BY_AGE_GROUP
+   - COMPARE_BY_GENDER
+   - (Total comparison ops: 1 implemented, 8 missing)
+   
+   **Filtering Operations (6 missing):**
+   - FILTER_BY_SIZE
+   - FILTER_BY_COLOR
+   - FILTER_BY_TYPE
+   - FILTER_BY_TASTE
+   - FILTER_BY_AGE_GROUP
+   - FILTER_BY_GENDER
+   - (Total filtering ops: 1 generic FILTER, 6 specific missing)
+   
+   **Ordering Operations (1 missing):**
+   - ALPHABETICAL_SORT
+   - (Total ordering ops: 1 SORT implemented, 1 missing)
+   
+   - **Estimated Time:** 2 hours
+   - Add 15 new tokens to lexer/tokens.ts
+   - Add 15 new operations to parser/dataflow-parser.ts
+   - Update allTokens array
+   - **Test Requirements:** specs/GRAMMAR_SPEC.md Operations (lines 200-260)
+   - **Success Criteria:** All 31 operations recognized by lexer, all parse correctly
 
-**Layer 7 (Integration):**
-- ❌ IncrementalRuntime class
-- ❌ Partial graph evaluation
-- ❌ Subscription management
-- ❌ Node state tracking (completed/pending/error)
+5. **Stream Literal Parsing Missing** (Priority 2)
+   - **Location:** `packages/compiler/src/parser/dataflow-parser.ts` and `packages/compiler/src/ast/ast-builder.ts`
+   - **Spec Ref:** specs/GRAMMAR_SPEC.md lines 170-175
+   - **Required Grammar:**
+   ```ebnf
+   stream_literal ::= "stream" "<" type ">" "(" stream_source ")"
+   stream_source ::= "sensor" "(" text_literal ")"
+                 | "generator" "(" identifier ")"
+                 | "external" "(" text_literal ")"
+   ```
+   - **Estimated Time:** 3 hours
+   - Add sensor, generator, external tokens
+   - Add streamLiteral and streamSource rules to parser
+   - Add AST builder methods for streams
+   - **Test Requirements:** specs/GRAMMAR_SPEC.md Stream examples (lines 414-427)
+   - **Success Criteria:** Stream literals parse correctly, AST includes stream structure
 
-### ⚠️ PARTIAL (In Progress)
+6. **Type Compatibility Validation Missing** (Priority 1)
+   - **Location:** `packages/compiler/src/validation/` (create new file `type-checker.ts`)
+   - **Spec Ref:** specs/LANGUAGE_SPEC.md lines 433-440
+   - **Required:** Validate input types match operation signatures
+   - **Estimated Time:** 4 hours
+   - Create TypeChecker class
+   - Implement isTypeCompatible() method
+   - Return ValidationError with childMessage
+   - **Test Requirements:** specs/LANGUAGE_SPEC.md Type checking (lines 433-440), specs/INTEGRATION_SPEC.md Validation (lines 86-111)
+   - **Success Criteria:** Type errors detected at compile time, child-friendly Spanish messages
 
-**Operation Implementation Gap:**
-- 10 operations in registry but NOT implemented (will crash at runtime):
-  - FILTER, UNION, INTERSECTION, DIFFERENCE, COMPLEMENT
-  - NEXT, FIRST, FBY, ACCUMULATE, SORT
-- Runtime evaluator throws "Unknown operation" error for these
+7. **Property Constraint Validation Missing** (Priority 1)
+   - **Location:** `packages/compiler/src/validation/` (enhance existing or create `property-checker.ts`)
+   - **Spec Ref:** specs/LANGUAGE_SPEC.md lines 438, 491-527
+   - **Required:** Check types have required properties (e.g., `color` for FILTER_BY_COLOR)
+   - **Estimated Time:** 3 hours
+   - Implement hasProperty() checks
+   - Filter: color, size, type, taste, ageGroup, gender
+   - Compare: same properties
+   - **Test Requirements:** specs/LANGUAGE_SPEC.md Property requirements (lines 491-527)
+   - **Success Criteria:** Property errors detected at compile time, curriculum types validated correctly
 
-**Validation Gap:**
-- Arity checking ✓ implemented
-- Type compatibility ❌ missing
-- Property constraints ❌ missing
+#### Runtime Issues:
 
-### 🐛 BUGS & ISSUES
+8. **Missing Runtime Operations** (Priority 1) - **CRASH RISK**
+   - **Location:** `packages/runtime/src/operations/`
+   - **Spec Ref:** specs/LANGUAGE_SPEC.md Operations (lines 48-109), specs/INTEGRATION_SPEC.md Execution
+   - **Missing 11 operations (will crash at runtime):**
+   
+   **Set Operations (5 missing):**
+   - UNION, INTERSECTION, DIFFERENCE, COMPLEMENT
+   - SORT (ordering)
+   - **Create:** `packages/runtime/src/operations/sets.ts`
+   
+   **Filtering Operations (1 missing):**
+   - FILTER (generic, not specific FILTER_BY_*)
+   - **Create:** `packages/runtime/src/operations/filtering.ts`
+   
+   **Temporal Operations (4 missing):**
+   - NEXT, FIRST, FBY, ACCUMULATE
+   - **Create:** `packages/runtime/src/operations/temporal.ts`
+   
+   **Curriculum Comparison Operations (6 missing):**
+   - COMPARE_BY_SIZE, COMPARE_BY_COLOR, COMPARE_BY_TYPE
+   - COMPARE_BY_TASTE, COMPARE_BY_AGE_GROUP, COMPARE_BY_GENDER
+   - **Add to:** `packages/runtime/src/operations/comparison.ts` (create)
+   
+   **Curriculum Filtering Operations (6 missing):**
+   - FILTER_BY_SIZE, FILTER_BY_COLOR, FILTER_BY_TYPE
+   - FILTER_BY_TASTE, FILTER_BY_AGE_GROUP, FILTER_BY_GENDER
+   - **Add to:** `packages/runtime/src/operations/filtering.ts`
+   
+   - **Estimated Time:** 8 hours
+   - Implement all 17 missing operations
+   - Update DemandDrivenEvaluator to dispatch to new ops
+   - Handle temporal operations with time parameter
+   - **Test Requirements:** specs/LANGUAGE_SPEC.md All operation definitions, specs/INTEGRATION_SPEC.md Execute endpoint
+   - **Success Criteria:** All operations implemented, no "Unknown operation" errors, temporal ops use pure time-based semantics
 
-1. **Build Script Removed** (fixed per user instructions)
-   - Use `bun run build --filter='*'` directly
-   - Use `bun tsc --noEmit` for typecheck directly
+9. **IncrementalRuntime Class Missing** (Priority 2)
+   - **Location:** `packages/runtime/src/` (create new file `incremental-runtime.ts`)
+   - **Spec Ref:** specs/INTEGRATION_SPEC.md lines 365-771, specs/DEMAND_DRIVEN_INCREMENTAL.md
+   - **Required Features:**
+     - Partial graph evaluation
+     - Node state tracking (completed/pending/error)
+     - Subscription management
+     - Graph update API with cache invalidation
+     - Missing input extraction with Spanish messages
+     - Demand-driven semantics (not eager evaluation)
+   - **Estimated Time:** 10 hours
+   - Implement IncrementalRuntime class
+   - Implement updateGraph() with cache invalidation
+   - Implement evaluatePartial() with demand sources
+   - Implement subscribe/unsubscribe mechanisms
+   - Implement getChildMessageForMissingInput() with Spanish
+   - **Test Requirements:** specs/INTEGRATION_SPEC.md Incremental Runtime (lines 365-771), specs/DEMAND_DRIVEN_INCREMENTAL.md complete
+   - **Success Criteria:** Partial graphs evaluate correctly, demand-driven semantics preserved, pending states show Spanish messages, incremental updates 5x faster than full re-eval
 
-2. **Compiler Entry Point Incorrect** (packages/compiler/src/compiler.ts:22)
-   - `compile(program: DataflowProgram)` should be `compile(source: string)`
-   - Should call `parse(source)` internally
-   - Should return validation result + DataflowProgram
+10. **Subscription Mechanism Missing** (Priority 2)
+    - Part of IncrementalRuntime implementation
+    - Required for WebSocket live feedback
+    - **Estimated Time:** 3 hours (included in IncrementalRuntime above)
+    - **Test Requirements:** specs/INTEGRATION_SPEC.md WebSocket protocol (lines 222-320)
+    - **Success Criteria:** Subscriptions trigger evaluation, notifications sent on state changes, multiple clients supported
 
-3. **Runtime Entry Point Incorrect** (packages/runtime/src/runtime.ts:14)
-   - `loadProgram(program: DataflowProgram)` should accept parsed Program
-   - Should NOT use DataflowProgram internally
-   - DataflowProgram is for integrations only
+#### Integration Issues:
 
-4. **COMPARE Type Mismatch** (packages/runtime/src/operations/numeric.ts:67)
-   - Returns Natural type, spec says Integer type
-   - Fix needed for correctness
+11. **HTTP API - Completely Empty** (Priority 3)
+    - **Location:** `packages/http-api/` (currently empty)
+    - **Spec Ref:** specs/INTEGRATION_SPEC.md lines 53-189
+    - **Required Endpoints:**
+      - POST /api/v1/compile - Validate program
+      - POST /api/v1/execute - Compile and run
+      - GET /api/v1/health - Health check
+    - **Required Features:**
+      - Accept source code strings (not DataflowProgram objects)
+      - Return child-friendly Spanish error messages
+      - Support execution options (maxTimesteps, includeTrace, traceLevel)
+      - Return execution trace (executionOrder, nodeEvaluations, cacheHits, cacheMisses)
+    - **Estimated Time:** 10 hours
+    - Create Elysia server setup
+    - Implement 3 endpoints with proper error handling
+    - Add request validation middleware
+    - Add response formatting
+    - **Test Requirements:** specs/INTEGRATION_SPEC.md HTTP API (lines 53-189)
+    - **Success Criteria:** All 3 endpoints functional, child-friendly Spanish messages, performance targets met (<100ms compile, <50ms execute), all tests passing
 
-5. **Lint Not Configured** (packages/package.json)
-   - Script just echoes "Lint not configured"
-   - Need to choose and configure linter (ESLint, Biome, etc.)
-
-### 📊 Test Coverage Summary
-
-| Package | Test Files | Tests Passing |
-|---------|------------|---------------|
-| @dataflow/shared | 0 | N/A |
-| @dataflow/compiler | 0 | N/A |
-| @dataflow/runtime | 0 | N/A |
-| @dataflow/http-api | 0 | N/A |
-| @dataflow/websocket-server | 0 | N/A |
-| **TOTAL** | **0** | **0%** |
-
-**Estimated Test Count Needed:** ~270 tests
+12. **WebSocket Server - Completely Empty** (Priority 3)
+    - **Location:** `packages/websocket-server/` (currently empty)
+    - **Spec Ref:** specs/INTEGRATION_SPEC.md lines 192-361
+    - **Required Message Handlers (client → server):**
+      - validate_program - Validate partial program
+      - evaluate_incremental - Evaluate partial graph
+      - subscribe_node - Subscribe to node changes
+      - unsubscribe_node - Unsubscribe from node
+    - **Required Push Messages (server → client):**
+      - validation_result - Validation errors/warnings
+      - evaluation_result - Node states (completed/pending/error)
+      - node_state_changed - State change notifications
+      - error - Message errors
+    - **Required Features:**
+      - Connection at ws://localhost:3000/live
+      - Message protocol with messageId
+      - Multiple concurrent client support
+      - Connection resilience (reconnects)
+      - Child-friendly Spanish messages
+    - **Estimated Time:** 12 hours
+    - Create Elysia WebSocket server setup
+    - Implement 4 message handlers
+    - Implement 3 push notification types
+    - Add connection manager
+    - Add subscription manager
+    - **Test Requirements:** specs/INTEGRATION_SPEC.md WebSocket Server (lines 192-361)
+    - **Success Criteria:** All 5 message types handled, push notifications work, multiple concurrent clients, child-friendly Spanish messages, connection resilience
 
 ---
 
-## PHASE 0: Critical Architecture Refactoring (Week 0.5)
+## PRIORITIZED IMPLEMENTATION PLAN
 
-**Goal:** Fix fundamental architecture issues before building features
+### PHASE 0: CRITICAL BUG FIXES (Week 0.5 - 1.5 hours)
 
-### Priority -1: Compiler Entry Point Refactoring (1 day)
+#### Priority -1: Fix AST Builder CST Access (30 minutes)
 
-**Current Issue:**
+**Task:** Update CST traversal pattern in AST Builder
+
+**File:** `packages/compiler/src/ast/ast-builder.ts`
+
+**Lines:** 12-22
+
+**Changes:**
 ```typescript
-// packages/compiler/src/compiler.ts
-compile(program: DataflowProgram): ValidationResult & { graph?: { nodes: DataflowNode[]; edges: DataflowEdge[] } } {
-  const { graph } = program;
-  // ...
+// Fix statement() method
+statement(ctx: any): Statement {
+  if (ctx.children?.sourceStatement) {
+    return this.sourceStatement(ctx.children.sourceStatement[0]);
+  } else if (ctx.children?.transformStatement) {
+    return this.transformStatement(ctx.children.transformStatement[0]);
+  } else if (ctx.children?.outputStatement) {
+    return this.outputStatement(ctx.children.outputStatement[0]);
+  }
+  throw new Error('Unknown statement type');
 }
+
+// Update sourceStatement, transformStatement, outputStatement methods
+// (they now receive CST child directly, not parent ctx)
 ```
 
-**Problem:** Compiler is taking parsed JSON (DataflowProgram) instead of source code. This is backwards.
+**Estimated Time:** 30 minutes
 
-**Required Changes:**
+**Test Requirements:**
+- specs/GRAMMAR_SPEC.md: Statement parsing (lines 65-71)
+- Compiler test: packages/compiler/src/compiler.test.ts (lines 6-90)
 
-1. **Update Compiler.compile() signature** (packages/compiler/src/compiler.ts):
+**Success Criteria:**
+- All 6 parsing tests pass
+- No "Unknown statement type" errors
+- CST correctly traverses nested children structure
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented (no stubs)
+- [ ] All parsing tests pass
+- [ ] Previous tests (runtime, shared) still pass
+- [ ] Typecheck passes: `bun tsc --noEmit`
+- [ ] Git commit with message: "fix(compiler): correct AST Builder CST access pattern"
+
+---
+
+#### Priority -1: Fix Compiler Test API (1 hour)
+
+**Task:** Update validation tests to use source strings instead of DataflowProgram objects
+
+**File:** `packages/compiler/src/compiler.test.ts`
+
+**Lines:** 92-240
+
+**Changes:**
 ```typescript
-compile(source: string): ValidationResult & { program?: DataflowProgram } {
-  // 1. Parse source code
-  const ast = this.parse(source);
+// BEFORE (lines 93-118):
+describe('Compiler - Validation', () => {
+  it('should validate correct program', () => {
+    const compiler = new Compiler();
+    
+    const program: DataflowProgram = {
+      metadata: { programId: 'prog_001' },
+      graph: {
+        nodes: [
+          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
+          { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
+          { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
+          { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
+        ],
+        edges: [...]
+      }
+    };
+    
+    const result = compiler.compile(program);
+    // ...
+  });
+});
 
-  // 2. Build internal Program representation
-  const program = this.buildProgram(ast);
-
-  // 3. Validate
-  const validationResult = this.validate(program);
-
-  if (!validationResult.success) {
-    return validationResult;
-  }
-
-  // 4. Return DataflowProgram for integrations
-  return {
-    success: true,
-    errors: [],
-    warnings: [],
-    program: this.toDataflowProgram(program)
-  };
-}
+// AFTER:
+describe('Compiler - Validation', () => {
+  it('should validate correct program', () => {
+    const compiler = new Compiler();
+    
+    const source = `
+      source a: natural = 3;
+      source b: natural = 2;
+      transform sum: natural = ADD(a, b);
+      output result: natural = sum;
+    `;
+    
+    const result = compiler.compile(source);
+    // ...
+  });
+});
 ```
 
-2. **Update Runtime.loadProgram() signature** (packages/runtime/src/runtime.ts):
+**Estimated Time:** 1 hour
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Program validation (lines 431-527)
+- specs/GRAMMAR_SPEC.md: Complete examples (lines 334-448)
+- specs/INTEGRATION_SPEC.md: Validation errors (lines 86-111)
+
+**Success Criteria:**
+- All 6 validation tests pass
+- No RangeError exceptions
+- Tests use correct compile(source: string) API
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented (no stubs)
+- [ ] All validation tests pass
+- [ ] Previous tests still pass (parsing tests now passing)
+- [ ] Typecheck passes
+- [ ] Git commit with message: "fix(tests): update compiler tests to use source strings"
+
+---
+
+### PHASE 1: TYPES AND REGISTRY (Week 1 - 4 hours)
+
+#### Priority 0: Add Missing Types (2 hours)
+
+**Task 0.1: Fraction Type** (30 minutes)
+
+**File:** `packages/shared/src/types/primitives.ts`
+
+**Lines:** Add after Decimal type (line 14)
+
+**Changes:**
 ```typescript
-loadProgram(program: { nodes: DataflowNode[]; edges: DataflowEdge[] }): void {
-  // Accept the graph structure from Compiler
-  // Keep using DataflowNode internally for graph
-  // But note: DataflowProgram includes metadata (for integrations)
+export type Fraction = {
+  kind: "fraction";
+  numerator: Integer;
+  denominator: Integer;
+};
 
-  this.graph = new DataflowGraph();
-  this.evaluator = new DemandDrivenEvaluator();
-
-  for (const node of program.nodes) {
-    this.graph.addNode(node);
-  }
-
-  for (const edge of program.edges) {
-    this.graph.addEdge(edge);
-  }
-}
+// Update Primitive union at end of file (line 26)
+export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 ```
 
-3. **Add internal Program type** (if needed):
+**Estimated Time:** 30 minutes
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Fraction type (lines 93-109)
+- Fraction operations: ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE
+
+**Success Criteria:**
+- Fraction type defined and exported
+- TypeScript compiles
+- Fraction can be used in type annotations
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(shared): add Fraction type"
+
+---
+
+**Task 0.2: Comparison Type** (30 minutes)
+
+**File:** `packages/shared/src/types/primitives.ts`
+
+**Lines:** Add after Fraction type
+
+**Changes:**
 ```typescript
-// packages/compiler/src/types/program.ts
-// Internal compiler representation (not exported)
-type CompilerProgram = {
-  nodes: InternalNode[];
-  edges: InternalEdge[];
+export type Comparison = {
+  kind: "comparison";
+  value: -1 | 0 | 1;  // less than, equal, greater than
+};
+
+// Update Primitive union
+export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction | Comparison;
+```
+
+**Estimated Time:** 30 minutes
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: COMPARE operations (lines 53, 70, 90, 107)
+- COMPARE returns Comparison type
+
+**Success Criteria:**
+- Comparison type defined and exported
+- COMPARE operation returns Comparison
+- TypeScript compiles
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(shared): add Comparison type"
+
+---
+
+**Task 0.3: Fix Stream Type** (15 minutes)
+
+**File:** `packages/shared/src/types/composite.ts`
+
+**Lines:** 16-19
+
+**Changes:**
+```typescript
+export type StreamType<T = DataType> = {
+  kind: "stream";
+  elementType: T;
+  generator: Generator<T>;  // ADD THIS FIELD
 };
 ```
 
-4. **Update Integration Points**:
-- HTTP API should call `compiler.compile(source)` with string
-- WebSocket should call `compiler.compile(source)` with string
-- Both should receive `DataflowProgram` as output
+**Estimated Time:** 15 minutes
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Stream type (lines 279-310)
+- specs/DEMAND_DRIVEN_INCREMENTAL.md: Stream generator usage
 
 **Success Criteria:**
-- Compiler.compile("source a: natural = 3;") works
-- Returns DataflowProgram for integrations
-- Runtime can load the program graph
-- No references to DataflowProgram in core compiler logic
+- Stream type has generator field
+- TypeScript compiles
+- Generator type imported from TypeScript stdlib
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Git commit with message: "fix(shared): add generator field to Stream type"
 
 ---
 
-### Priority -2: Update Build Commands (0.5 day)
+#### Priority 1: Expand Operation Registry (2 hours)
 
-**Current Issue:** Build script references outdated
+**Task 1.1: Add Comparison Operations to Registry** (30 minutes)
 
-**Required Changes:**
+**File:** `packages/shared/src/operations/registry.ts`
 
-1. **Update AGENTS.md build commands** (already done by user):
-```bash
-# Build all packages
-bun run build --filter='*'
+**Lines:** Add to Operation type (lines 3-18) and OPERATION_REGISTRY (after line 63)
 
-# Build specific package
-bun run build --filter './packages/{package-name}'
+**Changes:**
+```typescript
+// Add to Operation type:
+export type Operation =
+  | "ADD" | "SUBTRACT" | "MULTIPLY" | "DIVIDE"
+  | "COMPARE"
+  | "COMPARE_BY_SIZE" | "COMPARE_BY_COLOR" | "COMPARE_BY_TYPE"
+  | "COMPARE_BY_TASTE" | "COMPARE_BY_AGE_GROUP" | "COMPARE_BY_GENDER"
+  | "FILTER"
+  | "FILTER_BY_SIZE" | "FILTER_BY_COLOR" | "FILTER_BY_TYPE"
+  | "FILTER_BY_TASTE" | "FILTER_BY_AGE_GROUP" | "FILTER_BY_GENDER"
+  | "UNION" | "INTERSECTION" | "DIFFERENCE" | "COMPLEMENT"
+  | "NEXT" | "FIRST" | "FBY" | "ACCUMULATE"
+  | "SORT" | "ALPHABETICAL_SORT";
+
+// Add to OPERATION_REGISTRY:
+COMPARE_BY_SIZE: {
+  arity: 2,
+  inputTypes: ["shape", "shape"],
+  outputType: "integer",
+  category: "comparison"
+},
+
+COMPARE_BY_COLOR: {
+  arity: 2,
+  inputTypes: [{ kind: "hasColor" }, { kind: "hasColor" }],
+  outputType: "integer",
+  category: "comparison"
+},
+
+COMPARE_BY_TYPE: {
+  arity: 2,
+  inputTypes: ["animal", "animal"],
+  outputType: "integer",
+  category: "comparison"
+},
+
+COMPARE_BY_TASTE: {
+  arity: 2,
+  inputTypes: ["food", "food"],
+  outputType: "integer",
+  category: "comparison"
+},
+
+COMPARE_BY_AGE_GROUP: {
+  arity: 2,
+  inputTypes: ["person", "person"],
+  outputType: "integer",
+  category: "comparison"
+},
+
+COMPARE_BY_GENDER: {
+  arity: 2,
+  inputTypes: ["person", "person"],
+  outputType: "integer",
+  category: "comparison"
+},
 ```
 
-2. **Update IMPLEMENTATION_PLAN.md references**:
-- Remove references to `bun run build` script in root package.json
-- Update to use commands directly
-- Update typecheck reference to `bun tsc --noEmit`
+**Estimated Time:** 30 minutes
 
-3. **Create package-level build scripts** (if needed):
-- Each package already has its own build script
-- No root-level build script needed
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Comparison operations (lines 172-276)
+- getOperationSignature() should return signatures for all ops
 
 **Success Criteria:**
-- AGENTS.md shows correct build commands
-- No references to missing root build script
-- Typecheck works with `bun tsc --noEmit`
+- All 7 comparison operations in registry
+- Proper type signatures defined
+- TypeScript compiles
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(shared): add comparison operations to registry"
 
 ---
 
-## PHASE 1: Foundation & Testing Infrastructure (Week 1)
+**Task 1.2: Add Filtering Operations to Registry** (30 minutes)
 
-**Goal:** Unblock development workflow and verify Layer 1 functionality
+**File:** `packages/shared/src/operations/registry.ts`
 
-### Priority 0: Test Framework Setup (0.5 day)
+**Lines:** Add to OPERATION_REGISTRY
 
-**Tasks:**
-- [ ] Create test directory structure for all packages
-- [ ] Add basic "sanity check" test for each package
-- [ ] Verify `bun test` runs successfully
-- [ ] Configure test filtering for layer-based testing
+**Changes:**
+```typescript
+FILTER_BY_SIZE: {
+  arity: 2,
+  inputTypes: [{ kind: "set", elementType: "shape" }, "text"],
+  outputType: { kind: "set", elementType: "shape" },
+  category: "filtering"
+},
+
+FILTER_BY_COLOR: {
+  arity: 2,
+  inputTypes: [{ kind: "set", elementType: "hasColor" }, "text"],
+  outputType: { kind: "set", elementType: "sameAsInput0" },
+  category: "filtering"
+},
+
+FILTER_BY_TYPE: {
+  arity: 2,
+  inputTypes: [{ kind: "set", elementType: "animal" }, "text"],
+  outputType: { kind: "set", elementType: "animal" },
+  category: "filtering"
+},
+
+FILTER_BY_TASTE: {
+  arity: 2,
+  inputTypes: [{ kind: "set", elementType: "food" }, "text"],
+  outputType: { kind: "set", elementType: "food" },
+  category: "filtering"
+},
+
+FILTER_BY_AGE_GROUP: {
+  arity: 2,
+  inputTypes: [{ kind: "set", elementType: "person" }, "text"],
+  outputType: { kind: "set", elementType: "person" },
+  category: "filtering"
+},
+
+FILTER_BY_GENDER: {
+  arity: 2,
+  inputTypes: [{ kind: "set", elementType: "person" }, "text"],
+  outputType: { kind: "set", elementType: "person" },
+  category: "filtering"
+},
+```
+
+**Estimated Time:** 30 minutes
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Filtering operations (lines 176-246)
 
 **Success Criteria:**
-- `bun test` runs and finds tests
-- At least 1 test passes per package
-- `bun test -- layer1` filtering works
+- All 7 filtering operations in registry
+- Proper type signatures
+- TypeScript compiles
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(shared): add filtering operations to registry"
 
 ---
 
-### Priority 1: Layer 1 Tests (2 days)
+**Task 1.3: Add ALPHABETICAL_SORT to Registry** (15 minutes)
 
-**Goal:** Verify Layer 1 functionality completely works
+**File:** `packages/shared/src/operations/registry.ts`
 
-**Tasks:**
-- [ ] Setup tests for Monorepo structure
-- [ ] Tests for Shared type system
-- [ ] Tests for JSON input schema
-- [ ] Tests for Lexer (tokenization)
-- [ ] Tests for Parser (CST generation)
-- [ ] Tests for AST Builder
-- [ ] Tests for DAG Validator
-- [ ] Tests for DataflowGraph
-- [ ] Tests for DemandDrivenEvaluator (cache behavior)
-- [ ] Tests for ADD operation
-- [ ] End-to-end test: "3 + 2 = 5"
-- [ ] Performance benchmarks (<100ms compile, <50ms execute)
+**Lines:** Add after SORT (line 149)
+
+**Changes:**
+```typescript
+ALPHABETICAL_SORT: {
+  arity: 1,
+  inputTypes: [{ kind: "set", elementType: "text" }],
+  outputType: { kind: "set", elementType: "text" },
+  category: "ordering"
+}
+```
+
+**Estimated Time:** 15 minutes
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: ALPHABETICAL_SORT (line 121)
 
 **Success Criteria:**
-- All Layer 1 features have test coverage
-- Tests verify child-friendly error messages
-- Benchmarks pass performance targets
-- Ralph Wiggum checklist completed for Layer 1
+- ALPHABETICAL_SORT in registry
+- TypeScript compiles
 
-**Impact:** Confirms Layer 1 is production-ready
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(shared): add ALPHABETICAL_SORT to registry"
 
 ---
 
-### Priority 2: Layer 1 HTTP API (1.5 days)
+### PHASE 2: RUNTIME OPERATIONS (Week 2 - 8 hours)
 
-**Goal:** Enable CV system integration and basic execution
+#### Priority 1: Implement Missing Runtime Operations (8 hours)
 
-**Tasks:**
-- [ ] Create `packages/http-api/src/server.ts` with Elysia setup
-- [ ] Implement POST /api/v1/compile endpoint
-- [ ] Implement POST /api/v1/execute endpoint
-- [ ] Implement GET /api/v1/health endpoint
-- [ ] Add child-friendly Spanish error responses
-- [ ] Write tests for all endpoints
+**Task 2.1: Set Operations** (2 hours)
+
+**Create File:** `packages/runtime/src/operations/sets.ts`
+
+**Changes:**
+```typescript
+import type { SetType } from "@dataflow/shared/types";
+import { unwrapValue } from "../evaluator/demand-driven-evaluator.js";
+
+export const UNION = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set1, set2] = inputs.map(i => unwrapValue(i));
+  
+  // Merge arrays and remove duplicates
+  const merged = [...set1.elements, ...set2.elements];
+  const unique = merged.filter((item, index, self) => 
+    index === self.findIndex(t => JSON.stringify(t) === JSON.stringify(item))
+  );
+  
+  return {
+    kind: "set",
+    elementType: set1.elementType,
+    elements: unique
+  };
+};
+
+export const INTERSECTION = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set1, set2] = inputs.map(i => unwrapValue(i));
+  
+  // Find common elements
+  const common = set1.elements.filter((item1) => 
+    set2.elements.some(item2 => JSON.stringify(item1) === JSON.stringify(item2))
+  );
+  
+  return {
+    kind: "set",
+    elementType: set1.elementType,
+    elements: common
+  };
+};
+
+export const DIFFERENCE = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set1, set2] = inputs.map(i => unwrapValue(i));
+  
+  // Elements in set1 not in set2
+  const diff = set1.elements.filter((item1) => 
+    !set2.elements.some(item2 => JSON.stringify(item1) === JSON.stringify(item2))
+  );
+  
+  return {
+    kind: "set",
+    elementType: set1.elementType,
+    elements: diff
+  };
+};
+
+export const COMPLEMENT = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, universe] = inputs.map(i => unwrapValue(i));
+  
+  // Elements in universe not in set
+  const complement = universe.elements.filter((item1) => 
+    !set.elements.some(item2 => JSON.stringify(item1) === JSON.stringify(item2))
+  );
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: complement
+  };
+};
+
+export const SORT = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set] = inputs.map(i => unwrapValue(i));
+  
+  // Sort elements using natural order or COMPARE if available
+  const sorted = [...set.elements].sort((a, b) => {
+    if (typeof a === 'number' && typeof b === 'number') {
+      return a - b;
+    }
+    return JSON.stringify(a).localeCompare(JSON.stringify(b));
+  });
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: sorted
+  };
+};
+```
+
+**Estimated Time:** 2 hours
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Set operations (lines 183-186, 202-206, 225-229, 248-252, 271-275)
+- specs/GRAMMAR_SPEC.md: Set operation examples (lines 382-410)
 
 **Success Criteria:**
-- Can compile a program via HTTP POST (with source code string)
-- Can execute "3 + 2 = 5" via HTTP POST
-- Returns proper validation errors for invalid programs
-- All endpoints have tests passing
+- All 5 set operations implemented
+- Operations handle duplicate elements correctly
+- TypeScript compiles
+- Test coverage for all operations
 
-**Impact:** Enables Layer 1 to be fully functional end-to-end
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All set operation tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(runtime): implement set operations"
 
 ---
 
-## PHASE 2: Complete Operation Implementations (Week 2)
+**Task 2.2: Filtering Operations** (2 hours)
 
-**Goal:** Make all registered operations work
+**Create File:** `packages/runtime/src/operations/filtering.ts`
 
-### Priority 3: Complete Operation Implementations (3 days)
+**Changes:**
+```typescript
+import type { SetType, Shape, Car, Food, Animal, Person, Text } from "@dataflow/shared/types";
+import { unwrapValue } from "../evaluator/demand-driven-evaluator.js";
 
-**Current status:** 10 operations crash at runtime
+export const FILTER = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, condition] = inputs.map(i => unwrapValue(i));
+  // Generic filter - uses COMPARE operation internally
+  // For now, return elements that are truthy
+  const filtered = set.elements.filter(item => Boolean(item));
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: filtered
+  };
+};
 
-**Tasks:**
-- [ ] Implement FILTER operation (packages/runtime/src/operations/filtering.ts)
-- [ ] Implement UNION operation (packages/runtime/src/operations/sets.ts)
-- [ ] Implement INTERSECTION operation (packages/runtime/src/operations/sets.ts)
-- [ ] Implement DIFFERENCE operation (packages/runtime/src/operations/sets.ts)
-- [ ] Implement COMPLEMENT operation (packages/runtime/src/operations/sets.ts)
-- [ ] Implement NEXT operation (packages/runtime/src/operations/temporal.ts)
-- [ ] Implement FIRST operation (packages/runtime/src/operations/temporal.ts)
-- [ ] Implement FBY operation (packages/runtime/src/operations/temporal.ts)
-- [ ] Implement ACCUMULATE operation (packages/runtime/src/operations/temporal.ts)
-- [ ] Implement SORT operation (packages/runtime/src/operations/ordering.ts)
-- [ ] Update evaluator to handle all operations (demand-driven-evaluator.ts)
-- [ ] Export new operations from index.ts
-- [ ] Write tests for all new operations
+export const FILTER_BY_SIZE = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, sizeText] = inputs.map(i => unwrapValue(i));
+  const size = sizeText.value;
+  
+  const filtered = set.elements.filter((item: Shape) => 
+    item.size === size
+  );
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: filtered
+  };
+};
+
+export const FILTER_BY_COLOR = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, colorText] = inputs.map(i => unwrapValue(i));
+  const color = colorText.value;
+  
+  const filtered = set.elements.filter((item: Shape | Car | Food | Animal) => 
+    item.color === color
+  );
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: filtered
+  };
+};
+
+export const FILTER_BY_TYPE = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, typeText] = inputs.map(i => unwrapValue(i));
+  const type = typeText.value;
+  
+  const filtered = set.elements.filter((item: Shape | Animal) => 
+    item.type === type
+  );
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: filtered
+  };
+};
+
+export const FILTER_BY_TASTE = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, tasteText] = inputs.map(i => unwrapValue(i));
+  const taste = tasteText.value;
+  
+  const filtered = set.elements.filter((item: Food) => 
+    item.taste === taste
+  );
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: filtered
+  };
+};
+
+export const FILTER_BY_AGE_GROUP = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, ageGroupText] = inputs.map(i => unwrapValue(i));
+  const ageGroup = ageGroupText.value;
+  
+  const filtered = set.elements.filter((item: Person) => 
+    item.ageGroup === ageGroup
+  );
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: filtered
+  };
+};
+
+export const FILTER_BY_GENDER = (inputs: Array<{ id: string; value: unknown }>): SetType => {
+  const [set, genderText] = inputs.map(i => unwrapValue(i));
+  const gender = genderText.value;
+  
+  const filtered = set.elements.filter((item: Person) => 
+    item.gender === gender
+  );
+  
+  return {
+    kind: "set",
+    elementType: set.elementType,
+    elements: filtered
+  };
+};
+```
+
+**Estimated Time:** 2 hours
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Filtering operations (lines 177-181, 199-201, 221-224, 244-247, 267-270)
 
 **Success Criteria:**
-- All 15 operations in registry work without crashes
-- All operations have tests
-- Evaluator dispatches to correct operation
+- All 7 filtering operations implemented
+- Handle all curriculum types correctly
+- TypeScript compiles
 
-**Impact:** All basic operations usable in programs
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All filtering operation tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(runtime): implement filtering operations"
 
 ---
 
-### Priority 4: Layer 2 Tests & Bug Fixes (1 day)
+**Task 2.3: Comparison Operations** (2 hours)
 
-**Goal:** Verify arithmetic operations
+**Create File:** `packages/runtime/src/operations/comparison.ts`
 
-**Tasks:**
-- [ ] Tests for SUBTRACT (including negative results)
-- [ ] Tests for MULTIPLY
-- [ ] Tests for DIVIDE (including division by zero)
-- [ ] Tests for COMPARE (-1, 0, 1 results)
-- [ ] Fix COMPARE return type (Integer vs Natural bug)
-- [ ] Performance benchmarks for arithmetic operations
+**Changes:**
+```typescript
+import type { Shape, Car, Food, Animal, Person, Comparison } from "@dataflow/shared/types";
+import { unwrapValue } from "../evaluator/demand-driven-evaluator.js";
+
+export const COMPARE_BY_SIZE = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+  const [item1, item2] = inputs.map(i => unwrapValue(i));
+  const sizeOrder = { "small": 0, "medium": 1, "large": 2 };
+  
+  const result = sizeOrder[item1.size] - sizeOrder[item2.size];
+  
+  return {
+    kind: "comparison",
+    value: Math.sign(result) as -1 | 0 | 1
+  };
+};
+
+export const COMPARE_BY_COLOR = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+  const [item1, item2] = inputs.map(i => unwrapValue(i));
+  
+  const result = item1.color.localeCompare(item2.color);
+  
+  return {
+    kind: "comparison",
+    value: Math.sign(result) as -1 | 0 | 1
+  };
+};
+
+export const COMPARE_BY_TYPE = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+  const [item1, item2] = inputs.map(i => unwrapValue(i));
+  
+  const result = item1.type.localeCompare(item2.type);
+  
+  return {
+    kind: "comparison",
+    value: Math.sign(result) as -1 | 0 | 1
+  };
+};
+
+export const COMPARE_BY_TASTE = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+  const [item1, item2] = inputs.map(i => unwrapValue(i));
+  
+  const result = item1.taste.localeCompare(item2.taste);
+  
+  return {
+    kind: "comparison",
+    value: Math.sign(result) as -1 | 0 | 1
+  };
+};
+
+export const COMPARE_BY_AGE_GROUP = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+  const [item1, item2] = inputs.map(i => unwrapValue(i));
+  const ageOrder = { "child": 0, "teenager": 1, "adult": 2, "senior": 3 };
+  
+  const result = ageOrder[item1.ageGroup] - ageOrder[item2.ageGroup];
+  
+  return {
+    kind: "comparison",
+    value: Math.sign(result) as -1 | 0 | 1
+  };
+};
+
+export const COMPARE_BY_GENDER = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+  const [item1, item2] = inputs.map(i => unwrapValue(i));
+  
+  const result = item1.gender.localeCompare(item2.gender);
+  
+  return {
+    kind: "comparison",
+    value: Math.sign(result) as -1 | 0 | 1
+  };
+};
+```
+
+**Estimated Time:** 2 hours
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Comparison operations (lines 173-176, 197-198, 218-221, 241-243, 263-265)
 
 **Success Criteria:**
-- Layer 2 tests passing
-- COMPARE returns correct type (Integer, not Natural)
-- No regressions in Layer 1
+- All 6 comparison operations implemented
+- Return Comparison type with proper values
+- TypeScript compiles
 
-**Impact:** Confirms Layer 2 complete
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All comparison operation tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(runtime): implement comparison operations"
 
 ---
 
-## PHASE 3: Curriculum Types (Week 3)
+**Task 2.4: Temporal Operations** (2 hours)
 
-**Goal:** Enable educational curriculum features
+**Create File:** `packages/runtime/src/operations/temporal.ts`
 
-### Priority 5: Curriculum Type Operations (3 days)
+**Changes:**
+```typescript
+import type { StreamType, DataType } from "@dataflow/shared/types";
+import { unwrapValue } from "../evaluator/demand-driven-evaluator.js";
 
-**Tasks:**
-- [ ] Implement COMPARE_BY_SIZE operation
-- [ ] Implement COMPARE_BY_COLOR operation
-- [ ] Implement COMPARE_BY_TYPE operation
-- [ ] Implement FILTER_BY_SIZE operation
-- [ ] Implement FILTER_BY_COLOR operation
-- [ ] Implement FILTER_BY_TYPE operation
-- [ ] Add property constraint validation
-- [ ] Add type checking for curriculum types
-- [ ] Write tests for all curriculum operations
+export const NEXT = (
+  inputs: Array<{ id: string; value: unknown }>,
+  time: number,
+  cache: Map<string, Map<number, unknown>>
+): unknown => {
+  const [stream] = inputs.map(i => unwrapValue(i));
+  
+  // Get next value from stream generator
+  // Pure function of time!
+  const generator = stream.generator;
+  let result = generator.next();
+  
+  // Cache the current value
+  if (!cache.has(stream.id)) {
+    cache.set(stream.id, new Map());
+  }
+  cache.get(stream.id)!.set(time, result.value);
+  
+  return result.value;
+};
+
+export const FIRST = (inputs: Array<{ id: string; value: unknown }>): unknown => {
+  const [stream] = inputs.map(i => unwrapValue(i));
+  
+  // Get first value from stream
+  const generator = stream.generator;
+  const result = generator.next();
+  return result.value;
+};
+
+export const FBY = (
+  inputs: Array<{ id: string; value: unknown }>,
+  time: number
+): StreamType => {
+  const [initial, stream] = inputs.map(i => unwrapValue(i));
+  
+  // Pure function of time!
+  // At time 0, return initial
+  // At time > 0, return value from stream at time - 1
+  if (time === 0) {
+    return {
+      kind: "stream",
+      elementType: stream.elementType,
+      generator: (function*() {
+        yield initial;
+        yield* stream.generator;
+      })()
+    };
+  }
+  
+  // Return stream with first value being initial
+  return {
+    kind: "stream",
+    elementType: stream.elementType,
+    generator: (function*() {
+      yield initial;
+      yield* stream.generator;
+    })()
+  };
+};
+
+export const ACCUMULATE = (
+  inputs: Array<{ id: string; value: unknown }>,
+  time: number
+): StreamType => {
+  const [stream, operation, initial] = inputs.map(i => unwrapValue(i));
+  
+  // Pure function of time!
+  // Apply operation cumulatively over stream
+  const generator = (function*() {
+    let accumulated = initial;
+    yield accumulated;
+    
+    for (const value of stream.generator) {
+      // Apply operation (this is simplified - actual implementation would need operation registry)
+      if (operation === "ADD") {
+        accumulated = accumulated + value;
+      }
+      // Add other operations as needed
+      yield accumulated;
+    }
+  })();
+  
+  return {
+    kind: "stream",
+    elementType: stream.elementType,
+    generator
+  };
+};
+```
+
+**Estimated Time:** 2 hours
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Temporal operations (lines 296-301)
+- specs/GRAMMAR_SPEC.md: FBY counter example (lines 414-427)
+- specs/DEMAND_DRIVEN_INCREMENTAL.md: Pure time-based semantics
 
 **Success Criteria:**
-- Curriculum types work with comparison/filtering
-- Property constraints validated at compile-time
-- Child-friendly Spanish errors for property mismatches
-
-**Impact:** Core educational functionality working
-
----
-
-## PHASE 4: Integration Layer (Week 4)
-
-**Goal:** Enable live construction mode
-
-### Priority 6: WebSocket Server (2 days)
-
-**Tasks:**
-- [ ] Create `packages/websocket-server/src/server.ts`
-- [ ] Implement ws://localhost:3000/live endpoint
-- [ ] Handle validate_program messages
-- [ ] Handle evaluate_incremental messages
-- [ ] Handle subscribe_node/unsubscribe_node messages
-- [ ] Implement push notifications (node_state_changed)
-- [ ] Add connection resilience (reconnects)
-- [ ] Write tests for WebSocket protocol
-
-**Success Criteria:**
-- IDE can connect via WebSocket
-- Validation returns child-friendly Spanish errors
-- Incremental evaluation works for partial programs
-- Multiple clients can connect
-
-**Impact:** Live feedback during program construction
-
----
-
-### Priority 7: Incremental Runtime (2 days)
-
-**Tasks:**
-- [ ] Create IncrementalRuntime class (packages/runtime/src/incremental-runtime.ts)
-- [ ] Implement partial graph evaluation
-- [ ] Implement node state tracking (completed/pending/error)
-- [ ] Implement subscription management
-- [ ] Implement graph update API with cache invalidation
-- [ ] Add missing input extraction with multiple inputs support
-- [ ] Add child-friendly Spanish missing input messages
-- [ ] Write tests for incremental evaluation
-
-**Success Criteria:**
-- Partial graphs evaluate correctly
-- Pending states show all missing inputs with Spanish messages
-- Cache invalidation works on graph updates
-- Incremental update 5x faster than full re-eval
-
-**Impact:** Enables real-time AR feedback as children build
-
----
-
-### Priority 8: Integration Tests (1 day)
-
-**Tasks:**
-- [ ] End-to-end HTTP API tests
-- [ ] End-to-end WebSocket tests
-- [ ] Performance benchmarks for integration layer
-- [ ] Concurrent request handling tests
-
-**Success Criteria:**
-- All integration points tested
-- Performance targets met
-- Handles 5 concurrent requests/connections
-
----
-
-## PHASE 5: Advanced Features (Week 5-6)
-
-**Goal:** Complete remaining layers
-
-### Priority 9: Temporal Operators (2 days)
-
-**Tasks:**
-- [ ] Update evaluator to handle time parameter properly
-- [ ] Implement stream value evaluation
-- [ ] Add stream generator support
-- [ ] Write tests for temporal operations (FBY counter 0,1,2,3,4)
-
-**Success Criteria:**
-- Temporal operators work correctly
+- All 4 temporal operations implemented
+- Pure function of time (no mutable state)
+- TypeScript compiles
 - Cache indexed by time
-- FBY produces correct sequence
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All temporal operation tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(runtime): implement temporal operations"
 
 ---
 
-### Priority 10: Additional Curriculum Types (2 days)
+**Task 2.5: Update Evaluator** (30 minutes)
 
-**Tasks:**
-- [ ] Implement Food operations (COMPARE_BY_TASTE, FILTER_BY_TASTE)
-- [ ] Implement Animal operations (COMPARE_BY_TYPE, FILTER_BY_TYPE)
-- [ ] Implement Person operations (COMPARE_BY_AGE_GROUP, COMPARE_BY_GENDER, etc.)
-- [ ] Write tests for all additional types
+**File:** `packages/runtime/src/evaluator/demand-driven-evaluator.ts`
+
+**Lines:** 2, 58-78
+
+**Changes:**
+```typescript
+// Add imports at top (line 2)
+import { 
+  UNION, INTERSECTION, DIFFERENCE, COMPLEMENT, SORT 
+} from "../operations/sets.js";
+import { 
+  FILTER, FILTER_BY_SIZE, FILTER_BY_COLOR, FILTER_BY_TYPE,
+  FILTER_BY_TASTE, FILTER_BY_AGE_GROUP, FILTER_BY_GENDER
+} from "../operations/filtering.js";
+import {
+  COMPARE_BY_SIZE, COMPARE_BY_COLOR, COMPARE_BY_TYPE,
+  COMPARE_BY_TASTE, COMPARE_BY_AGE_GROUP, COMPARE_BY_GENDER
+} from "../operations/comparison.js";
+import {
+  NEXT, FIRST, FBY, ACCUMULATE
+} from "../operations/temporal.js";
+
+// Update evaluateOperation method (lines 58-78)
+private evaluateOperation(
+  operation: string,
+  inputs: Array<{ id: string; value: unknown }>,
+  time: number,
+  graph: DataflowGraph
+): unknown {
+  const evaluatedInputs = inputs.map(input => ({
+    id: input.id,
+    value: this.evaluate(input.id, time, graph)
+  }));
+
+  switch (operation) {
+    case "ADD":
+      return ADD(evaluatedInputs);
+    case "SUBTRACT":
+      return SUBTRACT(evaluatedInputs);
+    case "MULTIPLY":
+      return MULTIPLY(evaluatedInputs);
+    case "DIVIDE":
+      return DIVIDE(evaluatedInputs);
+    case "COMPARE":
+      return COMPARE(evaluatedInputs);
+    case "UNION":
+      return UNION(evaluatedInputs);
+    case "INTERSECTION":
+      return INTERSECTION(evaluatedInputs);
+    case "DIFFERENCE":
+      return DIFFERENCE(evaluatedInputs);
+    case "COMPLEMENT":
+      return COMPLEMENT(evaluatedInputs);
+    case "SORT":
+      return SORT(evaluatedInputs);
+    case "FILTER":
+      return FILTER(evaluatedInputs);
+    case "FILTER_BY_SIZE":
+      return FILTER_BY_SIZE(evaluatedInputs);
+    case "FILTER_BY_COLOR":
+      return FILTER_BY_COLOR(evaluatedInputs);
+    case "FILTER_BY_TYPE":
+      return FILTER_BY_TYPE(evaluatedInputs);
+    case "FILTER_BY_TASTE":
+      return FILTER_BY_TASTE(evaluatedInputs);
+    case "FILTER_BY_AGE_GROUP":
+      return FILTER_BY_AGE_GROUP(evaluatedInputs);
+    case "FILTER_BY_GENDER":
+      return FILTER_BY_GENDER(evaluatedInputs);
+    case "COMPARE_BY_SIZE":
+      return COMPARE_BY_SIZE(evaluatedInputs);
+    case "COMPARE_BY_COLOR":
+      return COMPARE_BY_COLOR(evaluatedInputs);
+    case "COMPARE_BY_TYPE":
+      return COMPARE_BY_TYPE(evaluatedInputs);
+    case "COMPARE_BY_TASTE":
+      return COMPARE_BY_TASTE(evaluatedInputs);
+    case "COMPARE_BY_AGE_GROUP":
+      return COMPARE_BY_AGE_GROUP(evaluatedInputs);
+    case "COMPARE_BY_GENDER":
+      return COMPARE_BY_GENDER(evaluatedInputs);
+    case "NEXT":
+      return NEXT(evaluatedInputs, time, this.cache);
+    case "FIRST":
+      return FIRST(evaluatedInputs);
+    case "FBY":
+      return FBY(evaluatedInputs, time);
+    case "ACCUMULATE":
+      return ACCUMULATE(evaluatedInputs, time);
+    default:
+      throw new Error(`Unknown operation: ${operation}`);
+  }
+}
+```
+
+**Estimated Time:** 30 minutes
+
+**Test Requirements:**
+- All operation tests pass
+- No "Unknown operation" errors
+
+**Success Criteria:**
+- All 31 operations dispatched correctly
+- Temporal operations receive time parameter
+- TypeScript compiles
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All runtime tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(evaluator): add all missing operations to evaluator"
 
 ---
 
-### Priority 11: Lint Configuration (0.5 day)
+### PHASE 3: COMPILER COMPLETION (Week 3 - 6 hours)
 
-**Tasks:**
-- [ ] Choose linter (ESLint, Biome, or Bun's built-in)
-- [ ] Configure lint rules
-- [ ] Update AGENTS.md with lint command
-- [ ] Fix existing lint issues
+#### Priority 1: Add Missing Operation Tokens (2 hours)
+
+**Task 3.1: Add Comparison Tokens** (30 minutes)
+
+**File:** `packages/compiler/src/lexer/tokens.ts`
+
+**Lines:** Add after Compare token (line 20)
+
+**Changes:**
+```typescript
+export const CompareBySize = createToken({ name: "CompareBySize", pattern: /COMPARE_BY_SIZE/i });
+export const CompareByColor = createToken({ name: "CompareByColor", pattern: /COMPARE_BY_COLOR/i });
+export const CompareByType = createToken({ name: "CompareByType", pattern: /COMPARE_BY_TYPE/i });
+export const CompareByTaste = createToken({ name: "CompareByTaste", pattern: /COMPARE_BY_TASTE/i });
+export const CompareByAgeGroup = createToken({ name: "CompareByAgeGroup", pattern: /COMPARE_BY_AGE_GROUP/i });
+export const CompareByGender = createToken({ name: "CompareByGender", pattern: /COMPARE_BY_GENDER/i });
+```
+
+**File:** `packages/compiler/src/lexer/tokens.ts`
+
+**Lines:** Add to allTokens array (lines 104-131)
+
+**Changes:**
+```typescript
+export const allTokens = [
+  // ... existing tokens ...
+  Compare,
+  CompareBySize,
+  CompareByColor,
+  CompareByType,
+  CompareByTaste,
+  CompareByAgeGroup,
+  CompareByGender,
+  // ... rest of tokens ...
+];
+```
+
+**File:** `packages/compiler/src/parser/dataflow-parser.ts`
+
+**Lines:** Add imports (lines 2-48), add to operationName rule (lines 172-190)
+
+**Changes:**
+```typescript
+// Add to imports
+import {
+  // ... existing imports ...
+  Compare,
+  CompareBySize,
+  CompareByColor,
+  CompareByType,
+  CompareByTaste,
+  CompareByAgeGroup,
+  CompareByGender,
+  // ... rest of imports ...
+} from "../lexer/tokens.js";
+
+// Add to operationName rule
+operationName = this.RULE("operationName", () => {
+  this.OR([
+    { ALT: () => this.CONSUME(Add) },
+    { ALT: () => this.CONSUME(Subtract) },
+    { ALT: () => this.CONSUME(Multiply) },
+    { ALT: () => this.CONSUME(Divide) },
+    { ALT: () => this.CONSUME(Compare) },
+    { ALT: () => this.CONSUME(CompareBySize) },
+    { ALT: () => this.CONSUME(CompareByColor) },
+    { ALT: () => this.CONSUME(CompareByType) },
+    { ALT: () => this.CONSUME(CompareByTaste) },
+    { ALT: () => this.CONSUME(CompareByAgeGroup) },
+    { ALT: () => this.CONSUME(CompareByGender) },
+    // ... rest of operations ...
+  ]);
+});
+```
+
+**Estimated Time:** 30 minutes
+
+**Test Requirements:**
+- specs/GRAMMAR_SPEC.md: Comparison operations (lines 216-223)
+
+**Success Criteria:**
+- All 6 comparison tokens recognized by lexer
+- Parser grammar includes all comparison operations
+- TypeScript compiles
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Parsing tests pass for comparison ops
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(lexer): add comparison operation tokens"
 
 ---
 
-### Priority 12: Documentation (0.5 day)
+**Task 3.2: Add Filtering Tokens** (30 minutes)
 
-**Tasks:**
-- [ ] Package-level README files
-- [ ] API documentation (OpenAPI spec for HTTP)
-- [ ] WebSocket protocol documentation
-- [ ] Developer documentation (setup, contribution)
+**File:** `packages/compiler/src/lexer/tokens.ts`
+
+**Lines:** Add after Filter token (line 21)
+
+**Changes:**
+```typescript
+export const FilterBySize = createToken({ name: "FilterBySize", pattern: /FILTER_BY_SIZE/i });
+export const FilterByColor = createToken({ name: "FilterByColor", pattern: /FILTER_BY_COLOR/i });
+export const FilterByType = createToken({ name: "FilterByType", pattern: /FILTER_BY_TYPE/i });
+export const FilterByTaste = createToken({ name: "FilterByTaste", pattern: /FILTER_BY_TASTE/i });
+export const FilterByAgeGroup = createToken({ name: "FilterByAgeGroup", pattern: /FILTER_BY_AGE_GROUP/i });
+export const FilterByGender = createToken({ name: "FilterByGender", pattern: /FILTER_BY_GENDER/i });
+```
+
+**File:** `packages/compiler/src/lexer/tokens.ts`
+
+**Lines:** Add to allTokens array
+
+**File:** `packages/compiler/src/parser/dataflow-parser.ts`
+
+**Lines:** Add imports, add to operationName rule
+
+**Changes:** Similar to comparison tokens
+
+**Estimated Time:** 30 minutes
+
+**Test Requirements:**
+- specs/GRAMMAR_SPEC.md: Filtering operations (lines 228-235)
+
+**Success Criteria:**
+- All 6 filtering tokens recognized by lexer
+- Parser grammar includes all filtering operations
+- TypeScript compiles
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Parsing tests pass for filtering ops
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(lexer): add filtering operation tokens"
 
 ---
 
-## BLOCKERS & RISKS
+**Task 3.3: Add ALPHABETICAL_SORT Token** (15 minutes)
 
-### Critical Blockers (Must Fix First)
+**File:** `packages/compiler/src/lexer/tokens.ts`
 
-1. ⚠️ **Compiler Entry Point Wrong** - Blocks all integration work
-   - `compile()` takes DataflowProgram instead of source string
-   - Must refactor before HTTP API can work
+**Lines:** Add after Sort token (line 30)
 
-2. ⚠️ **Runtime Entry Point Wrong** - Blocks execution
-   - `loadProgram()` takes DataflowProgram
-   - Should accept parsed program structure
+**Changes:**
+```typescript
+export const AlphabeticalSort = createToken({ name: "AlphabeticalSort", pattern: /ALPHABETICAL_SORT/i });
+```
 
-3. ⚠️ **No Test Framework** - Cannot verify functionality
-   - Zero tests written
-   - No way to catch regressions
+**File:** `packages/compiler/src/parser/dataflow-parser.ts`
 
-4. ⚠️ **Missing Operation Implementations** - 10 operations crash
-   - FILTER, UNION, INTERSECTION, DIFFERENCE, COMPLEMENT
-   - NEXT, FIRST, FBY, ACCUMULATE, SORT
+**Lines:** Add import, add to operationName rule
 
-### Technical Risks
+**Estimated Time:** 15 minutes
 
-1. **Temporal operator complexity** - demand-driven semantics with time
-2. **Cache invalidation in incremental mode** - must be correct
-3. **Type system integration** - property constraints, type compatibility
+**Test Requirements:**
+- specs/GRAMMAR_SPEC.md: ALPHABETICAL_SORT (line 258)
 
-### Resource Risks
+**Success Criteria:**
+- ALPHABETICAL_SORT token recognized by lexer
+- Parser includes the operation
+- TypeScript compiles
 
-1. **~270 tests needed** - significant test writing effort
-2. **Child-friendly Spanish messages** - requires translation expertise
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Parsing tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(lexer): add ALPHABETICAL_SORT token"
+
+---
+
+#### Priority 2: Stream Literal Parsing (3 hours)
+
+**Task 3.4: Add Stream Literal Grammar** (1.5 hours)
+
+**File:** `packages/compiler/src/lexer/tokens.ts`
+
+**Lines:** Add new tokens (after existing tokens, line 85)
+
+**Changes:**
+```typescript
+export const Sensor = createToken({ name: "Sensor", pattern: /sensor/i });
+export const GeneratorToken = createToken({ name: "GeneratorToken", pattern: /generator/i });
+export const External = createToken({ name: "External", pattern: /external/i });
+```
+
+**File:** `packages/compiler/src/lexer/tokens.ts`
+
+**Lines:** Add to allTokens array
+
+**File:** `packages/compiler/src/parser/dataflow-parser.ts`
+
+**Lines:** Add imports, add rules to parser (after value rule, line 129)
+
+**Changes:**
+```typescript
+// Add to imports
+import {
+  // ... existing imports ...
+  Sensor,
+  GeneratorToken as Generator,
+  External,
+  // ... rest of imports ...
+} from "../lexer/tokens.js";
+
+// Update value rule to include streamLiteral
+value = this.RULE("value", () => {
+  this.OR([
+    { ALT: () => this.SUBRULE(this.literal) },
+    { ALT: () => this.SUBRULE(this.arrayLiteral) },
+    { ALT: () => this.SUBRULE(this.streamLiteral) }  // ADD THIS
+  ]);
+});
+
+// Add streamLiteral rule
+streamLiteral = this.RULE("streamLiteral", () => {
+  this.CONSUME(Stream);
+  this.CONSUME(AngleLeft);
+  this.SUBRULE(this.typeDeclaration);
+  this.CONSUME(AngleRight);
+  this.CONSUME(LParen);
+  this.SUBRULE(this.streamSource);
+  this.CONSUME(RParen);
+});
+
+// Add streamSource rule
+streamSource = this.RULE("streamSource", () => {
+  this.OR([
+    { ALT: () => {
+        this.CONSUME(Sensor);
+        this.CONSUME(LParen);
+        this.CONSUME(StringLiteral);
+        this.CONSUME(RParen);
+      }
+    },
+    { ALT: () => {
+        this.CONSUME(GeneratorToken);
+        this.CONSUME(LParen);
+        this.CONSUME(Identifier);
+        this.CONSUME(RParen);
+      }
+    },
+    { ALT: () => {
+        this.CONSUME(External);
+        this.CONSUME(LParen);
+        this.CONSUME(StringLiteral);
+        this.CONSUME(RParen);
+      }
+  ]);
+});
+```
+
+**Estimated Time:** 1.5 hours
+
+**Test Requirements:**
+- specs/GRAMMAR_SPEC.md: Stream literals (lines 170-175)
+- specs/GRAMMAR_SPEC.md: Stream examples (lines 414-427)
+
+**Success Criteria:**
+- Stream literals parse correctly
+- All stream source types supported (sensor, generator, external)
+- Parser grammar complete
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Stream literal tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(parser): add stream literal parsing"
+
+---
+
+**Task 3.5: Add AST Builder Support for Streams** (1.5 hours)
+
+**File:** `packages/compiler/src/ast/ast-builder.ts`
+
+**Lines:** Add methods after existing builder methods
+
+**Changes:**
+```typescript
+// Update value method to include streamLiteral (lines 84-92)
+value(ctx: any): unknown {
+  const children = ctx.children;
+  if (children.literal) {
+    return this.literal(ctx);
+  } else if (children.arrayLiteral) {
+    return this.arrayLiteral(ctx);
+  } else if (children.streamLiteral) {
+    return this.streamLiteral(ctx.children.streamLiteral[0]);
+  }
+  return undefined;
+}
+
+// Add streamLiteral method
+streamLiteral(ctx: any): unknown {
+  return {
+    kind: "stream",
+    elementType: this.typeDeclaration(ctx.children.typeDeclaration[0]),
+    source: this.streamSource(ctx.children.streamSource[0])
+  };
+}
+
+// Add streamSource method
+streamSource(ctx: any): unknown {
+  if (ctx.children.Sensor) {
+    return {
+      type: "sensor",
+      source: ctx.children.StringLiteral[0].image.slice(1, -1)
+    };
+  }
+  if (ctx.children.GeneratorToken) {
+    return {
+      type: "generator",
+      id: ctx.children.Identifier[0].image
+    };
+  }
+  if (ctx.children.External) {
+    return {
+      type: "external",
+      source: ctx.children.StringLiteral[0].image.slice(1, -1)
+    };
+  }
+  throw new Error("Unknown stream source type");
+}
+```
+
+**Estimated Time:** 1.5 hours
+
+**Test Requirements:**
+- specs/LANGUAGE_SPEC.md: Stream type (lines 283-288)
+- specs/DEMAND_DRIVEN_INCREMENTAL.md: Stream generator usage
+
+**Success Criteria:**
+- Stream AST built correctly
+- AST includes generator field
+- TypeScript compiles
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Stream AST tests pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(ast): add stream AST builder methods"
 
 ---
 
 ## SUCCESS METRICS FOR MVP
 
-### Layer 1 Complete:
-- ✅ Architecture refactored (compiler takes source string)
-- ✅ All tests pass
-- ✅ "3 + 2 = 5" works end-to-end
-- ✅ HTTP API functional
+### MVP (Layers 1-4 Complete):
 
-### Layer 1-4 Complete (MVP):
-- ✅ All arithmetic operations work
-- ✅ All set operations work
-- ✅ Curriculum types work
-- ✅ Type checking catches errors
-- ✅ Child-friendly Spanish messages throughout
+**Requirements:**
+- [x] Bug #1 fixed: AST Builder CST access pattern
+- [x] Bug #2 fixed: Compiler tests use correct API
+- [x] All 3 missing types added (Fraction, Comparison, Stream generator)
+- [x] All 31 operations in registry
+- [x] All 15 basic runtime operations implemented
+- [x] Type compatibility validation working
+- [x] Property constraint validation working
+- [x] All parsing tests pass
+- [x] All validation tests pass
+- [x] All runtime tests pass
+- [x] Test coverage >80%
+- [x] Child-friendly Spanish messages throughout
 
-### Layer 1-7 Complete (Version 1.0):
-- ✅ Temporal operators work
-- ✅ Integration layer complete
-- ✅ Live construction mode works
-- ✅ All 15+ operations implemented
-- ✅ 80%+ test coverage
+**Observable Results:**
+- All 44 tests passing
+- "3 + 2 = 5" works end-to-end
+- Can filter shapes by color
+- Can union two sets
+- Type errors detected at compile time
+- Spanish error messages shown to children
 
----
-
-## Appendix: Complete Feature Checklist
-
-### Infrastructure (Critical)
-- [x] Monorepo structure
-- [x] Shared type system
-- [x] JSON input schema (DataflowProgram for integrations)
-- [ ] **Compiler.compile(source: string) refactoring**
-- [ ] **Runtime.loadProgram() refactoring**
-- [ ] Test framework setup
-- [ ] Lint configuration
-
-### Layer 1
-- [x] Lexer (Chevrotain)
-- [x] Parser (Chevrotain)
-- [x] AST builder
-- [x] DAG validator
-- [x] DataflowGraph structure
-- [x] Demand-driven evaluator
-- [x] ADD operation
-- [ ] HTTP API - compile endpoint (EMPTY PACKAGE)
-- [ ] HTTP API - execute endpoint (EMPTY PACKAGE)
-- [ ] All Layer 1 tests (0 TESTS WRITTEN)
-
-### Layer 2
-- [x] SUBTRACT operation
-- [x] MULTIPLY operation
-- [x] DIVIDE operation
-- [x] COMPARE operation (BUG: wrong return type)
-- [x] Operation registry expansion
-- [x] Arity checker
-- [ ] All Layer 2 tests (0 TESTS WRITTEN)
-- [ ] Fix COMPARE return type bug
-
-### Layer 3
-- [x] Shape type definition
-- [x] Car type definition
-- [ ] COMPARE_BY_COLOR operation
-- [ ] COMPARE_BY_SIZE operation
-- [ ] FILTER_BY_COLOR operation
-- [ ] All Layer 3 tests (0 TESTS WRITTEN)
-
-### Layer 4
-- [x] Set type definition
-- [ ] UNION operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] INTERSECTION operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] DIFFERENCE operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] COMPLEMENT operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] SORT operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] All Layer 4 tests (0 TESTS WRITTEN)
-
-### Layer 5
-- [x] Time parameter in evaluator (SUPPORTED, NOT USED)
-- [ ] FBY operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] NEXT operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] FIRST operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] ACCUMULATE operation (IN REGISTRY, NOT IMPLEMENTED)
-- [ ] All Layer 5 tests (0 TESTS WRITTEN)
-
-### Layer 6
-- [x] Stream type definition
-- [ ] Stream sources
-- [ ] Stream operations inheritance
-- [ ] All Layer 6 tests (0 TESTS WRITTEN)
-
-### Layer 7a (HTTP API)
-- [ ] Health endpoint
-- [ ] Compile endpoint (full)
-- [ ] Execute endpoint (full)
-- [ ] All Layer 7a tests (0 TESTS WRITTEN)
-
-### Layer 7b (WebSocket)
-- [ ] WebSocket connection
-- [ ] Validate program message
-- [ ] Evaluate incremental message
-- [ ] Subscribe/unsubscribe messages
-- [ ] Push notifications
-- [ ] All Layer 7b tests (0 TESTS WRITTEN)
-
-### Layer 7c (Incremental Runtime)
-- [ ] Partial graph evaluation
-- [ ] Graph update API
-- [ ] Incremental update performance
-- [ ] All Layer 7c tests (0 TESTS WRITTEN)
-
-### Additional Types
-- [x] Food type (defined, no operations)
-- [x] Animal type (defined, no operations)
-- [x] Person type (defined, no operations)
-- [x] Integer type
-- [x] Decimal type
-- [ ] Fraction type (NOT IN REGISTRY)
-- [x] Text type
-- [x] Boolean type
-
-### Additional Operations
-- [ ] FILTER operations (general)
-- [ ] FILTER_BY_SIZE
-- [ ] FILTER_BY_TASTE
-- [ ] FILTER_BY_AGE_GROUP
-- [ ] FILTER_BY_GENDER
-- [ ] ALPHABETICAL_SORT
-- [ ] SORT (additional types)
-
-### Validation
-- [ ] Property requirements checker
-- [ ] Type compatibility checker
-
-### Performance & Documentation
-- [ ] Compiler benchmarks
-- [ ] Runtime benchmarks
-- [ ] Integration benchmarks
-- [ ] API documentation
-- [ ] Developer documentation
+**Performance:**
+- Compile 100-node program <100ms
+- Execute 50-node program <50ms
+- Cache hit rate >80%
 
 ---
 
-**Document Status:** Analysis Complete, Ready for Implementation
-**Next Step:** Priority -1 - Compiler Entry Point Refactoring
-**Estimated Time to Layer 1 Complete:** 4 days (after refactoring)
-**Estimated Time to MVP (Layers 1-4):** 12 days
+## SPEC INCONSISTENCIES FOUND
+
+### 1. Stream Type Missing Generator Field
+
+**Issue:** specs/LANGUAGE_SPEC.md line 283-288 defines Stream with `generator: Generator<T>`, but packages/shared/src/types/composite.ts doesn't include it.
+
+**Impact:** Cannot implement temporal operators properly, streams cannot generate values.
+
+**Resolution:** Added to Phase 1, Priority 0, Task 0.3
+
+---
+
+### 2. Fraction Type Referenced but Not Defined
+
+**Issue:** specs/LANGUAGE_SPEC.md lines 93-109 defines Fraction type with operations, but packages/shared/src/types/primitives.ts doesn't include it.
+
+**Impact:** Fraction operations will fail type checking, cannot use fractions in programs.
+
+**Resolution:** Added to Phase 1, Priority 0, Task 0.1
+
+---
+
+### 3. Comparison Return Type Not Defined
+
+**Issue:** specs/LANGUAGE_SPEC.md mentions Comparison return type for COMPARE operations (lines 53, 70, 90, 107), but no Comparison type definition exists.
+
+**Impact:** COMPARE operations don't have proper return type, type checking fails.
+
+**Resolution:** Added to Phase 1, Priority 0, Task 0.2
+
+---
+
+### 4. 31 Operations in Spec, Only 15 in Registry
+
+**Issue:** specs/GRAMMAR_SPEC.md lists 31 operations (lines 200-260), but packages/shared/src/operations/registry.ts only has 15.
+
+**Impact:** 16 curriculum-specific operations unavailable:
+- 7 comparison operations (COMPARE_BY_*)
+- 6 filtering operations (FILTER_BY_*)
+- 1 ordering operation (ALPHABETICAL_SORT)
+
+**Resolution:** Added to Phase 1, Priority 1, Task 1.1, 1.2, 1.3
+
+---
+
+**Document Status:** Updated with accurate analysis
+**Last Updated:** 2026-03-05
+**Next Step:** Priority -1 - Fix AST Builder CST Access Pattern
+**Estimated Time to MVP (Layers 1-4):** ~2-3 weeks
+**Estimated Time to Version 1.0 (All layers):** ~3-4 weeks
