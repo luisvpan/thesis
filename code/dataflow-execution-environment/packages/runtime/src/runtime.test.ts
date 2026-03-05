@@ -250,17 +250,17 @@ describe('Runtime - Execution', () => {
     expect(() => runtime.execute()).toThrow('Division by zero');
   });
 
-  it('should execute COMPARE operation with equal values', () => {
+    it('should execute COMPARE operation with equal values', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
         nodes: [
           { id: 'a', type: 'DataSource', dataType: 'natural', value: 5 },
           { id: 'b', type: 'DataSource', dataType: 'natural', value: 5 },
-          { id: 'cmp', type: 'Transformation', dataType: 'integer', operation: 'COMPARE', inputs: ['a', 'b'] },
-          { id: 'result', type: 'Output', dataType: 'integer', input: 'cmp' }
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE', inputs: ['a', 'b'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
         ],
         edges: [
           { id: 'e1', from: 'a', to: 'cmp', toPort: 0 },
@@ -269,25 +269,25 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toEqual({ kind: 'integer', value: 0 });
+    expect(outputs[0]).toEqual({ kind: 'boolean', value: true });
   });
 
   it('should execute COMPARE operation with less than', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
         nodes: [
           { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
           { id: 'b', type: 'DataSource', dataType: 'natural', value: 5 },
-          { id: 'cmp', type: 'Transformation', dataType: 'integer', operation: 'COMPARE', inputs: ['a', 'b'] },
-          { id: 'result', type: 'Output', dataType: 'integer', input: 'cmp' }
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE', inputs: ['a', 'b'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
         ],
         edges: [
           { id: 'e1', from: 'a', to: 'cmp', toPort: 0 },
@@ -296,25 +296,25 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toEqual({ kind: 'integer', value: -1 });
+    expect(outputs[0]).toEqual({ kind: 'boolean', value: false });
   });
 
   it('should execute COMPARE operation with greater than', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
         nodes: [
           { id: 'a', type: 'DataSource', dataType: 'natural', value: 7 },
           { id: 'b', type: 'DataSource', dataType: 'natural', value: 5 },
-          { id: 'cmp', type: 'Transformation', dataType: 'integer', operation: 'COMPARE', inputs: ['a', 'b'] },
-          { id: 'result', type: 'Output', dataType: 'integer', input: 'cmp' }
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE', inputs: ['a', 'b'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
         ],
         edges: [
           { id: 'e1', from: 'a', to: 'cmp', toPort: 0 },
@@ -323,12 +323,12 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toEqual({ kind: 'integer', value: 1 });
+    expect(outputs[0]).toEqual({ kind: 'boolean', value: false });
   });
 
   it('should execute complex expression (3 + 2) * (10 - 6) = 20', () => {

@@ -1,4 +1,4 @@
-import type { Natural, Integer, Decimal } from "@dataflow/shared/types";
+import type { Natural, Integer, Decimal, Boolean } from "@dataflow/shared/types";
 
 function unwrapValue(value: unknown): number {
   if (typeof value === "number") {
@@ -66,22 +66,13 @@ export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Decimal {
   };
 }
 
-export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Integer {
+export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Boolean {
   const [a, b] = inputs;
   const aVal = unwrapValue(a.value);
   const bVal = unwrapValue(b.value);
   
-  let result: number;
-  if (aVal < bVal) {
-    result = -1;
-  } else if (aVal > bVal) {
-    result = 1;
-  } else {
-    result = 0;
-  }
-  
   return {
-    kind: "integer",
-    value: result
+    kind: "boolean",
+    value: aVal === bVal
   };
 }
