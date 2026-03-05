@@ -65,7 +65,13 @@ export class AstBuilder {
     const operationKeys = [
       "Add", "Subtract", "Multiply", "Divide", "Compare",
       "Filter", "Union", "Intersection", "Difference", "Complement",
-      "Next", "First", "Fby", "Accumulate", "Sort"
+      "Next", "First", "Fby", "Accumulate", "Sort",
+      "AlphabeticalSort",
+      "And", "Or", "Not",
+      "CompareBySize", "CompareByColor", "CompareByType",
+      "CompareByTaste", "CompareByAgeGroup", "CompareByGender",
+      "FilterBySize", "FilterByColor", "FilterByType",
+      "FilterByTaste", "FilterByAgeGroup", "FilterByGender"
     ];
     
     for (const key of operationKeys) {
@@ -90,12 +96,12 @@ export class AstBuilder {
   }
 
   setType(ctx: any): string {
-    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration);
+    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0]);
     return `set<${typeDecl}>`;
   }
 
   streamType(ctx: any): string {
-    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration);
+    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0]);
     return `stream<${typeDecl}>`;
   }
 

@@ -13,6 +13,26 @@ export const Boolean = createToken({ name: "Boolean", pattern: /boolean/i });
 export const Set = createToken({ name: "Set", pattern: /set/i });
 export const Stream = createToken({ name: "Stream", pattern: /stream/i });
 
+export const CompareBySize = createToken({ name: "CompareBySize", pattern: /COMPARE_BY_SIZE/ });
+export const CompareByColor = createToken({ name: "CompareByColor", pattern: /COMPARE_BY_COLOR/ });
+export const CompareByType = createToken({ name: "CompareByType", pattern: /COMPARE_BY_TYPE/ });
+export const CompareByTaste = createToken({ name: "CompareByTaste", pattern: /COMPARE_BY_TASTE/ });
+export const CompareByAgeGroup = createToken({ name: "CompareByAgeGroup", pattern: /COMPARE_BY_AGE_GROUP/ });
+export const CompareByGender = createToken({ name: "CompareByGender", pattern: /COMPARE_BY_GENDER/ });
+
+export const FilterBySize = createToken({ name: "FilterBySize", pattern: /FILTER_BY_SIZE/ });
+export const FilterByColor = createToken({ name: "FilterByColor", pattern: /FILTER_BY_COLOR/ });
+export const FilterByType = createToken({ name: "FilterByType", pattern: /FILTER_BY_TYPE/ });
+export const FilterByTaste = createToken({ name: "FilterByTaste", pattern: /FILTER_BY_TASTE/ });
+export const FilterByAgeGroup = createToken({ name: "FilterByAgeGroup", pattern: /FILTER_BY_AGE_GROUP/ });
+export const FilterByGender = createToken({ name: "FilterByGender", pattern: /FILTER_BY_GENDER/ });
+
+export const AlphabeticalSort = createToken({ name: "AlphabeticalSort", pattern: /ALPHABETICAL_SORT/ });
+
+export const And = createToken({ name: "And", pattern: /AND/ });
+export const Or = createToken({ name: "Or", pattern: /OR/ });
+export const Not = createToken({ name: "Not", pattern: /NOT/ });
+
 export const Add = createToken({ name: "Add", pattern: /ADD/ });
 export const Subtract = createToken({ name: "Subtract", pattern: /SUBTRACT/ });
 export const Multiply = createToken({ name: "Multiply", pattern: /MULTIPLY/ });
@@ -47,6 +67,8 @@ export const Yellow = createToken({ name: "Yellow", pattern: /yellow/i });
 export const Green = createToken({ name: "Green", pattern: /green/i });
 export const Orange = createToken({ name: "Orange", pattern: /orange/i });
 export const Purple = createToken({ name: "Purple", pattern: /purple/i });
+export const Black = createToken({ name: "Black", pattern: /black/i });
+export const White = createToken({ name: "White", pattern: /white/i });
 
 export const Sweet = createToken({ name: "Sweet", pattern: /sweet/i });
 export const Salty = createToken({ name: "Salty", pattern: /salty/i });
@@ -114,6 +136,22 @@ export const allTokens = [
   Boolean,
   Set,
   Stream,
+  CompareBySize,
+  CompareByColor,
+  CompareByType,
+  CompareByTaste,
+  CompareByAgeGroup,
+  CompareByGender,
+  FilterBySize,
+  FilterByColor,
+  FilterByType,
+  FilterByTaste,
+  FilterByAgeGroup,
+  FilterByGender,
+  AlphabeticalSort,
+  And,
+  Or,
+  Not,
   Add,
   Subtract,
   Multiply,
@@ -144,6 +182,8 @@ export const allTokens = [
   Green,
   Orange,
   Purple,
+  Black,
+  White,
   Sweet,
   Salty,
   Sour,
