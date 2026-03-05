@@ -6,7 +6,19 @@ export type Operation =
   | "MULTIPLY"
   | "DIVIDE"
   | "COMPARE"
+  | "COMPARE_BY_SIZE"
+  | "COMPARE_BY_COLOR"
+  | "COMPARE_BY_TYPE"
+  | "COMPARE_BY_TASTE"
+  | "COMPARE_BY_AGE_GROUP"
+  | "COMPARE_BY_GENDER"
   | "FILTER"
+  | "FILTER_BY_SIZE"
+  | "FILTER_BY_COLOR"
+  | "FILTER_BY_TYPE"
+  | "FILTER_BY_TASTE"
+  | "FILTER_BY_AGE_GROUP"
+  | "FILTER_BY_GENDER"
   | "UNION"
   | "INTERSECTION"
   | "DIFFERENCE"
@@ -15,7 +27,11 @@ export type Operation =
   | "FIRST"
   | "FBY"
   | "ACCUMULATE"
-  | "SORT";
+  | "SORT"
+  | "ALPHABETICAL_SORT"
+  | "AND"
+  | "OR"
+  | "NOT";
 
 export type TypeConstraint = { kind: "hasProperty"; property: string };
 
@@ -62,10 +78,94 @@ export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
     category: "comparison"
   },
 
+  COMPARE_BY_SIZE: {
+    arity: 2,
+    inputTypes: ["shape", "shape"],
+    outputType: "boolean",
+    category: "comparison"
+  },
+
+  COMPARE_BY_COLOR: {
+    arity: 2,
+    inputTypes: ["shape", "shape"],
+    outputType: "boolean",
+    category: "comparison"
+  },
+
+  COMPARE_BY_TYPE: {
+    arity: 2,
+    inputTypes: ["shape", "shape"],
+    outputType: "boolean",
+    category: "comparison"
+  },
+
+  COMPARE_BY_TASTE: {
+    arity: 2,
+    inputTypes: ["food", "food"],
+    outputType: "boolean",
+    category: "comparison"
+  },
+
+  COMPARE_BY_AGE_GROUP: {
+    arity: 2,
+    inputTypes: ["person", "person"],
+    outputType: "boolean",
+    category: "comparison"
+  },
+
+  COMPARE_BY_GENDER: {
+    arity: 2,
+    inputTypes: ["person", "person"],
+    outputType: "boolean",
+    category: "comparison"
+  },
+
   FILTER: {
     arity: 2,
     inputTypes: [{ kind: "set", elementType: "natural" } as DataType, "natural"],
     outputType: { kind: "set", elementType: "natural" } as DataType,
+    category: "filtering"
+  },
+
+  FILTER_BY_SIZE: {
+    arity: 2,
+    inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"],
+    outputType: { kind: "set", elementType: "shape" } as DataType,
+    category: "filtering"
+  },
+
+  FILTER_BY_COLOR: {
+    arity: 2,
+    inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"],
+    outputType: { kind: "set", elementType: "shape" } as DataType,
+    category: "filtering"
+  },
+
+  FILTER_BY_TYPE: {
+    arity: 2,
+    inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"],
+    outputType: { kind: "set", elementType: "shape" } as DataType,
+    category: "filtering"
+  },
+
+  FILTER_BY_TASTE: {
+    arity: 2,
+    inputTypes: [{ kind: "set", elementType: "food" } as DataType, "text"],
+    outputType: { kind: "set", elementType: "food" } as DataType,
+    category: "filtering"
+  },
+
+  FILTER_BY_AGE_GROUP: {
+    arity: 2,
+    inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"],
+    outputType: { kind: "set", elementType: "person" } as DataType,
+    category: "filtering"
+  },
+
+  FILTER_BY_GENDER: {
+    arity: 2,
+    inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"],
+    outputType: { kind: "set", elementType: "person" } as DataType,
     category: "filtering"
   },
 
@@ -146,6 +246,34 @@ export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
     inputTypes: [{ kind: "set", elementType: "natural" } as DataType],
     outputType: { kind: "set", elementType: "natural" } as DataType,
     category: "ordering"
+  },
+
+  ALPHABETICAL_SORT: {
+    arity: 1,
+    inputTypes: [{ kind: "set", elementType: "text" } as DataType],
+    outputType: { kind: "set", elementType: "text" } as DataType,
+    category: "ordering"
+  },
+
+  AND: {
+    arity: 2,
+    inputTypes: ["boolean", "boolean"],
+    outputType: "boolean",
+    category: "boolean"
+  },
+
+  OR: {
+    arity: 2,
+    inputTypes: ["boolean", "boolean"],
+    outputType: "boolean",
+    category: "boolean"
+  },
+
+  NOT: {
+    arity: 1,
+    inputTypes: ["boolean"],
+    outputType: "boolean",
+    category: "boolean"
   }
 };
 

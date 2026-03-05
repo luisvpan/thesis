@@ -1,6 +1,33 @@
 import { DataflowGraph } from "../graph/dataflow-graph.js";
 import { ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE } from "../operations/numeric.js";
-import type { Natural, Integer, Decimal } from "@dataflow/shared/types";
+import { AND, OR, NOT } from "../operations/boolean.js";
+import {
+  COMPARE_BY_SIZE,
+  COMPARE_BY_COLOR,
+  COMPARE_BY_TYPE,
+  COMPARE_BY_TASTE,
+  COMPARE_BY_AGE_GROUP,
+  COMPARE_BY_GENDER
+} from "../operations/comparison.js";
+import {
+  FILTER,
+  FILTER_BY_SIZE,
+  FILTER_BY_COLOR,
+  FILTER_BY_TYPE,
+  FILTER_BY_TASTE,
+  FILTER_BY_AGE_GROUP,
+  FILTER_BY_GENDER
+} from "../operations/filtering.js";
+import {
+  UNION,
+  INTERSECTION,
+  DIFFERENCE,
+  COMPLEMENT,
+  SORT,
+  ALPHABETICAL_SORT
+} from "../operations/sets.js";
+import { NEXT, FIRST, FBY, ACCUMULATE } from "../operations/temporal.js";
+import type { Natural, Integer, Decimal, Fraction } from "@dataflow/shared/types";
 
 export class DemandDrivenEvaluator {
   private cache = new Map<string, Map<number, unknown>>();
@@ -50,6 +77,8 @@ export class DemandDrivenEvaluator {
         return { kind: "integer" as const, value: numValue as number };
       case "decimal":
         return { kind: "decimal" as const, value: numValue as number };
+      case "fraction":
+        return { kind: "fraction" as const, numerator: (numValue as { numerator: number; denominator: number }).numerator, denominator: (numValue as { numerator: number; denominator: number }).denominator };
       default:
         return node.value;
     }
@@ -72,6 +101,64 @@ export class DemandDrivenEvaluator {
         return DIVIDE(evaluatedInputs);
       case "COMPARE":
         return COMPARE(evaluatedInputs);
+
+      case "AND":
+        return AND(evaluatedInputs);
+      case "OR":
+        return OR(evaluatedInputs);
+      case "NOT":
+        return NOT(evaluatedInputs);
+
+      case "COMPARE_BY_SIZE":
+        return COMPARE_BY_SIZE(evaluatedInputs);
+      case "COMPARE_BY_COLOR":
+        return COMPARE_BY_COLOR(evaluatedInputs);
+      case "COMPARE_BY_TYPE":
+        return COMPARE_BY_TYPE(evaluatedInputs);
+      case "COMPARE_BY_TASTE":
+        return COMPARE_BY_TASTE(evaluatedInputs);
+      case "COMPARE_BY_AGE_GROUP":
+        return COMPARE_BY_AGE_GROUP(evaluatedInputs);
+      case "COMPARE_BY_GENDER":
+        return COMPARE_BY_GENDER(evaluatedInputs);
+
+      case "FILTER":
+        return FILTER(evaluatedInputs);
+      case "FILTER_BY_SIZE":
+        return FILTER_BY_SIZE(evaluatedInputs);
+      case "FILTER_BY_COLOR":
+        return FILTER_BY_COLOR(evaluatedInputs);
+      case "FILTER_BY_TYPE":
+        return FILTER_BY_TYPE(evaluatedInputs);
+      case "FILTER_BY_TASTE":
+        return FILTER_BY_TASTE(evaluatedInputs);
+      case "FILTER_BY_AGE_GROUP":
+        return FILTER_BY_AGE_GROUP(evaluatedInputs);
+      case "FILTER_BY_GENDER":
+        return FILTER_BY_GENDER(evaluatedInputs);
+
+      case "UNION":
+        return UNION(evaluatedInputs);
+      case "INTERSECTION":
+        return INTERSECTION(evaluatedInputs);
+      case "DIFFERENCE":
+        return DIFFERENCE(evaluatedInputs);
+      case "COMPLEMENT":
+        return COMPLEMENT(evaluatedInputs);
+      case "SORT":
+        return SORT(evaluatedInputs);
+      case "ALPHABETICAL_SORT":
+        return ALPHABETICAL_SORT(evaluatedInputs);
+
+      case "NEXT":
+        return NEXT(evaluatedInputs, time, graph);
+      case "FIRST":
+        return FIRST(evaluatedInputs, time, graph);
+      case "FBY":
+        return FBY(evaluatedInputs, time, graph);
+      case "ACCUMULATE":
+        return ACCUMULATE(evaluatedInputs, time, graph);
+
       default:
         throw new Error(`Unknown operation: ${operation}`);
     }

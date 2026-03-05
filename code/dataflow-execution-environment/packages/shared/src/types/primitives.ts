@@ -23,4 +23,10 @@ export type Boolean = {
   value: boolean;
 };
 
-export type Primitive = Natural | Integer | Decimal | Text | Boolean;
+export type Fraction = {
+  kind: "fraction";
+  numerator: number;
+  denominator: number;
+};
+
+export type Primitive = Natural | Integer | Decimal | Fraction | Text | Boolean;
