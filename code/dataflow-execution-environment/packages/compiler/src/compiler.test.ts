@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'bun:test';
 
 import { Compiler } from './compiler';
-import type { DataflowProgram } from '@dataflow/shared/types';
+import type { TransformStatement } from './ast';
 
 describe('Compiler - Lexing and Parsing', () => {
   it('should parse simple source statement', () => {
     const compiler = new Compiler();
     const source = 'source a: natural = 5;';
     const ast = compiler.parse(source);
-    
+
     expect(ast).toBeDefined();
     expect(ast.type).toBe('Program');
     expect(ast.statements).toHaveLength(1);
@@ -23,7 +23,7 @@ describe('Compiler - Lexing and Parsing', () => {
     const compiler = new Compiler();
     const source = 'source a: natural = 5;\nsource b: natural = 3;';
     const ast = compiler.parse(source);
-    
+
     expect(ast.statements).toHaveLength(2);
     expect(ast.statements[0].id).toBe('a');
     expect(ast.statements[1].id).toBe('b');
@@ -33,7 +33,7 @@ describe('Compiler - Lexing and Parsing', () => {
     const compiler = new Compiler();
     const source = 'transform sum: natural = ADD(a, b);';
     const ast = compiler.parse(source);
-    
+
     expect(ast.statements).toHaveLength(1);
     expect(ast.statements[0]).toMatchObject({
       type: 'TransformStatement',
@@ -41,14 +41,14 @@ describe('Compiler - Lexing and Parsing', () => {
       dataType: 'natural',
       operation: 'ADD'
     });
-    expect(ast.statements[0].inputs).toHaveLength(2);
+    expect((ast.statements[0] as TransformStatement).inputs).toHaveLength(2);
   });
 
   it('should parse output statement', () => {
     const compiler = new Compiler();
     const source = 'output result: natural = sum;';
     const ast = compiler.parse(source);
-    
+
     expect(ast.statements).toHaveLength(1);
     expect(ast.statements[0]).toMatchObject({
       type: 'OutputStatement',
@@ -67,7 +67,7 @@ describe('Compiler - Lexing and Parsing', () => {
       output result: natural = sum;
     `;
     const ast = compiler.parse(source);
-    
+
     expect(ast.statements).toHaveLength(4);
     expect(ast.statements[0].type).toBe('SourceStatement');
     expect(ast.statements[1].type).toBe('SourceStatement');
@@ -84,7 +84,7 @@ describe('Compiler - Lexing and Parsing', () => {
       output result: natural = a;
     `;
     const ast = compiler.parse(source);
-    
+
     expect(ast.statements).toHaveLength(2);
   });
 });
@@ -98,9 +98,9 @@ describe('Compiler - Validation', () => {
       transform add: natural = ADD(a, b);
       output result: natural = add;
     `;
-    
+
     const result = compiler.compile(source);
-    
+
     expect(result.success).toBe(true);
     expect(result.errors).toHaveLength(0);
     expect(result.program).toBeDefined();
@@ -112,9 +112,9 @@ describe('Compiler - Validation', () => {
       source a: natural = 3;
       source a: natural = 2;
     `;
-    
+
     const result = compiler.compile(source);
-    
+
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0].code).toBe('DUPLICATE_IDENTIFIER');
@@ -127,9 +127,9 @@ describe('Compiler - Validation', () => {
       source a: natural = 3;
       transform add: natural = ADD(a, b);
     `;
-    
+
     const result = compiler.compile(source);
-    
+
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0].code).toBe('UNDEFINED_IDENTIFIER');
@@ -145,9 +145,9 @@ describe('Compiler - Validation', () => {
       transform b: natural = ADD(a, c);
       transform c: natural = ADD(a, b);
     `;
-    
+
     const result = compiler.compile(source);
-    
+
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0].code).toBe('CYCLE_DETECTED');
@@ -160,9 +160,9 @@ describe('Compiler - Validation', () => {
       source a: natural = 3;
       transform add: natural = ADD(a);
     `;
-    
+
     const result = compiler.compile(source);
-    
+
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0].code).toBe('WRONG_ARITY');
@@ -175,9 +175,9 @@ describe('Compiler - Validation', () => {
       source a: natural = 3;
       transform badop: natural = UNKNOWN_OP(a, a);
     `;
-    
+
     const result = compiler.compile(source);
-    
+
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0].code).toBe('UNKNOWN_OPERATION');
