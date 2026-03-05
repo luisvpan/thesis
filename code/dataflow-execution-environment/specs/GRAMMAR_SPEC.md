@@ -562,14 +562,14 @@ const OPERATION_REGISTRY: Record<string, OperationSignature> = {
   "COMPARE": {
     arity: 2,
     inputTypes: ["natural", "natural"],
-    outputType: "integer",  // -1, 0, or 1
+    outputType: "boolean",  // Returns true if equal, false otherwise
     category: "comparison"
   },
   
   "COMPARE_BY_COLOR": {
     arity: 2,
     inputTypes: ["hasColor", "hasColor"],
-    outputType: "integer",
+    outputType: "boolean",  // Returns true if colors are equal, false otherwise
     category: "comparison"
   },
   

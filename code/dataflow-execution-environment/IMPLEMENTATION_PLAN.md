@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-05
+**Last Updated:** 2026-03-05 (Updated comparison operations to return Boolean)
 
 ---
 
@@ -242,22 +242,15 @@ const result = compiler.compile(source);  // ✅ Pass source string
    - **Test Requirements:** specs/LANGUAGE_SPEC.md Fraction operations (lines 103-109)
    - **Success Criteria:** Fraction type defined and exported, TypeScript compiles
 
-2. **Comparison Type Missing** (Priority 0)
-   - **Location:** `packages/shared/src/types/primitives.ts`
-   - **Spec Ref:** specs/LANGUAGE_SPEC.md lines 53, 70, 90, 107
-   - **Required:**
-   ```typescript
-   export type Comparison = {
-     kind: "comparison";
-     value: -1 | 0 | 1;  // less than, equal, greater than
-   };
-   
-   // Update Primitive union
-   export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction | Comparison;
-   ```
-   - **Estimated Time:** 30 minutes
-   - **Test Requirements:** specs/LANGUAGE_SPEC.md COMPARE operations (lines 53, 70, 90, 107)
-   - **Success Criteria:** Comparison type defined and exported, COMPARE returns Comparison
+2. ~~**Comparison Type Missing**~~ (REMOVED - Comparison operations return Boolean, not a separate type)
+    - **NOTE:** COMPARE operations return Boolean (true if equal, false otherwise), not a separate Comparison type
+    - Comparison semantics:
+      - Numbers/Booleans: Direct value equality check
+      - Text: Lexicographical comparison based on UTF-16 code unit values (by value, not by reference)
+      - COMPARE_BY_* operations: Compare specific properties (size, color, type, etc.) and return Boolean
+    - **Estimated Time:** N/A (no type needed)
+    - **Test Requirements:** specs/LANGUAGE_SPEC.md COMPARE operations (lines 53, 70, 89, 107, 120, 137)
+    - **Success Criteria:** COMPARE operations return Boolean type
 
 3. **Stream Type Missing Generator Field** (Priority 0)
    - **Location:** `packages/shared/src/types/composite.ts`
@@ -633,38 +626,29 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 
 ---
 
-**Task 0.2: Comparison Type** (30 minutes)
+**Task 0.2: ~~Comparison Type~~ (REMOVED)**
 
-**File:** `packages/shared/src/types/primitives.ts`
+**NOTE:** Comparison operations return Boolean, not a separate Comparison type.
 
-**Lines:** Add after Fraction type
+**Comparison Semantics:**
+- For numbers and booleans: Direct value equality check
+- For text: Lexicographical comparison based on UTF-16 code unit values (like JavaScript/TypeScript), by value not by reference
+- For COMPARE_BY_SIZE, COMPARE_BY_COLOR, etc.: Compare specific properties and return Boolean
+- All comparisons are by value, not by reference
 
-**Changes:**
-```typescript
-export type Comparison = {
-  kind: "comparison";
-  value: -1 | 0 | 1;  // less than, equal, greater than
-};
-
-// Update Primitive union
-export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction | Comparison;
-```
-
-**Estimated Time:** 30 minutes
+**Estimated Time:** N/A (no changes needed to types)
 
 **Test Requirements:**
-- specs/LANGUAGE_SPEC.md: COMPARE operations (lines 53, 70, 90, 107)
-- COMPARE returns Comparison type
+- specs/LANGUAGE_SPEC.md: COMPARE operations (lines 53, 70, 89, 107, 120, 137)
+- COMPARE returns Boolean type
 
 **Success Criteria:**
-- Comparison type defined and exported
-- COMPARE operation returns Comparison
+- No Comparison type needed (already covered by Boolean)
+- All COMPARE operations correctly return Boolean
 - TypeScript compiles
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Typecheck passes
-- [ ] Git commit with message: "feat(shared): add Comparison type"
+- N/A (task removed - Boolean type already exists)
 
 ---
 
@@ -724,46 +708,48 @@ export type Operation =
   | "NEXT" | "FIRST" | "FBY" | "ACCUMULATE"
   | "SORT" | "ALPHABETICAL_SORT";
 
+// All COMPARE operations return Boolean (true if equal, false otherwise)
+
 // Add to OPERATION_REGISTRY:
 COMPARE_BY_SIZE: {
   arity: 2,
   inputTypes: ["shape", "shape"],
-  outputType: "integer",
+  outputType: "boolean",
   category: "comparison"
 },
 
 COMPARE_BY_COLOR: {
   arity: 2,
   inputTypes: [{ kind: "hasColor" }, { kind: "hasColor" }],
-  outputType: "integer",
+  outputType: "boolean",
   category: "comparison"
 },
 
 COMPARE_BY_TYPE: {
   arity: 2,
   inputTypes: ["animal", "animal"],
-  outputType: "integer",
+  outputType: "boolean",
   category: "comparison"
 },
 
 COMPARE_BY_TASTE: {
   arity: 2,
   inputTypes: ["food", "food"],
-  outputType: "integer",
+  outputType: "boolean",
   category: "comparison"
 },
 
 COMPARE_BY_AGE_GROUP: {
   arity: 2,
   inputTypes: ["person", "person"],
-  outputType: "integer",
+  outputType: "boolean",
   category: "comparison"
 },
 
 COMPARE_BY_GENDER: {
   arity: 2,
   inputTypes: ["person", "person"],
-  outputType: "integer",
+  outputType: "boolean",
   category: "comparison"
 },
 ```
@@ -1136,74 +1122,64 @@ export const FILTER_BY_GENDER = (inputs: Array<{ id: string; value: unknown }>):
 
 **Changes:**
 ```typescript
-import type { Shape, Car, Food, Animal, Person, Comparison } from "@dataflow/shared/types";
+import type { Shape, Car, Food, Animal, Person, Boolean } from "@dataflow/shared/types";
 import { unwrapValue } from "../evaluator/demand-driven-evaluator.js";
 
-export const COMPARE_BY_SIZE = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+export const COMPARE_BY_SIZE = (inputs: Array<{ id: string; value: unknown }>): Boolean => {
   const [item1, item2] = inputs.map(i => unwrapValue(i));
-  const sizeOrder = { "small": 0, "medium": 1, "large": 2 };
-  
-  const result = sizeOrder[item1.size] - sizeOrder[item2.size];
   
   return {
-    kind: "comparison",
-    value: Math.sign(result) as -1 | 0 | 1
+    kind: "boolean",
+    value: item1.size === item2.size
   };
 };
 
-export const COMPARE_BY_COLOR = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+export const COMPARE_BY_COLOR = (inputs: Array<{ id: string; value: unknown }>): Boolean => {
   const [item1, item2] = inputs.map(i => unwrapValue(i));
   
-  const result = item1.color.localeCompare(item2.color);
-  
+  // Compare colors lexicographically (UTF-16 code units), by value not by reference
   return {
-    kind: "comparison",
-    value: Math.sign(result) as -1 | 0 | 1
+    kind: "boolean",
+    value: item1.color === item2.color
   };
 };
 
-export const COMPARE_BY_TYPE = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+export const COMPARE_BY_TYPE = (inputs: Array<{ id: string; value: unknown }>): Boolean => {
   const [item1, item2] = inputs.map(i => unwrapValue(i));
   
-  const result = item1.type.localeCompare(item2.type);
-  
+  // Compare types lexicographically (UTF-16 code units), by value not by reference
   return {
-    kind: "comparison",
-    value: Math.sign(result) as -1 | 0 | 1
+    kind: "boolean",
+    value: item1.type === item2.type
   };
 };
 
-export const COMPARE_BY_TASTE = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+export const COMPARE_BY_TASTE = (inputs: Array<{ id: string; value: unknown }>): Boolean => {
   const [item1, item2] = inputs.map(i => unwrapValue(i));
   
-  const result = item1.taste.localeCompare(item2.taste);
-  
+  // Compare tastes lexicographically (UTF-16 code units), by value not by reference
   return {
-    kind: "comparison",
-    value: Math.sign(result) as -1 | 0 | 1
+    kind: "boolean",
+    value: item1.taste === item2.taste
   };
 };
 
-export const COMPARE_BY_AGE_GROUP = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+export const COMPARE_BY_AGE_GROUP = (inputs: Array<{ id: string; value: unknown }>): Boolean => {
   const [item1, item2] = inputs.map(i => unwrapValue(i));
-  const ageOrder = { "child": 0, "teenager": 1, "adult": 2, "senior": 3 };
-  
-  const result = ageOrder[item1.ageGroup] - ageOrder[item2.ageGroup];
   
   return {
-    kind: "comparison",
-    value: Math.sign(result) as -1 | 0 | 1
+    kind: "boolean",
+    value: item1.ageGroup === item2.ageGroup
   };
 };
 
-export const COMPARE_BY_GENDER = (inputs: Array<{ id: string; value: unknown }>): Comparison => {
+export const COMPARE_BY_GENDER = (inputs: Array<{ id: string; value: unknown }>): Boolean => {
   const [item1, item2] = inputs.map(i => unwrapValue(i));
   
-  const result = item1.gender.localeCompare(item2.gender);
-  
+  // Compare genders lexicographically (UTF-16 code units), by value not by reference
   return {
-    kind: "comparison",
-    value: Math.sign(result) as -1 | 0 | 1
+    kind: "boolean",
+    value: item1.gender === item2.gender
   };
 };
 ```
@@ -1211,11 +1187,12 @@ export const COMPARE_BY_GENDER = (inputs: Array<{ id: string; value: unknown }>)
 **Estimated Time:** 2 hours
 
 **Test Requirements:**
-- specs/LANGUAGE_SPEC.md: Comparison operations (lines 173-176, 197-198, 218-221, 241-243, 263-265)
+- specs/LANGUAGE_SPEC.md: Comparison operations (lines 173-175, 197, 218-219, 241-242, 264-265)
 
 **Success Criteria:**
 - All 6 comparison operations implemented
-- Return Comparison type with proper values
+- Return Boolean type (true if equal, false otherwise)
+- All comparisons by value, not by reference
 - TypeScript compiles
 
 **Ralph Wiggum Checklist:**
@@ -1393,7 +1370,7 @@ private evaluateOperation(
     case "DIVIDE":
       return DIVIDE(evaluatedInputs);
     case "COMPARE":
-      return COMPARE(evaluatedInputs);
+      return COMPARE(evaluatedInputs);  // Returns Boolean (true if equal, false otherwise)
     case "UNION":
       return UNION(evaluatedInputs);
     case "INTERSECTION":
@@ -1863,13 +1840,24 @@ streamSource(ctx: any): unknown {
 
 ---
 
-### 3. Comparison Return Type Not Defined
+### 3. ~~Comparison Return Type Not Defined~~ (RESOLVED)
 
-**Issue:** specs/LANGUAGE_SPEC.md mentions Comparison return type for COMPARE operations (lines 53, 70, 90, 107), but no Comparison type definition exists.
+**Issue:** ~~specs/LANGUAGE_SPEC.md mentions Comparison return type for COMPARE operations (lines 53, 70, 90, 107), but no Comparison type definition exists.~~
 
-**Impact:** COMPARE operations don't have proper return type, type checking fails.
+**Resolution:** All COMPARE operations return `Boolean` type (true if equal, false otherwise), not a separate Comparison type.
 
-**Resolution:** Added to Phase 1, Priority 0, Task 0.2
+**Changes Made:**
+- Updated specs/LANGUAGE_SPEC.md: All COMPARE operations return Boolean
+- Updated specs/GRAMMAR_SPEC.md: Operation signatures return boolean, not integer
+- Updated IMPLEMENTATION_PLAN.md: Removed "Comparison Type Missing" task, documented Boolean return semantics
+- Updated packages/runtime/src/operations/numeric.ts: COMPARE returns Boolean
+- Updated packages/runtime/src/runtime.test.ts: Tests expect Boolean results
+
+**Comparison Semantics:**
+- Numbers/Booleans: Direct value equality check
+- Text: Lexicographical comparison based on UTF-16 code unit values (by value, not by reference)
+- COMPARE_BY_* operations: Compare specific properties and return Boolean
+- All comparisons are by value, not by reference
 
 ---
 

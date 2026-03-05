@@ -50,7 +50,7 @@ type Natural = {
 - `SUBTRACT(n1: Natural, n2: Natural) → Integer` ⚠️ May be negative
 - `MULTIPLY(n1: Natural, n2: Natural) → Natural`
 - `DIVIDE(n1: Natural, n2: Natural) → Decimal`
-- `COMPARE(n1: Natural, n2: Natural) → Comparison`
+- `COMPARE(n1: Natural, n2: Natural) → Boolean` - Returns `true` if equal, `false` otherwise (value-based comparison)
 - `FILTER(list: Natural[], condition) → Natural[]`
 - `SORT(list: Natural[]) → Natural[]`
 
@@ -67,7 +67,7 @@ type Integer = {
 - `SUBTRACT(n1: Integer, n2: Integer) → Integer`
 - `MULTIPLY(n1: Integer, n2: Integer) → Integer`
 - `DIVIDE(n1: Integer, n2: Integer) → Decimal`
-- `COMPARE(n1: Integer, n2: Integer) → Comparison`
+- `COMPARE(n1: Integer, n2: Integer) → Boolean` - Returns `true` if equal, `false` otherwise (value-based comparison)
 - `FILTER(list: Integer[], condition) → Integer[]`
 - `SORT(list: Integer[]) → Integer[]`
 
@@ -86,7 +86,7 @@ type Decimal = {
 - `SUBTRACT(n1: Decimal, n2: Decimal) → Decimal`
 - `MULTIPLY(n1: Decimal, n2: Decimal) → Decimal`
 - `DIVIDE(n1: Decimal, n2: Decimal) → Decimal`
-- `COMPARE(n1: Decimal, n2: Decimal) → Comparison`
+- `COMPARE(n1: Decimal, n2: Decimal) → Boolean` - Returns `true` if equal, `false` otherwise (value-based comparison)
 - `FILTER(list: Decimal[], condition) → Decimal[]`
 - `SORT(list: Decimal[]) → Decimal[]`
 
@@ -104,7 +104,7 @@ type Fraction = {
 - `SUBTRACT(n1: Fraction, n2: Fraction) → Fraction`
 - `MULTIPLY(n1: Fraction, n2: Fraction) → Fraction`
 - `DIVIDE(n1: Fraction, n2: Fraction) → Fraction`
-- `COMPARE(n1: Fraction, n2: Fraction) → Comparison`
+- `COMPARE(n1: Fraction, n2: Fraction) → Boolean` - Returns `true` if equal, `false` otherwise (value-based comparison)
 - `FILTER(list: Fraction[], condition) → Fraction[]`
 - `SORT(list: Fraction[]) → Fraction[]`
 
@@ -117,7 +117,7 @@ type Text = {
 ```
 
 **Operations:**
-- `COMPARE(t1: Text, t2: Text) → Comparison`
+- `COMPARE(t1: Text, t2: Text) → Boolean` - Returns `true` if equal, `false` otherwise (lexicographical comparison based on UTF-16 code unit values, by value not by reference)
 - `ALPHABETICAL_SORT(list: Text[]) → Text[]`
 
 **Note:** Primarily for defining other types (colors, categories)
@@ -134,7 +134,7 @@ type Boolean = {
 - `AND(b1: Boolean, b2: Boolean) → Boolean`
 - `OR(b1: Boolean, b2: Boolean) → Boolean`
 - `NOT(b: Boolean) → Boolean`
-- `COMPARE(b1: Boolean, b2: Boolean) → Comparison`
+- `COMPARE(b1: Boolean, b2: Boolean) → Boolean` - Returns `true` if equal, `false` otherwise (value-based comparison)
 
 ---
 
@@ -170,9 +170,9 @@ type Shape = {
 ```
 
 **Comparison Operations:**
-- `COMPARE_BY_SIZE(s1: Shape, s2: Shape) → Comparison`
-- `COMPARE_BY_COLOR(s1: Shape, s2: Shape) → Comparison`
-- `COMPARE_BY_TYPE(s1: Shape, s2: Shape) → Comparison`
+- `COMPARE_BY_SIZE(s1: Shape, s2: Shape) → Boolean` - Returns `true` if sizes are equal, `false` otherwise (by value)
+- `COMPARE_BY_COLOR(s1: Shape, s2: Shape) → Boolean` - Returns `true` if colors are equal, `false` otherwise (by value)
+- `COMPARE_BY_TYPE(s1: Shape, s2: Shape) → Boolean` - Returns `true` if types are equal, `false` otherwise (by value)
 
 **Filtering Operations:**
 - `FILTER_BY_SIZE(list: Shape[], size: Size) → Shape[]`
@@ -194,7 +194,7 @@ type Car = {
 ```
 
 **Comparison Operations:**
-- `COMPARE_BY_COLOR(s1: Car, s2: Car) → Comparison`
+- `COMPARE_BY_COLOR(s1: Car, s2: Car) → Boolean` - Returns `true` if colors are equal, `false` otherwise (by value)
 
 **Filtering Operations:**
 - `FILTER_BY_COLOR(list: Car[], color: Color) → Car[]`
@@ -215,8 +215,8 @@ type Food = {
 ```
 
 **Comparison Operations:**
-- `COMPARE_BY_TASTE(s1: Food, s2: Food) → Comparison`
-- `COMPARE_BY_COLOR(s1: Food, s2: Food) → Comparison`
+- `COMPARE_BY_TASTE(s1: Food, s2: Food) → Boolean` - Returns `true` if tastes are equal, `false` otherwise (by value)
+- `COMPARE_BY_COLOR(s1: Food, s2: Food) → Boolean` - Returns `true` if colors are equal, `false` otherwise (by value)
 
 **Filtering Operations:**
 - `FILTER_BY_TASTE(list: Food[], taste: Taste) → Food[]`
@@ -238,8 +238,8 @@ type Animal = {
 ```
 
 **Comparison Operations:**
-- `COMPARE_BY_TYPE(s1: Animal, s2: Animal) → Comparison`
-- `COMPARE_BY_COLOR(s1: Animal, s2: Animal) → Comparison`
+- `COMPARE_BY_TYPE(s1: Animal, s2: Animal) → Boolean` - Returns `true` if types are equal, `false` otherwise (by value)
+- `COMPARE_BY_COLOR(s1: Animal, s2: Animal) → Boolean` - Returns `true` if colors are equal, `false` otherwise (by value)
 
 **Filtering Operations:**
 - `FILTER_BY_TYPE(list: Animal[], type: AnimalType) → Animal[]`
@@ -261,8 +261,8 @@ type Person = {
 ```
 
 **Comparison Operations:**
-- `COMPARE_BY_AGE_GROUP(s1: Person, s2: Person) → Comparison`
-- `COMPARE_BY_GENDER(s1: Person, s2: Person) → Comparison`
+- `COMPARE_BY_AGE_GROUP(s1: Person, s2: Person) → Boolean` - Returns `true` if age groups are equal, `false` otherwise (by value)
+- `COMPARE_BY_GENDER(s1: Person, s2: Person) → Boolean` - Returns `true` if genders are equal, `false` otherwise (by value)
 
 **Filtering Operations:**
 - `FILTER_BY_AGE_GROUP(list: Person[], ageGroup: AgeGroup) → Person[]`
