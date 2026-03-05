@@ -67,13 +67,24 @@ packages/
 
 ## Critical Findings from Research
 
-### 1. All Tests Passing
+### 1. Flaky Compiler Tests (P0 - CRITICAL)
+- **Compiler tests pass but don't validate actual values**
+- Test 1: Source statement parsing (lines 7-20) - checks structure but missing `value` field validation
+- Test 2: Transform statement parsing (lines 32-45) - checks operation name but missing `inputs` array validation
+- Validation tests (lines 92-186) - Detect error codes but don't verify program structure
+- **Impact:** Bugs in AST builder go undetected, integration tests would fail
+- **Detection method:** Only way to catch is through integration tests (which require Phase 1 completion)
+- **Fix:** Add value and structure verification to all affected tests - see Phase -1 tasks
+- **Priority:** P0 - Must fix before any other implementation work
+
+### 2. All Tests Passing
 - **Previous plan incorrectly stated 12 failing tests**
 - All 44 tests currently pass
 - AST Builder CST access pattern is correct (not broken as previously thought)
 - Compiler tests properly use source strings (not DataflowProgram objects)
+- **Note:** Tests pass but are incomplete/flaky - need Phase -1 fixes
 
-### 2. Operation Count Discrepancy
+### 3. Operation Count Discrepancy
 - **Specs define 31 operations** across 6 categories
 - **Compiler recognizes 15 operations** (48% complete)
 - **Registry has 15 operations** (48% complete)
@@ -108,6 +119,174 @@ packages/
 ---
 
 ## PRIORITIZED IMPLEMENTATION PLAN
+
+### PHASE -1: FIX FLAKY COMPILER TESTS (Priority P0 - CRITICAL)
+
+**Time Estimate:** 1 hour
+
+**Rationale:** Compiler tests are flaky - they pass but don't validate actual parsed values or program structure. Integration tests would catch these issues, but they require Phase 1 completion. Must fix tests first to ensure reliability.
+
+**Critical Issues Identified:**
+
+1. **Test 1: "should parse simple source statement" (lines 7-20)**
+   - Problem: Test only checks AST structure (`type`, `id`, `dataType`) but **doesn't verify parsed value**
+   - Current test checks: `{ type: 'SourceStatement', id: 'a', dataType: 'natural' }`
+   - Missing: `value: 5` - the actual parsed value is never validated!
+   - Impact: Bugs in value extraction go undetected
+
+2. **Test 2: "should parse transform statement with ADD" (lines 32-45)**
+   - Problem: Similar - checks operation name but **doesn't verify input IDs**
+   - Current test checks: `{ type: 'TransformStatement', id: 'sum', dataType: 'natural', operation: 'ADD' }`
+   - Missing: `inputs: ['a', 'b']` - input IDs are never validated!
+   - Impact: Bugs in input extraction go undetected
+
+3. **All validation tests (lines 92-186)**
+   - Problem: Tests detect error codes correctly but **don't verify program structure**
+   - Missing: No validation that `result.program` has correct nodes/edges
+   - Missing: No check that data types are preserved correctly
+   - Missing: No verification of metadata structure
+   - Impact: Programs compile but may have incorrect structure
+
+**Root Cause:**
+Tests only validate AST types and field presence, not actual values. This is why tests "pass" but integration tests would fail - they'd catch bugs in actual data.
+
+**Solution:** Add value and structure verification to all affected tests.
+
+---
+
+#### Task -1.1: Fix Source Statement Parsing Test (20 minutes)
+
+**File:** `packages/compiler/src/compiler.test.ts`
+
+**Changes:**
+- Line 15-19: Add `value: 5` to toMatchObject expectation
+- Verify parsed value is correctly extracted
+
+**Before:**
+```typescript
+expect(ast.statements[0]).toMatchObject({
+  type: 'SourceStatement',
+  id: 'a',
+  dataType: 'natural'
+});
+```
+
+**After:**
+```typescript
+expect(ast.statements[0]).toMatchObject({
+  type: 'SourceStatement',
+  id: 'a',
+  dataType: 'natural',
+  value: 5  // ADD THIS - CRITICAL
+});
+```
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Test validates both structure AND parsed value
+- Test catches value extraction bugs
+- Integration tests pass when Phase 1 completes
+
+**Layer:** Pre-Phase 0 (Foundation)
+
+**Estimated Time:** 20 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All compiler tests pass
+- [ ] Previous tests still pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "fix(tests): add value verification to compiler parsing tests"
+
+---
+
+#### Task -1.2: Fix Transform Statement Parsing Test (20 minutes)
+
+**File:** `packages/compiler/src/compiler.test.ts`
+
+**Changes:**
+- Line 38-45: Add `inputs: ['a', 'b']` to toMatchObject expectation
+- Verify input IDs are correctly extracted
+
+**Before:**
+```typescript
+expect(ast.statements[0]).toMatchObject({
+  type: 'TransformStatement',
+  id: 'sum',
+  dataType: 'natural',
+  operation: 'ADD'
+});
+```
+
+**After:**
+```typescript
+expect(ast.statements[0]).toMatchObject({
+  type: 'TransformStatement',
+  id: 'sum',
+  dataType: 'natural',
+  operation: 'ADD',
+  inputs: ['a', 'b']  // ADD THIS - CRITICAL
+});
+```
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Test validates both operation name AND input IDs
+- Test catches input extraction bugs
+- Test prevents integration test failures
+
+**Layer:** Pre-Phase 0 (Foundation)
+
+**Estimated Time:** 20 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All compiler tests pass
+- [ ] Previous tests still pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "fix(tests): add inputs verification to compiler parsing tests"
+
+---
+
+#### Task -1.3: Fix Validation Tests Structure Verification (20 minutes)
+
+**File:** `packages/compiler/src/compiler.test.ts`
+
+**Changes:**
+- Add `expect(result.program).toBeDefined()` checks to all validation tests
+- Verify `result.program.graph.nodes` and `result.program.graph.edges` are correctly built
+- Add data type preservation checks
+
+**Add to each validation test (lines 92-185):**
+```typescript
+// After existing error checks:
+expect(result.program).toBeDefined();
+expect(result.program?.graph.nodes).toHaveLength(expectedNodes);
+expect(result.program?.graph.edges).toHaveLength(expectedEdges);
+```
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Validation tests verify error codes AND program structure
+- Test catches program construction bugs
+- Data types are preserved correctly
+- Integration tests would catch value extraction bugs
+
+**Layer:** Pre-Phase 0 (Foundation)
+
+**Estimated Time:** 20 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All compiler tests pass
+- [ ] Previous tests still pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "fix(tests): add program structure verification to compiler validation tests"
+
+---
 
 ### PHASE 0: CRITICAL TYPE SYSTEM COMPLETION (Priority 0)
 
