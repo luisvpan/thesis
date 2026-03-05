@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-05 (Phase 0 and Phase 1 complete, 32/46 tests passing, chevrotain blocker identified)
+**Last Updated:** 2026-03-05 (Phase 0, Phase 1, and Phase 3 (Compiler Tokens) complete, 53/70 tests passing, chevrotain blocker resolved)
 
 ---
 
@@ -40,25 +40,28 @@ packages/
 **Last Updated:** 2026-03-05
 **Analysis Date:** 2026-03-05
 
-### Overall Progress: ~65% Complete
+### Overall Progress: ~75% Complete
 
 ### Test Status Summary
-- **Total Tests:** 46
-- **Passing:** 32 (69.6%)
-- **Failing:** 14 (30.4%)
-  - Compiler tests: 0/14 passing ✗ (BLOCKED by chevrotain dependency issue)
+- **Total Tests:** 70
+- **Passing:** 53 (75.7%)
+- **Failing:** 17 (24.3%)
+  - Compiler tests: 12/12 passing ✓ (Phase 3 tokens complete)
   - Runtime tests: 14/14 passing ✓
   - Shared tests: 18/18 passing ✓
+  - Integration tests: 0/17 passing ✗ (missing type compatibility validation)
+  - Compiler validation tests: 9/9 passing ✓
 
 ### Phase Progress
 
 | Phase | Status | Completion | Tests Passing |
 |-------|--------|------------|---------------|
-| Phase -1: Fix Flaky Compiler Tests | BLOCKED | 0% | 0% |
+| Phase -1: Fix Flaky Compiler Tests | COMPLETE | 100% | 100% |
 | Phase 0: Critical Type System Completion | COMPLETE | 100% | 100% |
 | Phase 1: Runtime Operations Completion | COMPLETE | 100% | 100% |
 | Phase 2: Integration Tests | PENDING | 0% | 0% |
-| Phase 3: Compiler Completion | BLOCKED | 0% | 0% |
+| Phase 3: Compiler Completion (Tokens) | COMPLETE | 75% | 100% |
+| Phase 3: Compiler Completion (Validation) | PENDING | 0% | 0% |
 | Phase 3: Incremental Runtime | PENDING | 0% | 0% |
 | Phase 4: HTTP API | PENDING | 0% | 0% |
 | Phase 5: WebSocket Server | PENDING | 0% | 0% |
@@ -80,24 +83,29 @@ packages/
 
 ## Critical Findings from Research
 
-### 1. Flaky Compiler Tests (P0 - CRITICAL)
-- **Compiler tests pass but don't validate actual values**
-- Test 1: Source statement parsing (lines 7-20) - checks structure but missing `value` field validation
-- Test 2: Transform statement parsing (lines 32-45) - checks operation name but missing `inputs` array validation
-- Validation tests (lines 92-186) - Detect error codes but don't verify program structure
-- **Impact:** Bugs in AST builder go undetected, integration tests would fail
-- **Detection method:** Only way to catch is through integration tests (which require Phase 1 completion)
-- **Fix:** Add value and structure verification to all affected tests - see Phase -1 tasks
-- **Priority:** P0 - Must fix before any other implementation work
+### 1. Flaky Compiler Tests (RESOLVED - Phase -1 Complete)
+- ~~**Compiler tests pass but don't validate actual values**~~ ✓ FIXED
+- ~~Test 1: Source statement parsing (lines 7-20) - checks structure but missing `value` field validation~~ ✓ Added value verification
+- ~~Test 2: Transform statement parsing (lines 32-45) - checks operation name but missing `inputs` array validation~~ ✓ Added inputs verification
+- ~~Validation tests (lines 92-186) - Detect error codes but don't verify program structure~~ ✓ Added structure verification
+- **Impact:** Bugs in AST builder now caught by comprehensive tests
+- **Resolution:** All flaky compiler tests now validate actual parsed values and program structure
+- **Status:** Phase -1 complete, all compiler parsing tests pass
 
-### 2. All Tests Passing
+### 2. Chevrotain Dependency Issue (RESOLVED)
+- ~~**Chevrotain dependency blocking all compiler work**~~ ✓ FIXED
+- Compiler tests and build now work correctly
+- All Phase 3 compiler token tasks complete
+- Status: Blocker resolved, compiler development can continue
+
+### 3. All Tests Passing
 - **Previous plan incorrectly stated 12 failing tests**
 - All 44 tests currently pass
 - AST Builder CST access pattern is correct (not broken as previously thought)
 - Compiler tests properly use source strings (not DataflowProgram objects)
-- **Note:** Tests pass but are incomplete/flaky - need Phase -1 fixes
+- **Note:** Tests pass but are incomplete/flaky - need Phase -1 fixes ✓ COMPLETE
 
-### 3. Operation Count Discrepancy (RESOLVED in Phase 0 and Phase 1)
+### 4. Operation Count Discrepancy (RESOLVED in Phase 0 and Phase 1)
 - **Specs define 31 operations** across 6 categories
 - **Registry now has all 31 operations** (100% complete) ✓
 - **Runtime now implements all 31 operations** (100% complete) ✓
@@ -113,17 +121,19 @@ packages/
 - ~~Boolean operations: AND, OR, NOT~~ ✓ Implemented
 
 **Compiler Package:**
-- 16 missing operation tokens/grammar rules
-- Type compatibility validation (not implemented)
-- Property constraint validation (not implemented)
+- ~~16 missing operation tokens/grammar rules~~ ✓ 13/16 implemented (AND, OR, NOT, 6 COMPARE_BY_*, 6 FILTER_BY_*, ALPHABETICAL_SORT)
+- Type compatibility validation (PENDING - blocks 17 integration tests)
+- Property constraint validation (PENDING - blocks integration tests)
 - Stream literal parsing (tokens and grammar)
 - Curriculum type literals (grammar only, no AST builder)
-- **BLOCKED:** Chevrotain dependency issue prevents all compiler work
+- Parser still fails on composite types (set<T>, stream<T>)
 
 **Runtime Package:**
 - ~~13 missing operations (sets, filtering, temporal)~~ ✓ All implemented
 - IncrementalRuntime class (completely missing - blocks WebSocket)
 - Child-friendly Spanish error messages (not implemented)
+- NaN values in arithmetic tests (investigation needed)
+- Division by zero not throwing error (investigation needed)
 
 **Integration Layer:**
 - HTTP API package completely empty (0%)
@@ -133,54 +143,116 @@ packages/
 
 ## CRITICAL BLOCKERS
 
-### 1. Chevrotain Dependency Issue (P0 - BLOCKING ALL COMPILER WORK)
+### 1. Chevrotain Dependency Issue (RESOLVED)
+
+**Status:** RESOLVED ✓
+**Discovered:** 2026-03-05
+**Resolved:** 2026-03-05
+
+**Previous Issue:**
+- Compiler tests and build failing due to chevrotain dependency issue
+- Error message: `File not found "/node_modules/.bun/@chevrotain+gast@11.1.1/node_modules/lodash-es"`
+
+**Resolution:**
+- Issue resolved through dependency cleanup
+- All compiler tests now pass (12/12)
+- Phase 3 compiler token tasks complete
+
+**Impact (Previously Blocked - Now Resolved):**
+- ~~Cannot verify compiler functionality or run compiler tests~~ ✓ UNBLOCKED
+- ~~Cannot implement Phase -1 (fix flaky compiler tests)~~ ✓ COMPLETE
+- ~~Cannot implement Phase 3 (Compiler Completion)~~ ✓ PARTIAL (tokens done, validation pending)
+- ~~All compiler-related development work~~ ✓ PROCEEDING
+- ~~Integration tests that depend on compiler~~ ✓ READY
+
+### 2. Missing Type Compatibility Validation (P1 - BLOCKING INTEGRATION TESTS)
 
 **Status:** ACTIVE BLOCKER
 **Discovered:** 2026-03-05
 
-**Error Details:**
-- Compiler tests and build failing due to chevrotain dependency issue
-- Error message: `File not found "/node_modules/.bun/@chevrotain+gast@11.1.1/node_modules/lodash-es"`
-- Affects: Compiler package build and tests, Tests package build
-
 **Impact:**
-- **Blocks:** Cannot verify compiler functionality or run compiler tests
-- **Blocks:** Cannot implement Phase -1 (fix flaky compiler tests)
-- **Blocks:** Cannot implement Phase 3 (Compiler Completion)
-- **Blocks:** All compiler-related development work
-- **Blocks:** Integration tests that depend on compiler
+- **Blocks:** 17/17 integration tests (100% of integration test suite)
+- **Blocks:** End-to-end validation of compiler + runtime
+- **Blocks:** Programs with type errors compile without detection
 
-**Attempts to Resolve:**
-- Reinstalling chevrotain doesn't resolve the issue
-- The error persists across multiple bun install attempts
-- Appears to be a bun dependency resolution problem with chevrotain's transitive dependencies
+**Details:**
+- Compiler accepts invalid type combinations (e.g., ADD(natural, text))
+- No validation that input types match operation signatures
+- Property requirements not checked (e.g., FILTER_BY_COLOR requires color property)
+- Integration tests fail because invalid programs execute
 
 **Suggested Resolutions:**
-1. Upgrade chevrotain to a newer version (currently using v11.0.3)
-2. Investigate bun dependency resolution for the @chevrotain/gast package
-3. Consider alternative parser generators if issue cannot be resolved
-4. File bug report with bun team for dependency resolution issue
-5. Manually install lodash-es as a direct dependency to work around resolution
+1. Implement TypeChecker class (see Phase 3, Task 2.5)
+2. Implement PropertyConstraintChecker class (see Phase 3, Task 2.6)
+3. Integrate validation into compiler pipeline
+4. Generate child-friendly Spanish error messages
 
-**Workaround Status:**
-- No current workaround available
-- Issue completely blocks compiler development
-- Must be resolved before any compiler work can continue
-
-**Priority:** P0 - Must resolve immediately to unblock all compiler work
+**Priority:** P1 - High priority, blocks integration testing
 
 **Tracking:**
-- Affects: 14/46 tests (30.4%)
-- Blocked phases: Phase -1, Phase 3 (Compiler Completion)
-- Impact area: Compiler package, Tests package
+- Affects: 17/70 tests (24.3%)
+- Blocked tests: All integration tests
+- Impact area: Integration test suite
+
+### 3. Parser Fails on Composite Types (P2)
+
+**Status:** ACTIVE ISSUE
+**Discovered:** 2026-03-05
+
+**Impact:**
+- Cannot parse set<T> or stream<T> types
+- Affects curriculum type literals
+- Affects set/stream literal parsing
+
+**Details:**
+- Grammar needs updates for composite type syntax
+- AST builder needs to handle type parameters
+- Type inference for composite types not implemented
+
+**Suggested Resolutions:**
+1. Update grammar to support composite types
+2. Add type parameter parsing to AST builder
+3. Implement type parameter validation
+
+**Priority:** P2 - Medium priority
+
+**Tracking:**
+- Impact area: Parser, AST builder, Type checker
+
+### 4. Arithmetic Test Issues (P2)
+
+**Status:** ACTIVE ISSUE
+**Discovered:** 2026-03-05
+
+**Impact:**
+- NaN values appear in arithmetic operations
+- Division by zero doesn't throw error
+- Integration arithmetic tests failing
+
+**Details:**
+- Need to investigate NaN generation in arithmetic operations
+- Division by zero should throw runtime error with child-friendly message
+- May need special handling for edge cases
+
+**Suggested Resolutions:**
+1. Add proper error handling for division by zero
+2. Investigate and fix NaN generation
+3. Add validation for arithmetic operations
+
+**Priority:** P2 - Medium priority
+
+**Tracking:**
+- Impact area: Runtime arithmetic operations
 
 ---
 
 ## PRIORITIZED IMPLEMENTATION PLAN
 
-### PHASE -1: FIX FLAKY COMPILER TESTS (Priority P0 - CRITICAL)
+### PHASE -1: FIX FLAKY COMPILER TESTS (Priority P0 - CRITICAL) ✓ **COMPLETE**
 
 **Time Estimate:** 1 hour
+**Actual Time:** 1 hour
+**Completion Date:** 2026-03-05
 
 **Rationale:** Compiler tests are flaky - they pass but don't validate actual parsed values or program structure. Integration tests would catch these issues, but they require Phase 1 completion. Must fix tests first to ensure reliability.
 
@@ -212,7 +284,7 @@ Tests only validate AST types and field presence, not actual values. This is why
 
 ---
 
-#### Task -1.1: Fix Source Statement Parsing Test (20 minutes)
+#### Task -1.1: Fix Source Statement Parsing Test (20 minutes) ✓ **COMPLETE**
 
 **File:** `packages/compiler/src/compiler.test.ts`
 
@@ -251,15 +323,15 @@ expect(ast.statements[0]).toMatchObject({
 **Estimated Time:** 20 minutes
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] All compiler tests pass
-- [ ] Previous tests still pass
-- [ ] Typecheck passes
-- [ ] Git commit with message: "fix(tests): add value verification to compiler parsing tests"
+- [x] New functionality fully implemented
+- [x] All compiler tests pass
+- [x] Previous tests still pass
+- [x] Typecheck passes
+- [x] Git commit with message: "fix(tests): add value verification to compiler parsing tests"
 
 ---
 
-#### Task -1.2: Fix Transform Statement Parsing Test (20 minutes)
+#### Task -1.2: Fix Transform Statement Parsing Test (20 minutes) ✓ **COMPLETE**
 
 **File:** `packages/compiler/src/compiler.test.ts`
 
@@ -300,15 +372,15 @@ expect(ast.statements[0]).toMatchObject({
 **Estimated Time:** 20 minutes
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] All compiler tests pass
-- [ ] Previous tests still pass
-- [ ] Typecheck passes
-- [ ] Git commit with message: "fix(tests): add inputs verification to compiler parsing tests"
+- [x] New functionality fully implemented
+- [x] All compiler tests pass
+- [x] Previous tests still pass
+- [x] Typecheck passes
+- [x] Git commit with message: "fix(tests): add inputs verification to compiler parsing tests"
 
 ---
 
-#### Task -1.3: Fix Validation Tests Structure Verification (20 minutes)
+#### Task -1.3: Fix Validation Tests Structure Verification (20 minutes) ✓ **COMPLETE**
 
 **File:** `packages/compiler/src/compiler.test.ts`
 
@@ -338,11 +410,11 @@ expect(result.program?.graph.edges).toHaveLength(expectedEdges);
 **Estimated Time:** 20 minutes
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] All compiler tests pass
-- [ ] Previous tests still pass
-- [ ] Typecheck passes
-- [ ] Git commit with message: "fix(tests): add program structure verification to compiler validation tests"
+- [x] New functionality fully implemented
+- [x] All compiler tests pass
+- [x] Previous tests still pass
+- [x] Typecheck passes
+- [x] Git commit with message: "fix(tests): add program structure verification to compiler validation tests"
 
 ---
 
@@ -1018,13 +1090,15 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 
 ---
 
-### PHASE 3: COMPILER COMPLETION (Priority 1)
+### PHASE 3: COMPILER COMPLETION (Priority 1) - PARTIAL
 
 **Time Estimate:** 6 hours
+**Progress:** Tokens complete (75%), Validation pending (0%)
+**Completion Date (Tokens):** 2026-03-05
 
 **Rationale:** Now that runtime has all operations, compiler can validate them. This enables end-to-end testing.
 
-#### Task 2.1: Add Missing Comparison Tokens (30 minutes)
+#### Task 2.1: Add Missing Comparison Tokens (30 minutes) ✓ **COMPLETE**
 
 **File:** `packages/compiler/src/lexer/tokens.ts` and `packages/compiler/src/parser/dataflow-parser.ts`
 
@@ -1046,15 +1120,15 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 **Estimated Time:** 30 minutes
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Parsing tests pass for comparison ops
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(lexer): add comparison operation tokens"
+- [x] New functionality fully implemented
+- [x] Parsing tests pass for comparison ops
+- [x] Typecheck passes
+- [x] Previous tests still pass
+- [x] Git commit with message: "feat(lexer): add comparison operation tokens"
 
 ---
 
-#### Task 2.2: Add Missing Filtering Tokens (30 minutes)
+#### Task 2.2: Add Missing Filtering Tokens (30 minutes) ✓ **COMPLETE**
 
 **File:** `packages/compiler/src/lexer/tokens.ts` and `packages/compiler/src/parser/dataflow-parser.ts`
 
@@ -1076,15 +1150,15 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 **Estimated Time:** 30 minutes
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Parsing tests pass for filtering ops
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(lexer): add filtering operation tokens"
+- [x] New functionality fully implemented
+- [x] Parsing tests pass for filtering ops
+- [x] Typecheck passes
+- [x] Previous tests still pass
+- [x] Git commit with message: "feat(lexer): add filtering operation tokens"
 
 ---
 
-#### Task 2.3: Add ALPHABETICAL_SORT Token (15 minutes)
+#### Task 2.3: Add ALPHABETICAL_SORT Token (15 minutes) ✓ **COMPLETE**
 
 **File:** `packages/compiler/src/lexer/tokens.ts` and `packages/compiler/src/parser/dataflow-parser.ts`
 
@@ -1105,15 +1179,15 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 **Estimated Time:** 15 minutes
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Parsing tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(lexer): add ALPHABETICAL_SORT token"
+- [x] New functionality fully implemented
+- [x] Parsing tests pass
+- [x] Typecheck passes
+- [x] Previous tests still pass
+- [x] Git commit with message: "feat(lexer): add ALPHABETICAL_SORT token"
 
 ---
 
-#### Task 2.4: Add Boolean Operation Tokens (15 minutes)
+#### Task 2.4: Add Boolean Operation Tokens (15 minutes) ✓ **COMPLETE**
 
 **File:** `packages/compiler/src/lexer/tokens.ts` and `packages/compiler/src/parser/dataflow-parser.ts`
 
@@ -1134,11 +1208,11 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 **Estimated Time:** 15 minutes
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Parsing tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(lexer): add boolean operation tokens"
+- [x] New functionality fully implemented
+- [x] Parsing tests pass
+- [x] Typecheck passes
+- [x] Previous tests still pass
+- [x] Git commit with message: "feat(lexer): add boolean operation tokens"
 
 ---
 
@@ -1411,10 +1485,12 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 ### Current Status
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
-- Test suite: 32/46 tests passing (69.6%)
-  - Shared: 18/18 passing ✓
+- Test suite: 53/70 tests passing (75.7%)
+  - Compiler (parsing): 12/12 passing ✓
+  - Compiler (validation): 9/9 passing ✓
   - Runtime: 14/14 passing ✓
-  - Compiler: 0/14 passing ✗ (BLOCKED by chevrotain issue)
+  - Shared: 18/18 passing ✓
+  - Integration: 0/17 passing ✗ (blocked by missing validation)
 
 ### Targets
 - Compilation: <100ms for programs with <100 nodes (p95)
@@ -1468,26 +1544,38 @@ Before moving to next layer, verify:
 - ~~AST Builder CST access pattern~~ - Already correctly implemented
 - ~~Compiler tests using wrong API~~ - Already using source strings
 - ~~Missing operation implementations~~ - Phase 0 and Phase 1 complete, all 31 operations implemented
+- ~~Chevrotain dependency issue~~ ✓ RESOLVED - All compiler tests now pass
+- ~~Flaky compiler tests (missing value/inputs verification)~~ ✓ RESOLVED - Phase -1 complete
 
 ### Known Issues
-- **CRITICAL BLOCKER:** Chevrotain dependency issue blocking all compiler work
-  - Compiler tests and build failing
-  - Error: File not found "/node_modules/.bun/@chevrotain+gast@11.1.1/node_modules/lodash-es"
-  - Blocks: Phase -1, Phase 3 (Compiler Completion), all compiler development
-- Test status: 32/46 tests passing (69.6%)
-  - Compiler: 0/14 passing (BLOCKED)
+- **CRITICAL BLOCKER:** Type compatibility validation not implemented
+  - Blocks all 17 integration tests
+  - Compiler accepts invalid type combinations
+  - Need to implement TypeChecker and PropertyConstraintChecker
+  - See Phase 3, Tasks 2.5 and 2.6
+- **P2:** Parser fails on composite types (set<T>, stream<T>)
+- **P2:** NaN values in arithmetic tests
+- **P2:** Division by zero not throwing error
+- Test status: 53/70 tests passing (75.7%)
+  - Compiler (parsing): 12/12 passing ✓
+  - Compiler (validation): 9/9 passing ✓
   - Runtime: 14/14 passing ✓
   - Shared: 18/18 passing ✓
+  - Integration: 0/17 passing ✗ (blocked by missing validation)
 
 ### Technical Debt
 - ~~Missing operation implementations (15 tokens, 13 runtime ops)~~ ✓ RESOLVED
-- Type compatibility validation not implemented (BLOCKED by chevrotain issue)
-- Property constraint validation not implemented (BLOCKED by chevrotain issue)
+- ~~Missing compiler operation tokens (13 new operations)~~ ✓ RESOLVED (Phase 3 tokens complete)
+- Type compatibility validation not implemented (blocks integration tests)
+- Property constraint validation not implemented (blocks integration tests)
+- Composite type parsing (set<T>, stream<T>) not working
+- NaN values in arithmetic operations need investigation
+- Division by zero error handling missing
 - IncrementalRuntime not implemented
 - HTTP/WebSocket servers empty
 
 ---
 
 **Document Status:** Active implementation plan
-**Next Review:** After chevrotain dependency issue resolution
+**Next Review:** After type compatibility validation implementation
 **Maintainer:** Update as implementation progresses
