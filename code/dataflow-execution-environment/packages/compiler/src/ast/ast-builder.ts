@@ -1,7 +1,8 @@
+import { CstNode, IToken } from "chevrotain";
 import type { Program, Statement, SourceStatement, TransformStatement, OutputStatement } from "./ast-types.js";
 
 export class AstBuilder {
-  program(ctx: any): Program {
+  program(ctx: CstNode): Program {
     const statements = ctx.children?.statement || [];
     return {
       type: "Program",
@@ -9,59 +10,61 @@ export class AstBuilder {
     };
   }
 
-  statement(ctx: any): Statement {
+  statement(ctx: CstNode): Statement {
     if (ctx.children?.sourceStatement) {
-      return this.sourceStatement(ctx.children.sourceStatement[0]);
+      return this.sourceStatement((ctx.children.sourceStatement[0] as CstNode));
     } else if (ctx.children?.transformStatement) {
-      return this.transformStatement(ctx.children.transformStatement[0]);
+      return this.transformStatement((ctx.children.transformStatement[0] as CstNode));
     } else if (ctx.children?.outputStatement) {
-      return this.outputStatement(ctx.children.outputStatement[0]);
+      return this.outputStatement((ctx.children.outputStatement[0] as CstNode));
     }
     throw new Error('Unknown statement type');
   }
 
-  sourceStatement(ctx: any): SourceStatement {
+  sourceStatement(ctx: CstNode): SourceStatement {
     return {
       type: "SourceStatement",
-      id: ctx.children.Identifier[0].image,
-      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0]),
-      value: this.value(ctx.children.value[0])
+      id: (ctx.children.Identifier[0] as IToken).image,
+      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode),
+      value: this.value(ctx.children.value[0] as CstNode)
     };
   }
 
-  transformStatement(ctx: any): TransformStatement {
+  transformStatement(ctx: CstNode): TransformStatement {
     const args: string[] = [];
-    if (ctx.children.operationExpression[0].children.argumentList) {
-      const argList = ctx.children.operationExpression[0].children.argumentList[0].children.argument || [];
+
+    const operationExpression = ctx.children.operationExpression[0] as CstNode;
+    if (operationExpression.children.argumentList) {
+      const argList = ((operationExpression.children.argumentList[0] as CstNode).children.argument || []) as CstNode[];
       for (const arg of argList) {
         if (arg.children.Identifier) {
-          args.push(arg.children.Identifier[0].image);
+          args.push((arg.children.Identifier[0] as IToken).image);
         }
       }
     }
-    
+
     return {
       type: "TransformStatement",
-      id: ctx.children.Identifier[0].image,
-      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0]),
-      operation: this.extractOperationName(ctx.children.operationExpression[0]),
+      id: (ctx.children.Identifier[0] as IToken).image,
+      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode),
+      operation: this.extractOperationName(operationExpression),
       inputs: args
     };
   }
 
-  outputStatement(ctx: any): OutputStatement {
+  outputStatement(ctx: CstNode): OutputStatement {
     return {
       type: "OutputStatement",
-      id: ctx.children.Identifier[0].image,
-      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0]),
-      input: ctx.children.Identifier[1].image
+      id: (ctx.children.Identifier[0] as IToken).image,
+      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode),
+      input: (ctx.children.Identifier[1] as IToken).image
     };
   }
 
-  private extractOperationName(operationExprCtx: any): string {
-    const operationNameCtx = operationExprCtx.children.operationName?.[0];
+  private extractOperationName(operationExprCtx: CstNode): string {
+    const operationNameCtx = operationExprCtx.children.operationName?.[0] as CstNode;
     if (!operationNameCtx) return "UNKNOWN";
-    
+
     const operationKeys = [
       "Add", "Subtract", "Multiply", "Divide", "Compare",
       "Filter", "Union", "Intersection", "Difference", "Complement",
@@ -73,17 +76,18 @@ export class AstBuilder {
       "FilterBySize", "FilterByColor", "FilterByType",
       "FilterByTaste", "FilterByAgeGroup", "FilterByGender"
     ];
-    
+
     for (const key of operationKeys) {
-      if (operationNameCtx.children[key]?.[0]?.image) {
-        return operationNameCtx.children[key][0].image.toUpperCase();
+      const token = operationNameCtx.children[key]?.[0] as IToken | undefined;
+      if (token?.image) {
+        return token.image.toUpperCase();
       }
     }
-    
+
     return "UNKNOWN";
   }
 
-  typeDeclaration(ctx: any): string {
+  typeDeclaration(ctx: CstNode): string {
     const children = ctx.children;
     if (children.Natural) return "natural";
     if (children.Integer) return "integer";
@@ -95,17 +99,17 @@ export class AstBuilder {
     return "unknown";
   }
 
-  setType(ctx: any): string {
-    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0]);
+  setType(ctx: CstNode): string {
+    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode);
     return `set<${typeDecl}>`;
   }
 
-  streamType(ctx: any): string {
-    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0]);
+  streamType(ctx: CstNode): string {
+    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode);
     return `stream<${typeDecl}>`;
   }
 
-  value(ctx: any): unknown {
+  value(ctx: CstNode): unknown {
     const children = ctx.children;
     if (children.literal) {
       return this.literal(ctx);
@@ -115,12 +119,12 @@ export class AstBuilder {
     return undefined;
   }
 
-  literal(ctx: any): unknown {
+  literal(ctx: CstNode): unknown {
     const children = ctx.children;
     if (children.NumberLiteral) {
-      return parseFloat(children.NumberLiteral[0].image);
+      return parseFloat((children.NumberLiteral[0] as IToken).image);
     } else if (children.StringLiteral) {
-      return children.StringLiteral[0].image.slice(1, -1);
+      return (children.StringLiteral[0] as IToken).image.slice(1, -1);
     } else if (children.objectLiteral) {
       return this.objectLiteral(ctx);
     } else if (children.True) {
@@ -131,21 +135,21 @@ export class AstBuilder {
     return undefined;
   }
 
-  objectLiteral(ctx: any): Record<string, unknown> {
+  objectLiteral(ctx: CstNode): Record<string, unknown> {
     const obj: Record<string, unknown> = {};
     const children = ctx.children;
     const properties = children.Identifier;
     const literals = children.literal;
     for (let i = 0; i < properties.length; i++) {
-      const key = properties[i].image;
-      const value = this.literal(literals[i]);
+      const key = (properties[i] as IToken).image;
+      const value = this.literal(literals[i] as CstNode);
       obj[key] = value;
     }
     return obj;
   }
 
-  arrayLiteral(ctx: any): unknown[] {
+  arrayLiteral(ctx: CstNode): unknown[] {
     const children = ctx.children;
-    return (children.value || []).map((v: any) => this.value(v));
+    return ((children.value as CstNode[]) || []).map((v: CstNode) => this.value(v));
   }
 }
