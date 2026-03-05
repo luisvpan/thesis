@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "type": "module",
   "exports": {
-    "./server": "./src/server.ts"
+    "./server": "./src/server.ts",
+    ".": "./src/index.ts"
   },
   "dependencies": {
     "@dataflow/compiler": "workspace:*",

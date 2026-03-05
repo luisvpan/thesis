@@ -6,7 +6,8 @@
     "./graph": "./src/graph/index.ts",
     "./evaluator": "./src/evaluator/index.ts",
     "./operations": "./src/operations/index.ts",
-    "./runtime": "./src/runtime.ts"
+    "./runtime": "./src/runtime.ts",
+    ".": "./src/index.ts"
   },
   "dependencies": {
     "@dataflow/shared": "workspace:*"

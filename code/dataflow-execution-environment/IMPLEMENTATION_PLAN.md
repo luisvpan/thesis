@@ -61,6 +61,7 @@ packages/
 | Layer 5: Temporal Operators | PARTIAL | 10% | 0% |
 | Layer 6: Streams | MISSING | 5% | 0% |
 | Layer 7: Integration | MISSING | 0% | 0% |
+| Integration Tests | MISSING | 0% | 0% |
 
 ---
 
@@ -461,7 +462,326 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 
 ---
 
-### PHASE 2: COMPILER COMPLETION (Priority 1)
+### PHASE 2: INTEGRATION TESTS (Priority 2)
+
+**Time Estimate:** 8 hours
+
+**Rationale:** Integration tests verify end-to-end correctness between compiler and runtime. Critical for validating that all components work together correctly. Should be implemented incrementally alongside feature development.
+
+#### Task 2.1: Create Integration Tests Package Structure (1 hour)
+
+**Files:** Create `packages/tests/package.json`, `packages/tests/tsconfig.json`, `packages/tests/src/` directories
+
+**Changes:**
+- Package configuration with workspace dependencies
+- TypeScript config extending base tsconfig
+- Directory structure: src/end-to-end, src/types, src/curriculum, src/sets, src/temporal, src/errors, src/performance, src/demand-driven
+- Barrel export in src/index.ts
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Tests package created with proper monorepo configuration
+- Workspace dependencies configured (compiler, runtime, shared)
+- TypeScript compiles for package
+- Test directory structure follows spec
+
+**Test Requirements:**
+- Monorepo recognizes tests package
+- Dependencies resolve correctly
+
+**Layer:** Cross-layer (tests all components)
+
+**Estimated Time:** 1 hour
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Git commit with message: "feat(tests): create integration tests package"
+
+---
+
+#### Task 2.2: Implement End-to-End Pipeline Tests (2 hours)
+
+**File:** `packages/tests/src/end-to-end/arithmetic.test.ts`
+
+**Tests to Implement:**
+- Test 1.1: Simple Addition (ADD with 2 inputs)
+- Test 1.2: Complex Arithmetic Expression (multi-node program with ADD, SUBTRACT, MULTIPLY)
+
+**Dependencies:** None (tests can start immediately)
+
+**Acceptance Criteria:**
+- Simple program compiles and executes correctly
+- Complex program with multiple operations works end-to-end
+- Output results match expected values
+- Performance <10ms for simple programs
+- Cache statistics verified
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 36-110
+- Verify demand-driven evaluation order
+- Verify no wasted computation
+
+**Layer:** Cross-layer (tests Layer 1-2)
+
+**Estimated Time:** 2 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement end-to-end arithmetic tests"
+
+---
+
+#### Task 2.3: Implement Type Validation Tests (2 hours)
+
+**File:** `packages/tests/src/types/validation.test.ts` and `packages/tests/src/types/properties.test.ts`
+
+**Tests to Implement:**
+- Test 2.1: Type Mismatch Detection (ADD(natural, text) should fail)
+- Test 2.2: Property Requirement Validation (FILTER_BY_COLOR on natural set should fail)
+
+**Dependencies:** None (compiler validates types)
+
+**Acceptance Criteria:**
+- Type mismatches detected at compile time
+- Child-friendly Spanish error messages provided
+- Property requirements validated correctly
+- Execution prevented for invalid programs
+- Error messages include nodeId, suggestion, and example
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 112-175
+- Verify TYPE_ERROR code generation
+- Verify Spanish messages are age-appropriate (ages 6-9)
+
+**Layer:** Cross-layer (tests Layer 3)
+
+**Estimated Time:** 2 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement type validation tests"
+
+---
+
+#### Task 2.4: Implement Curriculum Type Tests (1.5 hours)
+
+**File:** `packages/tests/src/curriculum/shapes.test.ts` and `packages/tests/src/curriculum/comparison.test.ts`
+
+**Tests to Implement:**
+- Test 3.1: Filter Red Shapes (FILTER_BY_COLOR on shape set)
+- Test 3.2: Compare Shapes by Size (COMPARE_BY_SIZE returns Boolean)
+
+**Dependencies:** Phase 1 (curriculum operations must be implemented first)
+
+**Acceptance Criteria:**
+- Curriculum types compile and execute correctly
+- Filter operations work as expected
+- Comparison operations return Boolean (value-based, not reference)
+- Immutability preserved for sets
+- Results match expected outputs
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 177-230
+- Verify curriculum type handling
+- Verify value-based comparison semantics
+
+**Layer:** Cross-layer (tests Layer 3)
+
+**Estimated Time:** 1.5 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement curriculum type tests"
+
+---
+
+#### Task 2.5: Implement Set Operation Tests (1.5 hours)
+
+**File:** `packages/tests/src/sets/union.test.ts` and `packages/tests/src/sets/filter-sort.test.ts`
+
+**Tests to Implement:**
+- Test 4.1: Union of Shape Sets (UNION merges sets)
+- Test 4.2: Filter and Sort Combined (chained operations)
+
+**Dependencies:** Phase 1 (set operations must be implemented first)
+
+**Acceptance Criteria:**
+- Set operations work correctly (UNION, INTERSECTION, DIFFERENCE, COMPLEMENT)
+- Duplicates removed from results
+- Chained operations work end-to-end
+- Order is deterministic for sorted results
+- Type preserved through operations
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 232-290
+- Verify set operation semantics
+- Verify intermediate results are correct
+
+**Layer:** Cross-layer (tests Layer 4)
+
+**Estimated Time:** 1.5 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement set operation tests"
+
+---
+
+#### Task 2.6: Implement Temporal Operation Tests (1.5 hours)
+
+**File:** `packages/tests/src/temporal/fby.test.ts` and `packages/tests/src/temporal/streams.test.ts`
+
+**Tests to Implement:**
+- Test 5.1: FBY Counter (temporal semantics 0, 1, 2, 3, 4...)
+- Test 5.2: FIRST from Stream (extract first value)
+
+**Dependencies:** Phase 1 (temporal operations must be implemented first)
+
+**Acceptance Criteria:**
+- FBY returns initial at time 0, subsequent at time > 0
+- Demand-driven semantics verified (no eager evaluation)
+- Pure function of time (no mutable state)
+- Stream operations work correctly
+- Type preserved through temporal operations
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 292-350
+- Verify temporal operator semantics
+- Verify demand-driven behavior (cache-based)
+
+**Layer:** Cross-layer (tests Layer 5)
+
+**Estimated Time:** 1.5 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement temporal operation tests"
+
+---
+
+#### Task 2.7: Implement Error Handling Tests (1.5 hours)
+
+**File:** `packages/tests/src/errors/division-zero.test.ts` and `packages/tests/src/errors/cycles.test.ts`
+
+**Tests to Implement:**
+- Test 6.1: Division by Zero (runtime error)
+- Test 6.2: Cycle Detection (compile-time error)
+
+**Dependencies:** None (errors exist in current implementation)
+
+**Acceptance Criteria:**
+- Runtime errors caught gracefully with child-friendly messages
+- Compile-time errors detected and prevented execution
+- Cycle detection works correctly
+- System doesn't crash on errors
+- Error messages include Spanish text for ages 6-9
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 352-420
+- Verify error handling at both compile and runtime
+- Verify Spanish messages are child-friendly
+
+**Layer:** Cross-layer (tests all layers)
+
+**Estimated Time:** 1.5 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement error handling tests"
+
+---
+
+#### Task 2.8: Implement Performance Tests (1.5 hours)
+
+**File:** `packages/tests/src/performance/compilation.test.ts` and `packages/tests/src/performance/execution.test.ts`
+
+**Tests to Implement:**
+- Test 7.1: Compilation Performance (100-node program <100ms)
+- Test 7.2: Execution Performance (50-node program <50ms)
+
+**Dependencies:** None (performance can be tested on current implementation)
+
+**Acceptance Criteria:**
+- Compilation performance target met (<100ms for 100 nodes)
+- Execution performance target met (<50ms for 50 nodes)
+- Cache effectiveness measured (>30% hit rate)
+- No memory leaks detected
+- Performance scales linearly with program size
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 422-480
+- Verify performance targets
+- Verify demand-driven efficiency
+
+**Layer:** Cross-layer (tests all layers)
+
+**Estimated Time:** 1.5 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement performance tests"
+
+---
+
+#### Task 2.9: Implement Demand-Driven Semantics Tests (1.5 hours)
+
+**File:** `packages/tests/src/demand-driven/no-outputs.test.ts` and `packages/tests/src/demand-driven/unreferenced.test.ts`
+
+**Tests to Implement:**
+- Test 8.1: No Output Nodes (nothing evaluated)
+- Test 8.2: Unreferenced Nodes (only referenced nodes evaluated)
+
+**Dependencies:** None (tests core semantics of current implementation)
+
+**Acceptance Criteria:**
+- No Output nodes = nothing evaluated (correct demand-driven)
+- Unreferenced computation skipped (no wasted resources)
+- Cache statistics confirm demand-driven behavior
+- System doesn't hang or crash
+- Evaluation order follows dependencies only
+
+**Test Requirements:**
+- specs/INTEGRATION_TESTS_SPEC.md lines 482-540
+- Verify demand-driven evaluation semantics
+- Verify no wasted computation
+
+**Layer:** Cross-layer (tests core semantics)
+
+**Estimated Time:** 1.5 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement demand-driven semantics tests"
+
+---
+
+### PHASE 3: COMPILER COMPLETION (Priority 1)
 
 **Time Estimate:** 6 hours
 

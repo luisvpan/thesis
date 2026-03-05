@@ -37,6 +37,15 @@
       "name": "@dataflow/shared",
       "version": "0.0.1",
     },
+    "packages/tests": {
+      "name": "@dataflow/tests",
+      "version": "1.0.0",
+      "dependencies": {
+        "@dataflow/compiler": "workspace:*",
+        "@dataflow/runtime": "workspace:*",
+        "@dataflow/shared": "workspace:*",
+      },
+    },
     "packages/websocket-server": {
       "name": "@dataflow/websocket-server",
       "version": "0.0.1",
@@ -67,6 +76,8 @@
     "@dataflow/runtime": ["@dataflow/runtime@workspace:packages/runtime"],
 
     "@dataflow/shared": ["@dataflow/shared@workspace:packages/shared"],
+
+    "@dataflow/tests": ["@dataflow/tests@workspace:packages/tests"],
 
     "@dataflow/websocket-server": ["@dataflow/websocket-server@workspace:packages/websocket-server"],
 

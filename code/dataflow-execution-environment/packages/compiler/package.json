@@ -7,7 +7,8 @@
     "./parser": "./src/parser/index.ts",
     "./ast": "./src/ast/index.ts",
     "./validation": "./src/validation/index.ts",
-    "./compiler": "./src/compiler.ts"
+    "./compiler": "./src/compiler.ts",
+    ".": "./src/index.ts"
   },
   "dependencies": {
     "@dataflow/shared": "workspace:*",
