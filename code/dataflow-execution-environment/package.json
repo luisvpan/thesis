@@ -9,6 +9,7 @@
     "lint": "echo 'Lint not configured'"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.10",
     "typescript": "^5.9.3"
   }
 }
