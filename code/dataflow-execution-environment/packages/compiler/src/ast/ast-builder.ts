@@ -53,7 +53,9 @@ export class AstBuilder extends BaseVisitor {
 
   value(ctx: ValueCstChildren) {
     if (ctx.literal) return this.visit(ctx.literal);
+    if (ctx.objectLiteral) return this.visit(ctx.objectLiteral);
     if (ctx.arrayLiteral) return this.visit(ctx.arrayLiteral);
+    if (ctx.setLiteral) return this.visit(ctx.setLiteral);
   }
 
   literal(ctx: LiteralCstChildren) {
@@ -61,7 +63,6 @@ export class AstBuilder extends BaseVisitor {
     if (ctx.StringLiteral) return ctx.StringLiteral[0].image.slice(1, -1);
     if (ctx.True) return true;
     if (ctx.False) return false;
-    if (ctx.objectLiteral) return this.visit(ctx.objectLiteral);
   }
 
   objectLiteral(ctx: ObjectLiteralCstChildren) {
@@ -75,6 +76,10 @@ export class AstBuilder extends BaseVisitor {
 
   arrayLiteral(ctx: ArrayLiteralCstChildren) {
     return ctx.value?.map((v) => this.visit(v)) || [];
+  }
+
+  setLiteral(ctx: any) {
+    return ctx.value?.map((v: any) => this.visit(v)) || [];
   }
 
   transformStatement(ctx: TransformStatementCstChildren) {

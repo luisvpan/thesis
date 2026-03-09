@@ -140,7 +140,12 @@ export class DataflowParser extends CstParser {
   value = this.RULE("value", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.literal) },
-      { ALT: () => this.SUBRULE(this.arrayLiteral) }
+      {
+        ALT: () => this.SUBRULE(this.objectLiteral),
+        GATE: () => this.LA(2).tokenType === Identifier
+      },
+      { ALT: () => this.SUBRULE(this.arrayLiteral) },
+      { ALT: () => this.SUBRULE(this.setLiteral) }
     ]);
   });
 
@@ -148,7 +153,6 @@ export class DataflowParser extends CstParser {
     this.OR([
       { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
-      { ALT: () => this.SUBRULE(this.objectLiteral) },
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) }
     ]);
@@ -174,6 +178,15 @@ export class DataflowParser extends CstParser {
       DEF: () => this.SUBRULE(this.value)
     });
     this.CONSUME(RBracket);
+  });
+
+  setLiteral = this.RULE("setLiteral", () => {
+    this.CONSUME(LBrace);
+    this.MANY_SEP({
+      SEP: Comma,
+      DEF: () => this.SUBRULE(this.value)
+    });
+    this.CONSUME(RBrace);
   });
 
   operationExpression = this.RULE("operationExpression", () => {
