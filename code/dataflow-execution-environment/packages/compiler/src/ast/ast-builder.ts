@@ -56,6 +56,7 @@ export class AstBuilder extends BaseVisitor {
     if (ctx.objectLiteral) return this.visit(ctx.objectLiteral);
     if (ctx.arrayLiteral) return this.visit(ctx.arrayLiteral);
     if (ctx.setLiteral) return this.visit(ctx.setLiteral);
+    if (ctx.streamLiteral) return this.visit(ctx.streamLiteral);
   }
 
   literal(ctx: LiteralCstChildren) {
@@ -80,6 +81,38 @@ export class AstBuilder extends BaseVisitor {
 
   setLiteral(ctx: any) {
     return ctx.value?.map((v: any) => this.visit(v)) || [];
+  }
+
+  sensorSource(ctx: any) {
+    return {
+      type: "sensor",
+      name: ctx.StringLiteral[0].image.slice(1, -1)
+    };
+  }
+
+  generatorSource(ctx: any) {
+    return {
+      type: "generator",
+      name: ctx.Identifier[0].image
+    };
+  }
+
+  externalSource(ctx: any) {
+    return {
+      type: "external",
+      name: ctx.StringLiteral[0].image.slice(1, -1)
+    };
+  }
+
+  streamLiteral(ctx: any) {
+    const source = ctx.sensorSource ? this.visit(ctx.sensorSource) :
+                  ctx.generatorSource ? this.visit(ctx.generatorSource) :
+                  ctx.externalSource ? this.visit(ctx.externalSource) : null;
+
+    return {
+      type: "stream",
+      source
+    };
   }
 
   transformStatement(ctx: TransformStatementCstChildren) {

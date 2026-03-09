@@ -25,6 +25,9 @@ import {
   First,
   Fby,
   Accumulate,
+  Sensor,
+  Generator,
+  External,
   Sort,
   AlphabeticalSort,
   And,
@@ -145,7 +148,8 @@ export class DataflowParser extends CstParser {
         GATE: () => this.LA(2).tokenType === Identifier
       },
       { ALT: () => this.SUBRULE(this.arrayLiteral) },
-      { ALT: () => this.SUBRULE(this.setLiteral) }
+      { ALT: () => this.SUBRULE(this.setLiteral) },
+      { ALT: () => this.SUBRULE(this.streamLiteral) }
     ]);
   });
 
@@ -187,6 +191,41 @@ export class DataflowParser extends CstParser {
       DEF: () => this.SUBRULE(this.value)
     });
     this.CONSUME(RBrace);
+  });
+
+  streamLiteral = this.RULE("streamLiteral", () => {
+    this.CONSUME(Stream);
+    this.CONSUME(AngleLeft);
+    this.SUBRULE(this.typeDeclaration);
+    this.CONSUME(AngleRight);
+    this.CONSUME(LParen);
+    this.OR([
+      { ALT: () => this.SUBRULE(this.sensorSource) },
+      { ALT: () => this.SUBRULE(this.generatorSource) },
+      { ALT: () => this.SUBRULE(this.externalSource) }
+    ]);
+    this.CONSUME(RParen);
+  });
+
+  sensorSource = this.RULE("sensorSource", () => {
+    this.CONSUME(Sensor);
+    this.CONSUME(LParen);
+    this.CONSUME(StringLiteral);
+    this.CONSUME(RParen);
+  });
+
+  generatorSource = this.RULE("generatorSource", () => {
+    this.CONSUME(Generator);
+    this.CONSUME(LParen);
+    this.CONSUME(Identifier);
+    this.CONSUME(RParen);
+  });
+
+  externalSource = this.RULE("externalSource", () => {
+    this.CONSUME(External);
+    this.CONSUME(LParen);
+    this.CONSUME(StringLiteral);
+    this.CONSUME(RParen);
   });
 
   operationExpression = this.RULE("operationExpression", () => {
