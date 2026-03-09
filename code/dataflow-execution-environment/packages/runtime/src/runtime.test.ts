@@ -6,7 +6,7 @@ import type { DataflowProgram } from '@dataflow/shared/types';
 describe('Runtime - Program Loading', () => {
   it('should load a simple program', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -16,13 +16,13 @@ describe('Runtime - Program Loading', () => {
         edges: []
       }
     };
-    
+
     expect(() => runtime.loadProgram(program)).not.toThrow();
   });
 
   it('should load program with multiple nodes', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -39,13 +39,13 @@ describe('Runtime - Program Loading', () => {
         ]
       }
     };
-    
+
     expect(() => runtime.loadProgram(program)).not.toThrow();
   });
 
   it('should replace previous program when loading new one', () => {
     const runtime = new Runtime();
-    
+
     const program1: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -55,7 +55,7 @@ describe('Runtime - Program Loading', () => {
         edges: []
       }
     };
-    
+
     const program2: DataflowProgram = {
       metadata: { programId: 'prog_002' },
       graph: {
@@ -65,10 +65,10 @@ describe('Runtime - Program Loading', () => {
         edges: []
       }
     };
-    
+
     runtime.loadProgram(program1);
     runtime.loadProgram(program2);
-    
+
     const outputs = runtime.execute();
     expect(outputs).toHaveLength(0);
   });
@@ -77,7 +77,7 @@ describe('Runtime - Program Loading', () => {
 describe('Runtime - Execution', () => {
   it('should return empty array for program with no output nodes', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -87,16 +87,16 @@ describe('Runtime - Execution', () => {
         edges: []
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toEqual([]);
   });
 
   it('should execute simple output node', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -109,17 +109,17 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'natural', value: 5 });
   });
 
   it('should execute ADD operation', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -136,17 +136,17 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'natural', value: 5 });
   });
 
   it('should execute SUBTRACT operation', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -163,17 +163,17 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'integer', value: 7 });
   });
 
   it('should execute MULTIPLY operation', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -190,17 +190,17 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'natural', value: 12 });
   });
 
   it('should execute DIVIDE operation', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -217,17 +217,17 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'decimal', value: 2.5 });
   });
 
   it('should throw error for division by zero', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -244,13 +244,13 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
-    
+
     expect(() => runtime.execute()).toThrow('Division by zero');
   });
 
-    it('should execute COMPARE operation with equal values', () => {
+  it('should execute COMPARE operation with equal values', () => {
     const runtime = new Runtime();
 
     const program: DataflowProgram = {
@@ -333,7 +333,7 @@ describe('Runtime - Execution', () => {
 
   it('should execute complex expression (3 + 2) * (10 - 6) = 20', () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -358,10 +358,10 @@ describe('Runtime - Execution', () => {
         ]
       }
     };
-    
+
     runtime.loadProgram(program);
     const outputs = runtime.execute();
-    
+
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'natural', value: 20 });
   });
