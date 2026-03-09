@@ -1,4 +1,4 @@
-import type { DataflowNode, DataflowEdge } from "@dataflow/shared/types";
+import type { DataflowNode, DataflowEdge, DataType } from "@dataflow/shared/types";
 import type { ValidationError, ValidationResult } from "@dataflow/shared/types";
 import type { Statement } from "../ast/ast-types.js";
 import { OPERATION_REGISTRY, TypeConstraint } from "@dataflow/shared/operations";
@@ -185,7 +185,7 @@ export class DagValidator {
 
   private isTypeCompatible(
     actualType: string,
-    expectedType: string | { kind: string; elementType?: string } | TypeConstraint,
+    expectedType: DataType | TypeConstraint,
     operation: string,
     inputIndex: number
   ): boolean {
@@ -219,7 +219,7 @@ export class DagValidator {
     return match[1];
   }
 
-  private validatePropertyConstraints(elementType: string, operation: string): boolean {
+  private validatePropertyConstraints(elementType: DataType | string, operation: string): boolean {
     const propertyConstraints: Record<string, string[]> = {
       "FILTER_BY_COLOR": ["color"],
       "FILTER_BY_SIZE": ["size"],
@@ -241,7 +241,7 @@ export class DagValidator {
     }
 
     for (const prop of requiredProperties) {
-      if (!this.typeHasProperty(elementType, prop)) {
+      if (!this.typeHasProperty(typeof elementType === "string" ? elementType : elementType.kind, prop)) {
         return false;
       }
     }
@@ -264,7 +264,7 @@ export class DagValidator {
 
   private generateTypeError(
     operation: string,
-    expectedType: string | { kind: string; elementType?: string },
+    expectedType: DataType | TypeConstraint,
     actualType: string,
     inputId: string,
     inputIndex: number
@@ -298,7 +298,7 @@ export class DagValidator {
       }
     } else if (operation.startsWith("FILTER_BY_") || operation.startsWith("COMPARE_BY_")) {
       const property = operation.split("_BY_")[1].toLowerCase();
-      const expectedTypeWithProperty = typeof expectedType === "object" ? `${expectedType.kind}<${expectedType.elementType}>` : expectedType;
+      const expectedTypeWithProperty = typeof expectedType === "object" ? Object.keys(expectedType).includes("elementType") ? `${expectedType.kind}<${(expectedType as any).elementType}>` : `${expectedType.kind}<${(expectedType as TypeConstraint).property}>` : expectedType;
       const elementType = this.extractElementType(actualType);
 
       error.message = `Operation ${operation} requires elements with '${property}' property, got ${actualType}`;

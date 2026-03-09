@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 
 import { Compiler } from './compiler';
-import type { TransformStatement } from './ast';
+import type { OutputStatement, SourceStatement, TransformStatement } from './ast';
 
 describe('Compiler - Lexing and Parsing', () => {
   it('should parse simple source statement', () => {
@@ -15,8 +15,9 @@ describe('Compiler - Lexing and Parsing', () => {
     expect(ast.statements[0]).toMatchObject({
       type: 'SourceStatement',
       id: 'a',
-      dataType: 'natural'
-    });
+      dataType: 'natural',
+      value: 5
+    } satisfies SourceStatement);
   });
 
   it('should parse multiple source statements', () => {
@@ -26,7 +27,9 @@ describe('Compiler - Lexing and Parsing', () => {
 
     expect(ast.statements).toHaveLength(2);
     expect(ast.statements[0].id).toBe('a');
+    expect((ast.statements[0] as SourceStatement).value).toBe(5);
     expect(ast.statements[1].id).toBe('b');
+    expect((ast.statements[1] as SourceStatement).value).toBe(3);
   });
 
   it('should parse transform statement with ADD', () => {
@@ -39,8 +42,9 @@ describe('Compiler - Lexing and Parsing', () => {
       type: 'TransformStatement',
       id: 'sum',
       dataType: 'natural',
-      operation: 'ADD'
-    });
+      operation: 'ADD',
+      inputs: ['a', 'b']
+    } satisfies TransformStatement);
     expect((ast.statements[0] as TransformStatement).inputs).toHaveLength(2);
   });
 
@@ -55,7 +59,7 @@ describe('Compiler - Lexing and Parsing', () => {
       id: 'result',
       dataType: 'natural',
       input: 'sum'
-    });
+    } satisfies OutputStatement);
   });
 
   it('should parse complete program with all statement types', () => {
@@ -78,7 +82,7 @@ describe('Compiler - Lexing and Parsing', () => {
   it('should handle comments in source code', () => {
     const compiler = new Compiler();
     const source = `
-      
+      /* This is a comment */
       source a: natural = 3;
       
       output result: natural = a;

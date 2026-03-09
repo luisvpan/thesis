@@ -22,14 +22,14 @@ export class Compiler {
 
   compile(source: string): ValidationResult & { program?: DataflowProgram } {
     const ast = this.parse(source);
-    
+
     const { nodes, edges } = this.buildProgramFromAst(ast);
-    
+
     const validationResult = this.validator.validate(ast.statements);
     if (!validationResult.success) {
       return validationResult;
     }
-    
+
     return {
       success: true,
       errors: [],
@@ -48,19 +48,31 @@ export class Compiler {
     if (lexResult.errors.length > 0) {
       throw new Error(`Lexical errors: ${lexResult.errors.map(e => e.message).join(", ")}`);
     }
+
     this.parser.input = lexResult.tokens;
     const cst = this.parser.program();
     if (!cst) {
+      if (this.parser.errors.length > 0) {
+        this.parser.errors.forEach(e => {
+          const line = e.token.startLine || "EOF";
+          const column = e.token.startColumn || "";
+          const offset = e.token.startOffset || "";
+          const tokenImage = e.token.tokenType.name ? `${e.token.tokenType.name}` : "EOF";
+
+          console.error(`Parser error: ${e.message} at token of type --> ${tokenImage} <-- (line ${line}, column ${column}, offset ${offset})`)
+        });
+      }
       throw new Error('Parser failed to generate CST');
     }
-    return this.astBuilder.program(cst);
+
+    return this.astBuilder.visit(cst);
   }
 
   private buildProgramFromAst(ast: Program): { nodes: DataflowNode[]; edges: DataflowEdge[] } {
     this.edgeCounter = 0;
     const nodes: DataflowNode[] = ast.statements.map(stmt => statementToNode(stmt));
     const edges: DataflowEdge[] = [];
-    
+
     for (const stmt of ast.statements) {
       if (stmt.type === "TransformStatement") {
         for (let i = 0; i < stmt.inputs.length; i++) {
@@ -79,7 +91,7 @@ export class Compiler {
         });
       }
     }
-    
+
     return { nodes, edges };
   }
 }

@@ -13,41 +13,43 @@ export const Boolean = createToken({ name: "Boolean", pattern: /boolean/i });
 export const Set = createToken({ name: "Set", pattern: /set/i });
 export const Stream = createToken({ name: "Stream", pattern: /stream/i });
 
-export const CompareBySize = createToken({ name: "CompareBySize", pattern: /COMPARE_BY_SIZE/ });
-export const CompareByColor = createToken({ name: "CompareByColor", pattern: /COMPARE_BY_COLOR/ });
-export const CompareByType = createToken({ name: "CompareByType", pattern: /COMPARE_BY_TYPE/ });
-export const CompareByTaste = createToken({ name: "CompareByTaste", pattern: /COMPARE_BY_TASTE/ });
-export const CompareByAgeGroup = createToken({ name: "CompareByAgeGroup", pattern: /COMPARE_BY_AGE_GROUP/ });
-export const CompareByGender = createToken({ name: "CompareByGender", pattern: /COMPARE_BY_GENDER/ });
+export const OperationKeyword = createToken({ name: "OperationKeyword", pattern: Lexer.NA })
 
-export const FilterBySize = createToken({ name: "FilterBySize", pattern: /FILTER_BY_SIZE/ });
-export const FilterByColor = createToken({ name: "FilterByColor", pattern: /FILTER_BY_COLOR/ });
-export const FilterByType = createToken({ name: "FilterByType", pattern: /FILTER_BY_TYPE/ });
-export const FilterByTaste = createToken({ name: "FilterByTaste", pattern: /FILTER_BY_TASTE/ });
-export const FilterByAgeGroup = createToken({ name: "FilterByAgeGroup", pattern: /FILTER_BY_AGE_GROUP/ });
-export const FilterByGender = createToken({ name: "FilterByGender", pattern: /FILTER_BY_GENDER/ });
+export const CompareBySize = createToken({ name: "CompareBySize", pattern: /COMPARE_BY_SIZE/, categories: OperationKeyword });
+export const CompareByColor = createToken({ name: "CompareByColor", pattern: /COMPARE_BY_COLOR/, categories: OperationKeyword });
+export const CompareByType = createToken({ name: "CompareByType", pattern: /COMPARE_BY_TYPE/, categories: OperationKeyword });
+export const CompareByTaste = createToken({ name: "CompareByTaste", pattern: /COMPARE_BY_TASTE/, categories: OperationKeyword });
+export const CompareByAgeGroup = createToken({ name: "CompareByAgeGroup", pattern: /COMPARE_BY_AGE_GROUP/, categories: OperationKeyword });
+export const CompareByGender = createToken({ name: "CompareByGender", pattern: /COMPARE_BY_GENDER/, categories: OperationKeyword });
 
-export const AlphabeticalSort = createToken({ name: "AlphabeticalSort", pattern: /ALPHABETICAL_SORT/ });
+export const FilterBySize = createToken({ name: "FilterBySize", pattern: /FILTER_BY_SIZE/, categories: OperationKeyword });
+export const FilterByColor = createToken({ name: "FilterByColor", pattern: /FILTER_BY_COLOR/, categories: OperationKeyword });
+export const FilterByType = createToken({ name: "FilterByType", pattern: /FILTER_BY_TYPE/, categories: OperationKeyword });
+export const FilterByTaste = createToken({ name: "FilterByTaste", pattern: /FILTER_BY_TASTE/, categories: OperationKeyword });
+export const FilterByAgeGroup = createToken({ name: "FilterByAgeGroup", pattern: /FILTER_BY_AGE_GROUP/, categories: OperationKeyword });
+export const FilterByGender = createToken({ name: "FilterByGender", pattern: /FILTER_BY_GENDER/, categories: OperationKeyword });
 
-export const And = createToken({ name: "And", pattern: /AND/ });
-export const Or = createToken({ name: "Or", pattern: /OR/ });
-export const Not = createToken({ name: "Not", pattern: /NOT/ });
+export const AlphabeticalSort = createToken({ name: "AlphabeticalSort", pattern: /ALPHABETICAL_SORT/, categories: OperationKeyword });
 
-export const Add = createToken({ name: "Add", pattern: /ADD/ });
-export const Subtract = createToken({ name: "Subtract", pattern: /SUBTRACT/ });
-export const Multiply = createToken({ name: "Multiply", pattern: /MULTIPLY/ });
-export const Divide = createToken({ name: "Divide", pattern: /DIVIDE/ });
-export const Compare = createToken({ name: "Compare", pattern: /COMPARE/ });
-export const Filter = createToken({ name: "Filter", pattern: /FILTER/ });
-export const Union = createToken({ name: "Union", pattern: /UNION/ });
-export const Intersection = createToken({ name: "Intersection", pattern: /INTERSECTION/ });
-export const Difference = createToken({ name: "Difference", pattern: /DIFFERENCE/ });
-export const Complement = createToken({ name: "Complement", pattern: /COMPLEMENT/ });
-export const Next = createToken({ name: "Next", pattern: /NEXT/ });
-export const First = createToken({ name: "First", pattern: /FIRST/ });
-export const Fby = createToken({ name: "Fby", pattern: /FBY/ });
-export const Accumulate = createToken({ name: "Accumulate", pattern: /ACCUMULATE/ });
-export const Sort = createToken({ name: "Sort", pattern: /SORT/ });
+export const And = createToken({ name: "And", pattern: /AND/, categories: OperationKeyword });
+export const Or = createToken({ name: "Or", pattern: /OR/, categories: OperationKeyword });
+export const Not = createToken({ name: "Not", pattern: /NOT/, categories: OperationKeyword });
+
+export const Add = createToken({ name: "Add", pattern: /ADD/, categories: OperationKeyword });
+export const Subtract = createToken({ name: "Subtract", pattern: /SUBTRACT/, categories: OperationKeyword });
+export const Multiply = createToken({ name: "Multiply", pattern: /MULTIPLY/, categories: OperationKeyword });
+export const Divide = createToken({ name: "Divide", pattern: /DIVIDE/, categories: OperationKeyword });
+export const Compare = createToken({ name: "Compare", pattern: /COMPARE/, categories: OperationKeyword });
+export const Filter = createToken({ name: "Filter", pattern: /FILTER/, categories: OperationKeyword });
+export const Union = createToken({ name: "Union", pattern: /UNION/, categories: OperationKeyword });
+export const Intersection = createToken({ name: "Intersection", pattern: /INTERSECTION/, categories: OperationKeyword });
+export const Difference = createToken({ name: "Difference", pattern: /DIFFERENCE/, categories: OperationKeyword });
+export const Complement = createToken({ name: "Complement", pattern: /COMPLEMENT/, categories: OperationKeyword });
+export const Next = createToken({ name: "Next", pattern: /NEXT/, categories: OperationKeyword });
+export const First = createToken({ name: "First", pattern: /FIRST/, categories: OperationKeyword });
+export const Fby = createToken({ name: "Fby", pattern: /FBY/, categories: OperationKeyword });
+export const Accumulate = createToken({ name: "Accumulate", pattern: /ACCUMULATE/, categories: OperationKeyword });
+export const Sort = createToken({ name: "Sort", pattern: /SORT/, categories: OperationKeyword });
 
 export const True = createToken({ name: "True", pattern: /true/i });
 export const False = createToken({ name: "False", pattern: /false/i });
@@ -111,8 +113,8 @@ export const NumberLiteral = createToken({ name: "NumberLiteral", pattern: /[0-9
 
 export const StringLiteral = createToken({ name: "StringLiteral", pattern: /"[^"]*"/ });
 
-export const WhiteSpace = createToken({ 
-  name: "WhiteSpace", 
+export const WhiteSpace = createToken({
+  name: "WhiteSpace",
   pattern: /[ \t\r\n]+/,
   group: Lexer.SKIPPED
 });

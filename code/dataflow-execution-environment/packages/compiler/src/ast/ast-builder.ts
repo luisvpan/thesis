@@ -1,155 +1,129 @@
-import { CstNode, IToken } from "chevrotain";
-import type { Program, Statement, SourceStatement, TransformStatement, OutputStatement } from "./ast-types.js";
+import { IToken } from "chevrotain";
+import { DataflowParser } from "../parser"; // Importa tu clase de Parser
+import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, LiteralCstChildren, ObjectLiteralCstChildren, OperationExpressionCstChildren, OperationNameCstChildren, OutputStatementCstChildren, ProgramCstChildren, SetTypeCstChildren, SourceStatementCstChildren, StatementCstChildren, StreamTypeCstChildren, TransformStatementCstChildren, TypeDeclarationCstChildren, ValueCstChildren } from "../types/cst-generated-types";
 
-export class AstBuilder {
-  program(ctx: CstNode): Program {
-    const statements = ctx.children?.statement || [];
+const parserInstance = new DataflowParser();
+const BaseVisitor = parserInstance.getBaseCstVisitorConstructor();
+
+export class AstBuilder extends BaseVisitor {
+  constructor() {
+    super();
+    this.validateVisitor();
+  }
+
+  program(ctx: ProgramCstChildren) {
     return {
       type: "Program",
-      statements: statements.map((s: any) => this.statement(s))
+      statements: ctx.statement?.map((s) => this.visit(s)) || []
     };
   }
 
-  statement(ctx: CstNode): Statement {
-    if (ctx.children?.sourceStatement) {
-      return this.sourceStatement((ctx.children.sourceStatement[0] as CstNode));
-    } else if (ctx.children?.transformStatement) {
-      return this.transformStatement((ctx.children.transformStatement[0] as CstNode));
-    } else if (ctx.children?.outputStatement) {
-      return this.outputStatement((ctx.children.outputStatement[0] as CstNode));
-    }
-    throw new Error('Unknown statement type');
+  statement(ctx: StatementCstChildren) {
+    if (ctx.sourceStatement) return this.visit(ctx.sourceStatement);
+    if (ctx.transformStatement) return this.visit(ctx.transformStatement);
+    if (ctx.outputStatement) return this.visit(ctx.outputStatement);
   }
 
-  sourceStatement(ctx: CstNode): SourceStatement {
+  sourceStatement(ctx: SourceStatementCstChildren) {
     return {
       type: "SourceStatement",
-      id: (ctx.children.Identifier[0] as IToken).image,
-      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode),
-      value: this.value(ctx.children.value[0] as CstNode)
+      id: ctx.Identifier[0].image,
+      dataType: this.visit(ctx.typeDeclaration),
+      value: this.visit(ctx.value) // El visitor entra solo a la subregla
     };
   }
 
-  transformStatement(ctx: CstNode): TransformStatement {
-    const args: string[] = [];
-
-    const operationExpression = ctx.children.operationExpression[0] as CstNode;
-    if (operationExpression.children.argumentList) {
-      const argList = ((operationExpression.children.argumentList[0] as CstNode).children.argument || []) as CstNode[];
-      for (const arg of argList) {
-        if (arg.children.Identifier) {
-          args.push((arg.children.Identifier[0] as IToken).image);
-        }
-      }
-    }
-
-    return {
-      type: "TransformStatement",
-      id: (ctx.children.Identifier[0] as IToken).image,
-      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode),
-      operation: this.extractOperationName(operationExpression),
-      inputs: args
-    };
+  typeDeclaration(ctx: TypeDeclarationCstChildren) {
+    if (ctx.Natural) return "natural";
+    if (ctx.Integer) return "integer";
+    if (ctx.Decimal) return "decimal";
+    if (ctx.Text) return "text";
+    if (ctx.Boolean) return "boolean";
+    if (ctx.setType) return this.visit(ctx.setType);
+    if (ctx.streamType) return this.visit(ctx.streamType);
   }
 
-  outputStatement(ctx: CstNode): OutputStatement {
-    return {
-      type: "OutputStatement",
-      id: (ctx.children.Identifier[0] as IToken).image,
-      dataType: this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode),
-      input: (ctx.children.Identifier[1] as IToken).image
-    };
+  setType(ctx: SetTypeCstChildren) {
+    return `set<${this.visit(ctx.typeDeclaration)}>`;
   }
 
-  private extractOperationName(operationExprCtx: CstNode): string {
-    const operationNameCtx = operationExprCtx.children.operationName?.[0] as CstNode;
-    if (!operationNameCtx) return "UNKNOWN";
-
-    const operationKeys = [
-      "Add", "Subtract", "Multiply", "Divide", "Compare",
-      "Filter", "Union", "Intersection", "Difference", "Complement",
-      "Next", "First", "Fby", "Accumulate", "Sort",
-      "AlphabeticalSort",
-      "And", "Or", "Not",
-      "CompareBySize", "CompareByColor", "CompareByType",
-      "CompareByTaste", "CompareByAgeGroup", "CompareByGender",
-      "FilterBySize", "FilterByColor", "FilterByType",
-      "FilterByTaste", "FilterByAgeGroup", "FilterByGender"
-    ];
-
-    for (const key of operationKeys) {
-      const token = operationNameCtx.children[key]?.[0] as IToken | undefined;
-      if (token?.image) {
-        return token.image.toUpperCase();
-      }
-    }
-
-    return "UNKNOWN";
+  streamType(ctx: StreamTypeCstChildren) {
+    return `stream<${this.visit(ctx.typeDeclaration)}>`;
   }
 
-  typeDeclaration(ctx: CstNode): string {
-    const children = ctx.children;
-    if (children.Natural) return "natural";
-    if (children.Integer) return "integer";
-    if (children.Decimal) return "decimal";
-    if (children.Text) return "text";
-    if (children.Boolean) return "boolean";
-    if (children.setType) return this.setType(ctx);
-    if (children.streamType) return this.streamType(ctx);
-    return "unknown";
+  value(ctx: ValueCstChildren) {
+    if (ctx.literal) return this.visit(ctx.literal);
+    if (ctx.arrayLiteral) return this.visit(ctx.arrayLiteral);
   }
 
-  setType(ctx: CstNode): string {
-    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode);
-    return `set<${typeDecl}>`;
+  literal(ctx: LiteralCstChildren) {
+    if (ctx.NumberLiteral) return parseFloat(ctx.NumberLiteral[0].image);
+    if (ctx.StringLiteral) return ctx.StringLiteral[0].image.slice(1, -1);
+    if (ctx.True) return true;
+    if (ctx.False) return false;
+    if (ctx.objectLiteral) return this.visit(ctx.objectLiteral);
   }
 
-  streamType(ctx: CstNode): string {
-    const typeDecl = this.typeDeclaration(ctx.children.typeDeclaration[0] as CstNode);
-    return `stream<${typeDecl}>`;
-  }
-
-  value(ctx: CstNode): unknown {
-    const children = ctx.children;
-    if (children.literal) {
-      return this.literal(ctx);
-    } else if (children.arrayLiteral) {
-      return this.arrayLiteral(ctx);
-    }
-    return undefined;
-  }
-
-  literal(ctx: CstNode): unknown {
-    const children = ctx.children;
-    if (children.NumberLiteral) {
-      return parseFloat((children.NumberLiteral[0] as IToken).image);
-    } else if (children.StringLiteral) {
-      return (children.StringLiteral[0] as IToken).image.slice(1, -1);
-    } else if (children.objectLiteral) {
-      return this.objectLiteral(ctx);
-    } else if (children.True) {
-      return true;
-    } else if (children.False) {
-      return false;
-    }
-    return undefined;
-  }
-
-  objectLiteral(ctx: CstNode): Record<string, unknown> {
+  objectLiteral(ctx: ObjectLiteralCstChildren) {
     const obj: Record<string, unknown> = {};
-    const children = ctx.children;
-    const properties = children.Identifier;
-    const literals = children.literal;
-    for (let i = 0; i < properties.length; i++) {
-      const key = (properties[i] as IToken).image;
-      const value = this.literal(literals[i] as CstNode);
-      obj[key] = value;
-    }
+
+    ctx.Identifier?.forEach((id: IToken, index: number) => {
+      obj[id.image] = this.visit(ctx.literal![index]);
+    });
     return obj;
   }
 
-  arrayLiteral(ctx: CstNode): unknown[] {
-    const children = ctx.children;
-    return ((children.value as CstNode[]) || []).map((v: CstNode) => this.value(v));
+  arrayLiteral(ctx: ArrayLiteralCstChildren) {
+    return ctx.value?.map((v) => this.visit(v)) || [];
+  }
+
+  transformStatement(ctx: TransformStatementCstChildren) {
+    const opExpr = ctx.operationExpression[0];
+    return {
+      type: "TransformStatement",
+      id: ctx.Identifier[0].image,
+      dataType: this.visit(ctx.typeDeclaration),
+      ...this.visit(opExpr)
+    };
+  }
+
+  // 1. Añade el método que faltaba para Output
+  outputStatement(ctx: OutputStatementCstChildren) {
+    return {
+      type: "OutputStatement",
+      id: ctx.Identifier[0].image,
+      dataType: this.visit(ctx.typeDeclaration),
+      input: ctx.Identifier[1].image // Segundo identificador
+    };
+  }
+
+  operationExpression(ctx: OperationExpressionCstChildren) {
+    // Al llamar a visit(ctx.operationName), se ejecutará el método de abajo
+    const operationToken = this.visit(ctx.operationName) as IToken;
+    const operationName = operationToken.image.toUpperCase();
+
+    const inputs = ctx.argumentList
+      ? this.visit(ctx.argumentList)
+      : [];
+
+    return { operation: operationName, inputs };
+  }
+
+  operationName(ctx: OperationNameCstChildren) {
+    // ctx aquí son los children de la regla operationName
+    const allChildren = Object.values(ctx);
+    if (allChildren.length > 0 && allChildren[0].length > 0) {
+      return allChildren[0][0];
+    }
+    throw new Error("Missing operation name token");
+  }
+
+  argumentList(ctx: ArgumentListCstChildren) {
+    return ctx.argument?.map((arg) => this.visit(arg)) || [];
+  }
+
+  argument(ctx: ArgumentCstChildren) {
+    if (ctx.Identifier) return ctx.Identifier[0].image;
+    if (ctx.literal) return this.visit(ctx.literal);
   }
 }
