@@ -74,7 +74,7 @@ export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
   COMPARE: {
     arity: 2,
     inputTypes: ["natural", "natural"],
-    outputType: "integer",
+    outputType: "boolean",
     category: "comparison"
   },
 

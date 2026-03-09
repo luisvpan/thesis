@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-05 (Phase 0, Phase 1, Phase 2 (Type Validation - structure complete but blocked), and Phase 3 (Compiler Tokens) complete, 55/70 tests passing)
+**Last Updated:** 2026-03-09 (Comprehensive analysis completed - identified CRITICAL set literal parsing issue and multiple gaps)
 
 ---
 
@@ -37,10 +37,10 @@ packages/
 
 ## Current Implementation Status
 
-**Last Updated:** 2026-03-05
-**Analysis Date:** 2026-03-05
+**Last Updated:** 2026-03-09
+**Analysis Date:** 2026-03-09
 
-### Overall Progress: ~78% Complete
+### Overall Progress: ~60% Complete (Downgraded due to CRITICAL set literal parsing issue discovered)
 
 ### Test Status Summary
 - **Total Tests:** 70
@@ -50,7 +50,7 @@ packages/
   - Compiler (validation): 10/12 passing ✓ (TypeScript warnings, validation logic present)
   - Runtime: 14/14 passing ✓
   - Shared: 18/18 passing ✓
-  - Integration: 21/70 passing ✗ (30%)
+  - Integration: 21/70 passing ✗ (30%) - Set operations cannot be tested due to parsing issue
 
 ### Phase Progress
 
@@ -83,6 +83,52 @@ packages/
 
 ## Critical Findings from Research
 
+### 0. CRITICAL: Set Literal Parsing Issue (DISCOVERED 2026-03-09)
+
+**Status:** ACTIVE CRITICAL ISSUE
+**Discovered:** 2026-03-09
+
+**Issue:**
+The grammar spec (GRAMMAR_SPEC.md line 168) defines set literal syntax as:
+```
+set_literal ::= "{" ( value ( "," value )* )? "}"
+```
+
+**BUT the parser implementation:**
+- Uses `arrayLiteral` rule which expects `[]` brackets (LBracket/RBracket tokens)
+- Does NOT have a `setLiteral` rule
+- Cannot parse `{1, 2, 3}` syntax for sets
+- AST builder only handles `arrayLiteral`, not set literals
+
+**Impact:**
+- **COMPLETE BLOCKER:** Set literals cannot be parsed correctly
+- All programs using set literals fail to compile
+- Set operations (UNION, INTERSECTION, etc.) cannot be tested end-to-end
+- Integration tests for sets (Test 4.1, Test 4.2) are stubbed because parsing doesn't work
+
+**Root Cause:**
+Grammar spec defines `{}` for sets, but parser uses `[]` from arrayLiteral
+
+**Evidence:**
+1. Parser (dataflow-parser.ts lines 170-177): `arrayLiteral` uses LBracket/RBracket
+2. Grammar spec (GRAMMAR_SPEC.md line 168): set_literal uses `{}` syntax
+3. AST builder (ast-builder.ts lines 76-78): Only handles `arrayLiteral`, not `setLiteral`
+
+**Suggested Resolution:**
+1. Add `setLiteral` rule to parser using LBrace/RBrace tokens
+2. Update AST builder to handle `setLiteral` CST
+3. Add set literal to value rule alternatives
+4. Update tests to use `{}` syntax for sets
+
+**Priority:** P0 - CRITICAL (Blocks all set functionality)
+
+**Tracking:**
+- Implementation: MISSING
+- Affects: All set literal parsing, set operation integration tests
+- Impact area: Parser, AST builder, set operations testing
+
+---
+
 ### 1. Flaky Compiler Tests (RESOLVED - Phase -1 Complete)
 - ~~**Compiler tests pass but don't validate actual values**~~ ✓ FIXED
 - ~~Test 1: Source statement parsing (lines 7-20) - checks structure but missing `value` field validation~~ ✓ Added value verification
@@ -111,6 +157,70 @@ packages/
 - **Runtime now implements all 31 operations** (100% complete) ✓
 - **Previous risk resolved:** All operations now implemented
 
+**BUT CRITICAL TYPE ERROR DISCOVERED:**
+- COMPARE operation has wrong output type in registry (registry.ts line 77)
+- Registry shows: `outputType: "integer"`
+- Spec requires: `outputType: "boolean"` (LANGUAGE_SPEC.md lines 53, 70, 89, 107, 137)
+- This violates spec - COMPARE should return Boolean, not Integer
+
+**Impact:**
+- Type checking for COMPARE is incorrect
+- Programs using COMPARE may fail type validation incorrectly
+- This is a spec violation that needs immediate fix
+
+**Priority:** P1 - HIGH
+
+**Suggested Resolution:**
+Update registry.ts line 77: change `outputType: "integer"` to `outputType: "boolean"`
+
+---
+
+### 4.5. Missing Literals and Parsing (DISCOVERED 2026-03-09)
+
+**Status:** ACTIVE ISSUE
+
+**Missing Lexer Tokens:**
+- Fraction literal token - spec defines `integer_literal "/" natural_literal` (GRAMMAR_SPEC.md line 108)
+- Stream source tokens - spec defines SENSOR, GENERATOR, EXTERNAL (GRAMMAR_SPEC.md lines 172-174)
+
+**Missing Parser Rules:**
+- `setLiteral` - CRITICAL (see Finding 0 above)
+- `streamLiteral` - spec defines `stream "<" type ">" "(" stream_source ")"` (GRAMMAR_SPEC.md line 170)
+- `fractionLiteral` - spec defines but no parser rule
+
+**Missing AST Builder Methods:**
+- No `setLiteral` method
+- No `streamLiteral` method
+- No `fractionLiteral` method
+- No curriculum type literal methods (shape_literal, car_literal, etc.)
+
+**Impact:**
+- Cannot parse set literals with `{}` syntax
+- Cannot parse stream literals
+- Cannot parse fraction literals
+- Cannot parse curriculum type literals directly
+- Integration tests for these features are stubbed
+
+**Evidence:**
+1. Lexer (tokens.ts): No Fraction, Sensor, Generator, External tokens
+2. Parser (dataflow-parser.ts): No setLiteral, streamLiteral, fractionLiteral rules
+3. AST builder (ast-builder.ts): No methods for these literals
+
+**Suggested Resolutions:**
+1. Add missing lexer tokens (Fraction, Sensor, Generator, External)
+2. Add setLiteral rule using LBrace/RBrace
+3. Add streamLiteral rule
+4. Add fractionLiteral rule
+5. Add AST builder methods for all new literals
+6. Update integration tests
+
+**Priority:** P0 - CRITICAL (set literals), P1 (other literals)
+
+**Tracking:**
+- Implementation: MISSING for all
+- Affects: Set parsing, stream parsing, fraction parsing, integration tests
+- Impact area: Lexer, Parser, AST builder
+
 ### 4. Missing Components (UPDATED STATUS)
 
 **Shared Package:**
@@ -122,10 +232,13 @@ packages/
 
 **Compiler Package:**
 - ~~16 missing operation tokens/grammar rules~~ ✓ 13/16 implemented (AND, OR, NOT, 6 COMPARE_BY_*, 6 FILTER_BY_*, ALPHABETICAL_SORT)
+- **CRITICAL: setLiteral rule missing** - Cannot parse `{}` syntax for sets (P0)
+- **CRITICAL: COMPARE operation wrong output type** - Returns "integer" instead of "boolean" (P1)
+- Stream literal parsing (tokens and grammar)
+- Fraction literal parsing (tokens and grammar)
+- Curriculum type literals (grammar only, no AST builder)
 - Type compatibility validation (PENDING - blocks 17 integration tests)
 - Property constraint validation (PENDING - blocks integration tests)
-- Stream literal parsing (tokens and grammar)
-- Curriculum type literals (grammar only, no AST builder)
 - Parser still fails on composite types (set<T>, stream<T>)
 
 **Runtime Package:**
@@ -598,6 +711,229 @@ export type Primitive = Natural | Integer | Decimal | Text | Boolean | Fraction;
 - [x] Typecheck passes
 - [x] Previous tests still pass
 - [x] Git commit with message: "feat(shared): add Boolean operations to registry"
+
+---
+
+### PHASE 0.5: CRITICAL PARSER FIXES (Priority P0 - CRITICAL)
+
+**Time Estimate:** 3 hours
+
+**Rationale:** CRITICAL BLOCKER discovered - set literals cannot be parsed correctly. Grammar spec defines `{}` syntax for sets, but parser uses `[]` brackets. This blocks all set functionality and integration tests.
+
+#### Task 0.5.1: Fix COMPARE Operation Output Type (15 minutes)
+
+**File:** `packages/shared/src/operations/registry.ts`
+
+**Changes:**
+- Line 77: Change `outputType: "integer"` to `outputType: "boolean"`
+- COMPARE should return Boolean, not Integer (per spec)
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- COMPARE operation returns Boolean type in registry
+- Matches spec requirement (LANGUAGE_SPEC.md lines 53, 70, 89, 107, 137)
+- TypeScript compiles
+
+**Layer:** Layer 1 (Foundation)
+
+**Estimated Time:** 15 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(registry): correct COMPARE operation output type to boolean"
+
+---
+
+#### Task 0.5.2: Add setLiteral Rule to Parser (45 minutes)
+
+**File:** `packages/compiler/src/parser/dataflow-parser.ts`
+
+**Changes:**
+Add new rule after `arrayLiteral`:
+
+```typescript
+setLiteral = this.RULE("setLiteral", () => {
+  this.CONSUME(LBrace);
+  this.MANY_SEP({
+    SEP: Comma,
+    DEF: () => this.SUBRULE(this.value)
+  });
+  this.CONSUME(RBrace);
+});
+```
+
+Update `value` rule to include `setLiteral`:
+
+```typescript
+value = this.RULE("value", () => {
+  this.OR([
+    { ALT: () => this.SUBRULE(this.literal) },
+    { ALT: () => this.SUBRULE(this.arrayLiteral) },
+    { ALT: () => this.SUBRULE(this.setLiteral) }  // ADD THIS
+  ]);
+});
+```
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- setLiteral rule parses `{1, 2, 3}` syntax
+- value rule includes setLiteral as alternative
+- TypeScript compiles
+- Set literals can be parsed correctly
+
+**Layer:** Layer 4 (Set Operations)
+
+**Estimated Time:** 45 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Parser parses set literals with `{}` syntax
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(parser): add setLiteral rule for {} syntax"
+
+---
+
+#### Task 0.5.3: Add setLiteral Method to AST Builder (30 minutes)
+
+**File:** `packages/compiler/src/ast/ast-builder.ts`
+
+**Changes:**
+Add new method after `arrayLiteral`:
+
+```typescript
+setLiteral(ctx: SetLiteralCstChildren) {
+  return ctx.value?.map((v) => this.visit(v)) || [];
+}
+```
+
+Import CST type for SetLiteral (need to regenerate CST types after parser change)
+
+**Dependencies:** Task 0.5.2 (parser must have setLiteral rule)
+
+**Acceptance Criteria:**
+- AST builder handles setLiteral CST nodes
+- Returns array of values
+- TypeScript compiles
+
+**Layer:** Layer 4 (Set Operations)
+
+**Estimated Time:** 30 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] AST builder converts setLiteral CST to AST
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(ast-builder): add setLiteral handler"
+
+---
+
+#### Task 0.5.4: Add Missing Literal Tokens (30 minutes)
+
+**File:** `packages/compiler/src/lexer/tokens.ts`
+
+**Changes:**
+Add missing tokens after line 52 (after existing tokens):
+
+```typescript
+export const Sensor = createToken({ name: "Sensor", pattern: /SENSOR/, categories: OperationKeyword });
+export const Generator = createToken({ name: "Generator", pattern: /GENERATOR/, categories: OperationKeyword });
+export const External = createToken({ name: "External", pattern: /EXTERNAL/, categories: OperationKeyword });
+```
+
+Add to `allTokens` array
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Sensor, Generator, External tokens defined
+- Tokens included in allTokens array
+- TypeScript compiles
+
+**Layer:** Layer 6 (Streams)
+
+**Estimated Time:** 30 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] All missing tokens defined
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(lexer): add stream source tokens"
+
+---
+
+#### Task 0.5.5: Add streamLiteral Rule to Parser (30 minutes)
+
+**File:** `packages/compiler/src/parser/dataflow-parser.ts`
+
+**Changes:**
+Add new rule after `arrayLiteral`:
+
+```typescript
+streamLiteral = this.RULE("streamLiteral", () => {
+  this.CONSUME(Stream);
+  this.CONSUME(AngleLeft);
+  this.SUBRULE(this.typeDeclaration);
+  this.CONSUME(AngleRight);
+  this.CONSUME(LParen);
+  this.OR([
+    { ALT: () => this.CONSUME(Sensor) },
+    { ALT: () => this.CONSUME(Generator) },
+    { ALT: () => this.CONSUME(External) }
+  ]);
+  this.CONSUME(LParen);
+  this.CONSUME(StringLiteral);
+  this.CONSUME(RParen);
+  this.CONSUME(RParen);
+});
+```
+
+**Dependencies:** Task 0.5.4 (stream source tokens must exist)
+
+**Acceptance Criteria:**
+- streamLiteral rule parses `stream<natural>(generator("counter"))` syntax
+- TypeScript compiles
+- Stream literals can be parsed correctly
+
+**Layer:** Layer 6 (Streams)
+
+**Estimated Time:** 30 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] New functionality fully implemented
+- [ ] Parser parses stream literals correctly
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(parser): add streamLiteral rule"
+
+---
+
+#### Task 0.5.6: Implement Set Integration Tests (30 minutes)
+
+**File:** `packages/tests/src/sets/union.test.ts`, `packages/tests/src/sets/filter-sort.test.ts`
+
+**Changes:**
+Replace stub tests with actual implementations based on INTEGRATION_TESTS_SPEC.md lines 231-297
+
+**Dependencies:** Tasks 0.5.2, 0.5.3 (set literal parsing must work)
+
+**Acceptance Criteria:**
+- Test 4.1 (Union of Shape Sets) implemented and passing
+- Test 4.2 (Filter and Sort Combined) implemented and passing
+- Tests use `{}` syntax for set literals
+- Tests verify demand-driven semantics
+
+**Layer:** Cross-layer (tests Layer 4)
+
+**Estimated Time:** 30 minutes
+
+**Ralph Wiggum Checklist:**
+- [ ] Set integration tests fully implemented
+- [ ] All set tests pass
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement set operation tests"
 
 ---
 
