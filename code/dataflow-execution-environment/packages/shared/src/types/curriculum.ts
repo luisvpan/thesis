@@ -1,6 +1,6 @@
 export type ShapeType = "circle" | "triangle" | "square" | "rectangle";
 export type Size = "small" | "medium" | "large";
-export type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
+export type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple" | "white" | "black";
 export type Taste = "sweet" | "salty" | "sour" | "bitter";
 export type AnimalType = "dog" | "cat" | "bird" | "fish" | "rabbit" | "turtle";
 export type AgeGroup = "child" | "teenager" | "adult" | "senior";
