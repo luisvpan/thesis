@@ -49,6 +49,11 @@ export const Next = createToken({ name: "Next", pattern: /NEXT/, categories: Ope
 export const First = createToken({ name: "First", pattern: /FIRST/, categories: OperationKeyword });
 export const Fby = createToken({ name: "Fby", pattern: /FBY/, categories: OperationKeyword });
 export const Accumulate = createToken({ name: "Accumulate", pattern: /ACCUMULATE/, categories: OperationKeyword });
+
+export const Sensor = createToken({ name: "Sensor", pattern: /sensor/i });
+export const Generator = createToken({ name: "Generator", pattern: /generator/i });
+export const External = createToken({ name: "External", pattern: /external/i });
+
 export const Sort = createToken({ name: "Sort", pattern: /SORT/, categories: OperationKeyword });
 
 export const True = createToken({ name: "True", pattern: /true/i });
@@ -168,6 +173,9 @@ export const allTokens = [
   First,
   Fby,
   Accumulate,
+  Sensor,
+  Generator,
+  External,
   Sort,
   True,
   False,
