@@ -110,7 +110,10 @@ export interface ValueCstNode extends CstNode {
 
 export type ValueCstChildren = {
   literal?: LiteralCstNode[];
+  objectLiteral?: ObjectLiteralCstNode[];
   arrayLiteral?: ArrayLiteralCstNode[];
+  setLiteral?: SetLiteralCstNode[];
+  streamLiteral?: StreamLiteralCstNode[];
 };
 
 export interface LiteralCstNode extends CstNode {
@@ -121,7 +124,6 @@ export interface LiteralCstNode extends CstNode {
 export type LiteralCstChildren = {
   NumberLiteral?: IToken[];
   StringLiteral?: IToken[];
-  objectLiteral?: ObjectLiteralCstNode[];
   True?: IToken[];
   False?: IToken[];
 };
@@ -150,6 +152,71 @@ export type ArrayLiteralCstChildren = {
   value?: ValueCstNode[];
   Comma?: IToken[];
   RBracket: IToken[];
+};
+
+export interface SetLiteralCstNode extends CstNode {
+  name: "setLiteral";
+  children: SetLiteralCstChildren;
+}
+
+export type SetLiteralCstChildren = {
+  LBrace: IToken[];
+  value?: ValueCstNode[];
+  Comma?: IToken[];
+  RBrace: IToken[];
+};
+
+export interface StreamLiteralCstNode extends CstNode {
+  name: "streamLiteral";
+  children: StreamLiteralCstChildren;
+}
+
+export type StreamLiteralCstChildren = {
+  Stream: IToken[];
+  AngleLeft: IToken[];
+  typeDeclaration: TypeDeclarationCstNode[];
+  AngleRight: IToken[];
+  LParen: IToken[];
+  sensorSource?: SensorSourceCstNode[];
+  generatorSource?: GeneratorSourceCstNode[];
+  externalSource?: ExternalSourceCstNode[];
+  RParen: IToken[];
+};
+
+export interface SensorSourceCstNode extends CstNode {
+  name: "sensorSource";
+  children: SensorSourceCstChildren;
+}
+
+export type SensorSourceCstChildren = {
+  Sensor: IToken[];
+  LParen: IToken[];
+  StringLiteral: IToken[];
+  RParen: IToken[];
+};
+
+export interface GeneratorSourceCstNode extends CstNode {
+  name: "generatorSource";
+  children: GeneratorSourceCstChildren;
+}
+
+export type GeneratorSourceCstChildren = {
+  Generator: IToken[];
+  LParen: IToken[];
+  Identifier: IToken[];
+  RParen: IToken[];
+};
+
+export interface ExternalSourceCstNode extends CstNode {
+  name: "externalSource";
+  children: ExternalSourceCstChildren;
+}
+
+export type ExternalSourceCstChildren = {
+  External: IToken[];
+  LParen: IToken[];
+  StringLiteral: IToken[];
+  RParen: IToken[];
 };
 
 export interface OperationExpressionCstNode extends CstNode {
@@ -237,6 +304,11 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   literal(children: LiteralCstChildren, param?: IN): OUT;
   objectLiteral(children: ObjectLiteralCstChildren, param?: IN): OUT;
   arrayLiteral(children: ArrayLiteralCstChildren, param?: IN): OUT;
+  setLiteral(children: SetLiteralCstChildren, param?: IN): OUT;
+  streamLiteral(children: StreamLiteralCstChildren, param?: IN): OUT;
+  sensorSource(children: SensorSourceCstChildren, param?: IN): OUT;
+  generatorSource(children: GeneratorSourceCstChildren, param?: IN): OUT;
+  externalSource(children: ExternalSourceCstChildren, param?: IN): OUT;
   operationExpression(children: OperationExpressionCstChildren, param?: IN): OUT;
   operationName(children: OperationNameCstChildren, param?: IN): OUT;
   argumentList(children: ArgumentListCstChildren, param?: IN): OUT;

@@ -1,6 +1,6 @@
 import { IToken } from "chevrotain";
 import { DataflowParser } from "../parser"; // Importa tu clase de Parser
-import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, LiteralCstChildren, ObjectLiteralCstChildren, OperationExpressionCstChildren, OperationNameCstChildren, OutputStatementCstChildren, ProgramCstChildren, SetTypeCstChildren, SourceStatementCstChildren, StatementCstChildren, StreamTypeCstChildren, TransformStatementCstChildren, TypeDeclarationCstChildren, ValueCstChildren } from "../types/cst-generated-types";
+import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, ExternalSourceCstChildren, GeneratorSourceCstChildren, LiteralCstChildren, ObjectLiteralCstChildren, OperationExpressionCstChildren, OperationNameCstChildren, OutputStatementCstChildren, ProgramCstChildren, SensorSourceCstChildren, SetLiteralCstChildren, SetTypeCstChildren, SourceStatementCstChildren, StatementCstChildren, StreamLiteralCstChildren, StreamTypeCstChildren, TransformStatementCstChildren, TypeDeclarationCstChildren, ValueCstChildren } from "../types/cst-generated-types";
 
 const parserInstance = new DataflowParser();
 const BaseVisitor = parserInstance.getBaseCstVisitorConstructor();
@@ -79,35 +79,35 @@ export class AstBuilder extends BaseVisitor {
     return ctx.value?.map((v) => this.visit(v)) || [];
   }
 
-  setLiteral(ctx: any) {
-    return ctx.value?.map((v: any) => this.visit(v)) || [];
+  setLiteral(ctx: SetLiteralCstChildren) {
+    return ctx.value?.map((v) => this.visit(v)) || [];
   }
 
-  sensorSource(ctx: any) {
+  sensorSource(ctx: SensorSourceCstChildren) {
     return {
       type: "sensor",
       name: ctx.StringLiteral[0].image.slice(1, -1)
     };
   }
 
-  generatorSource(ctx: any) {
+  generatorSource(ctx: GeneratorSourceCstChildren) {
     return {
       type: "generator",
       name: ctx.Identifier[0].image
     };
   }
 
-  externalSource(ctx: any) {
+  externalSource(ctx: ExternalSourceCstChildren) {
     return {
       type: "external",
       name: ctx.StringLiteral[0].image.slice(1, -1)
     };
   }
 
-  streamLiteral(ctx: any) {
+  streamLiteral(ctx: StreamLiteralCstChildren) {
     const source = ctx.sensorSource ? this.visit(ctx.sensorSource) :
-                  ctx.generatorSource ? this.visit(ctx.generatorSource) :
-                  ctx.externalSource ? this.visit(ctx.externalSource) : null;
+      ctx.generatorSource ? this.visit(ctx.generatorSource) :
+        ctx.externalSource ? this.visit(ctx.externalSource) : null;
 
     return {
       type: "stream",
