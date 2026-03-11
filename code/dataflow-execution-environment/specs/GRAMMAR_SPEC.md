@@ -195,6 +195,7 @@ argument_list ::= argument ( "," argument )*
 
 argument ::= identifier
            | literal
+           | operation
 ```
 
 ### Operations by Category
