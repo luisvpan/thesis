@@ -43,6 +43,16 @@ bun run lint
 
 Use bun's test runner to implement tests. Tests should be placed in the same package as the code they test, following the convention `*.test.ts` alongside the code files. Use the test specifications in `specs/*.md` and @IMPLEMENTATION_PLAN.md to guide your test implementation.
 
+## Formatting & Linting
+
+```bash
+# Format code
+bun run format
+
+# Lint code
+bun run lint
+```
+
 ## Operational Notes
 
 ### Project Structure
@@ -124,8 +134,9 @@ const vals = await Promise.all(inputs.map(i => evaluate(i.id, time)));
 ### Git & Commitment Rules
 - Follow the [Conventional Commits 1.0.0](https://www.conventionalcommits.org) specification.
 - Perform atomic commits. Each logical change must be committed separately before moving to the next task.
+- Perform formatting and linting before committing. Use `bun run lint` to check for linting errors and `bun run format` to format the codebase.
 - Use lowercase for the description. Do not end the subject line with a period.
-- Add 'Co-authored-by: Ralph (OpenCode Agent)' to the commit message body in the footer section.
+- Add 'Assisted by: Ralph (OpenCode Agent)' to the commit message body in the footer section.
 
 ## Ralph Wiggum Checklist
 
@@ -134,4 +145,5 @@ Before moving to next layer:
 - [ ] New tests pass
 - [ ] Previous layer tests still pass
 - [ ] Typecheck passes
+- [ ] Lint passes
 - [ ] Git committed
