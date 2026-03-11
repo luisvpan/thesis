@@ -12,7 +12,7 @@
 
 4. When tests are missing from the codebase, implement them according to acceptance criteria and tests specified in @IMPLEMENTATION_PLAN.md and `specs/*.md`.
 
-5. When the tests pass, update @IMPLEMENTATION_PLAN.md, then `git add -A` then `git commit` with a message describing the changes. If this fails, let the user know and suggest they do it manually.
+5. When the tests pass, update @IMPLEMENTATION_PLAN.md, then lint then format the code, then `git add -A` then `git commit` with a message describing the changes. If this fails, let the user know and suggest they do it manually.
 
 ---
 
