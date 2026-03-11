@@ -216,7 +216,7 @@ export class DagValidator {
     if (!match) {
       return "unknown";
     }
-    return match[1];
+    return match[2];
   }
 
   private validatePropertyConstraints(elementType: DataType | string, operation: string): boolean {

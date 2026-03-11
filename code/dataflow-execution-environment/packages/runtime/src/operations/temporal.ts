@@ -2,13 +2,13 @@ import { DataflowGraph } from "../graph/dataflow-graph.js";
 
 export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
   const [stream] = inputs;
-  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown>, generatorFactory?: () => Generator<unknown> };
   
-  if (!streamValue.generator) {
+  const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
+  if (!gen) {
     throw new Error('Stream does not have a generator');
   }
   
-  const gen = streamValue.generator;
   let result = gen.next();
   let count = 0;
   
@@ -22,16 +22,20 @@ export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number
 
 export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
   const [stream] = inputs;
-  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown>, generatorFactory?: () => Generator<unknown> };
   
-  if (!streamValue.generator) {
+  const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
+  if (!gen) {
     throw new Error('Stream does not have a generator');
   }
   
-  const gen = streamValue.generator;
   const result = gen.next();
   
-  return result.done ? undefined : result.value;
+  const value = result.done ? undefined : result.value;
+  if (typeof value === 'number') {
+    return { kind: "natural", value };
+  }
+  return value;
 }
 
 export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
@@ -41,13 +45,13 @@ export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number,
     return initial.value;
   }
   
-  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown>, generatorFactory?: () => Generator<unknown> };
   
-  if (!streamValue.generator) {
+  const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
+  if (!gen) {
     throw new Error('Stream does not have a generator');
   }
   
-  const gen = streamValue.generator;
   let result = gen.next();
   let count = 0;
   

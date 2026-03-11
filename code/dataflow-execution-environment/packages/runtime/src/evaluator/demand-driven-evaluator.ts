@@ -80,6 +80,12 @@ export class DemandDrivenEvaluator {
       case "fraction":
         return { kind: "fraction" as const, numerator: (numValue as { numerator: number; denominator: number }).numerator, denominator: (numValue as { numerator: number; denominator: number }).denominator };
       default:
+        if (dataType.startsWith("stream")) {
+          return node.value;
+        }
+        if (dataType.startsWith("set")) {
+          return { kind: "set", elements: numValue as unknown[] };
+        }
         return node.value;
     }
   }

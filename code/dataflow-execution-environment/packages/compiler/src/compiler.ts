@@ -5,6 +5,7 @@ import { AstBuilder, Program, statementToNode } from "./ast/index.js";
 import { DagValidator } from "./validation/dag-validator.js";
 import type { DataflowProgram, DataflowNode, DataflowEdge } from "@dataflow/shared/types";
 import type { ValidationResult } from "@dataflow/shared/types";
+import { getGenerator as getBuiltinGenerator } from "@dataflow/shared/generators";
 
 export class Compiler {
   private lexer: Lexer;
@@ -70,7 +71,15 @@ export class Compiler {
 
   private buildProgramFromAst(ast: Program): { nodes: DataflowNode[]; edges: DataflowEdge[] } {
     this.edgeCounter = 0;
-    const nodes: DataflowNode[] = ast.statements.map(stmt => statementToNode(stmt));
+    const nodes: DataflowNode[] = ast.statements.map(stmt => {
+      const node = statementToNode(stmt);
+      
+      if (node.type === "DataSource" && this.isStreamDeclaration(node.dataType, node.value)) {
+        return this.convertStreamDeclaration(node);
+      }
+      
+      return node;
+    });
     const edges: DataflowEdge[] = [];
 
     for (const stmt of ast.statements) {
@@ -93,5 +102,48 @@ export class Compiler {
     }
 
     return { nodes, edges };
+  }
+
+  private isStreamDeclaration(dataType: string | { kind: string }, value: unknown): boolean {
+    const dataTypeStr = typeof dataType === "string" ? dataType : (dataType as { kind: string }).kind;
+    const isStream = dataTypeStr.startsWith("stream");
+    const valueObj = value as { type?: string };
+    return isStream && valueObj?.type === "stream";
+  }
+
+  private convertStreamDeclaration(node: DataflowNode): DataflowNode {
+    if (node.type !== "DataSource") {
+      return node;
+    }
+    
+    const dataSourceNode = node as { id: string; type: "DataSource"; dataType: string; value: unknown; metadata?: unknown };
+    const value = dataSourceNode.value as { type: "stream"; source: { type: "generator" | "sensor" | "external"; name: string } };
+    const dataType = dataSourceNode.dataType as string;
+    
+    if (value.source.type === "generator") {
+      const generatorFactory = getBuiltinGenerator(value.source.name);
+      if (!generatorFactory) {
+        throw new Error(`Unknown generator: ${value.source.name}`);
+      }
+      
+      const elementType = this.extractElementType(dataType);
+      
+      return {
+        ...node,
+        value: {
+          kind: "stream",
+          elementType,
+          generatorFactory: generatorFactory,
+          generator: generatorFactory()
+        }
+      } as DataflowNode;
+    }
+    
+    return node;
+  }
+
+  private extractElementType(dataType: string): string {
+    const match = dataType.match(/^stream<(.+)>$/);
+    return match ? match[1] : "unknown";
   }
 }

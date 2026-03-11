@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-09 (Comprehensive analysis completed, Biome config added, accurate status: 66/72 tests passing, Layers 1-6 COMPLETE, Layer 7 MISSING)
+**Last Updated:** 2026-03-11 (P0.1 complete - 4 stubbed integration tests implemented, 70/72 tests passing, Layers 1-6 COMPLETE, Layer 7 IN PROGRESS)
 
 ---
 
@@ -70,21 +70,20 @@ packages/
 
 ## Current Implementation Status
 
-**Last Updated:** 2026-03-09
-**Analysis Date:** 2026-03-09
+**Last Updated:** 2026-03-11
+**Analysis Date:** 2026-03-11
 
-### Overall Progress: ~75% Complete (Core compiler/runtime complete, integration layer missing)
+### Overall Progress: ~80% Complete (Core compiler/runtime complete, integration layer 25% complete)
 
 ### Test Status Summary
 - **Total Tests:** 72
-- **Passing:** 66 (91.7%)
-- **Stubbed:** 4 (5.6%) - TODO: Implement (operations exist, tests need writing)
+- **Passing:** 70 (97.2%)
 - **Failing:** 2 (2.8%)
   - Compiler (parsing): 12/12 passing ✓
   - Compiler (validation): 10/12 passing ✓ (TypeScript warnings, validation logic present)
   - Runtime: 14/14 passing ✓
   - Shared: 18/18 passing ✓
-  - Integration: 12/16 passing (75%) - 4 tests stubbed (operations work, need test implementations)
+  - Integration: 16/16 passing (100%) - P0.1 complete (4 stubbed tests implemented)
 
 ### Phase Progress
 
@@ -96,7 +95,7 @@ packages/
 | Phase 2: Type Validation | COMPLETE | 100% | 83% |
 | Phase 3: Compiler Completion | COMPLETE | 100% | 100% |
 | Phase 3: Parser & AST Builder | COMPLETE | 100% | 100% |
-| Phase 4: Implement Stubbed Integration Tests | PENDING | 0% | 0% |
+| Phase 4: Implement Stubbed Integration Tests | COMPLETE | 100% | 100% |
 | Phase 5: Incremental Runtime | PENDING | 0% | 0% |
 | Phase 6: HTTP API | PENDING | 0% | 0% |
 | Phase 7: WebSocket Server | PENDING | 0% | 0% |
@@ -111,7 +110,7 @@ packages/
 | Layer 4: Set Operations | COMPLETE | 100% | 100% |
 | Layer 5: Temporal Operators | COMPLETE | 100% | 100% |
 | Layer 6: Streams | COMPLETE | 100% | 100% |
-| Layer 7: Integration | MISSING | 0% | 0% |
+| Layer 7: Integration | IN PROGRESS | 25% | 100% |
 
 ---
 
@@ -1884,12 +1883,12 @@ Replace stub tests with actual implementations based on INTEGRATION_TESTS_SPEC.m
 ### Current Status
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
-- Test suite: 61/70 tests passing (87.1%)
+- Test suite: 70/72 tests passing (97.2%)
   - Compiler (parsing): 12/12 passing ✓
   - Compiler (validation): 10/12 passing ✓ (TypeScript warnings, validation logic present)
   - Runtime: 14/14 passing ✓
   - Shared: 18/18 passing ✓
-  - Integration: 39/70 passing ✓ (55.7%) - Improved due to set literal and stream literal parsing fixes
+  - Integration: 16/16 passing ✓ (100%) - P0.1 complete (4 stubbed tests implemented)
 
 ### Targets
 - Compilation: <100ms for programs with <100 nodes (p95)
@@ -2085,15 +2084,17 @@ Before moving to next layer, verify:
   - Integration tests fail because type validation is not working
   - See Phase 2, Task 2.5
 - **P2:** Parser fails on composite types (set<T>, stream<T>)
+- **P2:** Curriculum types (shape, animal, etc.) are not fully supported in parser (needs parser grammar update)
+- **P2:** Nested operation expressions (e.g., FBY(zero, ADD(counter, one))) are not supported by grammar
 - **P2:** NaN values in arithmetic tests
 - **P2:** Division by zero not throwing error (test environment issues prevent running test)
 - **P2:** Fraction literal parsing not implemented (token, parser rule, AST builder method)
-- Test status: 61/70 tests passing (87.1%)
+- Test status: 70/72 tests passing (97.2%)
   - Compiler (parsing): 12/12 passing ✓
   - Compiler (validation): 10/12 passing ✓ (TypeScript warnings, validation logic present)
   - Runtime: 14/14 passing ✓
   - Shared: 18/18 passing ✓
-  - Integration: 39/70 passing ✓ (55.7%) - Improved due to set literal and stream literal fixes
+  - Integration: 16/16 passing ✓ (100%) - P0.1 complete (4 stubbed tests implemented)
 
 ### Technical Debt
 - ~~Missing operation implementations (15 tokens, 13 runtime ops)~~ ✓ RESOLVED
@@ -2123,7 +2124,8 @@ Before moving to next layer, verify:
 
 ### P0 CRITICAL (Quick Wins)
 
-#### Task P0.1: Implement 4 Stubbed Integration Tests
+#### Task P0.1: Implement 4 Stubbed Integration Tests ✓ **COMPLETE**
+
 **Files to update:**
 - packages/tests/src/sets/union.test.ts
 - packages/tests/src/sets/filter-sort.test.ts
@@ -2137,7 +2139,59 @@ Before moving to next layer, verify:
 - Blocking full test coverage
 
 **Estimated Time:** 2 hours
+**Actual Time:** 2 hours
+**Completion Date:** 2026-03-11
+
+**What Was Implemented:**
+1. Added generator registry to shared package (packages/shared/src/generators/registry.ts)
+   - Created CounterGenerator, ToggleGenerator, ConstantGenerator
+   - Enables stream<natural>(generator("counter")) syntax support
+
+2. Fixed lexer word boundaries for keywords (packages/compiler/src/lexer/tokens.ts)
+   - Changed patterns from `/ADD/` to `/\bADD\b/` to prevent partial matches
+   - Fixes parsing issues like "COUNTER" matching "COUNT" pattern
+
+3. Fixed type validation to correctly extract element types (packages/compiler/src/validation/dag-validator.ts)
+   - Updated `extractElementType` to handle set<T> and stream<T> types
+   - Now correctly validates type parameters for composite types
+
+4. Updated set operations to return wrapped values (packages/runtime/src/operations/sets.ts)
+   - UNION, INTERSECTION, DIFFERENCE, COMPLEMENT, SORT, ALPHABETICAL_SORT
+   - All operations now return `{ kind: "set", elements: [...] }` format
+
+5. Updated temporal operations to handle generator factories (packages/runtime/src/operations/temporal.ts)
+   - FBY, NEXT, FIRST, ACCUMULATE now support generator function inputs
+   - Enables proper temporal semantics with stream sources
+
+6. Updated wrapDataSourceValue to handle sets and streams (packages/runtime/src/evaluator/demand-driven-evaluator.ts)
+   - Added special handling for set and stream types
+   - Ensures proper value wrapping for set and stream operations
+
+7. Implemented 4 stubbed integration tests:
+   - union.test.ts: Tests UNION operation on shape sets
+   - filter-sort.test.ts: Tests FILTER and SORT combined operations
+   - fby.test.ts: Tests FBY temporal operator with counter semantics
+   - streams.test.ts: Tests FIRST and NEXT stream operations
+
 **Dependencies:** None
+
+**Ralph Wiggum Checklist:**
+- [x] New functionality fully implemented (no stubs)
+- [x] All 4 integration tests now pass
+- [x] Previous tests still pass
+- [x] Typecheck passes
+- [x] Git commit with message: "test(integration): implement 4 stubbed integration tests"
+
+**Remaining Issues Discovered:**
+- Curriculum types (shape, animal, etc.) are not fully supported in parser
+  - Parser grammar does not have literal rules for curriculum types
+  - AST builder does not have methods for curriculum type literals
+  - Curriculum type values must be constructed programmatically in tests
+
+- Nested operation expressions (e.g., FBY(zero, ADD(counter, one))) are not supported by grammar
+  - Current grammar only allows literals or references as operation inputs
+  - Parser needs to support nested expressions
+  - This limits the ability to write more complex programs
 
 ---
 
@@ -2190,7 +2244,7 @@ Before moving to next layer, verify:
 | P2.1: Implement HTTP API | P2 | 4h | Enables CV system | Compiler, Runtime |
 | P2.2: Implement WebSocket Server | P2 | 6h | Enables IDE live feedback | IncrementalRuntime |
 
-**Total Estimated Time:** 19 hours
+**Total Estimated Time:** 19 hours (P0.1 complete: 17 hours remaining)
 
 ---
 
@@ -2254,7 +2308,7 @@ setLiteral(ctx: any) {
 - **Creation Date:** 2026-03-09
 
 ### Updated Files
-- **IMPLEMENTATION_PLAN.md:** Added prioritized task list, Biome configuration, corrected status
+- **IMPLEMENTATION_PLAN.md:** Added prioritized task list, Biome configuration, corrected status, marked P0.1 complete
 - **COMPREHENSIVE_ANALYSIS.md:** Created with detailed code analysis
 - **ANALYSIS_COMPLETE.md:** Created with executive summary
 
@@ -2265,9 +2319,9 @@ setLiteral(ctx: any) {
 Focus on Layer 7 (Integration) - this is the only remaining work to achieve MVP.
 
 **Order of Implementation:**
-1. **P0 (2h):** Implement 4 stubbed integration tests
+1. ~~**P0 (2h):** Implement 4 stubbed integration tests~~ ✓ **COMPLETE**
    - union.test.ts, filter-sort.test.ts, fby.test.ts, streams.test.ts
-   - All operations implemented, tests just need writing
+   - All operations implemented, tests now passing (16/16 integration tests)
 2. **P1 (7h):** Implement IncrementalRuntime class
    - Required by INTEGRATION_SPEC.md and DEMAND_DRIVEN_INCREMENTAL.md
    - Enables WebSocket server
@@ -2278,11 +2332,11 @@ Focus on Layer 7 (Integration) - this is the only remaining work to achieve MVP.
    - Required by INTEGRATION_SPEC.md
    - Enables IDE live feedback
 
-**Total Estimated Time:** 19 hours
+**Total Estimated Time:** 19 hours (17 hours remaining, P0 complete)
 
 ---
 
 **Document Status:** Active implementation plan
-**Next Review:** After implementing integration layer
+**Next Review:** After implementing P1 (IncrementalRuntime)
 **Maintainer:** Update as implementation progresses
-**Last Change:** 2026-03-09 - Comprehensive analysis completed, added prioritized task list (4 tasks, 19 hours)
+**Last Change:** 2026-03-11 - P0.1 complete: Implemented 4 stubbed integration tests, 70/72 tests passing, generator registry added, lexer word boundaries fixed, type validation updated, set/temporal operations updated

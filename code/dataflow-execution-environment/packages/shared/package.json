@@ -4,7 +4,9 @@
   "type": "module",
   "exports": {
     "./types": "./src/types/index.ts",
-    "./operations": "./src/operations/index.ts"
+    "./operations": "./src/operations/index.ts",
+    "./generators": "./src/generators/index.ts",
+    "./generators/registry": "./src/generators/registry.ts"
   },
   "scripts": {
     "build": "bun build src/types/index.ts --outdir=dist --target=bun",

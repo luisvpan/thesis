@@ -1,17 +1,17 @@
 import { createToken, Lexer } from "chevrotain";
 
-export const Source = createToken({ name: "Source", pattern: /source/i });
-export const Transform = createToken({ name: "Transform", pattern: /transform/i });
-export const Output = createToken({ name: "Output", pattern: /output/i });
+export const Source = createToken({ name: "Source", pattern: /\bsource\b/i });
+export const Transform = createToken({ name: "Transform", pattern: /\btransform\b/i });
+export const Output = createToken({ name: "Output", pattern: /\boutput\b/i });
 
-export const Natural = createToken({ name: "Natural", pattern: /natural/i });
-export const Integer = createToken({ name: "Integer", pattern: /integer/i });
-export const Decimal = createToken({ name: "Decimal", pattern: /decimal/i });
-export const Text = createToken({ name: "Text", pattern: /text/i });
-export const Boolean = createToken({ name: "Boolean", pattern: /boolean/i });
+export const Natural = createToken({ name: "Natural", pattern: /\bnatural\b/i });
+export const Integer = createToken({ name: "Integer", pattern: /\binteger\b/i });
+export const Decimal = createToken({ name: "Decimal", pattern: /\bdecimal\b/i });
+export const Text = createToken({ name: "Text", pattern: /\btext\b/i });
+export const Boolean = createToken({ name: "Boolean", pattern: /\bboolean\b/i });
 
-export const Set = createToken({ name: "Set", pattern: /set/i });
-export const Stream = createToken({ name: "Stream", pattern: /stream/i });
+export const Set = createToken({ name: "Set", pattern: /\bset\b/i });
+export const Stream = createToken({ name: "Stream", pattern: /\bstream\b/i });
 
 export const OperationKeyword = createToken({ name: "OperationKeyword", pattern: Lexer.NA })
 
@@ -50,52 +50,52 @@ export const First = createToken({ name: "First", pattern: /FIRST/, categories: 
 export const Fby = createToken({ name: "Fby", pattern: /FBY/, categories: OperationKeyword });
 export const Accumulate = createToken({ name: "Accumulate", pattern: /ACCUMULATE/, categories: OperationKeyword });
 
-export const Sensor = createToken({ name: "Sensor", pattern: /sensor/i });
-export const Generator = createToken({ name: "Generator", pattern: /generator/i });
-export const External = createToken({ name: "External", pattern: /external/i });
+export const Sensor = createToken({ name: "Sensor", pattern: /\bsensor\b/i });
+export const Generator = createToken({ name: "Generator", pattern: /\bgenerator\b/i });
+export const External = createToken({ name: "External", pattern: /\bexternal\b/i });
 
 export const Sort = createToken({ name: "Sort", pattern: /SORT/, categories: OperationKeyword });
 
-export const True = createToken({ name: "True", pattern: /true/i });
-export const False = createToken({ name: "False", pattern: /false/i });
+export const True = createToken({ name: "True", pattern: /\btrue\b/i });
+export const False = createToken({ name: "False", pattern: /\bfalse\b/i });
 
-export const Circle = createToken({ name: "Circle", pattern: /circle/i });
-export const Triangle = createToken({ name: "Triangle", pattern: /triangle/i });
-export const Square = createToken({ name: "Square", pattern: /square/i });
-export const Rectangle = createToken({ name: "Rectangle", pattern: /rectangle/i });
+export const Circle = createToken({ name: "Circle", pattern: /\bcircle\b/i });
+export const Triangle = createToken({ name: "Triangle", pattern: /\btriangle\b/i });
+export const Square = createToken({ name: "Square", pattern: /\bsquare\b/i });
+export const Rectangle = createToken({ name: "Rectangle", pattern: /\brectangle\b/i });
 
-export const Small = createToken({ name: "Small", pattern: /small/i });
-export const Medium = createToken({ name: "Medium", pattern: /medium/i });
-export const Large = createToken({ name: "Large", pattern: /large/i });
+export const Small = createToken({ name: "Small", pattern: /\bsmall\b/i });
+export const Medium = createToken({ name: "Medium", pattern: /\bmedium\b/i });
+export const Large = createToken({ name: "Large", pattern: /\blarge\b/i });
 
-export const Red = createToken({ name: "Red", pattern: /red/i });
-export const Blue = createToken({ name: "Blue", pattern: /blue/i });
-export const Yellow = createToken({ name: "Yellow", pattern: /yellow/i });
-export const Green = createToken({ name: "Green", pattern: /green/i });
-export const Orange = createToken({ name: "Orange", pattern: /orange/i });
-export const Purple = createToken({ name: "Purple", pattern: /purple/i });
-export const Black = createToken({ name: "Black", pattern: /black/i });
-export const White = createToken({ name: "White", pattern: /white/i });
+export const Red = createToken({ name: "Red", pattern: /\bred\b/i });
+export const Blue = createToken({ name: "Blue", pattern: /\bblue\b/i });
+export const Yellow = createToken({ name: "Yellow", pattern: /\byellow\b/i });
+export const Green = createToken({ name: "Green", pattern: /\bgreen\b/i });
+export const Orange = createToken({ name: "Orange", pattern: /\borange\b/i });
+export const Purple = createToken({ name: "Purple", pattern: /\bpurple\b/i });
+export const Black = createToken({ name: "Black", pattern: /\bblack\b/i });
+export const White = createToken({ name: "White", pattern: /\bwhite\b/i });
 
-export const Sweet = createToken({ name: "Sweet", pattern: /sweet/i });
-export const Salty = createToken({ name: "Salty", pattern: /salty/i });
-export const Sour = createToken({ name: "Sour", pattern: /sour/i });
-export const Bitter = createToken({ name: "Bitter", pattern: /bitter/i });
+export const Sweet = createToken({ name: "Sweet", pattern: /\bsweet\b/i });
+export const Salty = createToken({ name: "Salty", pattern: /\bsalty\b/i });
+export const Sour = createToken({ name: "Sour", pattern: /\bsour\b/i });
+export const Bitter = createToken({ name: "Bitter", pattern: /\bbitter\b/i });
 
-export const Dog = createToken({ name: "Dog", pattern: /dog/i });
-export const Cat = createToken({ name: "Cat", pattern: /cat/i });
-export const Bird = createToken({ name: "Bird", pattern: /bird/i });
-export const Fish = createToken({ name: "Fish", pattern: /fish/i });
-export const Rabbit = createToken({ name: "Rabbit", pattern: /rabbit/i });
-export const Turtle = createToken({ name: "Turtle", pattern: /turtle/i });
+export const Dog = createToken({ name: "Dog", pattern: /\bdog\b/i });
+export const Cat = createToken({ name: "Cat", pattern: /\bcat\b/i });
+export const Bird = createToken({ name: "Bird", pattern: /\bbird\b/i });
+export const Fish = createToken({ name: "Fish", pattern: /\bfish\b/i });
+export const Rabbit = createToken({ name: "Rabbit", pattern: /\brabbit\b/i });
+export const Turtle = createToken({ name: "Turtle", pattern: /\bturtle\b/i });
 
-export const Child = createToken({ name: "Child", pattern: /child/i });
-export const Teenager = createToken({ name: "Teenager", pattern: /teenager/i });
-export const Adult = createToken({ name: "Adult", pattern: /adult/i });
-export const Senior = createToken({ name: "Senior", pattern: /senior/i });
+export const Child = createToken({ name: "Child", pattern: /\bchild\b/i });
+export const Teenager = createToken({ name: "Teenager", pattern: /\bteenager\b/i });
+export const Adult = createToken({ name: "Adult", pattern: /\badult\b/i });
+export const Senior = createToken({ name: "Senior", pattern: /\bsenior\b/i });
 
-export const Male = createToken({ name: "Male", pattern: /male/i });
-export const Female = createToken({ name: "Female", pattern: /female/i });
+export const Male = createToken({ name: "Male", pattern: /\bmale\b/i });
+export const Female = createToken({ name: "Female", pattern: /\bfemale\b/i });
 
 export const Equals = createToken({ name: "Equals", pattern: /=/ });
 export const Colon = createToken({ name: "Colon", pattern: /:/ });

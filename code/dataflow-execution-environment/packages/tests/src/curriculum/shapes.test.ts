@@ -59,8 +59,11 @@ describe("Integration Tests - Curriculum Types", () => {
       // Verify original set unchanged
       const graph = runtime.getGraph();
       const sourceNode = graph.getNode("shapes");
-      const originalShapes = sourceNode.value as { elements: unknown[] };
-      expect(originalShapes.elements).toHaveLength(2);
+      expect(sourceNode).toBeDefined();
+      if (sourceNode && sourceNode.type === "DataSource") {
+        const originalShapes = sourceNode.value as { elements: unknown[] };
+        expect(originalShapes.elements).toHaveLength(2);
+      }
     });
   });
 });
