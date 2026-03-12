@@ -2443,7 +2443,7 @@ Before moving to next layer, verify:
 | Task | Priority | Status | Time | Impact | Dependencies |
 |------|----------|--------|--------|-------------|
 | P0.1: Implement 4 stubbed integration tests | P0 | ✓ COMPLETE | 2h | Test coverage 100% | None |
-| P1.1: Add fraction literal support | P1 | PENDING | 2h | Fraction parsing per spec | None |
+| P1.1: Add fraction literal support | P1 | ✓ COMPLETE | 2h | Fraction parsing per spec | None |
 | P1.2: Add curriculum type declaration tokens | P1 | PENDING | 1h | Educational features | None |
 | P1.3: Implement IncrementalRuntime | P1 | PENDING | 7h | Enables WebSocket | None |
 | P1.4: Implement HTTP API | P1 | PENDING | 10h | Enables CV system | Compiler, Runtime |
@@ -2460,7 +2460,7 @@ Before moving to next layer, verify:
 Focus on completing Layer 7 (Integration) - this is the remaining work to achieve MVP.
 
 **Order of Implementation:**
-1. **P1.1 (2h):** Add fraction literal support
+1. ✓ **P1.1 (2h):** Add fraction literal support - COMPLETE 2026-03-12
    - Slash token (/) in lexer
    - fractionLiteral rule in parser
    - fractionLiteral handler in AST builder
@@ -2493,6 +2493,6 @@ Focus on completing Layer 7 (Integration) - this is the remaining work to achiev
 ---
 
 **Document Status:** Active implementation plan
-**Next Review:** After implementing P1.1 (fraction literal support)
+**Next Review:** After implementing P1.2 (curriculum type declaration tokens)
 **Maintainer:** Update as implementation progresses
-**Last Change:** 2026-03-11 - Updated with research findings RF1-RF5, added tasks P1.1, P1.2, P2.1, P2.2, prioritized remaining tasks, corrected composite type issue status, updated progress percentages
+**Last Change:** 2026-03-12 - Completed P1.1 (fraction literal support), updated Layer 6 to 100%, updated summary table and next steps
