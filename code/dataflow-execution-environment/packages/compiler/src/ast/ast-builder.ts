@@ -1,6 +1,6 @@
 import { IToken } from "chevrotain";
 import { DataflowParser } from "../parser"; // Importa tu clase de Parser
-import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, ExternalSourceCstChildren, GeneratorSourceCstChildren, LiteralCstChildren, ObjectLiteralCstChildren, OperationExpressionCstChildren, OperationNameCstChildren, OutputStatementCstChildren, ProgramCstChildren, SensorSourceCstChildren, SetLiteralCstChildren, SetTypeCstChildren, SourceStatementCstChildren, StatementCstChildren, StreamLiteralCstChildren, StreamTypeCstChildren, TransformStatementCstChildren, TypeDeclarationCstChildren, ValueCstChildren } from "../types/cst-generated-types";
+import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, ExternalSourceCstChildren, FractionLiteralCstChildren, GeneratorSourceCstChildren, LiteralCstChildren, ObjectLiteralCstChildren, OperationExpressionCstChildren, OperationNameCstChildren, OutputStatementCstChildren, ProgramCstChildren, SensorSourceCstChildren, SetLiteralCstChildren, SetTypeCstChildren, SourceStatementCstChildren, StatementCstChildren, StreamLiteralCstChildren, StreamTypeCstChildren, TransformStatementCstChildren, TypeDeclarationCstChildren, ValueCstChildren } from "../types/cst-generated-types";
 
 const parserInstance = new DataflowParser();
 const BaseVisitor = parserInstance.getBaseCstVisitorConstructor();
@@ -37,6 +37,7 @@ export class AstBuilder extends BaseVisitor {
     if (ctx.Natural) return "natural";
     if (ctx.Integer) return "integer";
     if (ctx.Decimal) return "decimal";
+    if (ctx.Fraction) return "fraction";
     if (ctx.Text) return "text";
     if (ctx.Boolean) return "boolean";
     if (ctx.setType) return this.visit(ctx.setType);
@@ -60,6 +61,7 @@ export class AstBuilder extends BaseVisitor {
   }
 
   literal(ctx: LiteralCstChildren) {
+    if (ctx.fractionLiteral) return this.visit(ctx.fractionLiteral);
     if (ctx.NumberLiteral) return parseFloat(ctx.NumberLiteral[0].image);
     if (ctx.StringLiteral) return ctx.StringLiteral[0].image.slice(1, -1);
     if (ctx.True) return true;
@@ -81,6 +83,16 @@ export class AstBuilder extends BaseVisitor {
 
   setLiteral(ctx: SetLiteralCstChildren) {
     return ctx.value?.map((v) => this.visit(v)) || [];
+  }
+
+  fractionLiteral(ctx: FractionLiteralCstChildren) {
+    const numerator = parseInt(ctx.NumberLiteral[0].image, 10);
+    const denominator = parseInt(ctx.NumberLiteral[1].image, 10);
+    return {
+      kind: "fraction",
+      numerator,
+      denominator
+    };
   }
 
   sensorSource(ctx: SensorSourceCstChildren) {

@@ -7,6 +7,7 @@ import {
   Natural,
   Integer,
   Decimal,
+  Fraction,
   Text,
   Boolean,
   Set,
@@ -60,6 +61,7 @@ import {
   AngleLeft,
   AngleRight,
   Dot,
+  Slash,
   Minus,
   NumberLiteral,
   StringLiteral,
@@ -119,6 +121,7 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(Natural) },
       { ALT: () => this.CONSUME(Integer) },
       { ALT: () => this.CONSUME(Decimal) },
+      { ALT: () => this.CONSUME(Fraction) },
       { ALT: () => this.CONSUME(Text) },
       { ALT: () => this.CONSUME(Boolean) },
       { ALT: () => this.SUBRULE(this.setType) },
@@ -155,6 +158,7 @@ export class DataflowParser extends CstParser {
 
   literal = this.RULE("literal", () => {
     this.OR([
+      { ALT: () => this.SUBRULE(this.fractionLiteral) },
       { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(True) },
@@ -205,6 +209,12 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.SUBRULE(this.externalSource) }
     ]);
     this.CONSUME(RParen);
+  });
+
+  fractionLiteral = this.RULE("fractionLiteral", () => {
+    this.CONSUME1(NumberLiteral);
+    this.CONSUME(Slash);
+    this.CONSUME2(NumberLiteral);
   });
 
   sensorSource = this.RULE("sensorSource", () => {

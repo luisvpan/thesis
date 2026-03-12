@@ -7,6 +7,7 @@ export const Output = createToken({ name: "Output", pattern: /\boutput\b/i });
 export const Natural = createToken({ name: "Natural", pattern: /\bnatural\b/i });
 export const Integer = createToken({ name: "Integer", pattern: /\binteger\b/i });
 export const Decimal = createToken({ name: "Decimal", pattern: /\bdecimal\b/i });
+export const Fraction = createToken({ name: "Fraction", pattern: /\bfraction\b/i });
 export const Text = createToken({ name: "Text", pattern: /\btext\b/i });
 export const Boolean = createToken({ name: "Boolean", pattern: /\bboolean\b/i });
 
@@ -110,6 +111,7 @@ export const Comma = createToken({ name: "Comma", pattern: /,/ });
 export const AngleLeft = createToken({ name: "AngleLeft", pattern: /</ });
 export const AngleRight = createToken({ name: "AngleRight", pattern: />/ });
 export const Dot = createToken({ name: "Dot", pattern: /\./ });
+export const Slash = createToken({ name: "Slash", pattern: /\// });
 export const Minus = createToken({ name: "Minus", pattern: /-/ });
 
 export const Identifier = createToken({ name: "Identifier", pattern: /[a-zA-Z_]\w*/ });
@@ -139,6 +141,7 @@ export const allTokens = [
   Natural,
   Integer,
   Decimal,
+  Fraction,
   Text,
   Boolean,
   Set,
@@ -223,6 +226,7 @@ export const allTokens = [
   AngleLeft,
   AngleRight,
   Dot,
+  Slash,
   Minus,
   Identifier,
   NumberLiteral,
