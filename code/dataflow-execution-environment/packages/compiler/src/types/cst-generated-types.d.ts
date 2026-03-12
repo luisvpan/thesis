@@ -76,6 +76,11 @@ export type TypeDeclarationCstChildren = {
   Fraction?: IToken[];
   Text?: IToken[];
   Boolean?: IToken[];
+  Shape?: IToken[];
+  Car?: IToken[];
+  Food?: IToken[];
+  Animal?: IToken[];
+  Person?: IToken[];
   setType?: SetTypeCstNode[];
   streamType?: StreamTypeCstNode[];
 };

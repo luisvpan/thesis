@@ -11,6 +11,12 @@ export const Fraction = createToken({ name: "Fraction", pattern: /\bfraction\b/i
 export const Text = createToken({ name: "Text", pattern: /\btext\b/i });
 export const Boolean = createToken({ name: "Boolean", pattern: /\bboolean\b/i });
 
+export const Shape = createToken({ name: "Shape", pattern: /\bshape\b/i });
+export const Car = createToken({ name: "Car", pattern: /\bcar\b/i });
+export const Food = createToken({ name: "Food", pattern: /\bfood\b/i });
+export const Animal = createToken({ name: "Animal", pattern: /\banimal\b/i });
+export const Person = createToken({ name: "Person", pattern: /\bperson\b/i });
+
 export const Set = createToken({ name: "Set", pattern: /\bset\b/i });
 export const Stream = createToken({ name: "Stream", pattern: /\bstream\b/i });
 
@@ -144,6 +150,11 @@ export const allTokens = [
   Fraction,
   Text,
   Boolean,
+  Shape,
+  Car,
+  Food,
+  Animal,
+  Person,
   Set,
   Stream,
   CompareBySize,

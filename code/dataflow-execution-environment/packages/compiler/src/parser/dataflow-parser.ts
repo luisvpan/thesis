@@ -10,6 +10,11 @@ import {
   Fraction,
   Text,
   Boolean,
+  Shape,
+  Car,
+  Food,
+  Animal,
+  Person,
   Set,
   Stream,
   Add,
@@ -124,6 +129,11 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(Fraction) },
       { ALT: () => this.CONSUME(Text) },
       { ALT: () => this.CONSUME(Boolean) },
+      { ALT: () => this.CONSUME(Shape) },
+      { ALT: () => this.CONSUME(Car) },
+      { ALT: () => this.CONSUME(Food) },
+      { ALT: () => this.CONSUME(Animal) },
+      { ALT: () => this.CONSUME(Person) },
       { ALT: () => this.SUBRULE(this.setType) },
       { ALT: () => this.SUBRULE(this.streamType) }
     ]);

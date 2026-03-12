@@ -40,6 +40,11 @@ export class AstBuilder extends BaseVisitor {
     if (ctx.Fraction) return "fraction";
     if (ctx.Text) return "text";
     if (ctx.Boolean) return "boolean";
+    if (ctx.Shape) return "shape";
+    if (ctx.Car) return "car";
+    if (ctx.Food) return "food";
+    if (ctx.Animal) return "animal";
+    if (ctx.Person) return "person";
     if (ctx.setType) return this.visit(ctx.setType);
     if (ctx.streamType) return this.visit(ctx.streamType);
   }
