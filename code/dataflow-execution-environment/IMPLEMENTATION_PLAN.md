@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-11 (P0.1 complete - 4 stubbed integration tests implemented, 70/72 tests passing, Layers 1-6 COMPLETE, Layer 7 IN PROGRESS at 25%)
+**Last Updated:** 2026-03-12 (P1.1, P1.2 complete - fraction literals and curriculum type declarations implemented, 70/72 tests passing, Layers 1-6 COMPLETE, Layer 7 IN PROGRESS at 25%)
 
 ---
 
@@ -73,7 +73,7 @@ packages/
 **Last Updated:** 2026-03-11
 **Analysis Date:** 2026-03-11
 
-### Overall Progress: ~81% Complete (Core compiler/runtime complete, integration layer 25% complete, fraction literals complete)
+### Overall Progress: ~82% Complete (Core compiler/runtime complete, integration layer 25% complete, fraction literals and curriculum types complete)
 
 ### Test Status Summary
 - **Total Tests:** 72
@@ -107,7 +107,7 @@ packages/
 |-------|--------|------------|---------------|
 | Layer 1: Foundation | COMPLETE | 100% | 100% |
 | Layer 2: Arithmetic | COMPLETE | 100% | 100% |
-| Layer 3: Curriculum Types | COMPLETE | 95% | 100% (missing curriculum type declaration tokens) |
+| Layer 3: Curriculum Types | COMPLETE | 100% | 100% |
 | Layer 4: Set Operations | COMPLETE | 100% | 100% |
 | Layer 5: Temporal Operators | COMPLETE | 100% | 100% |
 | Layer 6: Streams | COMPLETE | 100% | 100% |
@@ -2290,10 +2290,15 @@ Before moving to next layer, verify:
 
 ---
 
-#### Task P1.2: Add Curriculum Type Declaration Tokens (NEW)
+#### Task P1.2: Add Curriculum Type Declaration Tokens ✓ **COMPLETE**
 
-**Files to update:**
-- packages/compiler/src/lexer/tokens.ts (add Shape, Animal, Car, Food, Person tokens)
+**Completion Date:** 2026-03-12
+
+**Files updated:**
+- packages/compiler/src/lexer/tokens.ts (added Shape, Animal, Car, Food, Person tokens)
+- packages/compiler/src/parser/dataflow-parser.ts (added curriculum types to typeDeclaration rule)
+- packages/compiler/src/ast/ast-builder.ts (added curriculum types to typeDeclaration handler)
+- packages/compiler/src/types/cst-generated-types.d.ts (added curriculum type tokens to CST types)
 
 **Why Critical:**
 - Lexer has curriculum type LITERAL tokens (Circle, Triangle, Dog, Cat)
@@ -2301,26 +2306,26 @@ Before moving to next layer, verify:
 - set<shape>, set<animal>, stream<shape>, stream<animal> declarations fail
 - Important for educational features
 
-**Estimated Time:** 1 hour
+**Actual Time:** 0.5 hours
 
 **Dependencies:** None
 
 **Acceptance Criteria:**
-- Shape, Animal, Car, Food, Person tokens added to lexer
-- Tokens included in allTokens array
-- TypeScript compiles
-- Curriculum type declarations parse correctly
+- ✓ Shape, Animal, Car, Food, Person tokens added to lexer
+- ✓ Tokens included in allTokens array
+- ✓ TypeScript compiles
+- ✓ Curriculum type declarations parse correctly
 
 **Layer:** Layer 3 (Curriculum Types)
 
 **Spec Reference:** specs/LANGUAGE_SPEC.md (curriculum type declarations section)
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Curriculum type declaration tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(lexer): add curriculum type declaration tokens"
+- [x] New functionality fully implemented
+- [x] Curriculum type declaration tests pass
+- [x] Typecheck passes
+- [x] Previous tests still pass
+- [x] Git commit with message: "feat(lexer): add curriculum type declaration tokens"
 
 ---
 
@@ -2444,14 +2449,14 @@ Before moving to next layer, verify:
 |------|----------|--------|--------|-------------|
 | P0.1: Implement 4 stubbed integration tests | P0 | ✓ COMPLETE | 2h | Test coverage 100% | None |
 | P1.1: Add fraction literal support | P1 | ✓ COMPLETE | 2h | Fraction parsing per spec | None |
-| P1.2: Add curriculum type declaration tokens | P1 | PENDING | 1h | Educational features | None |
+| P1.2: Add curriculum type declaration tokens | P1 | ✓ COMPLETE | 1h | Educational features | None |
 | P1.3: Implement IncrementalRuntime | P1 | PENDING | 7h | Enables WebSocket | None |
 | P1.4: Implement HTTP API | P1 | PENDING | 10h | Enables CV system | Compiler, Runtime |
 | P2.1: Implement nested operation expressions | P2 | PENDING | 1.5h | Complex expressions | None |
 | P2.2: Implement 2 stubbed performance tests | P2 | PENDING | 1.5h | Performance metrics | None |
 | P3.1: Implement WebSocket Server | P3 | PENDING | 12h | IDE live feedback | IncrementalRuntime |
 
-**Total Estimated Time:** 37 hours (2 hours complete: 35 hours remaining)
+**Total Estimated Time:** 37 hours (3 hours complete: 34 hours remaining)
 
 ---
 
@@ -2466,7 +2471,7 @@ Focus on completing Layer 7 (Integration) - this is the remaining work to achiev
    - fractionLiteral handler in AST builder
    - Enables fraction parsing per spec
 
-2. **P1.2 (1h):** Add curriculum type declaration tokens
+2. ✓ **P1.2 (1h):** Add curriculum type declaration tokens - COMPLETE 2026-03-12
    - Shape, Animal, Car, Food, Person tokens in lexer
    - Enables set<shape>, set<animal> declarations
 
@@ -2488,11 +2493,11 @@ Focus on completing Layer 7 (Integration) - this is the remaining work to achiev
    - Required by INTEGRATION_SPEC.md
    - Enables IDE live feedback
 
-**Total Estimated Time:** 35 hours remaining (2 hours complete)
+**Total Estimated Time:** 34 hours remaining (3 hours complete)
 
 ---
 
 **Document Status:** Active implementation plan
-**Next Review:** After implementing P1.2 (curriculum type declaration tokens)
+**Next Review:** After implementing P1.3 (IncrementalRuntime)
 **Maintainer:** Update as implementation progresses
-**Last Change:** 2026-03-12 - Completed P1.1 (fraction literal support), updated Layer 6 to 100%, updated summary table and next steps
+**Last Change:** 2026-03-12 - Completed P1.2 (curriculum type declarations), updated Layer 3 to 100%, updated summary table and next steps
