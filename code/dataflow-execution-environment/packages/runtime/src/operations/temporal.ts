@@ -2,9 +2,9 @@ import { DataflowGraph } from "../graph/dataflow-graph.js";
 
 export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
   const [stream] = inputs;
-  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown>, generatorFactory?: () => Generator<unknown> };
-  
-  const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
+  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+
+  const gen = streamValue.generator;
   if (!gen) {
     throw new Error('Stream does not have a generator');
   }
@@ -22,16 +22,9 @@ export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number
 
 export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
   const [stream] = inputs;
-  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown>, generatorFactory?: () => Generator<unknown> };
-  
-  const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
-  if (!gen) {
-    throw new Error('Stream does not have a generator');
-  }
-  
-  const result = gen.next();
-  
-  const value = result.done ? undefined : result.value;
+  const streamValue = stream.value as { kind: "stream"; elementType: string; firstValue: unknown };
+
+  const value = streamValue.firstValue;
   if (typeof value === 'number') {
     return { kind: "natural", value };
   }
@@ -45,9 +38,9 @@ export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number,
     return initial.value;
   }
   
-  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown>, generatorFactory?: () => Generator<unknown> };
-  
-  const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
+  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+
+  const gen = streamValue.generator;
   if (!gen) {
     throw new Error('Stream does not have a generator');
   }

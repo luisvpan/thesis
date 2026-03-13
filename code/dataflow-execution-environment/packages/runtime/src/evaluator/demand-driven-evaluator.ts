@@ -46,7 +46,7 @@ export class DemandDrivenEvaluator {
 
     let value: unknown;
     if (node.type === "DataSource") {
-      value = this.wrapDataSourceValue(node);
+      value = this.wrapDataSourceValue(node, time);
     } else if (node.type === "Transformation") {
       const inputNodes = graph.getInputs(nodeId);
       value = this.evaluateOperation(node.operation, inputNodes, time, graph);
@@ -66,7 +66,7 @@ export class DemandDrivenEvaluator {
     return value;
   }
 
-  private wrapDataSourceValue(node: { type: "DataSource"; dataType: string | { kind: string; elementType?: any }; value: unknown }): unknown {
+  private wrapDataSourceValue(node: { type: "DataSource"; dataType: string | { kind: string; elementType?: any }; value: unknown }, time: number): unknown {
     const numValue = typeof node.value === "number" ? node.value : node.value;
     const dataType = typeof node.dataType === "string" ? node.dataType : (node.dataType as { kind: string; elementType?: any }).kind;
 
@@ -95,7 +95,15 @@ export class DemandDrivenEvaluator {
         return { kind: "person" as const, ...numValue as { ageGroup: string; gender: string } };
       default:
         if (dataType.startsWith("stream")) {
-          return node.value;
+          const streamValue = node.value as { kind: "stream"; elementType: string; generatorFactory?: () => Generator<unknown>; generator: Generator<unknown> };
+          const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
+          const firstValue = gen.next().value;
+          return {
+            kind: "stream" as const,
+            elementType: streamValue.elementType,
+            generator: gen,
+            firstValue
+          };
         }
         if (dataType.startsWith("set")) {
           const elementType = this.extractElementType(dataType);
