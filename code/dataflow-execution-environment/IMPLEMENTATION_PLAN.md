@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-13 (Comprehensive subagent study completed, 14 TypeScript errors identified, prioritization updated)
+**Last Updated:** 2026-03-13 (P0.3 and P1.4 completed - TypeScript errors fixed, nested operations implemented)
 
 ---
 
@@ -37,16 +37,17 @@ packages/
 
 ## Current Implementation Status
 
-**Last Updated:** 2026-03-13 (Comprehensive subagent study completed, 14 TypeScript errors identified, prioritization updated)
+**Last Updated:** 2026-03-13 (P0.3 and P1.4 completed - TypeScript compilation passes, nested operations implemented)
 
-### Overall Progress: ~70% Complete (Core compiler/runtime ~90%, Layer 7 at 30%)
+### Overall Progress: ~75% Complete (Core compiler/runtime ~95%, Layer 7 at 30%)
 
 **Current Status:**
 - **Layer 7** at 30% implemented (HTTP API functional but needs refactoring)
   - `packages/http-api/src/` - Implemented (server.ts, routes.ts, index.ts) but doesn't follow Elysia best practices
   - `packages/websocket-server/src/` - Empty (0 TypeScript files)
   - `packages/runtime/src/incremental-runtime.ts` - Does not exist (blocks WebSocket)
-  - **14 TypeScript errors** across packages (blocks compilation) - P0 CRITICAL
+  - **TypeScript compilation passes** ✅ (previously blocked by 14 errors - NOW FIXED)
+  - **Nested operation expressions implemented** ✅ (parser updated, AST builder updated, tests passing)
 
 ### Test Status Summary
 - **Total Tests:** 91 tests, all passing (100%)
@@ -1033,11 +1034,11 @@ TypeScript strict mode violations across packages:
 |------|----------|--------|------|--------|--------------|
 | **P0.1: Fix temporal operations state bug** | P0 | COMPLETED ✅ | 2h | **CRITICAL** - breaks core semantics | None |
 | **P0.2: Implement 2 stubbed performance tests** | P0 | COMPLETED ✅ | 1.5h | Test coverage 100% | None |
-| **P0.3: Fix 14 TypeScript errors** | P0 | NOT STARTED | 4h | **CRITICAL** - blocks compilation | None |
+| **P0.3: Fix 14 TypeScript errors** | P0 | COMPLETED ✅ | 4h | **CRITICAL** - blocks compilation | None |
 | **P1.1: Implement HTTP API** | P1 | COMPLETED ✅ | 10h | **MVP** - enables CV system | Compiler, Runtime |
 | **P1.2: Implement IncrementalRuntime** | P1 | NOT STARTED | 7h | **MVP** - required for WebSocket | None |
 | **P1.3: Implement missing compiler validation** | P1 | NOT STARTED | 4h | Quality improvement | None |
-| **P1.4: Implement nested operation expressions** | P1 | NOT STARTED | 1.5h | **Grammar compliance** - breaks spec | None |
+| **P1.4: Implement nested operation expressions** | P1 | COMPLETED ✅ | 1.5h | **Grammar compliance** - completes spec | None |
 | **P1.5: Implement Fraction operations** | P1 | NOT STARTED | 3h | **Type system** - breaks completeness | None |
 | **P2.1: Refactor HTTP API (Elysia best practices)** | P2 | NOT STARTED | 11h | Quality & maintainability | None |
 | **P2.2: Make Set/Stream operations generic** | P2 | NOT STARTED | 4h | Removes natural-only restriction | None |
@@ -1046,7 +1047,7 @@ TypeScript strict mode violations across packages:
 | **P3.1: Implement WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | P1.2 |
 | **P3.2: Fix TypeScript type union complexity** | P3 | NOT STARTED | 2.5h | Effective validation | None |
 
-**Total Estimated Time:** 67.5 hours (13.5h completed) - Updated after subagent study
+**Total Estimated Time:** 67.5 hours (19h completed) - Updated after subagent study
 
 **Previous Work Completed:**
 - ✓ Layers 1-6: COMPLETE (Foundation, Arithmetic, Curriculum Types, Sets, Temporal, Streams)
