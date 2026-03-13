@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-13 (P1.1 completed: 91/91 tests passing, HTTP API implemented, Layer 7 at 30%)
+**Last Updated:** 2026-03-13 (Comprehensive subagent study completed, 14 TypeScript errors identified, prioritization updated)
 
 ---
 
@@ -37,15 +37,16 @@ packages/
 
 ## Current Implementation Status
 
-**Last Updated:** 2026-03-13 (P1.1 completed: HTTP API server implemented)
+**Last Updated:** 2026-03-13 (Comprehensive subagent study completed, 14 TypeScript errors identified, prioritization updated)
 
-### Overall Progress: ~75% Complete (Core compiler/runtime ~90%, Layer 7 at 30%)
+### Overall Progress: ~70% Complete (Core compiler/runtime ~90%, Layer 7 at 30%)
 
 **Current Status:**
-- **Layer 7** at 30% implemented (HTTP API complete with 12/12 tests passing)
-  - `packages/http-api/src/` - Implemented (server.ts, routes.ts, index.ts)
+- **Layer 7** at 30% implemented (HTTP API functional but needs refactoring)
+  - `packages/http-api/src/` - Implemented (server.ts, routes.ts, index.ts) but doesn't follow Elysia best practices
   - `packages/websocket-server/src/` - Empty (0 TypeScript files)
-  - `packages/runtime/src/incremental-runtime.ts` - Does not exist
+  - `packages/runtime/src/incremental-runtime.ts` - Does not exist (blocks WebSocket)
+  - **14 TypeScript errors** across packages (blocks compilation) - P0 CRITICAL
 
 ### Test Status Summary
 - **Total Tests:** 91 tests, all passing (100%)
@@ -53,17 +54,17 @@ packages/
 - **Categories Covered:**
   - 1, 2, 3, 5, 6: FULLY COVERED
   - 4: PARTIALLY COVERED
-  - 7: PARTIAL (7/7 performance tests passing)
+  - 7: PARTIAL (7/7 performance + 12/12 HTTP API tests passing)
 
 ### Component Status Summary
 
 | Component | Status | Completion | Notes |
 |-----------|--------|------------|-------|
 | **Shared Package** | Mostly Complete | 85% | 24 operations, 1 generator, all types defined. Issues: Fraction ops missing, Set/Stream not generic, SetType uses `unknown[]` |
-| **Compiler Package** | Mostly Complete | 90% | Lexer/Parser/AST/Validation/Compiler all implemented. Missing validation: set homogeneity, stream consistency, output node req, car/food/animal properties |
-| **Runtime Package** | Partial | 80% | Core evaluator CORRECT, operations implemented, temporal ops fixed. Missing: Incremental Runtime (0%) |
-| **HTTP API Package** | Complete | 100% | Server, routes, all endpoints implemented. 12/12 HTTP API tests passing |
-| **WebSocket Server Package** | Not Started | 0% | Empty directory, no implementation |
+| **Compiler Package** | Mostly Complete | 90% | Lexer/Parser/AST/Validation/Compiler all implemented. Missing: 4 validation rules (set homogeneity, stream consistency, output node req, car/food/animal props), parser missing nested operations support |
+| **Runtime Package** | Partial | 80% | Core evaluator CORRECT, operations implemented, temporal ops fixed. Missing: IncrementalRuntime.ts (0%), has 14 TypeScript errors |
+| **HTTP API Package** | Functional | 60% | Server, routes, all endpoints implemented and passing 12/12 tests. Doesn't follow Elysia best practices: no Elysia.t validation, no error middleware, no plugin pattern, no Eden Treaty. ~11 hours to refactor |
+| **WebSocket Server Package** | Not Started | 0% | Empty directory, no implementation (blocked by IncrementalRuntime) |
 
 ### Layer Progress
 
@@ -171,7 +172,38 @@ Generators should be cached by the evaluator, not recreated. The evaluator alrea
 
 ---
 
-### Blocker 3: Missing Compiler Validation (P1 - HIGH for MVP)
+### Blocker 3: 14 TypeScript Errors Across Packages (P0 - CRITICAL)
+
+**Status:** BLOCKING - Discovered 2026-03-13 (Comprehensive subagent study)
+
+**Issue:**
+TypeScript compilation fails with 14 errors across multiple packages:
+- http-api: Multiple type errors related to missing Elysia type annotations
+- compiler: Type validation warnings
+- runtime: Type inference and validation issues
+
+**Impact:**
+- **Blocks compilation** → Cannot build or run any code
+- No development can proceed until these are fixed
+- **CRITICAL PATH** - must be resolved before any other work
+
+**Priority:** P0 - CRITICAL (blocks all development)
+
+**Estimated Time:** 4 hours
+
+**Files Affected:**
+- `packages/http-api/src/*.ts` (server.ts, routes.ts, index.ts)
+- `packages/compiler/src/validation/dag-validator.ts`
+- `packages/runtime/src/*.ts` (various files)
+
+**Acceptance Criteria:**
+- ✅ `bun run typecheck` passes with zero errors
+- ✅ All packages build successfully
+- ✅ No TypeScript warnings in any package
+
+---
+
+### Blocker 4: Missing Compiler Validation (P1 - HIGH for MVP)
 
 **Status:** PARTIALLY COMPLETE
 **Discovered:** 2026-03-13 (Compiler subagent study)
@@ -215,23 +247,26 @@ Generators should be cached by the evaluator, not recreated. The evaluator alrea
 
 ### Task Prioritization Framework
 
-**P0 - CRITICAL (Fixes show-stopper bugs, blocks core functionality)**
-- Temporal operations state bug (breaks semantics)
-- Performance tests (quick win, blocks 100% test coverage)
+**P0 - CRITICAL (Fixes show-stopper bugs, blocks compilation)**
+- 14 TypeScript errors across packages (blocks all development - NEW)
+- Temporal operations state bug (breaks semantics) ✅ FIXED
+- Performance tests (quick win, blocks 100% test coverage) ✅ COMPLETED
 
-**P1 - HIGH (Required for MVP completion)**
-- HTTP API (CV system integration)
-- Incremental Runtime (required for WebSocket)
-- Missing compiler validation (quality improvement)
+**P1 - HIGH (Required for MVP/core functionality)**
+- IncrementalRuntime.ts DOES NOT EXIST (blocks WebSocket)
+- Parser missing nested operations (breaks grammar spec compliance - raised from P2)
+- Fraction operations (type defined but no implementation - breaks type system - raised from P2)
+- HTTP API for CV system (functional but needs refactoring)
+- Missing compiler validation (4 rules, reduces quality)
 
-**P2 - MEDIUM (Nice to have, improves language or UX)**
-- Fraction operations (completes type system)
+**P2 - MEDIUM (Quality improvements, completeness)**
+- Refactor HTTP API to follow Elysia best practices (~11 hours - NEW)
 - Generic set/stream operations (removes natural-only restriction)
-- Nested operation expressions (enables complex expressions)
 - Child-friendly Spanish messages (better UX for ages 6-9)
+- Improve SORT operations (SORT only numbers, ALPHABETICAL_SORT converts to string - NEW)
 
 **P3 - LOW (Post-MVP, nice to have)**
-- WebSocket server (IDE live feedback - can be done later)
+- WebSocket server (IDE live feedback - 12 hours, depends on IncrementalRuntime)
 - Fix TypeScript type union complexity (nice to have)
 
 ---
@@ -333,7 +368,57 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 
 ---
 
-### P1 HIGH (Required for MVP - Layer 7 & Quality)
+#### Task P0.3: Fix 14 TypeScript Errors Across Packages
+
+**Status:** NOT STARTED - Discovered 2026-03-13
+
+**Files to fix:**
+- `packages/http-api/src/*.ts` (server.ts, routes.ts, index.ts) - Missing Elysia type annotations
+- `packages/compiler/src/validation/dag-validator.ts` - Type validation warnings
+- `packages/runtime/src/*.ts` - Type inference and validation issues
+
+**Why Critical:**
+- **Blocks all compilation** → Cannot build or run any code
+- No development can proceed until these are fixed
+- Current code passes tests but typecheck fails
+- **CRITICAL PATH** - must be resolved before any other work
+
+**Root Cause:**
+TypeScript strict mode violations across packages:
+- http-api: Manual type assertions instead of Elysia.t schema validation
+- compiler: Complex type unions preventing proper validation
+- runtime: Missing type annotations in operation implementations
+
+**Estimated Time:** 4 hours
+
+**Dependencies:** None
+
+### From Acceptance Criteria:
+- ✅ `bun run typecheck` passes with zero errors
+- ✅ All packages build successfully
+- ✅ No TypeScript warnings in any package
+- ✅ Proper Elysia.t type validation in HTTP API
+
+### Required Tests:
+- [ ] Verify typecheck passes: `bun run typecheck`
+- [ ] Verify all packages build: `bun run --filter '*' build`
+- [ ] Verify tests still pass after fixes
+- [ ] No new TypeScript errors introduced
+
+**Layer:** Cross-layer (type safety)
+
+**Spec Reference:** specs/ELYSIA_LLMS.md (Elysia best practices), TypeScript strict mode requirements
+
+**Ralph Wiggum Checklist:**
+- [ ] All 14 TypeScript errors fixed
+- [ ] `bun run typecheck` passes
+- [ ] All packages build successfully
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(typescript): resolve 14 TypeScript compilation errors across packages"
+
+---
+
+### P1 HIGH (Required for MVP - Layer 7 & Core Functionality)
 
 #### Task P1.1: Implement HTTP API (Batch Mode) ✅ COMPLETED
 
@@ -511,9 +596,54 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 
 ---
 
-### P2 MEDIUM (Nice to have - Completeness & UX)
+#### Task P1.4: Implement Nested Operation Expressions (Raised from P2)
 
-#### Task P2.1: Implement Fraction Operations
+**Status:** NOT STARTED
+
+**Files to update:**
+- `packages/compiler/src/parser/dataflow-parser.ts` (line 284-289 - add third alternative to argument rule)
+- `packages/compiler/src/ast/ast-builder.ts` (line 163-166 - add handler for ctx.operationExpression)
+
+**Why Critical (Raised from P2):**
+- **Breaks grammar spec compliance** - Grammar spec (GRAMMAR_SPEC.md:196-198) explicitly allows `argument ::= identifier | literal | operation`
+- Parser argument rule currently only implements identifier and literal
+- Missing third alternative: operation
+- Enables complex expressions like ADD(ADD(a, b), c)
+- Workaround exists but adds cognitive burden for children
+- **Raises from P2 to P1** - Grammar compliance is critical for language completeness
+
+**Estimated Time:** 1.5 hours
+
+**Dependencies:** None
+
+### From Acceptance Criteria (specs/GRAMMAR_SPEC.md lines 196-198):
+- ✓ Grammar rule `argument ::= identifier | literal | operation` fully implemented
+- ✓ Parser accepts nested operations as arguments
+- ✓ AST correctly represents nested structure
+- ✓ Nested expressions evaluate correctly
+
+### Required Tests:
+- [ ] Test: ADD(ADD(3, 2), 1) parses correctly
+- [ ] Test: MULTIPLY(ADD(a, b), SUBTRACT(c, d)) parses correctly
+- [ ] Test: Nested operations with filters work
+- [ ] Test: Deeply nested expressions (3+ levels) work
+- [ ] Test: Nested operations maintain correct type checking
+- [ ] Test: Nested operations execute with correct semantics
+
+**Layer:** All layers (expression support)
+
+**Spec Reference:** `specs/GRAMMAR_SPEC.md` line 196-198
+
+**Ralph Wiggum Checklist:**
+- [ ] Nested operation expressions implemented
+- [ ] Nested operation tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(compiler): add nested operation expressions"
+
+---
+
+#### Task P1.5: Implement Fraction Operations (Raised from P2)
 
 **Status:** NOT STARTED
 
@@ -522,10 +652,12 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 - `packages/shared/src/operations/registry.ts` (add operation signatures)
 - `packages/runtime/src/operations/` (create `fraction.ts` or add to `numeric.ts`)
 
-**Why Important:**
-- Fraction type is already defined in shared types
+**Why Critical (Raised from P2):**
+- **Breaks type system completeness** - Fraction type is already defined in shared types but has no operations
+- Any use of fractions in programs will fail at runtime
 - Completes the numeric type system
 - Educational value - fractions are important curriculum topic
+- **Raises from P2 to P1** - Type system must be complete for educational curriculum
 
 **Operations Needed:**
 - ADD_FRACTIONS
@@ -571,6 +703,8 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 - [ ] Git commit with message: "feat(runtime): implement fraction operations"
 
 ---
+
+### P2 MEDIUM (Quality Improvements & Completeness)
 
 #### Task P2.2: Make Set/Stream Operations Generic
 
@@ -619,51 +753,6 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 - [ ] Typecheck passes
 - [ ] Previous tests still pass
 - [ ] Git commit with message: "refactor(runtime): make set/stream operations generic"
-
----
-
-#### Task P2.3: Implement Nested Operation Expressions
-
-**Files to update:**
-- `packages/compiler/src/parser/dataflow-parser.ts` (line 284-289 - add third alternative to argument rule)
-- `packages/compiler/src/ast/ast-builder.ts` (line 163-166 - add handler for ctx.operationExpression)
-
-**Why Important:**
-- Grammar spec (GRAMMAR_SPEC.md:196-198) allows `argument ::= identifier | literal | operation`
-- Parser argument rule currently only implements identifier and literal
-- Missing third alternative: operation
-- Enables complex expressions like ADD(ADD(a, b), c)
-- Zero impact on existing code, new feature only
-- Workaround exists: Use intermediate source/transform nodes
-
-**Estimated Time:** 1.5 hours
-
-**Dependencies:** None
-
-### From Acceptance Criteria (specs/GRAMMAR_SPEC.md lines 196-198):
-- ✓ Grammar rule `argument ::= identifier | literal | operation` fully implemented
-- ✓ Parser accepts nested operations as arguments
-- ✓ AST correctly represents nested structure
-- ✓ Nested expressions evaluate correctly
-
-### Required Tests:
-- [ ] Test: ADD(ADD(3, 2), 1) parses correctly
-- [ ] Test: MULTIPLY(ADD(a, b), SUBTRACT(c, d)) parses correctly
-- [ ] Test: Nested operations with filters work
-- [ ] Test: Deeply nested expressions (3+ levels) work
-- [ ] Test: Nested operations maintain correct type checking
-- [ ] Test: Nested operations execute with correct semantics
-
-**Layer:** All layers (expression support)
-
-**Spec Reference:** `specs/GRAMMAR_SPEC.md` line 196-198
-
-**Ralph Wiggum Checklist:**
-- [ ] Nested operation expressions implemented
-- [ ] Nested operation tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(compiler): add nested operation expressions"
 
 ---
 
@@ -717,6 +806,117 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 - [ ] Typecheck passes
 - [ ] Previous tests still pass
 - [ ] Git commit with message: "feat(messages): add child-friendly Spanish error messages"
+
+---
+
+#### Task P2.5: Refactor HTTP API to Follow Elysia Best Practices
+
+**Status:** NOT STARTED
+
+**Files to refactor:**
+- `packages/http-api/src/server.ts` (use Elysia plugins, add error middleware)
+- `packages/http-api/src/routes.ts` (use Elysia.t for schema validation)
+- `packages/http-api/src/index.ts` (add Eden Treaty for end-to-end type safety)
+
+**Why Important:**
+- **Current implementation works but doesn't follow Elysia best practices**
+- Missing Elysia.t validation (runtime + compile-time type safety)
+- Missing error handling middleware
+- Missing plugin pattern for route organization
+- Missing Eden Treaty for end-to-end type safety
+- Uses manual type assertions instead of schema validation
+- **Improves code quality and maintainability**
+- Follows specs/ELYSIA_LLMS.md recommendations
+- Estimated refactoring time: ~11 hours
+
+**Estimated Time:** 11 hours
+
+**Dependencies:** None (can start immediately)
+
+### From Acceptance Criteria (specs/ELYSIA_LLMS.md):
+- ✅ Use Elysia.t for request/response schema validation
+- ✅ Implement error handling middleware (Elysia.onError)
+- ✅ Use plugin pattern for route organization
+- ✅ Add Eden Treaty for end-to-end type safety
+- ✅ Remove manual type assertions, use schema validation
+- ✅ Follow Elysia best practices (spec reference)
+
+### Required Refactoring:
+- [ ] Replace manual type assertions with Elysia.t schema validation
+- [ ] Add global error handling middleware (Elysia.onError)
+- [ ] Organize routes using plugin pattern
+- [ ] Add Eden Treaty export for client type safety
+- [ ] Use Elysia plugins for CORS, logging, etc.
+- [ ] All existing tests still pass (12/12 HTTP API tests)
+- [ ] Typecheck passes with no errors
+- [ ] Code follows Elysia best practices from specs/ELYSIA_LLMS.md
+
+**Layer:** Layer 7 (Integration)
+
+**Spec Reference:** `specs/ELYSIA_LLMS.md` (Best Practices, Validation, Error Handling, Plugin Pattern, Eden Treaty)
+
+**Ralph Wiggum Checklist:**
+- [ ] HTTP API refactored to follow Elysia best practices
+- [ ] Elysia.t validation implemented for all endpoints
+- [ ] Error handling middleware added
+- [ ] Plugin pattern used for route organization
+- [ ] Eden Treaty configured for end-to-end type safety
+- [ ] All 12/12 HTTP API tests still pass
+- [ ] Typecheck passes
+- [ ] Git commit with message: "refactor(http-api): implement Elysia best practices"
+
+---
+
+#### Task P2.6: Improve SORT/ALPHABETICAL_SORT Operations
+
+**Status:** NOT STARTED
+
+**Files to update:**
+- `packages/runtime/src/operations/sets.ts` (SORT, ALPHABETICAL_SORT)
+
+**Why Important:**
+- **SORT operations have limitations** that affect functionality
+- SORT only works with numbers (not generic)
+- ALPHABETICAL_SORT converts everything to string (loses type safety)
+- These limitations reduce curriculum flexibility
+- Children should be able to sort any comparable type
+
+**Current Limitations:**
+- SORT: Only sorts numbers
+- ALPHABETICAL_SORT: Converts all elements to strings (loses type info)
+
+**Proposed Improvements:**
+- Make SORT generic: SORT<T>(set: Set<T>) → Set<T> where T is Comparable
+- Make ALPHABETICAL_SORT type-safe: ALPHABETICAL_SORT<T>(set: Set<T>) → Set<T> where T is String
+- Add type constraints to ensure comparability
+
+**Estimated Time:** 2 hours
+
+**Dependencies:** None
+
+### From Acceptance Criteria (specs/LANGUAGE_SPEC.md):
+- ✓ SORT operation works with any comparable type (not just numbers)
+- ✓ ALPHABETICAL_SORT preserves type (doesn't convert to string)
+- ✓ Type safety enforced for sorting operations
+
+### Required Tests:
+- [ ] Test: SORT with numbers works (existing behavior)
+- [ ] Test: SORT with strings works alphabetically
+- [ ] Test: ALPHABETICAL_SORT preserves string type
+- [ ] Test: Type errors raised for non-comparable types in SORT
+- [ ] Test: All existing set operation tests still pass
+
+**Layer:** Layer 4 (Sets)
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` sorting operations section
+
+**Ralph Wiggum Checklist:**
+- [ ] SORT operation improved to work with comparable types
+- [ ] ALPHABETICAL_SORT preserves type safety
+- [ ] Sorting tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(operations): improve SORT/ALPHABETICAL_SORT type safety"
 
 ---
 
@@ -833,17 +1033,20 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 |------|----------|--------|------|--------|--------------|
 | **P0.1: Fix temporal operations state bug** | P0 | COMPLETED ✅ | 2h | **CRITICAL** - breaks core semantics | None |
 | **P0.2: Implement 2 stubbed performance tests** | P0 | COMPLETED ✅ | 1.5h | Test coverage 100% | None |
+| **P0.3: Fix 14 TypeScript errors** | P0 | NOT STARTED | 4h | **CRITICAL** - blocks compilation | None |
 | **P1.1: Implement HTTP API** | P1 | COMPLETED ✅ | 10h | **MVP** - enables CV system | Compiler, Runtime |
 | **P1.2: Implement IncrementalRuntime** | P1 | NOT STARTED | 7h | **MVP** - required for WebSocket | None |
 | **P1.3: Implement missing compiler validation** | P1 | NOT STARTED | 4h | Quality improvement | None |
-| **P2.1: Implement Fraction operations** | P2 | NOT STARTED | 3h | Completes type system | None |
+| **P1.4: Implement nested operation expressions** | P1 | NOT STARTED | 1.5h | **Grammar compliance** - breaks spec | None |
+| **P1.5: Implement Fraction operations** | P1 | NOT STARTED | 3h | **Type system** - breaks completeness | None |
+| **P2.1: Refactor HTTP API (Elysia best practices)** | P2 | NOT STARTED | 11h | Quality & maintainability | None |
 | **P2.2: Make Set/Stream operations generic** | P2 | NOT STARTED | 4h | Removes natural-only restriction | None |
-| **P2.3: Implement nested operation expressions** | P2 | NOT STARTED | 1.5h | Enables complex expressions | None |
+| **P2.3: Improve SORT/ALPHABETICAL_SORT operations** | P2 | NOT STARTED | 2h | Improves functionality | None |
 | **P2.4: Add child-friendly Spanish error messages** | P2 | NOT STARTED | 3h | Better UX for ages 6-9 | Layer 7 |
 | **P3.1: Implement WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | P1.2 |
 | **P3.2: Fix TypeScript type union complexity** | P3 | NOT STARTED | 2.5h | Effective validation | None |
 
-**Total Estimated Time:** 48.5 hours (13.5h completed)
+**Total Estimated Time:** 67.5 hours (13.5h completed) - Updated after subagent study
 
 **Previous Work Completed:**
 - ✓ Layers 1-6: COMPLETE (Foundation, Arithmetic, Curriculum Types, Sets, Temporal, Streams)
@@ -858,11 +1061,11 @@ Modified evaluator's wrapDataSourceValue to use generatorFactory to create fresh
 - ✓ Main Runtime: COMPLETE - simple wrapper
 - ✓ Demand-Driven Evaluator: CORRECT - all temporal ops fixed (P0.1 completed)
 - ✓ Graph Implementation: CORRECT but has issues (SORT only numbers, ALPHABETICAL_SORT converts to string)
-- ✓ HTTP API Server: COMPLETE - all endpoints implemented (P1.1 completed)
+- ✓ HTTP API Server: COMPLETE - all endpoints implemented (P1.1 completed) - needs Elysia refactoring
 - ✓ 91 tests passing (100%) - 7 performance tests + 12 HTTP API tests (P0.2, P1.1 completed)
 
 **MVP Milestone:**
-To achieve MVP, complete: P1.2 (IncrementalRuntime)
+To achieve MVP, complete: P0.3 (TypeScript errors) → P1.2 (IncrementalRuntime) → P1.4 (Nested operations) → P1.5 (Fraction ops)
 
 **MVP Definition (from PROJECT_GOALS.md):**
 - Layers 1-4 implemented (Natural, arithmetic, curriculum types, sets) ✓ COMPLETE
@@ -873,13 +1076,13 @@ To achieve MVP, complete: P1.2 (IncrementalRuntime)
 - Basic HTTP API for batch mode ✓ COMPLETE (P1.1)
 - Handles 5 concurrent users without degradation ✓ TESTED
 
-**To Achieve MVP:** Complete P1.2 (IncrementalRuntime)
+**To Achieve MVP:** Complete P0.3 (fix 14 TS errors) → P1.2 (IncrementalRuntime) → P1.4 (nested operations) → P1.5 (fraction ops)
 
 ---
 
 ## NEXT STEPS
 
-Focus on completing MVP - this requires implementing Layer 7 integration.
+Focus on completing MVP - this requires fixing TypeScript errors and implementing Layer 7 integration.
 
 **Order of Implementation:**
 
@@ -901,7 +1104,13 @@ Focus on completing MVP - this requires implementing Layer 7 integration.
     - ✅ Return child-friendly Spanish error messages
     - ✅ Impact: Enables CV system integration for complete programs
 
- 4. **P1.2 (7h): Implement IncrementalRuntime Class**
+4. **P0.3 (4h): Fix 14 TypeScript Errors Across Packages** ⚠️ CRITICAL NEW
+    - Fix TypeScript compilation errors in http-api, compiler, runtime
+    - Implement Elysia.t validation in HTTP API
+    - Resolve type union complexity in validator
+    - Impact: Blocks all development - must be fixed first
+
+5. **P1.2 (7h): Implement IncrementalRuntime Class**
     - Partial graph evaluation with demand-driven semantics
     - Node state tracking (completed/pending/error)
     - Subscription management for multiple clients
@@ -909,39 +1118,53 @@ Focus on completing MVP - this requires implementing Layer 7 integration.
     - Spanish child-friendly messages for missing inputs
     - Impact: Enables WebSocket server for IDE live feedback
 
-5. **P1.3 (4h): Implement Missing Compiler Validation**
+6. **P1.4 (1.5h): Implement Nested Operation Expressions** ⚠️ RAISED FROM P2
+    - Add third alternative to parser argument rule (`argument ::= identifier | literal | operation`)
+    - Add AST builder handler for operation expressions
+    - Enables complex expressions like ADD(ADD(a, b), c)
+    - Impact: Completes grammar spec compliance
+
+7. **P1.5 (3h): Implement Fraction Operations** ⚠️ RAISED FROM P2
+    - Complete the numeric type system (ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE, SIMPLIFY)
+    - Fraction type is already defined, just needs operations
+    - Educational value for curriculum
+    - Impact: Completes type system
+
+8. **P1.3 (4h): Implement Missing Compiler Validation**
     - Set homogeneity validation
     - Stream type consistency
     - Output node requirement
     - car/food/animal property validation
 
-6. **P2.1 (3h): Implement Fraction Operations**
-    - Complete the numeric type system
-    - Educational value for curriculum
+9. **P2.1 (11h): Refactor HTTP API to Follow Elysia Best Practices** ⚠️ NEW
+    - Add Elysia.t validation for compile-time and runtime type safety
+    - Implement error handling middleware
+    - Use plugin pattern for route organization
+    - Add Eden Treaty for end-to-end type safety
+    - Impact: Improves code quality and maintainability
 
-7. **P2.2 (4h): Make Set/Stream Operations Generic**
+10. **P2.2 (4h): Make Set/Stream Operations Generic**
     - Remove natural-only restriction
     - Support any element type
+    - Fix SetType to use proper generic `T[]` instead of `unknown[]`
 
-8. **P2.3 (1.5h): Implement Nested Operation Expressions**
-    - Add third alternative to parser argument rule
-    - Add AST builder handler for operation expressions
-    - Enables complex expressions like ADD(ADD(a, b), c)
+11. **P2.3 (2h): Improve SORT/ALPHABETICAL_SORT Operations** ⚠️ NEW
+    - Make SORT generic: SORT<T>(set: Set<T>) where T is Comparable
+    - Make ALPHABETICAL_SORT type-safe (preserve type, don't convert to string)
+    - Impact: Removes sorting limitations
 
-9. **P2.4 (3h): Add Child-Friendly Spanish Error Messages**
+12. **P2.4 (3h): Add Child-Friendly Spanish Error Messages**
     - Update all validation and runtime error handling
     - Ensure messages are age-appropriate for 6-9 year olds
 
-10. **P3.1 (12h): Implement WebSocket Server (Live Mode)**
+13. **P3.1 (12h): Implement WebSocket Server (Live Mode)**
     - Connection at ws://localhost:3000/live
     - Message handlers for validate_program, evaluate_incremental, subscribe_node, unsubscribe_node
     - Push notifications for node state changes
     - Multiple concurrent client support
     - Impact: Enables IDE live feedback during program construction
 
-11. **P3.2 (2.5h): Fix TypeScript type union complexity in type validation**
-    - Simplify type checking logic in dag-validator
-    - Ensure effective type validation without warnings
+14. **P3.2 (2.5h): Fix TypeScript type union complexity in type validation**
     - Simplify type checking logic in dag-validator
     - Ensure effective type validation without warnings
 
@@ -1028,30 +1251,58 @@ The previous implementation plan's status assessment was **CORRECT**:
 - ✅ Generators: 1 generator (counter) implemented
 
 #### 3. Critical Issues Found
-**Issue 1: Layer 7 at 30% (HTTP API complete, remaining 0%)**
-- `packages/http-api/src/` - Implemented (server.ts, routes.ts, index.ts) ✅
-- `packages/websocket-server/src/` - Empty (0 TypeScript files)
-- `packages/runtime/src/incremental-runtime.ts` - Does not exist
-- **Impact**: Partial MVP completion - HTTP API for CV system ready, IDE live feedback pending
+**Issue 1: 14 TypeScript Errors Across Packages (P0 - CRITICAL)**
+- http-api: Multiple type errors (missing Elysia type annotations)
+- compiler: Type validation warnings
+- runtime: Type inference and validation issues
+- **Impact**: Blocks all compilation → cannot build or run any code
+- **Priority**: P0 - Must be fixed before any other work
 
-**Issue 2: Missing Compiler Validation (4 rules)**
+**Issue 2: IncrementalRuntime.ts DOES NOT EXIST (P1 - HIGH)**
+- `packages/runtime/src/incremental-runtime.ts` - File doesn't exist
+- Blocks WebSocket server implementation
+- **Impact**: Cannot provide IDE live feedback
+- **Priority**: P1 - Required for WebSocket server
+
+**Issue 3: Layer 7 at 30% (HTTP API complete but needs refactoring)**
+- `packages/http-api/src/` - Implemented (server.ts, routes.ts, index.ts) but doesn't follow Elysia best practices
+- Missing: Elysia.t validation, error middleware, plugin pattern, Eden Treaty
+- **Impact**: HTTP API works but lacks type safety and best practices
+- **Priority**: P2 - Quality improvement (11 hours estimated)
+
+**Issue 4: Missing Compiler Validation (4 rules)**
 1. Set homogeneity validation
 2. Stream type consistency
 3. Output node requirement
 4. car/food/animal property validation
 - **Impact**: Some invalid programs may compile but fail at runtime
+- **Priority**: P1 - High for quality
 
-**Issue 3: Type System Limitations**
+**Issue 5: Type System Limitations**
 - Set/Stream operations only work with natural numbers (not generic)
 - SetType uses `unknown[]` instead of generic `T[]`
-- Fraction type defined but no operations implemented
-- **Impact**: Limits curriculum flexibility
+- Fraction type defined but no operations implemented (P1 raised from P2)
+- **Impact**: Limits curriculum flexibility and breaks type system completeness
+- **Priority**: P1 for fraction ops, P2 for generic sets/streams
 
-**Issue 4: Parser Grammar Gap**
+**Issue 6: Parser Grammar Gap (P1 raised from P2)**
 - Grammar allows nested operations: `argument ::= identifier | literal | operation`
 - Parser only implements: `identifier` and `literal`
 - Missing: `operation` as argument
-- **Impact**: Cannot write `ADD(ADD(a, b), c)` directly
+- **Impact**: Cannot write `ADD(ADD(a, b), c)` directly - breaks grammar spec compliance
+- **Priority**: P1 - Grammar compliance is critical
+
+**Issue 7: SORT Operations Limitations**
+- SORT only works with numbers
+- ALPHABETICAL_SORT converts everything to string (loses type safety)
+- **Impact**: Reduces curriculum flexibility
+- **Priority**: P2 - Quality improvement
+
+**Issue 8: WebSocket Server Not Started (P3)**
+- `packages/websocket-server/src/` - Empty (0 TypeScript files)
+- Blocked by IncrementalRuntime.ts
+- **Impact**: Cannot provide IDE live feedback
+- **Priority**: P3 - Post-MVP (12 hours)
 
 #### 4. Test Status ✅ EXCELLENT
 - **Total Tests**: 91 tests, all passing (100%)
@@ -1090,15 +1341,18 @@ Each task now includes:
 - ✅ **Mapping**: Clear link between specs (WHAT) and tests (VERIFICATION)
 
 ### Recommendations
-1. **Focus on MVP**: Complete P1.2 (IncrementalRuntime) next (7 hours)
-2. **Implement Integration**: P1.2 (IncrementalRuntime) enables P3.1 (WebSocket)
-3. **Quality Improvements**: P1.3 (validation) and P2.x (completeness)
-4. **Performance Testing**: ✅ P0.2 (performance tests) verified targets met
-5. **HTTP API**: ✅ P1.1 completed, CV system integration ready
+1. **CRITICAL PATH**: Fix P0.3 (14 TypeScript errors) FIRST - blocks all development (4 hours)
+2. **Focus on MVP**: Complete P1.2 (IncrementalRuntime) next (7 hours)
+3. **Grammar Compliance**: P1.4 (nested operations) - completes parser (1.5 hours)
+4. **Type System**: P1.5 (fraction operations) - completes numeric types (3 hours)
+5. **Quality**: P1.3 (missing compiler validation) - improves error messages (4 hours)
+6. **Elysia Best Practices**: P2.1 (HTTP API refactoring) - improves code quality (11 hours)
+7. **Performance Testing**: ✅ P0.2 (performance tests) verified targets met
+8. **HTTP API**: ✅ P1.1 completed, CV system integration ready (needs Elysia refactoring)
 
 ---
 
 **Document Status:** Active implementation plan
-**Next Review:** After implementing P1.2 (IncrementalRuntime)
+**Next Review:** After implementing P0.3 (fix 14 TypeScript errors) and P1.2 (IncrementalRuntime)
 **Maintainer:** Update as implementation progresses
-**Last Change:** 2026-03-13 - P1.1 completed: HTTP API server implemented with 12/12 tests passing (91/91 tests total), Layer 7 at 30%
+**Last Change:** 2026-03-13 - Comprehensive subagent study completed (6 reports): 14 TypeScript errors identified (P0), prioritization updated, HTTP API Elysia best practices documented (P2), Fraction ops raised to P1, nested operations raised to P1, MVP path clarified
