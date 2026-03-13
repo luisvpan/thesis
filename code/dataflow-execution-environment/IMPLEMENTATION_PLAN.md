@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-13 (All tests passing 100%, Layers 1-6 complete, Layer 7 integration pending)
+**Last Updated:** 2026-03-13 (Synthesized findings from 5 parallel subagents, Layer 7 at 0%, critical temporal bug identified)
 
 ---
 
@@ -33,141 +33,102 @@ packages/
 └── websocket-server/ # WebSocket for live feedback (IDE)
 ```
 
-### Development Tooling
-
-**Biome Configuration (for linting and formatting):**
-
-```json
-{
-  "extends": ["@biomejs/biome"],
-  "files": ["packages/**/*.ts"],
-  "ignore": [
-    "node_modules",
-    "dist",
-    "*.test.ts",
-    "*.d.ts"
-  ],
-  "linter": {
-    "rules": {
-      "recommended": true,
-      "style": {
-        "useNamingConvention": "off",
-        "noDefaultExport": "off"
-      }
-    }
-  },
-  "formatter": {
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 100
-  }
-}
-```
-
-**Rationale:** Biome provides fast, comprehensive linting and formatting for TypeScript. Configuration follows best practices for monorepos with test files excluded from linting rules.
-
 ---
 
 ## Current Implementation Status
 
-**Last Updated:** 2026-03-13
+**Last Updated:** 2026-03-13 (Synthesized from 5 parallel subagent studies)
 
-### Overall Progress: ~75% Complete (Core compiler/runtime complete, Layer 7 at 0% implemented)
+### Overall Progress: ~70% Complete (Core compiler/runtime ~85%, Layer 7 at 0%)
+
+**Correction from Previous Estimate:**
+- Previous plan incorrectly stated: Layer 7 at 35% complete
+- **ACTUAL STATUS:** Layer 7 at 0% implemented
+  - `packages/http-api/src/` - Empty (0 TypeScript files)
+  - `packages/websocket-server/src/` - Empty (0 TypeScript files)
+  - `packages/runtime/src/incremental-runtime.ts` - Does not exist
 
 ### Test Status Summary
-- **Total Tests:** 74
-- **Passing:** 74 (100%)
-- **Failing:** 0 (0%)
-- **Performance:** 2/2 stubbed (Task P0.2)
+- **Total Tests:** 30 tests, all passing (100%)
+- **Stubbed:** 2 performance tests
+- **Categories Covered:**
+  - 1, 2, 3, 8: FULLY COVERED
+  - 4, 5, 6: PARTIALLY COVERED
+  - 7: STUBBED (performance tests)
 
-### Critical Discovery: Layer 7 Status Correction
-**Previous Status (INCORRECT):** Layer 7 at 35% complete
-**Actual Status (CORRECTED):** Layer 7 at 0% implemented
+### Component Status Summary
 
-**Evidence:**
-- `packages/http-api/src/` - Empty (0 TypeScript files)
-- `packages/websocket-server/src/` - Empty (0 TypeScript files)
-- `packages/runtime/src/incremental-runtime.ts` - Does not exist
-
-**Impact:** This is a significant blocker for MVP completion as Layer 7 provides integration interfaces (HTTP API for CV system, WebSocket for IDE).
-
-### Phase Progress
-
-| Phase | Status | Completion | Tests Passing |
-|-------|--------|------------|---------------|
-| Phase -1: Fix Flaky Compiler Tests | COMPLETE | 100% | 100% |
-| Phase 0: Critical Type System Completion | COMPLETE | 100% | 100% |
-| Phase 0.5: Critical Parser Fixes | COMPLETE | 100% | 100% |
-| Phase 1: Runtime Operations Completion | COMPLETE | 100% | 100% |
-| Phase 2: Type Validation | COMPLETE | 100% | 100% |
-| Phase 3: Compiler Completion | COMPLETE | 100% | 100% |
-| Phase 4: Implement Stubbed Integration Tests | COMPLETE | 100% | 100% |
-| Phase 5: Incremental Runtime | PENDING | 0% | 0% |
-| Phase 6: HTTP API | PENDING | 0% | 0% |
-| Phase 7: WebSocket Server | PENDING | 0% | 0% |
+| Component | Status | Completion | Notes |
+|-----------|--------|------------|-------|
+| **Shared Package** | Mostly Complete | 85% | 24 operations, 1 generator, all types defined. Issues: Fraction ops missing, Set/Stream not generic, SetType uses `unknown[]` |
+| **Compiler Package** | Mostly Complete | 90% | Lexer/Parser/AST/Validation/Compiler all implemented. Missing validation: set homogeneity, stream consistency, output node req, car/food/animal properties |
+| **Runtime Package** | Partial | 75% | Core evaluator CORRECT, operations implemented. **CRITICAL BUG:** Temporal ops (NEXT, FIRST, FBY, ACCUMULATE) recreate generators on each call → state not preserved. Missing: Incremental Runtime (0%) |
+| **HTTP API Package** | Not Started | 0% | Empty directory, no implementation |
+| **WebSocket Server Package** | Not Started | 0% | Empty directory, no implementation |
 
 ### Layer Progress
 
-| Layer | Status | Completion | Tests Passing |
-|-------|--------|------------|---------------|
-| Layer 1: Foundation | COMPLETE | 100% | 100% |
-| Layer 2: Arithmetic | COMPLETE | 100% | 100% |
-| Layer 3: Curriculum Types | COMPLETE | 100% | 100% |
-| Layer 4: Set Operations | COMPLETE | 100% | 100% |
-| Layer 5: Temporal Operators | COMPLETE | 100% | 100% |
-| Layer 6: Streams | COMPLETE | 100% | 100% |
-| Layer 7: Integration | NOT STARTED | 0% | 0% (2 performance tests stubbed) |
-
----
-
-## Active Research Findings
-
-### RF1: Nested Operations Support
-
-**Status:** NOT IMPLEMENTED
-**Priority:** P2 MEDIUM
-**Issue:** Grammar spec allows `argument ::= identifier | literal | operation` but parser/AST builder don't support nested operations like `ADD(ADD(a, b), c)`
-
-**Changes Needed:**
-- Parser: Add third alternative to `argument` rule (line 284-289)
-- AST Builder: Add handler for `ctx.operationExpression` (line 163-166)
-- Regenerate CST types
-- Add tests for nested operations
-
-**Impact:** Zero impact on existing code, new feature only. Workaround exists: use intermediate nodes.
-
-**Estimated Time:** 1.5 hours
-
-**Tracking:**
-- Affects: Parser grammar, AST builder
-- Blocks: Complex expression support
-- Workaround: Use intermediate source/transform nodes
-
----
-
-### RF2: Stubbed Performance Tests
-
-**Status:** 2 stubbed tests
-**Priority:** P0 MEDIUM
-**Files:**
-- packages/tests/src/performance/compilation.test.ts:7
-- packages/tests/src/performance/execution.test.ts:7
-
-**Can Implement Now:** YES - sufficient operations available
-
-**Impact:** Performance tests valuable but non-critical for MVP functionality
-
-**Estimated Time:** 1.5 hours
-
-**Tracking:**
-- Affects: Test coverage metrics
-- Blocks: Full 100% test passing status
+| Layer | Status | Completion | Tests Passing | Issues |
+|-------|--------|------------|---------------|--------|
+| Layer 1: Foundation | COMPLETE | 100% | 100% | None |
+| Layer 2: Arithmetic | COMPLETE | 100% | 100% | None |
+| Layer 3: Curriculum Types | COMPLETE | 100% | 100% | None |
+| Layer 4: Set Operations | COMPLETE | 100% | 100% | SORT only for numbers, ALPHABETICAL_SORT converts everything to string |
+| Layer 5: Temporal Operators | PARTIAL | 70% | Pass (but buggy) | **CRITICAL BUG:** Generator recreation breaks state semantics |
+| Layer 6: Streams | COMPLETE | 100% | 100% | None |
+| Layer 7: Integration | NOT STARTED | 0% | 0% (2 stubbed) | HTTP API, WebSocket, Incremental Runtime missing |
 
 ---
 
 ## CRITICAL BLOCKERS
 
-### 1. Layer 7 Components Not Implemented (P1 - CRITICAL)
+### Blocker 1: Temporal Operations State Bug (P0 - CRITICAL)
+
+**Status:** ACTIVE BUG - Breaks dataflow semantics
+**Discovered:** 2026-03-13 (Runtime subagent study)
+
+**Issue:**
+Temporal operations (NEXT, FIRST, FBY, ACCUMULATE) in `packages/runtime/src/operations/temporal.ts` recreate generators on each call:
+
+```typescript
+// Lines 7, 27, 50 - THE BUG
+const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
+```
+
+**Impact:**
+- **State NOT preserved across calls** → breaks temporal semantics
+- FBY counter would return 0,0,0,0 instead of 0,1,2,3
+- NEXT/ACCUMULATE produce incorrect results
+- Violates core demand-driven evaluation principle from Lucid
+- **Blocks correctness of Layer 5 (Temporal Operators)**
+
+**Root Cause:**
+Generators should be cached by the evaluator, not recreated. The evaluator already caches node results, but temporal ops bypass this by creating new generators.
+
+**Fix Required:**
+1. Cache the generator within the stream value itself
+2. Only call `generatorFactory()` once when stream value is first created
+3. Subsequent calls use the cached generator
+4. OR: Use node-level cache properly (the stream value is already cached)
+
+**Priority:** P0 - CRITICAL (breaks core semantics)
+
+**Estimated Time:** 2 hours
+
+**Files Affected:**
+- `packages/runtime/src/operations/temporal.ts` (lines 7, 27, 50, 76)
+- May need to update `packages/runtime/src/evaluator/demand-driven-evaluator.ts` for stream wrapping
+
+**Acceptance Criteria:**
+- FBY counter produces 0,1,2,3,4... (not 0,0,0,0,0...)
+- NEXT advances through stream correctly
+- ACCUMULATE maintains accumulator across time steps
+- All temporal operation tests pass
+- Demand-driven semantics preserved (cache verified)
+
+---
+
+### Blocker 2: Layer 7 Components Not Implemented (P1 - CRITICAL for MVP)
 
 **Status:** NOT STARTED
 **Discovered:** 2026-03-13 (corrected from incorrect 35% estimate)
@@ -178,158 +139,236 @@ packages/
 - Cannot support incremental evaluation for partial programs
 - **Blocks completion of MVP**
 
-**Details:**
-- `packages/http-api/src/` - Empty directory (0 TypeScript files)
-- `packages/websocket-server/src/` - Empty directory (0 TypeScript files)
-- `packages/runtime/src/incremental-runtime.ts` - Does not exist
-- Previous status of "35% complete" was incorrect; actual status is 0% implemented
-
 **Missing Components:**
-1. HTTP API Server (POST /api/v1/compile, POST /api/v1/execute, GET /api/v1/health)
-2. WebSocket Server (connection at ws://localhost:3000/live, message handlers)
-3. Incremental Runtime (partial graph evaluation, node state tracking, subscriptions)
+1. **HTTP API Server** (10 hours)
+   - POST /api/v1/compile - Validate program
+   - POST /api/v1/execute - Compile and run
+   - GET /api/v1/health - Health check
+   - Return child-friendly Spanish error messages
+   - Support execution options (maxTimesteps, includeTrace, traceLevel)
 
-**Suggested Resolutions:**
-1. Implement IncrementalRuntime first (7 hours) - enables WebSocket server
-2. Implement HTTP API second (10 hours) - enables CV system integration
-3. Implement WebSocket Server third (12 hours) - enables IDE live feedback
+2. **WebSocket Server** (12 hours)
+   - Connection at ws://localhost:3000/live
+   - Message handlers: validate_program, evaluate_incremental, subscribe_node, unsubscribe_node
+   - Push messages: validation_result, evaluation_result, node_state_changed
+   - Multiple concurrent client support
+   - Child-friendly Spanish messages
+
+3. **Incremental Runtime** (7 hours)
+   - Partial graph evaluation (demand-driven)
+   - Node state tracking (completed/pending/error)
+   - Subscription management (multiple clients)
+   - Graph update API with cache invalidation
+   - Missing input extraction with Spanish messages
 
 **Priority:** P1 - CRITICAL (blocks MVP completion)
 
+**Estimated Time:** 29 hours total
+
 **Spec References:**
-- specs/INTEGRATION_SPEC.md lines 53-198 (HTTP API)
-- specs/INTEGRATION_SPEC.md lines 200-361 (WebSocket Server)
-- specs/INTEGRATION_SPEC.md lines 365-771 (Incremental Runtime)
-- specs/DEMAND_DRIVEN_INCREMENTAL.md (complete spec)
+- `specs/INTEGRATION_SPEC.md` lines 53-198 (HTTP API)
+- `specs/INTEGRATION_SPEC.md` lines 200-361 (WebSocket Server)
+- `specs/INTEGRATION_SPEC.md` lines 365-771 (Incremental Runtime)
+- `specs/DEMAND_DRIVEN_INCREMENTAL.md` (complete spec)
 
 ---
 
-### 2. TypeScript Type Union Complexity in Type Validation (P1 - CRITICAL)
+### Blocker 3: Missing Compiler Validation (P1 - HIGH for MVP)
 
-**Status:** ACTIVE BLOCKER
-**Discovered:** 2026-03-05
-**Impact:** Type validation structure implemented but not effective
+**Status:** PARTIALLY COMPLETE
+**Discovered:** 2026-03-13 (Compiler subagent study)
 
-**Issue:**
-- Type compatibility validation structure implemented in dag-validator isTypeCompatible
-- TypeScript type union complexity prevents validation from working correctly
-- TypeScript warnings prevent validation logic from executing
-- Integration tests still fail because type validation is not working
+**Implemented Validation:**
+- Duplicate IDs ✓
+- Undefined references ✓
+- Cycle detection ✓
+- Arity checking ✓
+- Type compatibility ✓
+- Property requirements ✓
+- Spanish error messages ✓
 
-**Current State:**
-- Validation logic is present and structured correctly
-- TypeScript type system complexities prevent effective execution
-- 2 validation tests failing due to type validation issues
+**Missing Validation:**
+1. Set homogeneity validation
+2. Stream type consistency
+3. Output node requirement (programs must have at least one output)
+4. car/food/animal property validation
 
-**Resolution Required:**
-- Investigate and fix TypeScript type union complexity in dag-validator isTypeCompatible
-- Simplify type checking logic to avoid complex type unions
-- Ensure validation runs without TypeScript warnings
-- Generate child-friendly Spanish error messages
+**Impact:**
+- Invalid programs may compile but fail at runtime
+- Reduced error message quality
+- Could confuse young learners
 
-**Priority:** P1 - High priority, blocks effective type validation
+**Priority:** P1 - HIGH (improves quality, but existing validation catches many errors)
+
+**Estimated Time:** 4 hours
+
+**Files Affected:**
+- `packages/compiler/src/validation/dag-validator.ts`
+
+**Acceptance Criteria:**
+- Set operations verify all elements are same type
+- Stream operations verify correct element types
+- Programs without output nodes produce error
+- car/food/animal properties validated correctly
 
 ---
 
 ## PRIORITIZED IMPLEMENTATION PLAN
 
-### PHASE 4: INCREMENTAL RUNTIME (Priority 1)
+### Task Prioritization Framework
 
-**Time Estimate:** 10 hours
+**P0 - CRITICAL (Fixes show-stopper bugs, blocks core functionality)**
+- Temporal operations state bug (breaks semantics)
+- Performance tests (quick win, blocks 100% test coverage)
 
-**Rationale:** Required for WebSocket live feedback. This is a critical integration component.
+**P1 - HIGH (Required for MVP completion)**
+- HTTP API (CV system integration)
+- Incremental Runtime (required for WebSocket)
+- Missing compiler validation (quality improvement)
 
-#### Task 3.1: Implement IncrementalRuntime Class (7 hours)
+**P2 - MEDIUM (Nice to have, improves language or UX)**
+- Fraction operations (completes type system)
+- Generic set/stream operations (removes natural-only restriction)
+- Nested operation expressions (enables complex expressions)
+- Child-friendly Spanish messages (better UX for ages 6-9)
 
-**Create File:** `packages/runtime/src/incremental-runtime.ts`
-
-**Dependencies:** All runtime operations complete
-
-**Acceptance Criteria:**
-- Partial graph evaluation (demand-driven)
-- Node state tracking (completed/pending/error)
-- Subscription management (multiple clients)
-- Graph update API with cache invalidation
-- Missing input extraction with Spanish messages
-- Demand-driven semantics preserved
-- 5x faster than full re-evaluation for incremental updates
-
-**Test Requirements:**
-- specs/INTEGRATION_SPEC.md lines 365-771
-- specs/DEMAND_DRIVEN_INCREMENTAL.md complete
-
-**Layer:** Layer 7 (Integration)
-
-**Estimated Time:** 7 hours
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Incremental runtime tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(runtime): implement IncrementalRuntime class"
+**P3 - LOW (Post-MVP, nice to have)**
+- WebSocket server (IDE live feedback - can be done later)
+- Fix TypeScript type union complexity (nice to have)
 
 ---
 
-#### Task 3.2: Add Spanish Child-Friendly Messages (3 hours)
+## PRIORITIZED TASK LIST
 
-**Files:** Runtime and validation files
+### P0 CRITICAL (Immediate - Fixes Show-Stopper Bugs)
 
-**Dependencies:** Task 3.1 (IncrementalRuntime), Type Validation
+#### Task P0.1: Fix Temporal Operations State Bug
+
+**Status:** NOT STARTED - CRITICAL BUG
+
+**Files to update:**
+- `packages/runtime/src/operations/temporal.ts` (lines 7, 27, 50, 76)
+- May need: `packages/runtime/src/evaluator/demand-driven-evaluator.ts`
+
+**Why Critical:**
+- **Breaks core dataflow semantics** - temporal operators don't maintain state
+- FBY counter returns 0,0,0,0 instead of 0,1,2,3
+- NEXT/ACCUMULATE produce incorrect results
+- Violates demand-driven evaluation principle from Lucid spec
+- Layer 5 (Temporal) is functionally broken
+
+**Root Cause:**
+Generators are recreated on each call using `generatorFactory()`, losing state between evaluations.
+
+**Fix Approach:**
+Option A: Cache generator within stream value itself (first call creates it, subsequent use cached)
+Option B: Ensure evaluator caches stream values properly (already does - use the cached value)
+Option C: Create generator once when DataSource is wrapped, store it in the value
+
+**Estimated Time:** 2 hours
+
+**Dependencies:** None
 
 **Acceptance Criteria:**
-- All error messages in child-friendly Spanish
-- Missing input messages are age-appropriate
-- Type error messages use simple language
-- Property error messages explain what's missing
+- FBY counter produces correct sequence: 0,1,2,3,4... for timesteps 0,1,2,3,4...
+- NEXT advances through stream correctly on each call
+- ACCUMULATE maintains accumulator across time steps
+- All temporal operation tests pass
+- Cache hit/miss statistics show proper caching behavior
+- Demand-driven semantics preserved (only evaluate when demanded)
 
-**Test Requirements:**
-- specs/INTEGRATION_SPEC.md examples of Spanish messages
+**Layer:** Layer 5 (Temporal Operators)
 
-**Layer:** All layers
-
-**Estimated Time:** 3 hours
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` temporal operators section, `specs/DEMAND_DRIVEN_INCREMENTAL.md`
 
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Message tests pass
+- [ ] Bug fixed, generator state preserved
+- [ ] All temporal tests pass
 - [ ] Typecheck passes
 - [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(messages): add child-friendly Spanish error messages"
+- [ ] Git commit with message: "fix(runtime): preserve generator state in temporal operations"
 
 ---
 
-### PHASE 5: HTTP API IMPLEMENTATION (Priority 1)
+#### Task P0.2: Implement 2 Stubbed Performance Tests
 
-**Time Estimate:** 10 hours
+**Status:** NOT STARTED
 
-**Rationale:** Required for CV system integration. Batch mode for complete programs.
+**Files to update:**
+- `packages/tests/src/performance/compilation.test.ts:7`
+- `packages/tests/src/performance/execution.test.ts:7`
 
-#### Task 4.1: Implement HTTP API Server (10 hours)
+**Why Critical:**
+- Achieve 100% test coverage
+- Get performance metrics for compilation and execution
+- Verify performance targets are met (<100ms compile, <50ms execute)
+- Quick win - can be done immediately
 
-**Files:** `packages/http-api/src/server.ts` (create), `packages/http-api/src/routes.ts` (create)
+**Can Implement Now:** YES - sufficient operations available
 
-**Dependencies:** All compiler/runtime complete
+**Estimated Time:** 1.5 hours
+
+**Dependencies:** None
 
 **Acceptance Criteria:**
-- POST /api/v1/compile - Validate program
-- POST /api/v1/execute - Compile and run
-- GET /api/v1/health - Health check
+- Test 7.1: Compilation Performance (100-node program <100ms p95)
+- Test 7.2: Execution Performance (50-node program <50ms p95)
+- Cache effectiveness measured (cache hit ratio)
+- Performance targets documented
+- Tests pass
+
+**Layer:** Cross-layer (performance metrics)
+
+**Spec Reference:** `specs/INTEGRATION_TESTS_SPEC.md` lines 422-480
+
+**Ralph Wiggum Checklist:**
+- [ ] Performance tests implemented (not stubbed)
+- [ ] Performance tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "test(integration): implement performance tests"
+
+---
+
+### P1 HIGH (Required for MVP - Layer 7 & Quality)
+
+#### Task P1.1: Implement HTTP API (Batch Mode)
+
+**Files to create:**
+- `packages/http-api/src/server.ts`
+- `packages/http-api/src/routes.ts`
+- `packages/http-api/src/index.ts`
+
+**Why Critical:**
+- **Required by MVP** - CV system integration depends on this
+- Enables batch processing of complete programs
+- Required integration interface defined in specs
+- No alternative way to integrate with CV system
+
+**Estimated Time:** 10 hours
+
+**Dependencies:**
+- Compiler (complete)
+- Runtime (complete)
+
+**Spec Reference:** `specs/INTEGRATION_SPEC.md` lines 53-198
+
+**Acceptance Criteria:**
+- POST /api/v1/compile - Validate program without executing
+- POST /api/v1/execute - Compile and run program
+- GET /api/v1/health - Health check endpoint
 - Accept source code strings
 - Return child-friendly Spanish error messages
 - Support execution options (maxTimesteps, includeTrace, traceLevel)
 - Return execution trace (executionOrder, nodeEvaluations, cacheHits, cacheMisses)
-- Performance: <100ms compile, <50ms execute
-
-**Test Requirements:**
-- specs/INTEGRATION_SPEC.md lines 53-189
+- Performance: <100ms compile, <50ms execute for typical programs
+- HTTP tests pass
 
 **Layer:** Layer 7 (Integration)
 
-**Estimated Time:** 10 hours
-
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
+- [ ] HTTP API server implemented
+- [ ] All endpoints functional
 - [ ] HTTP API tests pass
 - [ ] Typecheck passes
 - [ ] Previous tests still pass
@@ -338,17 +377,264 @@ packages/
 
 ---
 
-### PHASE 6: WEBSOCKET SERVER IMPLEMENTATION (Priority 2)
+#### Task P1.2: Implement IncrementalRuntime Class
 
-**Time Estimate:** 12 hours
+**File to create:** `packages/runtime/src/incremental-runtime.ts`
 
-**Rationale:** Required for IDE integration. Live feedback during construction.
+**Why Critical:**
+- **Required by WebSocket server** - can't implement P3.1 without this
+- Enables partial graph evaluation during program construction
+- Required by specs/INTEGRATION_SPEC.md and specs/DEMAND_DRIVEN_INCREMENTAL.md
+- Key differentiator for IDE live feedback
 
-#### Task 5.1: Implement WebSocket Server (12 hours)
+**Estimated Time:** 7 hours
 
-**Files:** `packages/websocket-server/src/server.ts` (create), `packages/websocket-server/src/handlers.ts` (create)
+**Dependencies:** None
 
-**Dependencies:** Task 3.1 (IncrementalRuntime)
+**Spec Reference:**
+- `specs/INTEGRATION_SPEC.md` lines 365-771 (Incremental Runtime design)
+- `specs/DEMAND_DRIVEN_INCREMENTAL.md` (Demand-driven semantics for incremental evaluation)
+
+**Acceptance Criteria:**
+- Partial graph evaluation (demand-driven - NOT eager)
+- Node state tracking (completed/pending/processing/error)
+- Subscription management (multiple clients)
+- Graph update API with cache invalidation
+- Missing input extraction with Spanish messages
+- Demand-driven semantics preserved (only evaluate when demanded)
+- Incremental updates 5x faster than full re-evaluation
+- Incremental runtime tests pass
+
+**Layer:** Layer 7 (Integration)
+
+**Ralph Wiggum Checklist:**
+- [ ] IncrementalRuntime class implemented
+- [ ] Demand-driven semantics preserved (no eager evaluation)
+- [ ] Incremental runtime tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(runtime): implement IncrementalRuntime class"
+
+---
+
+#### Task P1.3: Implement Missing Compiler Validation
+
+**File to update:** `packages/compiler/src/validation/dag-validator.ts`
+
+**Why Important:**
+- Improves quality of error messages for young learners
+- Catches more errors at compile time (better UX)
+- Programs without output nodes should fail fast
+- Set homogeneity prevents runtime type errors
+
+**Estimated Time:** 4 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Set homogeneity validation (all elements same type)
+- Stream type consistency (operations match element type)
+- Output node requirement (programs must have at least one output)
+- car/food/animal property validation (required fields present)
+- Validation tests pass
+- Child-friendly Spanish error messages
+
+**Layer:** Cross-layer (validation quality)
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` validation section
+
+**Ralph Wiggum Checklist:**
+- [ ] Missing validation rules implemented
+- [ ] Validation tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(compiler): add missing compiler validation rules"
+
+---
+
+### P2 MEDIUM (Nice to have - Completeness & UX)
+
+#### Task P2.1: Implement Fraction Operations
+
+**Status:** NOT STARTED
+
+**Files to update:**
+- `packages/shared/src/types.ts` (types already defined)
+- `packages/runtime/src/operations/` (create `fraction.ts` or add to `numeric.ts`)
+
+**Why Important:**
+- Fraction type is already defined in shared types
+- Completes the numeric type system
+- Educational value - fractions are important curriculum topic
+
+**Operations Needed:**
+- ADD_FRACTIONS
+- SUBTRACT_FRACTIONS
+- MULTIPLY_FRACTIONS
+- DIVIDE_FRACTIONS
+- SIMPLIFY_FRACTION
+- COMPARE_FRACTIONS
+
+**Estimated Time:** 3 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- All 6 fraction operations implemented
+- Operations work correctly with proper math
+- Fraction tests pass
+- Typecheck passes
+
+**Layer:** Layer 2 (Arithmetic)
+
+**Ralph Wiggum Checklist:**
+- [ ] Fraction operations implemented
+- [ ] Fraction tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(runtime): implement fraction operations"
+
+---
+
+#### Task P2.2: Make Set/Stream Operations Generic
+
+**Status:** NOT STARTED
+
+**Files to update:**
+- `packages/shared/src/types.ts` (SetType uses `unknown[]`, change to generic `T[]`)
+- `packages/runtime/src/operations/sets.ts` (currently only natural)
+- `packages/runtime/src/operations/` (stream operations)
+
+**Why Important:**
+- Current set/stream operations only work with natural numbers
+- Generic types would support any element type
+- Aligns with curriculum (sets of shapes, colors, etc.)
+- Fix SetType to use proper generic type `T[]` instead of `unknown[]`
+
+**Estimated Time:** 4 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Set/Stream types use generic `T[]` instead of `unknown[]`
+- Set operations work with any element type (not just natural)
+- Stream operations support any element type
+- Generic type tests pass
+- Typecheck passes
+
+**Layer:** Layer 4 (Sets) and Layer 6 (Streams)
+
+**Ralph Wiggum Checklist:**
+- [ ] Generic Set/Stream types implemented
+- [ ] Generic operation tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "refactor(runtime): make set/stream operations generic"
+
+---
+
+#### Task P2.3: Implement Nested Operation Expressions
+
+**Files to update:**
+- `packages/compiler/src/parser/dataflow-parser.ts` (line 284-289 - add third alternative to argument rule)
+- `packages/compiler/src/ast/ast-builder.ts` (line 163-166 - add handler for ctx.operationExpression)
+
+**Why Important:**
+- Grammar spec (GRAMMAR_SPEC.md:196-198) allows `argument ::= identifier | literal | operation`
+- Parser argument rule currently only implements identifier and literal
+- Missing third alternative: operation
+- Enables complex expressions like ADD(ADD(a, b), c)
+- Zero impact on existing code, new feature only
+- Workaround exists: Use intermediate source/transform nodes
+
+**Estimated Time:** 1.5 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Parser argument rule has third alternative (operation)
+- AST builder handles ctx.operationExpression
+- CST types regenerated
+- Nested operation expressions parse correctly
+- TypeScript compiles
+- Nested operation tests pass
+
+**Layer:** All layers (expression support)
+
+**Spec Reference:** `specs/GRAMMAR_SPEC.md` line 196-198
+
+**Ralph Wiggum Checklist:**
+- [ ] Nested operation expressions implemented
+- [ ] Nested operation tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(compiler): add nested operation expressions"
+
+---
+
+#### Task P2.4: Add Child-Friendly Spanish Error Messages
+
+**Files to update:**
+- All validation files (`packages/compiler/src/validation/*`)
+- All runtime error handling files
+- HTTP API error responses
+- WebSocket error responses
+
+**Why Important:**
+- Error messages must be child-friendly for target demographic (ages 6-9)
+- Spanish language required by specs
+- Improves user experience and learning outcomes
+- Better educational value
+
+**Estimated Time:** 3 hours
+
+**Dependencies:**
+- P1.1 (HTTP API) - can start before
+- P1.2 (IncrementalRuntime) - can start before
+- P3.1 (WebSocket Server) - can start after
+
+**Acceptance Criteria:**
+- All error messages in child-friendly Spanish
+- Missing input messages are age-appropriate
+- Type error messages use simple language
+- Property error messages explain what's missing
+- Multiple missing inputs reported in missingInputs array
+- Message tests pass
+
+**Layer:** All layers (user experience)
+
+**Spec Reference:** `specs/INTEGRATION_SPEC.md` examples of Spanish messages
+
+**Ralph Wiggum Checklist:**
+- [ ] Child-friendly Spanish messages added
+- [ ] Message tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(messages): add child-friendly Spanish error messages"
+
+---
+
+### P3 LOW (Post-MVP - Nice to have)
+
+#### Task P3.1: Implement WebSocket Server (Live Mode)
+
+**Files to create:**
+- `packages/websocket-server/src/server.ts`
+- `packages/websocket-server/src/handlers.ts`
+- `packages/websocket-server/src/index.ts`
+
+**Why Important:**
+- Required by specs/INTEGRATION_SPEC.md for IDE integration
+- Enables live feedback during program construction
+- Provides real-time validation as children build programs
+- Critical for educational experience but can be deferred for MVP
+
+**Estimated Time:** 12 hours
+
+**Dependencies:**
+- P1.2 (IncrementalRuntime) - REQUIRED
+
+**Spec Reference:** `specs/INTEGRATION_SPEC.md` lines 192-361
 
 **Acceptance Criteria:**
 - Connection at ws://localhost:3000/live
@@ -356,18 +642,15 @@ packages/
 - Push messages: validation_result, evaluation_result, node_state_changed, error
 - Message protocol with messageId
 - Multiple concurrent client support
-- Connection resilience (reconnects)
+- Connection resilience (reconnects on disconnect)
 - Child-friendly Spanish messages
-
-**Test Requirements:**
-- specs/INTEGRATION_SPEC.md lines 192-361
+- Performance: message roundtrip <50ms (p95)
+- WebSocket tests pass
 
 **Layer:** Layer 7 (Integration)
 
-**Estimated Time:** 12 hours
-
 **Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
+- [ ] WebSocket server implemented
 - [ ] WebSocket tests pass
 - [ ] Typecheck passes
 - [ ] Previous tests still pass
@@ -376,18 +659,161 @@ packages/
 
 ---
 
+#### Task P3.2: Fix TypeScript Type Union Complexity in Type Validation
+
+**File to update:** `packages/compiler/src/validation/dag-validator.ts`
+
+**Why Important:**
+- Type validation structure implemented but not effective due to TypeScript warnings
+- Complex type unions prevent validation logic from executing correctly
+- Can be deferred as validation structure is present, just blocked by TS
+
+**Estimated Time:** 2.5 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- Type compatibility validation works correctly
+- No TypeScript warnings for validation logic
+- Integration tests pass with effective type checking
+
+**Layer:** All layers (enables correct validation)
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 433-440
+
+**Ralph Wiggum Checklist:**
+- [ ] TypeScript type union complexity resolved
+- [ ] Type validation tests pass
+- [ ] Typecheck passes (no warnings)
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(validation): resolve TypeScript type union complexity"
+
+---
+
+## SUMMARY TABLE
+
+| Task | Priority | Status | Time | Impact | Dependencies |
+|------|----------|--------|------|--------|--------------|
+| **P0.1: Fix temporal operations state bug** | P0 | NOT STARTED | 2h | **CRITICAL** - breaks core semantics | None |
+| **P0.2: Implement 2 stubbed performance tests** | P0 | NOT STARTED | 1.5h | Test coverage 100% | None |
+| **P1.1: Implement HTTP API** | P1 | NOT STARTED | 10h | **MVP** - enables CV system | Compiler, Runtime |
+| **P1.2: Implement IncrementalRuntime** | P1 | NOT STARTED | 7h | **MVP** - required for WebSocket | None |
+| **P1.3: Implement missing compiler validation** | P1 | NOT STARTED | 4h | Quality improvement | None |
+| **P2.1: Implement Fraction operations** | P2 | NOT STARTED | 3h | Completes type system | None |
+| **P2.2: Make Set/Stream operations generic** | P2 | NOT STARTED | 4h | Removes natural-only restriction | None |
+| **P2.3: Implement nested operation expressions** | P2 | NOT STARTED | 1.5h | Enables complex expressions | None |
+| **P2.4: Add child-friendly Spanish error messages** | P2 | NOT STARTED | 3h | Better UX for ages 6-9 | Layer 7 |
+| **P3.1: Implement WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | P1.2 |
+| **P3.2: Fix TypeScript type union complexity** | P3 | NOT STARTED | 2.5h | Effective validation | None |
+
+**Total Estimated Time:** 50.5 hours
+
+**Previous Work Completed:**
+- ✓ Layers 1-6: COMPLETE (Foundation, Arithmetic, Curriculum Types, Sets, Temporal, Streams)
+- ✓ 24 operations implemented (numeric, comparison, filtering, sets, temporal, ordering, boolean)
+- ✓ 1 stream generator (counter)
+- ✓ All types defined (primitives, curriculum, composite, validation, program)
+- ✓ Lexer: COMPLETE - all tokens defined
+- ✓ Parser: COMPLETE - all grammar rules implemented
+- ✓ AST Builder: COMPLETE - full CST to AST conversion
+- ✓ Validation: MOSTLY COMPLETE (missing: set homogeneity, stream consistency, output node, car/food/animal props)
+- ✓ Compiler: COMPLETE - full pipeline working
+- ✓ Main Runtime: COMPLETE - simple wrapper
+- ✓ Demand-Driven Evaluator: CORRECT except temporal ops (P0.1 bug)
+- ✓ Graph Implementation: CORRECT but has issues (SORT only numbers, ALPHABETICAL_SORT converts to string)
+- ✓ 30 tests passing (100%)
+
+**MVP Milestone:**
+To achieve MVP, complete: P0.1, P0.2, P1.1
+
+**MVP Definition (from PROJECT_GOALS.md):**
+- Layers 1-4 implemented (Natural, arithmetic, curriculum types, sets) ✓ COMPLETE
+- Compiler validates programs, catches errors at compile-time ✓ COMPLETE
+- Runtime executes programs correctly with demand-driven semantics ⚠️ PARTIAL (P0.1 bug)
+- 10-15 operations working ✓ COMPLETE (24 implemented)
+- JSON input/output well-defined ✓ COMPLETE
+- Basic HTTP API for batch mode ❌ NOT STARTED (P1.1)
+- Handles 5 concurrent users without degradation ❌ NOT TESTED
+
+**To Achieve MVP:** Complete P0.1, P0.2, P1.1
+
+---
+
+## NEXT STEPS
+
+Focus on completing MVP - this requires fixing critical bugs and implementing Layer 7 integration.
+
+**Order of Implementation:**
+
+1. **P0.1 (2h): Fix Temporal Operations State Bug**
+   - Preserve generator state across calls
+   - Fix NEXT, FIRST, FBY, ACCUMULATE operations
+   - Impact: Restore correct dataflow semantics
+   - **CRITICAL - Do not skip this**
+
+2. **P0.2 (1.5h): Implement 2 Stubbed Performance Tests**
+   - Test 7.1: Compilation Performance (100-node program <100ms)
+   - Test 7.2: Execution Performance (50-node program <50ms)
+   - Impact: Achieve 100% test coverage, verify performance targets
+
+3. **P1.1 (10h): Implement HTTP API (Batch Mode)**
+   - POST /api/v1/compile - Validate program without executing
+   - POST /api/v1/execute - Compile and run program
+   - GET /api/v1/health - Health check endpoint
+   - Return child-friendly Spanish error messages
+   - Impact: Enables CV system integration for complete programs
+
+4. **P1.2 (7h): Implement IncrementalRuntime Class**
+   - Partial graph evaluation with demand-driven semantics
+   - Node state tracking (completed/pending/error)
+   - Subscription management for multiple clients
+   - Graph update API with cache invalidation
+   - Spanish child-friendly messages for missing inputs
+   - Impact: Enables WebSocket server for IDE live feedback
+
+5. **P1.3 (4h): Implement Missing Compiler Validation**
+   - Set homogeneity validation
+   - Stream type consistency
+   - Output node requirement
+   - car/food/animal property validation
+
+6. **P2.1 (3h): Implement Fraction Operations**
+   - Complete the numeric type system
+   - Educational value for curriculum
+
+7. **P2.2 (4h): Make Set/Stream Operations Generic**
+   - Remove natural-only restriction
+   - Support any element type
+
+8. **P2.3 (1.5h): Implement Nested Operation Expressions**
+   - Add third alternative to parser argument rule
+   - Add AST builder handler for operation expressions
+   - Enables complex expressions like ADD(ADD(a, b), c)
+
+9. **P2.4 (3h): Add Child-Friendly Spanish Error Messages**
+   - Update all validation and runtime error handling
+   - Ensure messages are age-appropriate for 6-9 year olds
+
+10. **P3.1 (12h): Implement WebSocket Server (Live Mode)**
+    - Connection at ws://localhost:3000/live
+    - Message handlers for validate_program, evaluate_incremental, subscribe_node, unsubscribe_node
+    - Push notifications for node state changes
+    - Multiple concurrent client support
+    - Impact: Enables IDE live feedback during program construction
+
+11. **P3.2 (2.5h): Fix TypeScript type union complexity in type validation**
+    - Simplify type checking logic in dag-validator
+    - Ensure effective type validation without warnings
+
+---
+
 ## PERFORMANCE TARGETS
 
 ### Current Status
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
-- Test suite: 74/74 tests passing (100%) ✓
-  - Compiler (parsing): 12/12 passing ✓
-  - Compiler (validation): 14/14 passing ✓
-  - Runtime: 14/14 passing ✓
-  - Shared: 18/18 passing ✓
-  - Integration: 30/30 passing ✓ (100%)
-  - Performance: 2/2 stubbed (Task P0.2)
+- Test suite: 30/30 tests passing (100%) ✓
+  - 2/2 performance tests stubbed (Task P0.2)
 
 ### Targets
 - Compilation: <100ms for programs with <100 nodes (p95)
@@ -399,12 +825,12 @@ packages/
 ## SUCCESS METRICS
 
 ### MVP (Layers 1-4 + Basic Integration)
-- All 31 operations implemented ✓
+- All 24 operations implemented ✓
 - Type compatibility validation working ✓
-- HTTP API functional (pending)
+- HTTP API functional (pending - P1.1)
 - Compiler validates programs correctly ✓
-- Runtime executes programs correctly with demand-driven semantics ✓
-- All module resolution issues fixed ✓ (74/74 tests passing)
+- Runtime executes programs correctly with demand-driven semantics ⚠️ (P0.1 bug)
+- All module resolution issues fixed ✓ (30/30 tests passing)
 - Handles 5 concurrent users (pending)
 
 ### Version 1.0 (All Layers)
@@ -416,456 +842,7 @@ packages/
 
 ---
 
-## REMAINING HIGH-PRIORITY WORK
-
-### Immediate Priorities (P0 - CRITICAL)
-
-1. **Implement 2 stubbed performance tests**
-    - Test 7.1: Compilation Performance (100-node program <100ms)
-    - Test 7.2: Execution Performance (50-node program <50ms)
-    - Files: packages/tests/src/performance/compilation.test.ts, packages/tests/src/performance/execution.test.ts
-    - Impact: Achieve 100% test coverage, get performance metrics
-    - Priority: P0 CRITICAL (quick win for test coverage)
-    - Estimated time: 1.5 hours
-
-### High Priorities (P1 - Required for MVP)
-
-2. **Implement IncrementalRuntime class**
-    - Create: packages/runtime/src/incremental-runtime.ts
-    - Partial graph evaluation (demand-driven)
-    - Node state tracking (completed/pending/error)
-    - Subscription management
-    - Graph update API with cache invalidation
-    - Missing input extraction with Spanish messages
-    - Impact: Required for WebSocket live feedback
-    - Priority: P1 HIGH (for MVP)
-    - Estimated time: 7 hours
-    - Dependencies: None (can start immediately)
-
-3. **Implement HTTP API server**
-    - Create: packages/http-api/src/server.ts, packages/http-api/src/index.ts
-    - POST /api/v1/compile - Validate program
-    - POST /api/v1/execute - Compile and run
-    - GET /api/v1/health - Health check
-    - Return child-friendly Spanish error messages
-    - Impact: Required for CV system integration
-    - Priority: P1 HIGH (for MVP)
-    - Estimated time: 10 hours
-    - Dependencies: Compiler, Runtime (both complete)
-
-### Medium Priorities (P2 - Nice to have)
-
-4. **Implement nested operation expressions in parser**
-    - Add third alternative to argument rule (identifier | literal | operation)
-    - Add handler for ctx.operationExpression in AST builder
-    - Regenerate CST types
-    - Add tests for nested operations
-    - Impact: Enables complex expressions like ADD(ADD(a, b), c)
-    - Priority: P2 MEDIUM (nice to have, workaround exists)
-    - Estimated time: 1.5 hours
-    - Dependencies: None
-
-5. **Add child-friendly Spanish error messages**
-    - Update all validation and runtime error handling
-    - Missing input messages in Spanish with multiple inputs support
-    - Type error messages in simple language
-    - Property error messages explain what's missing
-    - Impact: Better user experience for target age group (6-9)
-    - Priority: P2 MEDIUM
-    - Estimated time: 3 hours
-    - Dependencies: Layer 7 implementation
-
-### Low Priorities (P3 - Post-MVP)
-
-6. **Implement WebSocket Server**
-    - Create: packages/websocket-server/src/server.ts, packages/websocket-server/src/index.ts
-    - Connection at ws://localhost:3000/live
-    - Message handlers: validate_program, evaluate_incremental, subscribe_node, unsubscribe_node
-    - Push messages: validation_result, evaluation_result, node_state_changed
-    - Multiple concurrent client support
-    - Impact: Enables IDE live feedback during program construction
-    - Priority: P3 (nice to have after MVP)
-    - Estimated time: 12 hours
-    - Dependencies: IncrementalRuntime (Task 3.1)
-
-7. **Investigate and fix TypeScript type union complexity in dag-validator isTypeCompatible**
-    - File: packages/compiler/src/validation/dag-validator.ts
-    - Simplify type checking logic to avoid complex type unions
-    - Ensure validation runs without TypeScript warnings
-    - Impact: Effective type validation working correctly
-    - Priority: P3 (can be deferred, validation structure implemented)
-    - Estimated time: 2-3 hours
-    - Dependencies: None
-
----
-
-## PRIORITIZED TASK LIST
-
-### P0 CRITICAL (Immediate - Blocks Test Coverage)
-
-#### Task P0.1: Implement 2 Stubbed Performance Tests
-
-**Status:** NOT STARTED
-
-**Files to update:**
-- packages/tests/src/performance/compilation.test.ts:7
-- packages/tests/src/performance/execution.test.ts:7
-
-**Why Critical:**
-- Achieve 100% test coverage
-- Get performance metrics for compilation and execution
-- Verify performance targets are met (<100ms compile, <50ms execute)
-
-**Estimated Time:** 1.5 hours
-
-**Dependencies:** None (all operations available)
-
-**Acceptance Criteria:**
-- Test 7.1: Compilation Performance (100-node program <100ms)
-- Test 7.2: Execution Performance (50-node program <50ms)
-- Performance targets measured
-- Cache effectiveness measured
-- Tests pass
-
-**Layer:** Cross-layer (performance metrics)
-
-**Spec Reference:** specs/INTEGRATION_TESTS_SPEC.md lines 422-480
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Performance tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "test(integration): implement performance tests"
-
----
-
-### P1 HIGH (Required for MVP - Layer 7)
-
-#### Task P1.1: Implement IncrementalRuntime Class
-
-**File to create:** `packages/runtime/src/incremental-runtime.ts`
-
-**Why Critical:**
-- Required by specs/INTEGRATION_SPEC.md and specs/DEMAND_DRIVEN_INCREMENTAL.md
-- Blocks WebSocket server implementation
-- Blocks IDE live feedback capability
-- Required for Layer 7 (Integration)
-
-**Estimated Time:** 7 hours
-
-**Dependencies:** None
-
-**Spec Reference:**
-- specs/INTEGRATION_SPEC.md lines 365-771 (Incremental Runtime design)
-- specs/DEMAND_DRIVEN_INCREMENTAL.md (Demand-driven semantics for incremental evaluation)
-
-**Acceptance Criteria:**
-- ✓ Partial graph evaluation (demand-driven)
-- ✓ Node state tracking (completed/pending/error)
-- ✓ Subscription management (multiple clients)
-- ✓ Graph update API with cache invalidation
-- ✓ Missing input extraction with Spanish messages
-- ✓ Demand-driven semantics preserved
-- ✓ Incremental updates 5x faster than full re-evaluation
-
-**Layer:** Layer 7 (Integration)
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Incremental runtime tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(runtime): implement IncrementalRuntime class"
-
----
-
-#### Task P1.2: Implement HTTP API (Batch Mode)
-
-**Files to create:** packages/http-api/src/server.ts, packages/http-api/src/index.ts
-
-**Why Critical:**
-- Required by specs/INTEGRATION_SPEC.md for CV system integration
-- Enables batch processing of complete programs
-- Required for MVP completion
-
-**Estimated Time:** 10 hours
-
-**Dependencies:**
-- Compiler (complete)
-- Runtime (complete)
-
-**Spec Reference:** specs/INTEGRATION_SPEC.md lines 53-198
-
-**Acceptance Criteria:**
-- ✓ POST /api/v1/compile - Validate program without executing
-- ✓ POST /api/v1/execute - Compile and run program
-- ✓ GET /api/v1/health - Health check endpoint
-- ✓ Accept source code strings
-- ✓ Return child-friendly Spanish error messages
-- ✓ Support execution options (maxTimesteps, includeTrace, traceLevel)
-- ✓ Return execution trace (executionOrder, nodeEvaluations, cacheHits, cacheMisses)
-- ✓ Performance: <100ms compile, <50ms execute for typical programs
-
-**Layer:** Layer 7 (Integration)
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] HTTP API tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Performance targets met
-- [ ] Git commit with message: "feat(http-api): implement HTTP API server"
-
----
-
-### P2 MEDIUM (Nice to have)
-
-#### Task P2.1: Implement Nested Operation Expressions
-
-**Files to update:**
-- packages/compiler/src/parser/dataflow-parser.ts (line 304-309)
-- packages/compiler/src/ast/ast-builder.ts (line 180-183)
-
-**Why Important:**
-- Grammar spec (GRAMMAR_SPEC.md:196-198) allows `argument ::= identifier | literal | operation`
-- Parser argument rule currently only implements identifier and literal alternatives
-- Missing third alternative: operation
-- Enables complex expressions like ADD(ADD(a, b), c)
-- Zero impact on existing code, new feature only
-- Workaround exists: Use intermediate source/transform nodes
-
-**Estimated Time:** 1.5 hours
-
-**Dependencies:** None
-
-**Acceptance Criteria:**
-- ✓ Parser argument rule has third alternative (operation)
-- ✓ AST builder handles ctx.operationExpression
-- ✓ CST types regenerated
-- ✓ Nested operation expressions parse correctly
-- ✓ TypeScript compiles
-
-**Layer:** All layers (expression support)
-
-**Spec Reference:** specs/GRAMMAR_SPEC.md line 196-198
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Nested operation expression tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(compiler): add nested operation expressions"
-
----
-
-#### Task P2.2: Add Child-Friendly Spanish Error Messages
-
-**Files to update:**
-- All validation files (packages/compiler/src/validation/*)
-- All runtime error handling files
-- HTTP API error responses
-- WebSocket error responses
-
-**Why Important:**
-- Error messages must be child-friendly for target demographic (ages 6-9)
-- Spanish language required by specs
-- Improves user experience and learning outcomes
-
-**Estimated Time:** 3 hours
-
-**Dependencies:**
-- P1.1 (IncrementalRuntime)
-- P1.2 (HTTP API)
-- P3.1 (WebSocket Server) - can be done in parallel
-
-**Acceptance Criteria:**
-- ✓ All error messages in child-friendly Spanish
-- ✓ Missing input messages are age-appropriate
-- ✓ Type error messages use simple language
-- ✓ Property error messages explain what's missing
-- ✓ Multiple missing inputs reported in missingInputs array
-
-**Layer:** All layers (user experience)
-
-**Spec Reference:** specs/INTEGRATION_SPEC.md examples of Spanish messages
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Message tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "feat(messages): add child-friendly Spanish error messages"
-
----
-
-### P3 LOW (Post-MVP)
-
-#### Task P3.1: Implement WebSocket Server (Live Mode)
-
-**Files to create:** packages/websocket-server/src/server.ts, packages/websocket-server/src/index.ts
-
-**Why Important:**
-- Required by specs/INTEGRATION_SPEC.md for IDE integration
-- Enables live feedback during program construction
-- Provides real-time validation as children build programs
-- Critical for educational experience but can be deferred for MVP
-
-**Estimated Time:** 12 hours
-
-**Dependencies:**
-- P1.1 (IncrementalRuntime) - REQUIRED
-
-**Spec Reference:** specs/INTEGRATION_SPEC.md lines 192-361
-
-**Acceptance Criteria:**
-- ✓ Connection at ws://localhost:3000/live
-- ✓ Message handlers: validate_program, evaluate_incremental, subscribe_node, unsubscribe_node
-- ✓ Push messages: validation_result, evaluation_result, node_state_changed
-- ✓ Message protocol with messageId
-- ✓ Multiple concurrent client support
-- ✓ Connection resilience (reconnects on disconnect)
-- ✓ Child-friendly Spanish messages
-- ✓ Performance: message roundtrip <50ms (p95)
-
-**Layer:** Layer 7 (Integration)
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] WebSocket tests pass
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Multiple concurrent clients work
-- [ ] Git commit with message: "feat(websocket): implement WebSocket server"
-
----
-
-#### Task P3.2: Fix TypeScript Type Union Complexity in Type Validation
-
-**File to update:** packages/compiler/src/validation/dag-validator.ts
-
-**Why Important:**
-- Type validation structure implemented but not effective due to TypeScript warnings
-- Complex type unions prevent validation logic from executing correctly
-- Can be deferred as validation structure is present, just blocked by TS
-
-**Estimated Time:** 2.5 hours
-
-**Dependencies:**
-- None
-
-**Acceptance Criteria:**
-- ✓ Type compatibility validation works correctly
-- ✓ No TypeScript warnings for validation logic
-- ✓ Integration tests pass with effective type checking
-
-**Layer:** All layers (enables correct validation)
-
-**Spec Reference:** specs/LANGUAGE_SPEC.md lines 433-440
-
-**Ralph Wiggum Checklist:**
-- [ ] New functionality fully implemented
-- [ ] Type validation tests pass
-- [ ] Typecheck passes (no warnings)
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "fix(validation): resolve TypeScript type union complexity"
-
----
-
-## SUMMARY TABLE
-
-| Task | Priority | Status | Time | Impact | Dependencies |
-|------|----------|--------|--------|-------------|
-| P0.1: Implement 2 stubbed performance tests | P0 | NOT STARTED | 1.5h | Test coverage 100% | None |
-| P1.1: Implement IncrementalRuntime | P1 | NOT STARTED | 7h | Enables WebSocket | None |
-| P1.2: Implement HTTP API | P1 | NOT STARTED | 10h | Enables CV system | Compiler, Runtime |
-| P2.1: Implement nested operation expressions | P2 | NOT STARTED | 1.5h | Complex expressions | None |
-| P2.2: Add child-friendly Spanish error messages | P2 | NOT STARTED | 3h | Better UX for ages 6-9 | Layer 7 |
-| P3.1: Implement WebSocket Server | P3 | NOT STARTED | 12h | IDE live feedback | P1.1 |
-| P3.2: Fix TypeScript type union complexity | P3 | NOT STARTED | 2.5h | Effective validation | None |
-
-**Total Estimated Time:** 37.5 hours
-
-**Previous Work Completed:**
-- ✓ Layers 1-6: COMPLETE (Foundation, Arithmetic, Curriculum Types, Sets, Temporal, Streams)
-- ✓ All 31 operations implemented
-- ✓ All 74 tests passing (100%)
-
-**MVP Milestone:**
-To achieve MVP, complete: P0.1, P1.2
-
----
-
-## NEXT STEPS
-
-Focus on completing MVP - this requires implementing Layer 7 integration components and achieving 100% test coverage (currently 74/74 tests pass, 2 performance tests remain stubbed).
-
-**Order of Implementation:**
-
-1. **P0.1 (1.5h): Implement 2 stubbed performance tests**
-   - Test 7.1: Compilation Performance (100-node program <100ms)
-   - Test 7.2: Execution Performance (50-node program <50ms)
-   - Impact: Achieve 100% test coverage, get performance metrics
-
-2. **P1.1 (7h): Implement IncrementalRuntime class**
-   - Partial graph evaluation with demand-driven semantics
-   - Node state tracking (completed/pending/error)
-   - Subscription management for multiple clients
-   - Graph update API with cache invalidation
-   - Spanish child-friendly messages for missing inputs
-   - Impact: Enables WebSocket server for IDE live feedback
-
-3. **P1.2 (10h): Implement HTTP API (Batch Mode)**
-   - POST /api/v1/compile - Validate program without executing
-   - POST /api/v1/execute - Compile and run program
-   - GET /api/v1/health - Health check endpoint
-   - Return child-friendly Spanish error messages
-   - Impact: Enables CV system integration for complete programs
-
-4. **P2.1 (1.5h): Implement nested operation expressions**
-   - Add third alternative to parser argument rule
-   - Add AST builder handler for operation expressions
-   - Enables complex expressions like ADD(ADD(a, b), c)
-
-5. **P2.2 (3h): Add child-friendly Spanish error messages**
-   - Update all validation and runtime error handling
-   - Ensure messages are age-appropriate for 6-9 year olds
-
-6. **P3.1 (12h): Implement WebSocket Server (Live Mode)**
-   - Connection at ws://localhost:3000/live
-   - Message handlers for validate_program, evaluate_incremental, subscribe_node, unsubscribe_node
-   - Push notifications for node state changes
-   - Multiple concurrent client support
-   - Impact: Enables IDE live feedback during program construction
-
-7. **P3.2 (2.5h): Fix TypeScript type union complexity in type validation**
-   - Simplify type checking logic in dag-validator
-   - Ensure effective type validation without warnings
-
-**Previous Work Completed:**
-- ✓ P0.1 (1.5h): Fix module resolution issues - COMPLETE 2026-03-13
-- ✓ P1.1 (2h): Add fraction literal support - COMPLETE 2026-03-12
-- ✓ P1.2 (1h): Add curriculum type declaration tokens - COMPLETE 2026-03-12
-- ✓ Layers 1-6: COMPLETE (Foundation, Arithmetic, Curriculum Types, Sets, Temporal, Streams)
-- ✓ All 31 operations implemented
-- ✓ All module resolution issues fixed - 74/74 tests passing (100%)
-
-**Total Estimated Time:** 37.5 hours (all remaining work)
-
-**MVP Definition (from PROJECT_GOALS.md):**
-- Layers 1-4 implemented (Natural, arithmetic, curriculum types, sets) ✓ COMPLETE
-- Compiler validates programs, catches errors at compile-time ✓ COMPLETE
-- Runtime executes programs correctly with demand-driven semantics ✓ COMPLETE
-- 10-15 operations working ✓ COMPLETE (31 implemented)
-- JSON input/output well-defined ✓ COMPLETE
-- Basic HTTP API for batch mode ❌ NOT STARTED (P1.2)
-- Handles 5 concurrent users without degradation ❌ NOT TESTED
-
-**To Achieve MVP:** Complete P0.1, P1.2
-
----
-
 **Document Status:** Active implementation plan
-**Next Review:** After implementing P0.1 (performance tests)
+**Next Review:** After implementing P0.1 (temporal operations bug fix)
 **Maintainer:** Update as implementation progresses
-**Last Change:** 2026-03-13 - Cleaned up document, removed completed tasks, focused on remaining work
+**Last Change:** 2026-03-13 - Synthesized findings from 5 parallel subagents, corrected Layer 7 status from 35% to 0%, added P0.1 critical bug for temporal operations, reprioritized tasks for MVP completion
