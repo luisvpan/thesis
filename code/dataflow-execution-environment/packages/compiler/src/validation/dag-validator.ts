@@ -10,7 +10,7 @@ export class DagValidator {
     const defined = new Set<string>();
     const typeTable = new Map<string, string>();
 
-    for (const stmt of statements) {
+      for (const stmt of statements) {
       if (defined.has(stmt.id)) {
         errors.push({
           code: "DUPLICATE_IDENTIFIER",
@@ -22,6 +22,29 @@ export class DagValidator {
         });
       }
       defined.add(stmt.id);
+
+      if (stmt.type === "TransformStatement") {
+        for (const input of stmt.inputs) {
+          if (input.startsWith("literal_")) {
+            defined.add(input);
+            const match = input.match(/^literal_(\w+)_(.+)$/);
+            if (match) {
+              const type = match[1];
+              let dataType: string;
+              if (type === "number") {
+                dataType = "natural";
+              } else if (type === "string") {
+                dataType = "text";
+              } else if (type === "boolean") {
+                dataType = "boolean";
+              } else {
+                dataType = "unknown";
+              }
+              typeTable.set(input, dataType);
+            }
+          }
+        }
+      }
 
       if (stmt.type === "SourceStatement") {
         typeTable.set(stmt.id, stmt.dataType);
@@ -79,7 +102,8 @@ export class DagValidator {
               expectedType,
               inputType,
               stmt.inputs[i],
-              i
+              i,
+              stmt.id
             );
             errors.push(errorDetails);
           }
@@ -267,13 +291,14 @@ export class DagValidator {
     expectedType: DataType | TypeConstraint,
     actualType: string,
     inputId: string,
-    inputIndex: number
+    inputIndex: number,
+    transformNodeId: string
   ): ValidationError {
     const expectedTypeName = typeof expectedType === "string" ? expectedType : expectedType.kind;
     const error: ValidationError = {
       code: "TYPE_ERROR",
-      message: "",
-      nodeId: inputId,
+      message: `Operation ${operation} expects ${expectedTypeName}, received ${actualType}`,
+      nodeId: transformNodeId,
       childMessage: "",
       suggestion: "",
       example: ""

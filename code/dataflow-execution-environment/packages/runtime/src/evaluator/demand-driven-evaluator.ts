@@ -69,7 +69,7 @@ export class DemandDrivenEvaluator {
   private wrapDataSourceValue(node: { type: "DataSource"; dataType: string | { kind: string; elementType?: any }; value: unknown }): unknown {
     const numValue = typeof node.value === "number" ? node.value : node.value;
     const dataType = typeof node.dataType === "string" ? node.dataType : (node.dataType as { kind: string; elementType?: any }).kind;
-    
+
     switch (dataType) {
       case "natural":
         return { kind: "natural" as const, value: numValue as number };
@@ -79,15 +79,49 @@ export class DemandDrivenEvaluator {
         return { kind: "decimal" as const, value: numValue as number };
       case "fraction":
         return { kind: "fraction" as const, numerator: (numValue as { numerator: number; denominator: number }).numerator, denominator: (numValue as { numerator: number; denominator: number }).denominator };
+      case "text":
+        return { kind: "text" as const, value: numValue as string };
+      case "boolean":
+        return { kind: "boolean" as const, value: numValue as boolean };
+      case "shape":
+        return { kind: "shape" as const, ...numValue as { type: string; size: string; color: string } };
+      case "car":
+        return { kind: "car" as const, ...numValue as { color: string } };
+      case "food":
+        return { kind: "food" as const, ...numValue as { taste: string; color: string } };
+      case "animal":
+        return { kind: "animal" as const, ...numValue as { type: string; color: string } };
+      case "person":
+        return { kind: "person" as const, ...numValue as { ageGroup: string; gender: string } };
       default:
         if (dataType.startsWith("stream")) {
           return node.value;
         }
         if (dataType.startsWith("set")) {
-          return { kind: "set", elements: numValue as unknown[] };
+          const elementType = this.extractElementType(dataType);
+          const elements = (numValue as unknown[]).map((elem: Record<string, unknown>) => {
+            if (elementType === "shape") {
+              return { kind: "shape", ...elem };
+            } else if (elementType === "car") {
+              return { kind: "car", ...elem };
+            } else if (elementType === "food") {
+              return { kind: "food", ...elem };
+            } else if (elementType === "animal") {
+              return { kind: "animal", ...elem };
+            } else if (elementType === "person") {
+              return { kind: "person", ...elem };
+            }
+            return elem;
+          });
+          return { kind: "set", elements };
         }
         return node.value;
     }
+  }
+
+  private extractElementType(compositeType: string): string {
+    const match = compositeType.match(/^(set|stream)<(.+)>$/);
+    return match ? match[2] : "unknown";
   }
 
   private evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {

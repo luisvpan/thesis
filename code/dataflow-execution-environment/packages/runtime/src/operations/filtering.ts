@@ -1,50 +1,50 @@
 import type { Shape, Car, Food, Animal, Person, Text } from "@dataflow/shared/types";
 
-export function FILTER(inputs: Array<{ id: string; value: unknown }>): unknown[] {
+export function FILTER(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, predicate] = inputs;
-  const elements = set.value as unknown[];
+  const elements = (set.value as { kind: string; elements: unknown[] }).elements;
   const predicateFn = predicate.value as (item: unknown) => boolean;
-  return elements.filter(predicateFn);
+  return { kind: "set", elements: elements.filter(predicateFn) };
 }
 
-export function FILTER_BY_SIZE(inputs: Array<{ id: string; value: unknown }>): Shape[] {
+export function FILTER_BY_SIZE(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, size] = inputs;
-  const shapes = set.value as Shape[];
-  const sizeValue = (size.value as Text).value;
-  return shapes.filter(shape => shape.size === sizeValue);
+  const shapes = (set.value as { kind: string; elements: unknown[] }).elements as Array<{ size: string }>;
+  const sizeValue = (size.value as { kind: string; value: string }).value;
+  return { kind: "set", elements: shapes.filter(shape => shape.size === sizeValue) };
 }
 
-export function FILTER_BY_COLOR(inputs: Array<{ id: string; value: unknown }>): (Shape | Car | Food | Animal)[] {
+export function FILTER_BY_COLOR(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, color] = inputs;
-  const elements = set.value as (Shape | Car | Food | Animal)[];
-  const colorValue = (color.value as Text).value;
-  return elements.filter(element => element.color === colorValue);
+  const elements = (set.value as { kind: string; elements: unknown[] }).elements as Array<{ color: string }>;
+  const colorValue = (color.value as { kind: string; value: string }).value;
+  return { kind: "set", elements: elements.filter(element => element.color === colorValue) };
 }
 
-export function FILTER_BY_TYPE(inputs: Array<{ id: string; value: unknown }>): (Shape | Animal)[] {
+export function FILTER_BY_TYPE(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, type] = inputs;
-  const elements = set.value as (Shape | Animal)[];
-  const typeValue = (type.value as Text).value;
-  return elements.filter(element => element.type === typeValue);
+  const elements = (set.value as { kind: string; elements: unknown[] }).elements as Array<{ type: string }>;
+  const typeValue = (type.value as { kind: string; value: string }).value;
+  return { kind: "set", elements: elements.filter(element => element.type === typeValue) };
 }
 
-export function FILTER_BY_TASTE(inputs: Array<{ id: string; value: unknown }>): Food[] {
+export function FILTER_BY_TASTE(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, taste] = inputs;
-  const foods = set.value as Food[];
-  const tasteValue = (taste.value as Text).value;
-  return foods.filter(food => food.taste === tasteValue);
+  const foods = (set.value as { kind: string; elements: unknown[] }).elements as Array<{ taste: string }>;
+  const tasteValue = (taste.value as { kind: string; value: string }).value;
+  return { kind: "set", elements: foods.filter(food => food.taste === tasteValue) };
 }
 
-export function FILTER_BY_AGE_GROUP(inputs: Array<{ id: string; value: unknown }>): Person[] {
+export function FILTER_BY_AGE_GROUP(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, ageGroup] = inputs;
-  const persons = set.value as Person[];
-  const ageGroupValue = (ageGroup.value as Text).value;
-  return persons.filter(person => person.ageGroup === ageGroupValue);
+  const persons = (set.value as { kind: string; elements: unknown[] }).elements as Array<{ ageGroup: string }>;
+  const ageGroupValue = (ageGroup.value as { kind: string; value: string }).value;
+  return { kind: "set", elements: persons.filter(person => person.ageGroup === ageGroupValue) };
 }
 
-export function FILTER_BY_GENDER(inputs: Array<{ id: string; value: unknown }>): Person[] {
+export function FILTER_BY_GENDER(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, gender] = inputs;
-  const persons = set.value as Person[];
-  const genderValue = (gender.value as Text).value;
-  return persons.filter(person => person.gender === genderValue);
+  const persons = (set.value as { kind: string; elements: unknown[] }).elements as Array<{ gender: string }>;
+  const genderValue = (gender.value as { kind: string; value: string }).value;
+  return { kind: "set", elements: persons.filter(person => person.gender === genderValue) };
 }

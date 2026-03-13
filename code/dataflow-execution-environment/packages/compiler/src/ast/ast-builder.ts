@@ -179,6 +179,10 @@ export class AstBuilder extends BaseVisitor {
 
   argument(ctx: ArgumentCstChildren) {
     if (ctx.Identifier) return ctx.Identifier[0].image;
-    if (ctx.literal) return this.visit(ctx.literal);
+    if (ctx.literal) {
+      const literalValue = this.visit(ctx.literal);
+      const literalId = `literal_${typeof literalValue}_${JSON.stringify(literalValue).replace(/[^a-zA-Z0-9]/g, '')}`;
+      return literalId;
+    }
   }
 }

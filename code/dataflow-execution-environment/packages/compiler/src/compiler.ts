@@ -71,23 +71,78 @@ export class Compiler {
 
   private buildProgramFromAst(ast: Program): { nodes: DataflowNode[]; edges: DataflowEdge[] } {
     this.edgeCounter = 0;
-    const nodes: DataflowNode[] = ast.statements.map(stmt => {
-      const node = statementToNode(stmt);
-      
-      if (node.type === "DataSource" && this.isStreamDeclaration(node.dataType, node.value)) {
-        return this.convertStreamDeclaration(node);
-      }
-      
-      return node;
-    });
+    const nodes: DataflowNode[] = [];
     const edges: DataflowEdge[] = [];
+    const literalData = new Map<string, { value: unknown; dataType: string }>();
 
     for (const stmt of ast.statements) {
       if (stmt.type === "TransformStatement") {
+        for (const input of stmt.inputs) {
+          if (input.startsWith("literal_") && !literalData.has(input)) {
+            const match = input.match(/^literal_(\w+)_(.+)$/);
+            if (match) {
+              const type = match[1];
+              const valueJson = match[2];
+              const value = JSON.parse(`"${valueJson}"`);
+              
+              let nodeDataType: string;
+              let nodeValue: unknown;
+
+              if (type === "number") {
+                nodeDataType = Number.isInteger(value) && value >= 0 ? "natural" : "integer";
+                nodeValue = value;
+              } else if (type === "string") {
+                nodeDataType = "text";
+                nodeValue = { kind: "text", value };
+              } else if (type === "boolean") {
+                nodeDataType = "boolean";
+                nodeValue = { kind: "boolean", value };
+              } else if (type === "object") {
+                nodeDataType = stmt.dataType;
+                nodeValue = value;
+              } else {
+                nodeDataType = "unknown";
+                nodeValue = value;
+              }
+
+              literalData.set(input, { value: nodeValue, dataType: nodeDataType });
+            }
+          }
+        }
+      }
+    }
+
+    for (const literalId of literalData.keys()) {
+      const literalInfo = literalData.get(literalId)!;
+      const literalNode = {
+        id: literalId,
+        type: "DataSource",
+        dataType: literalInfo.dataType,
+        value: literalInfo.value,
+        metadata: { isLiteral: true }
+      };
+      nodes.push(literalNode);
+    }
+
+    for (const stmt of ast.statements) {
+      const node = statementToNode(stmt);
+
+      if (node.type === "DataSource" && this.isStreamDeclaration(node.dataType, node.value)) {
+        nodes.push(this.convertStreamDeclaration(node));
+      } else if (!literalData.has(node.id)) {
+        nodes.push(node);
+      }
+    }
+
+    for (const stmt of ast.statements) {
+      if (stmt.type === "TransformStatement") {
+        const inputIds = this.resolveLiteralInputs(stmt.inputs);
+
         for (let i = 0; i < stmt.inputs.length; i++) {
+          const inputId = inputIds[i];
           edges.push({
             id: `edge_${this.edgeCounter++}`,
-            from: stmt.inputs[i],
+            from: inputId,
             to: stmt.id,
             toPort: i
           });
@@ -102,6 +157,76 @@ export class Compiler {
     }
 
     return { nodes, edges };
+  }
+
+  private resolveLiteralInputs(inputs: string[]): string[] {
+    return inputs;
+  }
+
+  private createLiteralNodeFromId(literalId: string, dataType: string): DataflowNode {
+    const match = literalId.match(/^literal_(\w+)_(.+)$/);
+    if (!match) {
+      throw new Error(`Invalid literal ID format: ${literalId}`);
+    }
+
+    const type = match[1];
+    const valueJson = match[2];
+    const value = JSON.parse(`"${valueJson}"`);
+    
+    let nodeDataType: string;
+    let nodeValue: unknown;
+
+    if (type === "number") {
+      nodeDataType = Number.isInteger(value) && value >= 0 ? "natural" : "integer";
+      nodeValue = value;
+    } else if (type === "string") {
+      nodeDataType = "text";
+      nodeValue = { kind: "text", value };
+    } else if (type === "boolean") {
+      nodeDataType = "boolean";
+      nodeValue = { kind: "boolean", value };
+    } else if (type === "object") {
+      nodeDataType = dataType;
+      nodeValue = value;
+    } else {
+      nodeDataType = "unknown";
+      nodeValue = value;
+    }
+
+    return {
+      id: literalId,
+      type: "DataSource",
+      dataType: nodeDataType,
+      value: nodeValue,
+      metadata: { isLiteral: true }
+    };
+  }
+
+  private createLiteralNode(value: unknown, index: number): DataflowNode {
+    let dataType: string;
+    let nodeValue: unknown;
+
+    if (typeof value === "number") {
+      dataType = Number.isInteger(value) && value >= 0 ? "natural" : "integer";
+      nodeValue = value;
+    } else if (typeof value === "string") {
+      dataType = "text";
+      nodeValue = { kind: "text", value };
+    } else if (typeof value === "boolean") {
+      dataType = "boolean";
+      nodeValue = { kind: "boolean", value };
+    } else {
+      dataType = "unknown";
+      nodeValue = value;
+    }
+
+    return {
+      id: `literal_${index}`,
+      type: "DataSource",
+      dataType,
+      value: nodeValue,
+      metadata: { isLiteral: true }
+    };
   }
 
   private isStreamDeclaration(dataType: string | { kind: string }, value: unknown): boolean {

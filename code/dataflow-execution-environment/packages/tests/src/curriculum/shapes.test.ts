@@ -56,13 +56,13 @@ describe("Integration Tests - Curriculum Types", () => {
       runtime.loadProgram(compileResult.program!);
       runtime.execute();
 
-      // Verify original set unchanged
+      // Verify original set unchanged - source value is array before evaluation
       const graph = runtime.getGraph();
       const sourceNode = graph.getNode("shapes");
       expect(sourceNode).toBeDefined();
       if (sourceNode && sourceNode.type === "DataSource") {
-        const originalShapes = sourceNode.value as { elements: unknown[] };
-        expect(originalShapes.elements).toHaveLength(2);
+        const originalShapes = sourceNode.value as unknown[];
+        expect(originalShapes).toHaveLength(2);
       }
     });
   });
