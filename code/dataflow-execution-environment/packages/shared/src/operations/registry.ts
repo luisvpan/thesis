@@ -2,10 +2,15 @@ import type { DataType } from "../types/composite.js";
 
 export type Operation =
   | "ADD"
+  | "ADD_FRACTION"
   | "SUBTRACT"
+  | "SUBTRACT_FRACTION"
   | "MULTIPLY"
+  | "MULTIPLY_FRACTION"
   | "DIVIDE"
+  | "DIVIDE_FRACTION"
   | "COMPARE"
+  | "COMPARE_FRACTION"
   | "COMPARE_BY_SIZE"
   | "COMPARE_BY_COLOR"
   | "COMPARE_BY_TYPE"
@@ -50,10 +55,24 @@ export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
     category: "numeric"
   },
 
+  ADD_FRACTION: {
+    arity: 2,
+    inputTypes: ["fraction", "fraction"],
+    outputType: "fraction",
+    category: "numeric"
+  },
+
   SUBTRACT: {
     arity: 2,
     inputTypes: ["natural", "natural"],
     outputType: "integer",
+    category: "numeric"
+  },
+
+  SUBTRACT_FRACTION: {
+    arity: 2,
+    inputTypes: ["fraction", "fraction"],
+    outputType: "fraction",
     category: "numeric"
   },
 
@@ -64,6 +83,13 @@ export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
     category: "numeric"
   },
 
+  MULTIPLY_FRACTION: {
+    arity: 2,
+    inputTypes: ["fraction", "fraction"],
+    outputType: "fraction",
+    category: "numeric"
+  },
+
   DIVIDE: {
     arity: 2,
     inputTypes: ["natural", "natural"],
@@ -71,9 +97,23 @@ export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
     category: "numeric"
   },
 
+  DIVIDE_FRACTION: {
+    arity: 2,
+    inputTypes: ["fraction", "fraction"],
+    outputType: "fraction",
+    category: "numeric"
+  },
+
   COMPARE: {
     arity: 2,
     inputTypes: ["natural", "natural"],
+    outputType: "boolean",
+    category: "comparison"
+  },
+
+  COMPARE_FRACTION: {
+    arity: 2,
+    inputTypes: ["fraction", "fraction"],
     outputType: "boolean",
     category: "comparison"
   },

@@ -365,4 +365,299 @@ describe('Runtime - Execution', () => {
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'natural', value: 20 });
   });
+
+  describe('Fraction Operations', () => {
+    it('should execute ADD_FRACTION operation', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 4 } },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'add', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'add', toPort: 1 },
+            { id: 'e3', from: 'add', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 3, denominator: 4 });
+    });
+
+    it('should ADD fractions that simplify to whole number', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 3 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 3 } },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'add', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'add', toPort: 1 },
+            { id: 'e3', from: 'add', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 1, denominator: 1 });
+    });
+
+    it('should execute SUBTRACT_FRACTION operation', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 3, denominator: 4 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 4 } },
+            { id: 'sub', type: 'Transformation', dataType: 'fraction', operation: 'SUBTRACT_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'sub' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'sub', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'sub', toPort: 1 },
+            { id: 'e3', from: 'sub', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 1, denominator: 2 });
+    });
+
+    it('should execute MULTIPLY_FRACTION operation', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 3 } },
+            { id: 'mul', type: 'Transformation', dataType: 'fraction', operation: 'MULTIPLY_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'mul' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'mul', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'mul', toPort: 1 },
+            { id: 'e3', from: 'mul', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 1, denominator: 3 });
+    });
+
+    it('should execute DIVIDE_FRACTION operation', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 4 } },
+            { id: 'div', type: 'Transformation', dataType: 'fraction', operation: 'DIVIDE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'div' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'div', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'div', toPort: 1 },
+            { id: 'e3', from: 'div', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 2, denominator: 1 });
+    });
+
+    it('should execute COMPARE_FRACTION operation with equal fractions', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 4 } },
+            { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'cmp', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'cmp', toPort: 1 },
+            { id: 'e3', from: 'cmp', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'boolean', value: true });
+    });
+
+    it('should execute COMPARE_FRACTION operation with different fractions', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 3 } },
+            { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'cmp', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'cmp', toPort: 1 },
+            { id: 'e3', from: 'cmp', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'boolean', value: false });
+    });
+
+    it('should simplify fractions automatically', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 4 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 3, denominator: 6 } },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'add', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'add', toPort: 1 },
+            { id: 'e3', from: 'add', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 1, denominator: 1 });
+    });
+
+    it('should handle negative fractions', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 3, denominator: 4 } },
+            { id: 'sub', type: 'Transformation', dataType: 'fraction', operation: 'SUBTRACT_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'sub' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'sub', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'sub', toPort: 1 },
+            { id: 'e3', from: 'sub', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+      const outputs = runtime.execute();
+
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0]).toEqual({ kind: 'fraction', numerator: -1, denominator: 4 });
+    });
+
+    it('should error on division by zero in DIVIDE_FRACTION', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 0, denominator: 1 } },
+            { id: 'div', type: 'Transformation', dataType: 'fraction', operation: 'DIVIDE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'div' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'div', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'div', toPort: 1 },
+            { id: 'e3', from: 'div', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+
+      expect(() => runtime.execute()).toThrow('DIVIDE_FRACTION: Division by zero');
+    });
+
+    it('should error on zero denominator in fraction inputs', () => {
+      const runtime = new Runtime();
+
+      const program: DataflowProgram = {
+        metadata: { programId: 'prog_001' },
+        graph: {
+          nodes: [
+            { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
+            { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 0 } },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
+          ],
+          edges: [
+            { id: 'e1', from: 'a', to: 'add', toPort: 0 },
+            { id: 'e2', from: 'b', to: 'add', toPort: 1 },
+            { id: 'e3', from: 'add', to: 'result' }
+          ]
+        }
+      };
+
+      runtime.loadProgram(program);
+
+      expect(() => runtime.execute()).toThrow('ADD_FRACTION: Denominator cannot be zero');
+    });
+  });
 });

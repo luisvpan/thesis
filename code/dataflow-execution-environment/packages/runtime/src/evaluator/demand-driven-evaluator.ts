@@ -1,5 +1,16 @@
 import { DataflowGraph } from "../graph/dataflow-graph.js";
-import { ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE } from "../operations/numeric.js";
+import {
+  ADD,
+  ADD_FRACTION,
+  SUBTRACT,
+  SUBTRACT_FRACTION,
+  MULTIPLY,
+  MULTIPLY_FRACTION,
+  DIVIDE,
+  DIVIDE_FRACTION,
+  COMPARE,
+  COMPARE_FRACTION
+} from "../operations/numeric.js";
 import { AND, OR, NOT } from "../operations/boolean.js";
 import {
   COMPARE_BY_SIZE,
@@ -145,14 +156,24 @@ export class DemandDrivenEvaluator {
     switch (operation) {
       case "ADD":
         return ADD(evaluatedInputs);
+      case "ADD_FRACTION":
+        return ADD_FRACTION(evaluatedInputs);
       case "SUBTRACT":
         return SUBTRACT(evaluatedInputs);
+      case "SUBTRACT_FRACTION":
+        return SUBTRACT_FRACTION(evaluatedInputs);
       case "MULTIPLY":
         return MULTIPLY(evaluatedInputs);
+      case "MULTIPLY_FRACTION":
+        return MULTIPLY_FRACTION(evaluatedInputs);
       case "DIVIDE":
         return DIVIDE(evaluatedInputs);
+      case "DIVIDE_FRACTION":
+        return DIVIDE_FRACTION(evaluatedInputs);
       case "COMPARE":
         return COMPARE(evaluatedInputs);
+      case "COMPARE_FRACTION":
+        return COMPARE_FRACTION(evaluatedInputs);
 
       case "AND":
         return AND(evaluatedInputs);
