@@ -14,7 +14,7 @@ const result = compiler.compile(source);
 console.log('Success:', result.success);
 if (!result.success) {
   console.log('Errors:', JSON.stringify(result.errors, null, 2));
-} else {
+} else if (result.program) {
   console.log('Nodes:', result.program.graph.nodes.length);
   console.log('Edges:', result.program.graph.edges.length);
   console.log('Node IDs:', result.program.graph.nodes.map(n => n.id).join(', '));

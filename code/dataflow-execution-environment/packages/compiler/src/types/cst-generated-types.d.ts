@@ -306,6 +306,7 @@ export interface ArgumentCstNode extends CstNode {
 export type ArgumentCstChildren = {
   Identifier?: IToken[];
   literal?: LiteralCstNode[];
+  operationExpression?: OperationExpressionCstNode[];
 };
 
 export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {

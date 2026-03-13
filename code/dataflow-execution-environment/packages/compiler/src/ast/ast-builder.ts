@@ -6,6 +6,8 @@ const parserInstance = new DataflowParser();
 const BaseVisitor = parserInstance.getBaseCstVisitorConstructor();
 
 export class AstBuilder extends BaseVisitor {
+  private nestedOpCounter = 0;
+
   constructor() {
     super();
     this.validateVisitor();
@@ -183,6 +185,11 @@ export class AstBuilder extends BaseVisitor {
       const literalValue = this.visit(ctx.literal);
       const literalId = `literal_${typeof literalValue}_${JSON.stringify(literalValue).replace(/[^a-zA-Z0-9]/g, '')}`;
       return literalId;
+    }
+    if (ctx.operationExpression) {
+      const opExpr = this.visit(ctx.operationExpression);
+      const opId = `nested_op_${this.nestedOpCounter++}_${opExpr.operation}`;
+      return opId;
     }
   }
 }

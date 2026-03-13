@@ -4,6 +4,7 @@ export type NodeMetadata = {
   label?: string;
   blockId?: string;
   position?: [number, number];
+  isLiteral?: boolean;
 };
 
 export type DataSourceNode = {

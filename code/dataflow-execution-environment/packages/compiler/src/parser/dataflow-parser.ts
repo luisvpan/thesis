@@ -303,6 +303,7 @@ export class DataflowParser extends CstParser {
 
   argument = this.RULE("argument", () => {
     this.OR([
+      { GATE: () => this.LA(1).tokenType === Identifier && this.LA(2).tokenType === LParen, ALT: () => this.SUBRULE(this.operationExpression) },
       { ALT: () => this.CONSUME(Identifier) },
       { ALT: () => this.SUBRULE(this.literal) }
     ]);

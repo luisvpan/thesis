@@ -3,9 +3,10 @@ import { allTokens } from "./lexer/tokens.js";
 import { DataflowParser } from "./parser/dataflow-parser.js";
 import { AstBuilder, Program, statementToNode } from "./ast/index.js";
 import { DagValidator } from "./validation/dag-validator.js";
-import type { DataflowProgram, DataflowNode, DataflowEdge } from "@dataflow/shared/types";
+import type { DataflowProgram, DataflowNode, DataflowEdge, DataSourceNode } from "@dataflow/shared/types";
 import type { ValidationResult } from "@dataflow/shared/types";
 import { getGenerator as getBuiltinGenerator } from "@dataflow/shared/generators";
+import type { DataType } from "@dataflow/shared/types";
 
 export class Compiler {
   private lexer: Lexer;
@@ -73,7 +74,7 @@ export class Compiler {
     this.edgeCounter = 0;
     const nodes: DataflowNode[] = [];
     const edges: DataflowEdge[] = [];
-    const literalData = new Map<string, { value: unknown; dataType: string }>();
+    const literalData = new Map<string, { value: unknown; dataType: DataType }>();
 
     for (const stmt of ast.statements) {
       if (stmt.type === "TransformStatement") {
@@ -84,8 +85,8 @@ export class Compiler {
               const type = match[1];
               const valueJson = match[2];
               const value = JSON.parse(`"${valueJson}"`);
-              
-              let nodeDataType: string;
+
+              let nodeDataType: DataType;
               let nodeValue: unknown;
 
               if (type === "number") {
@@ -98,10 +99,10 @@ export class Compiler {
                 nodeDataType = "boolean";
                 nodeValue = { kind: "boolean", value };
               } else if (type === "object") {
-                nodeDataType = stmt.dataType;
+                nodeDataType = stmt.dataType as DataType;
                 nodeValue = value;
               } else {
-                nodeDataType = "unknown";
+                nodeDataType = "text";
                 nodeValue = value;
               }
 
@@ -114,9 +115,9 @@ export class Compiler {
 
     for (const literalId of literalData.keys()) {
       const literalInfo = literalData.get(literalId)!;
-      const literalNode = {
+      const literalNode: DataSourceNode = {
         id: literalId,
-        type: "DataSource",
+        type: "DataSource" as const,
         dataType: literalInfo.dataType,
         value: literalInfo.value,
         metadata: { isLiteral: true }
@@ -172,8 +173,8 @@ export class Compiler {
     const type = match[1];
     const valueJson = match[2];
     const value = JSON.parse(`"${valueJson}"`);
-    
-    let nodeDataType: string;
+
+    let nodeDataType: DataType;
     let nodeValue: unknown;
 
     if (type === "number") {
@@ -186,24 +187,24 @@ export class Compiler {
       nodeDataType = "boolean";
       nodeValue = { kind: "boolean", value };
     } else if (type === "object") {
-      nodeDataType = dataType;
+      nodeDataType = dataType as DataType;
       nodeValue = value;
     } else {
-      nodeDataType = "unknown";
+      nodeDataType = "text";
       nodeValue = value;
     }
 
     return {
       id: literalId,
-      type: "DataSource",
+      type: "DataSource" as const,
       dataType: nodeDataType,
       value: nodeValue,
       metadata: { isLiteral: true }
     };
   }
 
-  private createLiteralNode(value: unknown, index: number): DataflowNode {
-    let dataType: string;
+  private createLiteralNode(value: unknown, index: number): DataSourceNode {
+    let dataType: DataType;
     let nodeValue: unknown;
 
     if (typeof value === "number") {
@@ -216,13 +217,13 @@ export class Compiler {
       dataType = "boolean";
       nodeValue = { kind: "boolean", value };
     } else {
-      dataType = "unknown";
+      dataType = "text";
       nodeValue = value;
     }
 
     return {
       id: `literal_${index}`,
-      type: "DataSource",
+      type: "DataSource" as const,
       dataType,
       value: nodeValue,
       metadata: { isLiteral: true }

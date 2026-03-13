@@ -1,10 +1,13 @@
 import type { Shape, Car, Food, Animal, Person, Text } from "@dataflow/shared/types";
 
 export function FILTER(inputs: Array<{ id: string; value: unknown }>): unknown {
-  const [set, predicate] = inputs;
+  const [set, value] = inputs;
   const elements = (set.value as { kind: string; elements: unknown[] }).elements;
-  const predicateFn = predicate.value as (item: unknown) => boolean;
-  return { kind: "set", elements: elements.filter(predicateFn) };
+  const valueWrapper = value.value as { kind: string; value: unknown };
+  const filterValue = typeof valueWrapper.value === 'object' && valueWrapper.value !== null
+    ? (valueWrapper.value as { value: unknown }).value
+    : valueWrapper.value;
+  return { kind: "set", elements: elements.filter(item => item === filterValue) };
 }
 
 export function FILTER_BY_SIZE(inputs: Array<{ id: string; value: unknown }>): unknown {

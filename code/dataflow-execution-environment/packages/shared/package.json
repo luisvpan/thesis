@@ -8,6 +8,7 @@
     "./generators": "./src/generators/index.ts",
     "./generators/registry": "./src/generators/registry.ts"
   },
+  "types": "./src/types/index.ts",
   "scripts": {
     "build": "bun build src/types/index.ts --outdir=dist --target=bun",
     "test": "bun test"

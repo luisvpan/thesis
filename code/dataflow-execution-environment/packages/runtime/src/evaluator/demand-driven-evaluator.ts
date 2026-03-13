@@ -107,17 +107,21 @@ export class DemandDrivenEvaluator {
         }
         if (dataType.startsWith("set")) {
           const elementType = this.extractElementType(dataType);
-          const elements = (numValue as unknown[]).map((elem: Record<string, unknown>) => {
-            if (elementType === "shape") {
-              return { kind: "shape", ...elem };
-            } else if (elementType === "car") {
-              return { kind: "car", ...elem };
-            } else if (elementType === "food") {
-              return { kind: "food", ...elem };
-            } else if (elementType === "animal") {
-              return { kind: "animal", ...elem };
-            } else if (elementType === "person") {
-              return { kind: "person", ...elem };
+          const elements = (numValue as unknown[]).map((elem: unknown) => {
+            if (typeof elem === 'object' && elem !== null) {
+              const record = elem as Record<string, unknown>;
+              if (elementType === "shape") {
+                return { kind: "shape", ...record };
+              } else if (elementType === "car") {
+                return { kind: "car", ...record };
+              } else if (elementType === "food") {
+                return { kind: "food", ...record };
+              } else if (elementType === "animal") {
+                return { kind: "animal", ...record };
+              } else if (elementType === "person") {
+                return { kind: "person", ...record };
+              }
+              return record;
             }
             return elem;
           });
