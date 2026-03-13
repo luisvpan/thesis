@@ -41,7 +41,7 @@ For an educational language targeting 6-9 year olds:
 ```typescript
 type Natural = {
   kind: "natural";
-  value: number;  // >= 0, integer
+  value: number;  // >= 0, formally some would say that this is 0 + naturals
 }
 ```
 
@@ -94,8 +94,8 @@ type Decimal = {
 ```typescript
 type Fraction = {
   kind: "fraction";
-  numerator: Integer;
-  denominator: Integer;
+  numerator: number;
+  denominator: number;
 }
 ```
 
