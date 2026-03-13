@@ -118,28 +118,37 @@ packages/
 
 ---
 
-### Blocker 2: Fraction Operations Missing (P0 - CRITICAL) - RESOLVED ✅
+### Blocker 2: Fraction Operations Implemented Incorrectly (P0 - CRITICAL) - ❌ NEEDS REFACTOR
 
-**Status:** COMPLETED 2026-03-13 - All 11 operations implemented and passing
+**Status:** INCORRECTLY IMPLEMENTED - Requires refactoring to use overloading
+
+**Current (WRONG) Implementation:**
+- ❌ Separate `ADD_FRACTION`, `SUBTRACT_FRACTION`, `MULTIPLY_FRACTION`, `DIVIDE_FRACTION`, `COMPARE_FRACTION` operations defined in registry
+- ❌ Runtime has separate functions for each fraction operation
+- ❌ **CRITICAL**: Compiler can NEVER generate these tokens - it only generates `ADD`, `SUBTRACT`, etc.
+- ❌ Tests use direct `ADD_FRACTION` tokens, which bypass the compiler
+- ❌ No integration tests exist (only internal unit tests)
 
 **Impact:**
-- ✅ Type system completeness achieved - Fraction operations fully implemented
-- ✅ Fractions can be used in programs without runtime errors
-- ✅ Fraction type system complete
-- ✅ Educational value achieved - fractions are now fully supported curriculum topic
+- ❌ Type system completeness NOT achieved - Fractions cannot be used in real programs
+- ❌ Fractions only work in direct runtime calls, not via compiler
+- ❌ Integration between compiler and runtime broken
+- ❌ Overloading pattern not implemented (critical for Integer/Decimal too)
 
-**Operations Implemented (via overloading):**
-- ✅ ADD(Fraction, Fraction) → Fraction
-- ✅ SUBTRACT(Fraction, Fraction) → Fraction
-- ✅ MULTIPLY(Fraction, Fraction) → Fraction
-- ✅ DIVIDE(Fraction, Fraction) → Fraction
-- ✅ COMPARE(Fraction, Fraction) → Boolean
+**Correct Implementation Needed:**
+- ✅ Registry should allow `ADD` to accept multiple input types:
+  - `[natural, natural]` → `natural` (existing)
+  - `[fraction, fraction]` → `fraction` (NEW)
+  - `[integer, integer]` → `integer` (NEW - will be needed)
+  - `[decimal, decimal]` → `decimal` (NEW - will be needed)
+- ✅ Runtime should dispatch to correct implementation based on input types
+- ✅ Compiler should generate correct tokens (just `ADD`, not `ADD_FRACTION`)
+- ✅ Both compiler and runtime must support the overloading pattern
+- ✅ Integration tests must test the full pipeline: Compiler → Runtime
 
-**Tests:** 11/11 tests passing (100%)
+**Priority:** P0 - CRITICAL (blocks fraction type system)
 
-**Priority:** P0 - CRITICAL (type system completeness) - ✅ RESOLVED
-
-**Completed:** 2026-03-13
+**Estimated Time:** 4 hours (refactor + integration tests)
 
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 93-109
 
@@ -270,78 +279,111 @@ export type Fraction = {
 
 ---
 
-#### Task P0.2: Implement Fraction Operations (via Overloading)
+#### Task P0.2: Refactor Fraction Operations to Use Overloading (CRITICAL - INCORRECTLY IMPLEMENTED)
 
-**Status:** ✅ COMPLETED 2026-03-13
+**Status:** ❌ INCORRECTLY IMPLEMENTED - Needs refactoring
 
 **Files to update:**
-- `packages/shared/src/operations/registry.ts` (add operation signatures with overloading)
-- `packages/runtime/src/operations/numeric.ts` (implement Fraction operations)
-- `packages/runtime/src/operations/index.ts` (export Fraction operations)
+- `packages/shared/src/operations/registry.ts` (add overloading support, remove ADD_FRACTION etc.)
+- `packages/runtime/src/operations/numeric.ts` (implement overloading pattern)
+- `packages/runtime/src/operations/index.ts` (export overloading dispatcher)
+- `packages/compiler/src/` (ensure compiler generates correct tokens)
 
 **Why Critical:**
-- ✅ Type system completeness achieved - Fraction operations fully implemented
-- ✅ Fractions can be used in programs without runtime errors
-- ✅ Educational value achieved - fractions are now fully supported curriculum topic
-- ✅ Implemented via overloading (NOT separate ADD_FRACTION operations)
+- ❌ Current implementation uses separate `ADD_FRACTION` operations
+- ❌ Compiler can NEVER generate `ADD_FRACTION` tokens (only generates `ADD`)
+- ❌ Fractions only work in direct runtime calls, not via compiler
+- ❌ Overloading pattern not established (needed for Integer/Decimal too)
+- ❌ No integration tests exist (only internal unit tests that bypass compiler)
 
-**Operations Implemented:**
+**Current (WRONG) Code:**
 ```typescript
-// Via overloading - ADD works with Natural, Integer, Decimal, Fraction
-✅ ADD(Fraction, Fraction) → Fraction
-✅ SUBTRACT(Fraction, Fraction) → Fraction
-✅ MULTIPLY(Fraction, Fraction) → Fraction
-✅ DIVIDE(Fraction, Fraction) → Fraction
-✅ COMPARE(Fraction, Fraction) → Boolean
+// registry.ts - WRONG: Separate operations
+ADD_FRACTION: { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction" }
+
+// numeric.ts - WRONG: Separate function
+export function ADD_FRACTION(inputs: ...): Fraction { ... }
 ```
 
-**Fraction Arithmetic Rules Implemented:**
-- ✅ ADD: a/b + c/d = (ad + bc) / bd, then simplify
-- ✅ SUBTRACT: a/b - c/d = (ad - bc) / bd, then simplify
-- ✅ MULTIPLY: a/b × c/d = ac / bd, then simplify
-- ✅ DIVIDE: a/b ÷ c/d = ad / bc, then simplify
-- ✅ SIMPLIFY: Reduce fraction by GCD of numerator and denominator
+**Correct Implementation:**
+```typescript
+// registry.ts - CORRECT: Overloading via multiple signatures
+ADD: [
+  { inputTypes: ["natural", "natural"], outputType: "natural" },
+  { inputTypes: ["fraction", "fraction"], outputType: "fraction" },
+  { inputTypes: ["integer", "integer"], outputType: "integer" },     // for P1.1
+  { inputTypes: ["decimal", "decimal"], outputType: "decimal" }     // for P1.2
+]
 
-**Estimated Time:** 3.5 hours (Completed 2026-03-13)
+// numeric.ts - CORRECT: Single dispatcher
+export function ADD(inputs: Array<{ id: string; value: unknown }>): DataType {
+  const [a, b] = inputs;
+  // Dispatch based on input types
+  if (isFraction(a.value) && isFraction(b.value)) {
+    return addFractions(a.value as Fraction, b.value as Fraction);
+  }
+  if (isNatural(a.value) && isNatural(b.value)) {
+    return addNaturals(a.value as Natural, b.value as Natural);
+  }
+  // ... other types
+}
+```
 
-**Dependencies:** P0.1 (Fix Fraction Type)
+**Requirements:**
+1. **Registry Overloading**: Support multiple signatures for same operation name
+2. **Runtime Dispatch**: Route to correct implementation based on actual input types
+3. **Compiler Compatibility**: Compiler only generates `ADD`, not `ADD_FRACTION`
+4. **Integration Tests**: Test full pipeline: Compiler → Runtime → Results
+5. **Remove Separate Operations**: Delete `ADD_FRACTION`, `SUBTRACT_FRACTION`, etc. from registry and runtime
+6. **Preserve Arithmetic Logic**: Keep the fraction arithmetic logic (GCD simplification, etc.)
 
-**Acceptance Criteria:**
-- ✅ ADD(1/2, 1/4) = 3/4
-- ✅ ADD(2/3, 1/3) = 1
-- ✅ SUBTRACT(3/4, 1/4) = 1/2
-- ✅ MULTIPLY(1/2, 2/3) = 1/3
-- ✅ DIVIDE(1/2, 1/4) = 2
-- ✅ COMPARE(1/2, 1/2) = true
-- ✅ COMPARE(1/2, 1/3) = false
-- ✅ Zero denominator error handled
-- ✅ All fractions automatically simplified
+**Estimated Time:** 4 hours
 
-**Tests Completed:** 11/11 tests passing (100%)
-- ✅ Test: ADD_FRACTIONS - 1/2 + 1/4 = 3/4
-- ✅ Test: ADD_FRACTIONS - 2/3 + 1/3 = 1
-- ✅ Test: SUBTRACT_FRACTIONS - 3/4 - 1/4 = 1/2
-- ✅ Test: MULTIPLY_FRACTIONS - 1/2 * 2/3 = 1/3
-- ✅ Test: DIVIDE_FRACTIONS - 1/2 / 1/4 = 2
-- ✅ Test: COMPARE_FRACTIONS - 1/2 == 1/2 returns true
-- ✅ Test: COMPARE_FRACTIONS - 1/2 != 1/3 returns false
-- ✅ Test: SIMPLIFY_FRACTION - 2/4 → 1/2
-- ✅ Test: Fraction operations handle zero denominator error
-- ✅ Test: ADD_FRACTIONS - negative fraction handling
-- ✅ Test: MULTIPLY_FRACTIONS - zero fraction handling
+**Dependencies:** None
+
+**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 93-109):**
+- ✓ ADD works with [fraction, fraction] inputs → fraction output
+- ✓ SUBTRACT works with [fraction, fraction] inputs → fraction output
+- ✓ MULTIPLY works with [fraction, fraction] inputs → fraction output
+- ✓ DIVIDE works with [fraction, fraction] inputs → fraction output
+- ✓ COMPARE works with [fraction, fraction] inputs → boolean output
+- ✓ Compiler generates `ADD` token, not `ADD_FRACTION`
+- ✓ Runtime dispatches to correct implementation based on input types
+- ✓ Full pipeline works: JSON program → Compiler → Runtime → Results
+
+**Required Tests (Integration + Unit):**
+- [ ] Integration Test: Fraction addition via compiler pipeline
+- [ ] Integration Test: Fraction subtraction via compiler pipeline
+- [ ] Integration Test: Fraction multiplication via compiler pipeline
+- [ ] Integration Test: Fraction division via compiler pipeline
+- [ ] Integration Test: Fraction comparison via compiler pipeline
+- [ ] Integration Test: Mixed natural/fraction expressions (e.g., "3" + "1/2" - should work when Integer type exists)
+- [ ] Unit Test: Registry supports multiple signatures for same operation
+- [ ] Unit Test: Runtime dispatches to correct fraction implementation
+- [ ] Unit Test: ADD(1/2, 1/4) = 3/4
+- [ ] Unit Test: ADD(2/3, 1/3) = 1
+- [ ] Unit Test: SUBTRACT(3/4, 1/4) = 1/2
+- [ ] Unit Test: MULTIPLY(1/2, 2/3) = 1/3
+- [ ] Unit Test: DIVIDE(1/2, 1/4) = 2
+- [ ] Unit Test: COMPARE(1/2, 1/2) = true
+- [ ] Unit Test: COMPARE(1/2, 1/3) = false
+- [ ] Unit Test: Zero denominator error handled
+- [ ] Unit Test: All fractions automatically simplified
+- [ ] Integration Test: Complex expression with fractions and naturals
 
 **Layer:** Layer 2 (Arithmetic)
 
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 93-109
 
 **Ralph Wiggum Checklist:**
-- ✅ Fraction operations implemented (via overloading)
-- ✅ Fraction arithmetic correct (addition, subtraction, multiplication, division)
-- ✅ Simplification working (GCD reduction)
-- ✅ Fraction tests pass (11/11)
-- ✅ Typecheck passes
-- ✅ Previous tests still pass
-- ✅ Git commit with message: "feat(runtime): implement fraction operations via overloading"
+- [ ] Registry updated to support overloading (multiple signatures per operation)
+- [ ] Runtime dispatcher implemented (routes to correct impl based on input types)
+- [ ] Separate ADD_FRACTION operations removed from registry and runtime
+- [ ] Integration tests pass (full compiler → runtime pipeline)
+- [ ] Unit tests pass (arithmetic correctness)
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "refactor(operations): implement fraction operations via overloading pattern"
 
 ---
 
@@ -913,7 +955,7 @@ COMPARE(Decimal, Decimal) → Boolean
 | Task | Priority | Status | Time | Impact | Dependencies |
 |------|----------|--------|------|--------|--------------|
 | **P0.1: Fix Fraction type (number → Integer)** | P0 | NOT STARTED | 0.5h | **CRITICAL** - type correctness | None |
-| **P0.2: Implement Fraction operations** | P0 | ✅ COMPLETED | 3.5h | **CRITICAL** - type system completeness | P0.1 |
+| **P0.2: Refactor Fraction operations (overloading)** | P0 | ❌ INCORRECTLY IMPLEMENTED | 4h | **CRITICAL** - compiler can't generate tokens | None |
 | **P0.3: Implement IncrementalRuntime** | P0 | NOT STARTED | 8h | **CRITICAL** - blocks Layer 7 | None |
 | **P1.1: Implement Integer operations** | P1 | NOT STARTED | 2h | **HIGH** - type system completeness | None |
 | **P1.2: Implement Decimal operations** | P1 | NOT STARTED | 2h | **HIGH** - type system completeness | None |
@@ -925,11 +967,11 @@ COMPARE(Decimal, Decimal) → Boolean
 | **P3.1: Implement WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | P0.3 |
 | **P3.2: Complete execution trace** | P3 | NOT STARTED | 2h | Debugging support | None |
 
-**Total Estimated Time:** 54 hours (3.5 hours completed on P0.2)
+**Total Estimated Time:** 54.5 hours (0 hours completed - P0.2 incorrectly implemented)
 
 **Previous Work Completed:**
 - ✓ Layers 1-6: ~85-90% complete (Foundation, Arithmetic, Curriculum Types, Sets, Temporal, Streams)
-- ✓ 32/31 operations implemented (103%) - Fraction ops complete! (Integer/Decimal still missing)
+- ❌ 32/31 operations marked complete but Fraction ops INCORRECTLY implemented (need refactor)
 - ✓ 1 stream generator (counter)
 - ✓ All types defined (primitives, curriculum, composite, validation, program)
 - ✓ Lexer: COMPLETE - all tokens defined
@@ -941,8 +983,8 @@ COMPARE(Decimal, Decimal) → Boolean
 - ✓ Demand-Driven Evaluator: CORRECT - all temporal ops fixed (P0.1 completed)
 - ✓ Graph Implementation: CORRECT but has limitations (SORT only numbers, ALPHABETICAL_SORT converts to string)
 - ✓ HTTP API Server: COMPLETE - all 12 endpoints implemented and passing
-- ✓ 107 tests passing (100%) - 19 performance + 12 HTTP API + 11 Fraction ops
-- ✓ P0.2: Fraction operations complete via overloading (2026-03-13)
+- ✓ 107 tests passing (100%) - 19 performance + 12 HTTP API + 11 Fraction ops (but ops don't work via compiler)
+- ❌ P0.2: Fraction operations INCORRECTLY implemented - needs refactor (separate ops, not overloading)
 
 ---
 
@@ -956,10 +998,12 @@ Focus on completing MVP - this requires finishing type system completeness and L
    - Change numerator/denominator from `number` to `Integer`
    - Impact: Enables proper Fraction operations
 
-2. **P0.2 (3.5h): Implement Fraction Operations**
-   - ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE for Fraction (via overloading)
-   - Implement simplification (GCD reduction)
-   - Impact: Completes Fraction type system
+2. **P0.2 (4h): Refactor Fraction Operations to Use Overloading (CRITICAL - INCORRECTLY IMPLEMENTED)**
+   - Registry: Support multiple signatures for same operation name
+   - Runtime: Implement dispatch based on input types
+   - Remove separate ADD_FRACTION operations
+   - Add integration tests (full compiler → runtime pipeline)
+   - Impact: Enables fraction operations via compiler (not just direct runtime calls)
 
 3. **P0.3 (8h): Implement IncrementalRuntime Class**
    - Partial graph evaluation with demand-driven semantics
@@ -1027,7 +1071,7 @@ To achieve MVP, complete the following:
 
 **Core Language (Layers 1-6):**
 - ✅ Natural numbers, arithmetic operations (ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE)
-- ✅ Fraction operations - **COMPLETE** (P0.2 completed 2026-03-13)
+- ❌ Fraction operations - **INCORRECTLY IMPLEMENTED** (P0.2 needs refactor - compiler can't generate tokens)
 - ⚠️ Integer operations - **MISSING** (P1.1)
 - ⚠️ Decimal operations - **MISSING** (P1.2)
 - ✅ Curriculum types (Shape, Car, Food, Animal, Person)
@@ -1055,7 +1099,7 @@ To achieve MVP, complete the following:
 
 **MVP Completion Tasks:**
 1. P0.1: Fix Fraction type (0.5h)
-2. ✅ P0.2: Implement Fraction operations (3.5h) - **COMPLETED 2026-03-13**
+2. P0.2: Refactor Fraction operations to use overloading (4h) - **INCORRECTLY IMPLEMENTED, needs refactor**
 3. P0.3: Implement IncrementalRuntime (8h)
 4. P1.1: Implement Integer operations (2h)
 5. P1.2: Implement Decimal operations (2h)
@@ -1063,7 +1107,7 @@ To achieve MVP, complete the following:
 7. P1.4: Implement missing compiler validation (3h)
 8. P1.5: Refactor HTTP API (11h) - **OPTIONAL for MVP**
 
-**Total MVP Time:** 25 hours (excluding P1.5)
+**Total MVP Time:** 25.5 hours (excluding P1.5)
 
 **Version 1.0 (All Layers):**
 - All P0, P1, and P2 tasks completed
@@ -1164,14 +1208,14 @@ The comprehensive study revealed the accurate status:
 - ✅ Cache: Correct for demand-driven
 
 **Missing Operations:**
-- ❌ Fraction operations: 0% complete (P0 - breaks type system completeness)
+- ❌ Fraction operations: INCORRECTLY IMPLEMENTED (separate ops, not overloading) (P0 - breaks type system completeness)
 - ❌ Integer operations: 0% complete (P1 - type system completeness)
 - ❌ Decimal operations: 0% complete (P1 - type system completeness)
 
 #### 3. Critical Gaps ❌ IDENTIFIED
 **P0 (CRITICAL):**
 1. IncrementalRuntime: 0% complete (blocks WebSocket Server)
-2. ✅ Fraction operations: 100% complete (P0.2 completed 2026-03-13)
+2. ❌ Fraction operations: INCORRECTLY IMPLEMENTED (separate ops, not overloading) (P0.2 needs refactor)
 3. Fraction type: Uses `number` instead of `Integer` (type mismatch - decision to keep for architectural consistency)
 
 **P1 (HIGH):**
@@ -1207,7 +1251,7 @@ The comprehensive study revealed the accurate status:
 
 **No Stubbed Tests Found** ✅
 
-#### 5. Design Decisions ✅ CORRECT
+#### 5. Design Decisions ❌ PARTIALLY INCORRECT
 **Demand-Driven Semantics:**
 - ✅ Correct per DEMAND_DRIVEN_INCREMENTAL.md
 - ✅ No eager evaluation
@@ -1218,13 +1262,16 @@ The comprehensive study revealed the accurate status:
 - ✅ Should use overloading (ADD works with Natural, Integer, Decimal, Fraction)
 - ✅ NOT separate ADD_FRACTION operations
 - ✅ Spec confirms this approach
+- ❌ **BUT current implementation is WRONG** - uses separate ADD_FRACTION operations
+- ❌ Compiler cannot generate ADD_FRACTION tokens
+- ❌ Needs refactor to implement overloading pattern correctly
 
 #### 6. Completed Tasks ✅ CONFIRMED
 The following tasks are COMPLETED (despite outdated plan):
 - ✅ P0.1: Fix Temporal Operations State Bug (2 hours)
 - ✅ P0.2: Implement 2 Stubbed Performance Tests (1.5 hours)
 - ✅ P0.3: Fix 14 TypeScript Errors (4 hours)
-- ✅ P0.2: Implement Fraction Operations (3.5 hours) - Completed 2026-03-13
+- ❌ P0.2: Implement Fraction Operations - INCORRECTLY IMPLEMENTED (needs refactor to use overloading)
 - ✅ P1.1: Implement HTTP API (10 hours)
 - ✅ P1.4: Implement Nested Operation Expressions (1.5 hours)
 
@@ -1234,7 +1281,7 @@ The following tasks are COMPLETED (despite outdated plan):
 
 ### Immediate Actions (P0 Tasks)
 1. **Fix Fraction type** (0.5h) - Change numerator/denominator from `number` to `Integer` - Decision: Keep current structure for architectural consistency
-2. ✅ **Implement Fraction operations** (3.5h) - **COMPLETED 2026-03-13** - Fraction type system complete!
+2. **Refactor Fraction operations to use overloading** (4h) - **INCORRECTLY IMPLEMENTED, needs refactor** - Separate ops don't work with compiler
 3. **Implement IncrementalRuntime** (8h) - Enable Layer 7 completion
 
 ### MVP Completion (P1 Tasks)
@@ -1254,15 +1301,15 @@ The following tasks are COMPLETED (despite outdated plan):
 
 ## CONCLUSION
 
-The implementation is **79% complete** with:
-- **Core compiler/runtime:** 95% complete
-- **Type system:** 90% complete (Fraction ops complete! Integer/Decimal still missing)
+The implementation is **78% complete** with:
+- **Core compiler/runtime:** 90% complete (Fraction ops need refactor)
+- **Type system:** 80% complete (Fraction ops INCORRECTLY implemented, Integer/Decimal still missing)
 - **Layer 7 (Integration):** 0% complete (IncrementalRuntime and WebSocket Server missing)
-- **Test coverage:** 100% (107/107 tests passing)
+- **Test coverage:** 100% (107/107 tests passing, but fraction tests bypass compiler)
 
-**Critical Path to MVP (21.5 hours):**
+**Critical Path to MVP (22 hours):**
 1. P0.1: Fix Fraction type (0.5h) - Decision: Keep current structure
-2. ✅ P0.2: Implement Fraction operations (3.5h) - **COMPLETED 2026-03-13**
+2. P0.2: Refactor Fraction operations to use overloading (4h) - **INCORRECTLY IMPLEMENTED, needs refactor**
 3. P0.3: Implement IncrementalRuntime (8h)
 4. P1.1: Implement Integer operations (2h)
 5. P1.2: Implement Decimal operations (2h)
@@ -1270,7 +1317,7 @@ The implementation is **79% complete** with:
 7. P1.4: Implement missing compiler validation (3h)
 8. P1.5: Refactor HTTP API (11h) - **OPTIONAL**
 
-**Version 1.0 (54 hours total):**
+**Version 1.0 (54.5 hours total):**
 - Complete all P0, P1, and P2 tasks
 - WebSocket server for live feedback
 - Complete test coverage
