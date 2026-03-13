@@ -2,9 +2,39 @@ import type { DataflowNode, DataflowEdge, DataType } from "@dataflow/shared/type
 import type { ValidationError, ValidationResult } from "@dataflow/shared/types";
 import type { Statement } from "../ast/ast-types.js";
 import { OPERATION_REGISTRY, TypeConstraint } from "@dataflow/shared/operations";
-import type { Curriculum } from "@dataflow/shared/types";
+import type { Curriculum, DataflowProgram } from "@dataflow/shared/types";
 
 export class DagValidator {
+  validateProgram(program: DataflowProgram): ValidationResult {
+    const statements: Statement[] = program.graph.nodes.map(node => {
+      if (node.type === "DataSource") {
+        return {
+          type: "SourceStatement",
+          id: node.id,
+          dataType: node.dataType as string,
+          value: node.value
+        };
+      } else if (node.type === "Transformation") {
+        return {
+          type: "TransformStatement",
+          id: node.id,
+          dataType: node.dataType as string,
+          operation: node.operation,
+          inputs: node.inputs
+        };
+      } else {
+        return {
+          type: "OutputStatement",
+          id: node.id,
+          dataType: node.dataType as string,
+          input: (node as any).input
+        };
+      }
+    });
+
+    return this.validate(statements);
+  }
+
   validate(statements: Statement[]): ValidationResult {
     const errors: ValidationError[] = [];
     const defined = new Set<string>();
