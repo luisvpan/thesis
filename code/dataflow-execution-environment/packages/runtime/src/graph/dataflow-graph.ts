@@ -3,7 +3,8 @@ import { OPERATION_REGISTRY } from "@dataflow/shared/operations";
 
 export class DataflowGraph {
   private nodes = new Map<string, DataflowNode>();
-  private edges: DataflowEdge[] = [];
+  private edges = DataflowEdge[];
+  private cache = new Map<string, unknown>();
 
   addNode(node: DataflowNode): void {
     this.nodes.set(node.id, node);
@@ -31,7 +32,7 @@ export class DataflowGraph {
 
     const node = this.nodes.get(nodeId);
     if (node && node.type === "Transformation") {
-      const signature = OPERATION_REGISTRY[node.operation];
+      const signature = (OPERATION_REGISTRY as any)[node.operation];
       if (signature && result.length < signature.arity) {
         throw new Error(`Missing input at port ${result.length} for ${node.operation}`);
       }
@@ -50,6 +51,43 @@ export class DataflowGraph {
 
   getAllEdges(): DataflowEdge[] {
     return [...this.edges];
+  }
+
+  evaluate(nodeId: string, time: number, graph: DataflowGraph): unknown {
+    const cacheKey = `${nodeId}_${time}`;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      throw new Error(`Node ${nodeId} not found`);
+    }
+
+    let result: unknown;
+
+    if (node.type === "DataSource") {
+      result = node.value;
+    } else if (node.type === "Transformation") {
+      const inputNodes = this.getInputs(nodeId);
+      const { DemandDrivenEvaluator } = require("../evaluator/index.js");
+      const evaluator = new DemandDrivenEvaluator();
+      result = evaluator.evaluateOperation(node.operation, inputNodes, time, graph);
+    } else if (node.type === "Output") {
+      const inputNodes = this.getInputs(nodeId);
+      if (inputNodes.length > 0) {
+        const { DemandDrivenEvaluator } = require("../evaluator/index.js");
+        const outputEvaluator = new DemandDrivenEvaluator();
+        result = outputEvaluator.evaluate(inputNodes[0].id, time, graph);
+      } else {
+        result = undefined;
+      }
+    } else {
+      throw new Error(`Unknown node type: ${(node as any).type}`);
+    }
+
+    this.cache.set(cacheKey, result);
+    return result;
   }
 }
 
