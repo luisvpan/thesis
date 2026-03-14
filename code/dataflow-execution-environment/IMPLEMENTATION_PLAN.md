@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-13 (Updated with accurate status from comprehensive codebase analysis)
+**Last Updated:** 2026-03-13 (Updated with comprehensive analysis from 7 parallel subagents)
 
 ---
 
@@ -37,88 +37,98 @@ packages/
 
 ## Current Implementation Status
 
-**Last Updated:** 2026-03-13 (Comprehensive analysis completed)
+**Last Updated:** 2026-03-13 (Comprehensive analysis from 7 parallel subagents completed)
 
-### Overall Progress: ~79% Complete (Core compiler/runtime ~95%, Layer 7 at 0%)
+### Overall Progress: ~58% Complete
 
-**Current Status:**
-- **Layer 7** at 0% implemented (IncrementalRuntime and WebSocket Server completely missing)
-- **TypeScript compilation passes** ✅ (P0.3 completed - no errors)
-- **Nested operation expressions implemented** ✅ (P1.4 completed - tests passing)
-- **Performance tests implemented** ✅ (P0.2 completed - 19/19 tests passing)
-- **HTTP API functional** ✅ (P1.1 completed - 12/12 tests passing)
-- **Temporal operations fixed** ✅ (P0.1 completed - generator state preserved)
-- **Fraction operations implemented** ✅ (P0.2 completed - 11/11 tests passing)
-
-### Test Status Summary
-- **Total Tests:** 107 tests, 100% passing
-- **Stubbed:** 0 tests (all implemented)
-- **Categories Covered:**
-  - End-to-End: 9 tests (450% of spec requirements)
-  - Type Validation: 12 tests (600% of spec requirements)
-  - Curriculum Types: 4 tests (200% of spec requirements)
-  - Set Operations: 4 tests (200% of spec requirements)
-  - Temporal: 4 tests (200% of spec requirements)
-  - Error Handling: 2 tests (100% of spec requirements)
-  - Performance: 19 tests (950% of spec requirements)
-  - Demand-Driven: 2 tests (100% of spec requirements)
-  - HTTP API: 12 tests (100% passing)
-  - Fraction Operations: 11 tests (1100% of spec requirements)
+**Critical Finding:** Previous assessment of ~79% was overly optimistic. Actual status is significantly lower due to:
+- Fraction operations incorrectly implemented (separate ops, not overloading)
+- Nested operations NOT handled (critical compiler blocker)
+- IncrementalRuntime missing (blocks Layer 7)
+- Temporal operators break demand-driven semantics
+- Multiple operations missing (Integer, Decimal, curriculum type filtering)
 
 ### Component Status Summary
 
-| Component | Status | Completion | Notes |
-|-----------|--------|------------|-------|
-| **Shared Package** | Mostly Complete | 85% | All types defined. Issues: Fraction/Integer/Decimal ops missing, Set/Stream not generic, SetType uses `unknown[]`, Fraction uses `number` instead of `Integer` |
-| **Compiler Package** | Mostly Complete | 90% | Lexer/Parser/AST/Validation/Compiler all implemented. Nested ops: 100% complete. Missing: 2 validation rules (set homogeneity, output node req) |
-| **Runtime Package** | Mostly Complete | 85% | Core evaluator CORRECT, 32/31 ops implemented (103% - Fraction ops added!). Missing: IncrementalRuntime (0%), Integer/Decimal ops, generic set/stream ops |
-| **HTTP API Package** | Functional | 60% | Server, routes, all 12 endpoints implemented and passing. Doesn't follow Elysia best practices: no Elysia.t validation, error middleware, plugin pattern, Eden Treaty |
-| **WebSocket Server Package** | Not Started | 0% | Empty directory, no implementation (blocked by IncrementalRuntime) |
+| Component | Status | Completion | Critical Issues |
+|-----------|--------|------------|-----------------|
+| **Shared Package** | Partial | 67% | Fraction uses `number` not `Integer`, SetType uses `unknown[]` not `T[]`, Color has extra values |
+| **Compiler Package** | Partial | 70% | **NESTED OPERATIONS NOT HANDLED** (CRITICAL), Set/Object literal ambiguity, Literal ID mismatch, 3/8 validations missing |
+| **Runtime Package** | Partial | 65% | **IncrementalRuntime MISSING** (P0), Temporal operators break demand-driven, No Integer/Decimal operations |
+| **HTTP API Package** | Functional | 64% | No Elysia.t validation, no error middleware, returns 200 for validation errors |
+| **WebSocket Server Package** | Not Started | 0% | Directory exists but ZERO source code (blocked by IncrementalRuntime) |
 
-### Layer Progress
+### Test Coverage Summary
 
-| Layer | Status | Completion | Tests Passing | Issues |
-|-------|--------|------------|---------------|--------|
+**Total Tests:** 107 tests, 100% passing
+
+**Distribution:**
+- Integration tests: 40 tests (~81% of spec requirements)
+- Runtime unit tests: 36 tests (incl. 11 fraction ops - but ops don't work via compiler)
+- HTTP API tests: 12 tests
+- Compiler tests: 13 tests
+- Shared type tests: 14 tests
+
+**Critical Gaps:**
+- IncrementalRuntime tests: 0/13 (0%)
+- WebSocket server tests: 0/12 (0%)
+- Fraction operations: Unit tests only (no integration - bypass compiler)
+- Set operations: Tests with `natural` instead of curriculum types
+- Temporal operations: Missing full timestep coverage
+
+### Layer Progress (Updated)
+
+| Layer | Status | Completion | Tests | Critical Issues |
+|-------|--------|------------|-------|-----------------|
 | Layer 1: Foundation | COMPLETE | 100% | 100% | None |
-| Layer 2: Arithmetic | MOSTLY COMPLETE | 95% | 100% | Missing Integer/Decimal operations (Natural and Fraction complete) |
-| Layer 3: Curriculum Types | COMPLETE | 100% | 100% | None |
-| Layer 4: Set Operations | PARTIAL | 85% | 100% | SORT only for numbers, ALPHABETICAL_SORT converts to string, set/stream ops not generic |
-| Layer 5: Temporal Operators | COMPLETE | 100% | 100% | None (P0.1 fixed) |
-| Layer 6: Streams | COMPLETE | 100% | 100% | None |
-| Layer 7: Integration | NOT STARTED | 0% | 0% | IncrementalRuntime (0%), WebSocket Server (0%), HTTP API needs refactoring |
+| Layer 2: Arithmetic | PARTIAL | 60% | 100% | **Fractions broken** (wrong pattern), Integer/Decimal missing |
+| Layer 3: Curriculum Types | PARTIAL | 60% | 100% | **FILTER operations missing** for Car, Food, Animal (COMPARE exists) |
+| Layer 4: Set Operations | PARTIAL | 50% | 100% | Non-generic (only `set<natural>`), SORT/ALPHABETICAL_SORT limitations |
+| Layer 5: Temporal Operators | PARTIAL | 60% | 100% | **Breaks demand-driven semantics** (P0) |
+| Layer 6: Streams | PARTIAL | 50% | 100% | Non-generic (only `stream<natural>`) |
+| Layer 7: Integration | NOT STARTED | 0% | 0% | IncrementalRuntime missing, WebSocket empty, HTTP API needs refactoring |
 
 ---
 
 ## CRITICAL BLOCKERS
 
-### Blocker 1: IncrementalRuntime Not Implemented (P0 - CRITICAL)
+### Blocker 1: Nested Operations Not Handled (P0 - CRITICAL)
 
-**Status:** NOT STARTED - File doesn't exist
+**Status:** NOT IMPLEMENTED - AST builder generates IDs but doesn't create TransformStatements
 
 **Impact:**
-- **Blocks WebSocket Server** - can't implement P3.1 without this
-- Cannot provide IDE live feedback
-- Cannot support incremental evaluation for partial programs
-- **Blocks completion of Layer 7 (Integration)**
+- **Blocks ANY complex expression** - programs like `ADD(a, MULTIPLY(b, c))` fail with undefined reference
+- Cannot build meaningful programs beyond simple operations
+- **Breaks core language functionality**
 
-**Missing Implementation:**
-- Partial graph evaluation (demand-driven)
-- Node state tracking (completed/pending/error)
-- Subscription management (multiple clients)
-- Graph update API with cache invalidation
-- Missing input extraction with Spanish messages
+**Current Behavior:**
+```typescript
+// ast-builder.ts line 189-193
+if (ctx.operationExpression) {
+  const opExpr = this.visit(ctx.operationExpression);
+  const opId = `nested_op_${this.nestedOpCounter++}_${opExpr.operation}`;
+  return opId;  // ❌ Returns ID but never creates TransformStatement
+}
+```
 
-**Priority:** P0 - CRITICAL (blocks MVP completion)
+**Required Behavior:**
+When encountering nested operation like `ADD(a, MULTIPLY(b, c))`:
+1. Create intermediate DataSource/Transformation nodes for each level
+2. Generate proper IDs and edges in the graph
+3. Store intermediate TransformStatements in the AST
+4. Ensure all nodes are present in final DataflowProgram
 
-**Estimated Time:** 8 hours
+**Priority:** P0 - CRITICAL (blocks meaningful programs)
+
+**Estimated Time:** 6 hours
 
 **Spec References:**
-- `specs/INTEGRATION_SPEC.md` lines 365-771 (Incremental Runtime design)
-- `specs/DEMAND_DRIVEN_INCREMENTAL.md` (Demand-driven semantics)
+- `specs/GRAMMAR_SPEC.md` - OperationExpression grammar
+- `specs/LANGUAGE_SPEC.md` - Nested operation semantics
 
 ---
 
-### Blocker 2: Fraction Operations Implemented Incorrectly (P0 - CRITICAL) - ❌ NEEDS REFACTOR
+### Blocker 2: Fraction Operations Implemented Incorrectly (P0 - CRITICAL)
 
 **Status:** INCORRECTLY IMPLEMENTED - Requires refactoring to use overloading
 
@@ -154,79 +164,83 @@ packages/
 
 ---
 
-### Blocker 3: Integer Operations Missing (P1 - HIGH)
+### Blocker 3: Temporal Operators Break Demand-Driven Semantics (P0 - CRITICAL)
 
-**Status:** NOT STARTED - Type defined but no operations
+**Status:** INCORRECTLY IMPLEMENTED - Manual iteration, no recursive evaluate()
+
+**Current (WRONG) Implementation:**
+```typescript
+// temporal.ts - FBY
+export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+  const [initial, stream] = inputs;
+
+  if (time === 0) {
+    return initial.value;  // ❌ Direct value access, no evaluate()
+  }
+
+  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+  const gen = streamValue.generator;
+  if (!gen) {
+    throw new Error('Stream does not have a generator');
+  }
+
+  let result = gen.next();
+  let count = 0;
+
+  while (!result.done && count < time - 1) {  // ❌ Manual iteration
+    result = gen.next();
+    count++;
+  }
+
+  return result.done ? initial.value : result.value;
+}
+```
+
+**Required Behavior:**
+- FBY should call `evaluate(stream.id, time - 1, graph)` for time > 0
+- ACCUMULATE should recursively evaluate stream values
+- Demand-driven propagation must be preserved (no eager iteration)
+- Cache should work for temporal operations
 
 **Impact:**
-- Incomplete numeric type system
-- SUBTRACT on Natural produces Integer but Integer has no operations
-- Type system not fully functional
+- ❌ Breaks core demand-driven semantics
+- ❌ Performance issues (re-evaluating streams)
+- ❌ Cannot properly handle dependencies
 
-**Operations Needed (via overloading):**
-- ADD(Integer, Integer) → Integer
-- SUBTRACT(Integer, Integer) → Integer
-- MULTIPLY(Integer, Integer) → Integer
-- DIVIDE(Integer, Integer) → Decimal
-- COMPARE(Integer, Integer) → Boolean
+**Priority:** P0 - CRITICAL (breaks core semantics)
 
-**Priority:** P1 - HIGH (type system completeness)
+**Estimated Time:** 5 hours
 
-**Estimated Time:** 2 hours
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 57-72
+**Spec References:**
+- `specs/DEMAND_DRIVEN_INCREMENTAL.md` - Demand-driven evaluation model
+- `specs/LANGUAGE_SPEC.md` - Temporal operator semantics
 
 ---
 
-### Blocker 4: Decimal Operations Missing (P1 - HIGH)
+### Blocker 4: IncrementalRuntime Not Implemented (P0 - CRITICAL)
 
-**Status:** NOT STARTED - Type defined but no operations
+**Status:** NOT STARTED - File doesn't exist
 
 **Impact:**
-- Incomplete numeric type system
-- DIVIDE on Natural/Integer produces Decimal but Decimal has no operations
-- Type system not fully functional
+- **Blocks WebSocket Server** - can't implement without this
+- Cannot provide IDE live feedback
+- Cannot support incremental evaluation for partial programs
+- **Blocks completion of Layer 7**
 
-**Operations Needed (via overloading):**
-- ADD(Decimal, Decimal) → Decimal
-- SUBTRACT(Decimal, Decimal) → Decimal
-- MULTIPLY(Decimal, Decimal) → Decimal
-- DIVIDE(Decimal, Decimal) → Decimal
-- COMPARE(Decimal, Decimal) → Boolean
+**Missing Implementation:**
+- Partial graph evaluation (demand-driven)
+- Node state tracking (completed/pending/error)
+- Subscription management (multiple clients)
+- Graph update API with cache invalidation
+- Missing input extraction with Spanish messages
 
-**Priority:** P1 - HIGH (type system completeness)
+**Priority:** P0 - CRITICAL (blocks MVP completion)
 
-**Estimated Time:** 2 hours
+**Estimated Time:** 8 hours
 
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 74-91
-
----
-
-## PRIORITIZED IMPLEMENTATION PLAN
-
-### Task Prioritization Framework
-
-**P0 - CRITICAL (Blocks core functionality, breaks semantics, or prevents compilation)**
-- IncrementalRuntime (0% - blocks WebSocket Server)
-- Fraction operations (type defined but no implementation - breaks type system)
-- Fix Fraction type (number → Integer)
-
-**P1 - HIGH (Required for MVP completion or major quality improvements)**
-- Integer operations (type defined but no implementation)
-- Decimal operations (type defined but no implementation)
-- Set/Stream operations not generic (hardcoded to natural only)
-- Missing compiler validation (set homogeneity, output node requirement)
-- Refactor HTTP API to follow Elysia best practices
-
-**P2 - MEDIUM (Quality improvements, completeness gaps, usability enhancements)**
-- Complete Spanish messages (partial implementation)
-- Improve SORT operations (SORT only numbers, ALPHABETICAL_SORT converts to string)
-- Fix SetType (unknown[] → T[])
-- More built-in generators (only "counter" exists)
-
-**P3 - LOW (Nice to have, post-MVP)**
-- WebSocket Server (depends on IncrementalRuntime)
-- Execution trace completion (executionOrder and nodeEvaluations empty)
+**Spec References:**
+- `specs/INTEGRATION_SPEC.md` lines 365-771 (Incremental Runtime design)
+- `specs/DEMAND_DRIVEN_INCREMENTAL.md` (Demand-driven semantics)
 
 ---
 
@@ -234,48 +248,86 @@ packages/
 
 ### P0 CRITICAL (Immediate - Blocks Core Functionality)
 
-#### Task P0.1: Fix Fraction Type Definition
+#### Task P0.1: Fix Nested Operations Support in Compiler
 
-**File to update:** `packages/shared/src/types/primitives.ts`
+**Files to update:**
+- `packages/compiler/src/ast/ast-builder.ts` (handle nested ops)
+- `packages/compiler/src/compiler.ts` (process nested TransformStatements)
+- `packages/compiler/src/ast/ast-types.ts` (add IntermediateStatement type)
 
 **Why Critical:**
-- **Breaks type system correctness** - Fraction uses `number` instead of `Integer`
-- Spec says numerator/denominator should be Integer type
-- Must fix before implementing Fraction operations
+- **Blocks ANY complex expression** - `ADD(a, MULTIPLY(b, c))` fails with undefined reference
+- Cannot build meaningful programs
+- AST builder generates IDs but doesn't create TransformStatements
 
-**Current Code:**
+**Current Issue:**
 ```typescript
-export type Fraction = {
-  kind: "fraction";
-  numerator: number;    // WRONG - should be Integer
-  denominator: number;  // WRONG - should be Integer
-};
+// argument() in ast-builder.ts returns just an ID for nested ops
+if (ctx.operationExpression) {
+  const opExpr = this.visit(ctx.operationExpression);
+  const opId = `nested_op_${this.nestedOpCounter++}_${opExpr.operation}`;
+  return opId;  // ❌ No TransformStatement created
+}
 ```
 
-**Should Be:**
-```typescript
-export type Fraction = {
-  kind: "fraction";
-  numerator: Integer;
-  denominator: Integer;
-};
+**Required Solution:**
+1. Add `IntermediateStatement` type to ast-types.ts
+2. Modify argument() to create IntermediateStatement for nested ops
+3. Update compiler.ts to:
+   - Collect all IntermediateStatements from TransformStatements
+   - Convert them to DataSource/Transformation nodes
+   - Add proper edges between intermediate nodes
+   - Handle nested depth properly
+
+**Example of Required Behavior:**
+```dataflow
+a: natural = 5;
+b: natural = 3;
+c: natural = 2;
+result: natural = ADD(a, MULTIPLY(b, c));
 ```
 
-**Estimated Time:** 0.5 hours
+Should produce:
+- DataSource nodes: a (5), b (3), c (2)
+- Transformation node: nested_op_0_MULTIPLY (inputs: b, c, output: natural)
+- Transformation node: result (operation: ADD, inputs: a, nested_op_0_MULTIPLY, output: natural)
+- Edges: b→nested_op_0_MULTIPLY, c→nested_op_0_MULTIPLY, a→result, nested_op_0_MULTIPLY→result
+
+**Estimated Time:** 6 hours
 
 **Dependencies:** None
 
-**Acceptance Criteria:**
-- Fraction type uses Integer for numerator/denominator
-- Typecheck passes
+**Acceptance Criteria (from specs/LANGUAGE_SPEC.md):**
+- ✓ Nested operations like `ADD(a, MULTIPLY(b, c))` parse correctly
+- ✓ Intermediate nodes are created for each nesting level
+- ✓ Proper edges connect intermediate nodes
+- ✓ Multiple levels of nesting work (e.g., `ADD(MULTIPLY(a, b), SUBTRACT(c, d))`)
+- ✓ Nested operations with literals work (e.g., `ADD(a, MULTIPLY(3, 2))`)
+- ✓ Compiler generates valid DataflowProgram
+- ✓ Runtime evaluates nested operations correctly
+- ✓ Cache works for intermediate results
 
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 94-99
+**Required Tests (Integration):**
+- [ ] Test: Simple nested operation `ADD(a, MULTIPLY(b, c))`
+- [ ] Test: Multiple levels of nesting `ADD(MULTIPLY(a, b), SUBTRACT(c, d))`
+- [ ] Test: Nested operations with literals `ADD(a, MULTIPLY(3, 2))`
+- [ ] Test: Complex expression `ADD(SUBTRACT(a, b), MULTIPLY(c, DIVIDE(d, e)))`
+- [ ] Test: Nested operations with curriculum types `FILTER_BY_COLOR(UNION(set1, set2), "red")`
+- [ ] Test: Cache hits on intermediate results
+
+**Layer:** Cross-layer (Compiler)
+
+**Spec Reference:** `specs/GRAMMAR_SPEC.md` (OperationExpression grammar)
 
 **Ralph Wiggum Checklist:**
-- [ ] Fraction type updated to use Integer
+- [ ] Nested operations parse correctly
+- [ ] Intermediate nodes created properly
+- [ ] Edges connect correctly
+- [ ] Integration tests pass
+- [ ] Unit tests pass
 - [ ] Typecheck passes
 - [ ] Previous tests still pass
-- [ ] Git commit with message: "fix(types): use Integer type for Fraction numerator/denominator"
+- [ ] Git commit with message: "feat(compiler): add nested operations support with intermediate statements"
 
 ---
 
@@ -286,7 +338,7 @@ export type Fraction = {
 **Files to update:**
 - `packages/shared/src/operations/registry.ts` (add overloading support, remove ADD_FRACTION etc.)
 - `packages/runtime/src/operations/numeric.ts` (implement overloading pattern)
-- `packages/runtime/src/operations/index.ts` (export overloading dispatcher)
+- `packages/runtime/src/evaluator/demand-driven-evaluator.ts` (update dispatcher)
 - `packages/compiler/src/` (ensure compiler generates correct tokens)
 
 **Why Critical:**
@@ -357,7 +409,7 @@ export function ADD(inputs: Array<{ id: string; value: unknown }>): DataType {
 - [ ] Integration Test: Fraction multiplication via compiler pipeline
 - [ ] Integration Test: Fraction division via compiler pipeline
 - [ ] Integration Test: Fraction comparison via compiler pipeline
-- [ ] Integration Test: Mixed natural/fraction expressions (e.g., "3" + "1/2" - should work when Integer type exists)
+- [ ] Integration Test: Complex expression with fractions and naturals
 - [ ] Unit Test: Registry supports multiple signatures for same operation
 - [ ] Unit Test: Runtime dispatches to correct fraction implementation
 - [ ] Unit Test: ADD(1/2, 1/4) = 3/4
@@ -369,7 +421,6 @@ export function ADD(inputs: Array<{ id: string; value: unknown }>): DataType {
 - [ ] Unit Test: COMPARE(1/2, 1/3) = false
 - [ ] Unit Test: Zero denominator error handled
 - [ ] Unit Test: All fractions automatically simplified
-- [ ] Integration Test: Complex expression with fractions and naturals
 
 **Layer:** Layer 2 (Arithmetic)
 
@@ -387,7 +438,106 @@ export function ADD(inputs: Array<{ id: string; value: unknown }>): DataType {
 
 ---
 
-#### Task P0.3: Implement IncrementalRuntime Class
+#### Task P0.3: Fix Temporal Operators to Preserve Demand-Driven Semantics
+
+**File to update:** `packages/runtime/src/operations/temporal.ts`
+
+**Why Critical:**
+- ❌ FBY and ACCUMULATE directly access generators
+- ❌ No recursive `evaluate()` calls
+- ❌ Manual iteration instead of demand-driven propagation
+- ❌ Breaks core demand-driven semantics (P0 requirement from PROJECT_GOALS.md)
+
+**Current (WRONG) Implementation:**
+```typescript
+export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+  const [initial, stream] = inputs;
+
+  if (time === 0) {
+    return initial.value;  // ❌ Direct access, no evaluate()
+  }
+
+  const streamValue = stream.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+  const gen = streamValue.generator;
+
+  let result = gen.next();
+  let count = 0;
+
+  while (!result.done && count < time - 1) {  // ❌ Manual iteration
+    result = gen.next();
+    count++;
+  }
+
+  return result.done ? initial.value : result.value;
+}
+```
+
+**Correct Implementation:**
+```typescript
+export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+  const [initial, stream] = inputs;
+
+  if (time === 0) {
+    return initial.value;  // At t=0, return initial value
+  }
+
+  // ✅ Recursively evaluate stream at previous time
+  return this.evaluate(stream.id, time - 1, graph);
+}
+
+// Note: This requires making FBY a method of DemandDrivenEvaluator or passing evaluate function
+```
+
+**Key Requirements:**
+1. **FBY**: Return initial.value at time=0, evaluate(stream.id, time-1) otherwise
+2. **NEXT**: Evaluate stream at current time (not manual iteration)
+3. **ACCUMULATE**: Evaluate stream at each timestep, accumulate recursively
+4. **Cache Integration**: Let DemandDrivenEvaluator handle caching
+5. **Demand-Driven**: Only evaluate when demanded (not eager)
+
+**Estimated Time:** 5 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria (from specs/DEMAND_DRIVEN_INCREMENTAL.md):**
+- ✓ FBY uses recursive evaluate() calls
+- ✓ FBY respects demand-driven semantics (no eager evaluation)
+- ✓ ACCUMULATE evaluates stream at each timestep recursively
+- ✓ Cache works for temporal operations
+- ✓ NEXT evaluates stream at requested time
+- ✓ Performance: temporal ops <10ms per evaluation
+- ✓ No manual generator iteration
+
+**Required Tests:**
+- [ ] Test: FBY returns initial at time=0
+- [ ] Test: FBY evaluates stream at time-1 for time>0
+- [ ] Test: ACCUMULATE accumulates across timesteps
+- [ ] Test: NEXT evaluates stream at current time
+- [ ] Test: Cache hits on repeated temporal evaluations
+- [ ] Test: Temporal ops respect demand-driven semantics
+- [ ] Benchmark: Temporal operations <10ms per evaluation
+
+**Layer:** Layer 5 (Temporal Operators)
+
+**Spec References:**
+- `specs/DEMAND_DRIVEN_INCREMENTAL.md` - Demand-driven evaluation model
+- `specs/LANGUAGE_SPEC.md` - Temporal operator semantics
+
+**Ralph Wiggum Checklist:**
+- [ ] FBY uses recursive evaluate() calls
+- [ ] ACCUMULATE uses recursive evaluate() calls
+- [ ] NEXT uses recursive evaluate() calls
+- [ ] No manual generator iteration
+- [ ] Demand-driven semantics preserved
+- [ ] Cache works for temporal operations
+- [ ] Temporal tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(runtime): temporal operators now use demand-driven evaluation"
+
+---
+
+#### Task P0.4: Implement IncrementalRuntime Class
 
 **File to create:** `packages/runtime/src/incremental-runtime.ts`
 
@@ -443,7 +593,7 @@ type MissingInput = {
 
 **Estimated Time:** 8 hours
 
-**Dependencies:** None
+**Dependencies:** P0.3 (Fix Temporal Operators) - temporal ops must be demand-driven first
 
 **Acceptance Criteria (from specs/INTEGRATION_SPEC.md lines 740-770):**
 - ✓ Evaluates partial graphs (incomplete programs)
@@ -517,11 +667,13 @@ SUBTRACT(Integer, Integer) → Integer
 MULTIPLY(Integer, Integer) → Integer
 DIVIDE(Integer, Integer) → Decimal
 COMPARE(Integer, Integer) → Boolean
+FILTER(list: Integer[], condition) → Integer[]
+SORT(list: Integer[]) → Integer[]
 ```
 
 **Estimated Time:** 2 hours
 
-**Dependencies:** None
+**Dependencies:** P0.2 (Fraction Overloading Pattern) - use same pattern
 
 **Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 57-72):**
 - ✓ ADD works with Integer inputs
@@ -570,11 +722,13 @@ SUBTRACT(Decimal, Decimal) → Decimal
 MULTIPLY(Decimal, Decimal) → Decimal
 DIVIDE(Decimal, Decimal) → Decimal
 COMPARE(Decimal, Decimal) → Boolean
+FILTER(list: Decimal[], condition) → Decimal[]
+SORT(list: Decimal[]) → Decimal[]
 ```
 
 **Estimated Time:** 2 hours
 
-**Dependencies:** None
+**Dependencies:** P0.2 (Fraction Overloading Pattern) - use same pattern
 
 **Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 74-91):**
 - ✓ ADD works with Decimal inputs
@@ -605,14 +759,76 @@ COMPARE(Decimal, Decimal) → Boolean
 
 ---
 
-#### Task P1.3: Make Set/Stream Operations Generic
+#### Task P1.3: Implement Curriculum Type Filtering Operations
+
+**Files to update:**
+- `packages/shared/src/operations/registry.ts` (add Car, Food, Animal filtering signatures)
+- `packages/runtime/src/operations/filtering.ts` (implement Car, Food, Animal filters)
+- `packages/shared/src/types/composite.ts` (verify Car, Food, Animal types)
+
+**Why Important:**
+- Curriculum types are core to educational goals (ages 6-9)
+- FILTER operations are essential for set manipulation
+- COMPARE operations exist but FILTER operations missing
+- Incomplete support for curriculum types
+
+**Missing Operations:**
+```typescript
+// Car
+FILTER_BY_COLOR(list: Car[], color: Color) → Car[]
+
+// Food
+FILTER_BY_TASTE(list: Food[], taste: Taste) → Food[]
+FILTER_BY_COLOR(list: Food[], color: Color) → Food[]
+
+// Animal
+FILTER_BY_TYPE(list: Animal[], type: AnimalType) → Animal[]
+FILTER_BY_COLOR(list: Animal[], color: Color) → Animal[]
+```
+
+**Estimated Time:** 3 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 188-252):**
+- ✓ FILTER_BY_COLOR works with Car sets
+- ✓ FILTER_BY_TASTE works with Food sets
+- ✓ FILTER_BY_COLOR works with Food sets
+- ✓ FILTER_BY_TYPE works with Animal sets
+- ✓ FILTER_BY_COLOR works with Animal sets
+- ✓ Type safety enforced for curriculum types
+
+**Required Tests:**
+- [ ] Test: FILTER_BY_COLOR on Car set works correctly
+- [ ] Test: FILTER_BY_TASTE on Food set works correctly
+- [ ] Test: FILTER_BY_COLOR on Food set works correctly
+- [ ] Test: FILTER_BY_TYPE on Animal set works correctly
+- [ ] Test: FILTER_BY_COLOR on Animal set works correctly
+- [ ] Test: Curriculum type filters preserve type
+
+**Layer:** Layer 3 (Curriculum Types)
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 188-252
+
+**Ralph Wiggum Checklist:**
+- [ ] Car filtering operations implemented
+- [ ] Food filtering operations implemented
+- [ ] Animal filtering operations implemented
+- [ ] Filtering tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "feat(runtime): implement curriculum type filtering operations"
+
+---
+
+#### Task P1.4: Make Set/Stream Operations Generic
 
 **Files to update:**
 - `packages/shared/src/types/composite.ts` (SetType uses `unknown[]`, change to generic `T[]`)
 - `packages/runtime/src/evaluator/demand-driven-evaluator.ts` (update set wrapping logic)
 - `packages/runtime/src/operations/sets.ts` (currently only natural)
 - `packages/shared/src/operations/registry.ts` (update type signatures to support any type)
-- `packages/runtime/src/operations/` (stream operations)
+- `packages/runtime/src/operations/temporal.ts` (update temporal for generic streams)
 
 **Why Important:**
 - Current set/stream operations only work with natural numbers
@@ -622,7 +838,7 @@ COMPARE(Decimal, Decimal) → Boolean
 
 **Estimated Time:** 5 hours
 
-**Dependencies:** None
+**Dependencies:** P1.3 (Curriculum Type Filters) - need operations to test with
 
 **Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 312-327):**
 - ✓ Set<T> where T can be any DataType
@@ -630,6 +846,7 @@ COMPARE(Decimal, Decimal) → Boolean
 - ✓ Set operations work with any element type (not just natural)
 - ✓ Stream operations support any element type
 - ✓ Inherited operations work for element types
+- ✓ SetType uses `T[]` instead of `unknown[]`
 
 **Required Tests:**
 - [ ] Test: Set<shape> - UNION of shape sets works
@@ -639,6 +856,7 @@ COMPARE(Decimal, Decimal) → Boolean
 - [ ] Test: Stream<shape> - temporal operations on shape streams work
 - [ ] Test: Generic types properly enforced in type checker
 - [ ] Test: Set operations maintain element type through transformations
+- [ ] Test: SetType uses `T[]` not `unknown[]`
 
 **Layer:** Layer 4 (Sets) and Layer 6 (Streams)
 
@@ -654,7 +872,68 @@ COMPARE(Decimal, Decimal) → Boolean
 
 ---
 
-#### Task P1.4: Implement Missing Compiler Validation
+#### Task P1.5: Fix Set/Object Literal Ambiguity
+
+**Files to update:**
+- `packages/compiler/src/parser/dataflow-parser.ts` (grammar GATE logic)
+- `packages/compiler/src/ast/ast-builder.ts` (literal handling)
+- `packages/compiler/src/compiler.ts` (literal node creation)
+
+**Why Important:**
+- Both Set and Object literals use `{}` syntax
+- Parser uses fragile GATE that may fail
+- Object literals cause parsing errors
+- Affects curriculum types (Shape, Car, Food, Animal)
+
+**Current Issue:**
+```typescript
+// Both parse to same starting tokens
+setLiteral: '{' value+ '}'
+objectLiteral: '{' identifier ':' literal+ '}'
+```
+
+**Proposed Solution:**
+- Use lookahead or proper GATE with context
+- Update grammar to clearly distinguish between the two
+- Improve error messages for ambiguous cases
+
+**Estimated Time:** 3 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- ✓ Set literals parse correctly: `{ "red", "blue", "green" }`
+- ✓ Object literals parse correctly: `{ color: "red", size: "small" }`
+- ✓ Parser disambiguates correctly
+- ✓ No fragile GATE logic
+- ✓ Clear error messages for malformed literals
+- ✓ Compiler generates correct nodes for both types
+
+**Required Tests:**
+- [ ] Test: Set literal parses correctly
+- [ ] Test: Object literal parses correctly
+- [ ] Test: Set vs Object disambiguation works
+- [ ] Test: Malformed set literal produces clear error
+- [ ] Test: Malformed object literal produces clear error
+- [ ] Test: Literal nodes created correctly
+
+**Layer:** Cross-layer (Compiler + Runtime)
+
+**Spec Reference:** `specs/GRAMMAR_SPEC.md` (Literal grammar)
+
+**Ralph Wiggum Checklist:**
+- [ ] Set/Object ambiguity resolved
+- [ ] Set literals parse correctly
+- [ ] Object literals parse correctly
+- [ ] Parser tests pass
+- [ ] Integration tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(parser): resolve set/object literal ambiguity"
+
+---
+
+#### Task P1.6: Implement Missing Compiler Validation
 
 **File to update:** `packages/compiler/src/validation/dag-validator.ts`
 
@@ -667,6 +946,8 @@ COMPARE(Decimal, Decimal) → Boolean
 **Missing Validation:**
 1. Set homogeneity validation (all elements in set must be same type)
 2. Output node requirement (programs must have at least one output node)
+3. Literal type validation (literals match declared type)
+4. Stream source validation (generator/sensor exists)
 
 **Estimated Time:** 3 hours
 
@@ -677,12 +958,16 @@ COMPARE(Decimal, Decimal) → Boolean
 - ✓ Programs without output nodes produce error
 - ✓ Type safety rules enforced at compile time
 - ✓ Child-friendly Spanish error messages
+- ✓ Literal values match declared types
+- ✓ Stream sources are valid (generator/sensor exists)
 
 **Required Tests:**
 - [ ] Test: Set homogeneity validation - mixed types in set error
 - [ ] Test: Set homogeneity validation - same types in set succeed
 - [ ] Test: Output node requirement - program with no outputs fails
 - [ ] Test: Output node requirement - program with outputs succeeds
+- [ ] Test: Literal type validation - mismatch produces error
+- [ ] Test: Stream source validation - invalid generator produces error
 - [ ] Test: Validation errors include child-friendly Spanish messages
 
 **Layer:** Cross-layer (validation quality)
@@ -690,7 +975,7 @@ COMPARE(Decimal, Decimal) → Boolean
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` validation section
 
 **Ralph Wiggum Checklist:**
-- [ ] Missing validation rules implemented (set homogeneity, output node)
+- [ ] Missing validation rules implemented (set homogeneity, output node, literals, streams)
 - [ ] Validation tests pass
 - [ ] Typecheck passes
 - [ ] Previous tests still pass
@@ -698,7 +983,7 @@ COMPARE(Decimal, Decimal) → Boolean
 
 ---
 
-#### Task P1.5: Refactor HTTP API to Follow Elysia Best Practices
+#### Task P1.7: Refactor HTTP API to Follow Elysia Best Practices
 
 **Files to refactor:**
 - `packages/http-api/src/server.ts` (use Elysia plugins, add error middleware)
@@ -712,6 +997,7 @@ COMPARE(Decimal, Decimal) → Boolean
 - Missing plugin pattern for route organization
 - Missing Eden Treaty for end-to-end type safety
 - Uses manual type assertions instead of schema validation
+- Returns 200 OK for validation errors (should be 422)
 - **Improves code quality and maintainability**
 
 **Estimated Time:** 11 hours
@@ -724,6 +1010,7 @@ COMPARE(Decimal, Decimal) → Boolean
 - ✅ Use plugin pattern for route organization
 - ✅ Add Eden Treaty for end-to-end type safety
 - ✅ Remove manual type assertions, use schema validation
+- ✅ Return 422 for validation errors (not 200 OK)
 - ✅ Follow Elysia best practices
 
 **Required Refactoring:**
@@ -732,6 +1019,7 @@ COMPARE(Decimal, Decimal) → Boolean
 - [ ] Organize routes using plugin pattern
 - [ ] Add Eden Treaty export for client type safety
 - [ ] Use Elysia plugins for CORS, logging, etc.
+- [ ] Return 422 status for validation errors
 - [ ] All existing tests still pass (12/12 HTTP API tests)
 - [ ] Typecheck passes with no errors
 - [ ] Code follows Elysia best practices from specs/ELYSIA_LLMS.md
@@ -746,6 +1034,7 @@ COMPARE(Decimal, Decimal) → Boolean
 - [ ] Error handling middleware added
 - [ ] Plugin pattern used for route organization
 - [ ] Eden Treaty configured for end-to-end type safety
+- [ ] Returns 422 for validation errors
 - [ ] All 12/12 HTTP API tests still pass
 - [ ] Typecheck passes
 - [ ] Git commit with message: "refactor(http-api): implement Elysia best practices"
@@ -754,7 +1043,138 @@ COMPARE(Decimal, Decimal) → Boolean
 
 ### P2 MEDIUM (Quality Improvements & Completeness)
 
-#### Task P2.1: Complete Child-Friendly Spanish Error Messages
+#### Task P2.1: Fix Fraction Type Definition
+
+**File to update:** `packages/shared/src/types/primitives.ts`
+
+**Why Important:**
+- **Breaks type system correctness** - Fraction uses `number` instead of `Integer`
+- Spec says numerator/denominator should be Integer type
+- Must fix before implementing Fraction operations
+
+**Current Code:**
+```typescript
+export type Fraction = {
+  kind: "fraction";
+  numerator: number;    // WRONG - should be Integer
+  denominator: number;  // WRONG - should be Integer
+};
+```
+
+**Should Be:**
+```typescript
+export type Fraction = {
+  kind: "fraction";
+  numerator: Integer;
+  denominator: Integer;
+};
+```
+
+**Estimated Time:** 0.5 hours
+
+**Dependencies:** P0.2 (Fraction Overloading) - depends on when we refactor
+
+**Acceptance Criteria:**
+- ✓ Fraction type uses Integer for numerator/denominator
+- ✓ Typecheck passes
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 94-99
+
+**Ralph Wiggum Checklist:**
+- [ ] Fraction type updated to use Integer
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(types): use Integer type for Fraction numerator/denominator"
+
+---
+
+#### Task P2.2: Fix SetType Generic Type
+
+**File to update:** `packages/shared/src/types/composite.ts`
+
+**Why Important:**
+- SetType uses `unknown[]` instead of `T[]`
+- Breaks type safety for set operations
+- Should be generic `Set<T>` where T is element type
+
+**Current Code:**
+```typescript
+export type SetType = {
+  kind: "set";
+  elementType: string;
+  elements: unknown[];  // WRONG - should be T[]
+};
+```
+
+**Should Be:**
+```typescript
+export type SetType<T extends DataType> = {
+  kind: "set";
+  elementType: T;
+  elements: T[];
+};
+```
+
+**Estimated Time:** 1 hour
+
+**Dependencies:** P1.4 (Make Set/Stream Generic)
+
+**Acceptance Criteria:**
+- ✓ SetType uses generic `T[]` instead of `unknown[]`
+- ✓ Type safety maintained for set elements
+- ✓ Typecheck passes
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 315-320
+
+**Ralph Wiggum Checklist:**
+- [ ] SetType updated to use generic `T[]`
+- [ ] Type safety maintained
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(types): use generic T[] for SetType elements"
+
+---
+
+#### Task P2.3: Fix Color Type Extra Values
+
+**File to update:** `packages/shared/src/types/primitives.ts` or curriculum types
+
+**Why Important:**
+- Color type has extra values (`white`, `black`) not in spec
+- Spec defines only 6 colors: "red", "blue", "yellow", "green", "orange", "purple"
+- Mismatch could cause validation errors
+
+**Current Code:**
+```typescript
+type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple" | "white" | "black";
+```
+
+**Should Be:**
+```typescript
+type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
+```
+
+**Estimated Time:** 0.5 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- ✓ Color type matches spec (6 colors only)
+- ✓ Typecheck passes
+- ✓ No white/black values
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` line 149
+
+**Ralph Wiggum Checklist:**
+- [ ] Color type matches spec exactly
+- [ ] Extra values removed
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(types): remove extra color values (white, black)"
+
+---
+
+#### Task P2.4: Complete Child-Friendly Spanish Error Messages
 
 **Files to update:**
 - All validation files (`packages/compiler/src/validation/*`)
@@ -770,7 +1190,7 @@ COMPARE(Decimal, Decimal) → Boolean
 
 **Estimated Time:** 3 hours
 
-**Dependencies:** P1.4 (Missing Compiler Validation)
+**Dependencies:** P1.6 (Missing Compiler Validation)
 
 **Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 440-527):**
 - ✓ All error messages in child-friendly Spanish
@@ -803,7 +1223,7 @@ COMPARE(Decimal, Decimal) → Boolean
 
 ---
 
-#### Task P2.2: Improve SORT/ALPHABETICAL_SORT Operations
+#### Task P2.5: Improve SORT/ALPHABETICAL_SORT Operations
 
 **Files to update:**
 - `packages/runtime/src/operations/sets.ts` (SORT, ALPHABETICAL_SORT)
@@ -825,7 +1245,7 @@ COMPARE(Decimal, Decimal) → Boolean
 
 **Estimated Time:** 2 hours
 
-**Dependencies:** P1.3 (Make Set/Stream Operations Generic)
+**Dependencies:** P1.4 (Make Set/Stream Operations Generic)
 
 **Acceptance Criteria (from specs/LANGUAGE_SPEC.md):**
 - ✓ SORT operation works with any comparable type (not just numbers)
@@ -853,6 +1273,31 @@ COMPARE(Decimal, Decimal) → Boolean
 
 ---
 
+#### Task P2.6: Fix DataType Recursion
+
+**File to update:** `packages/shared/src/types/composite.ts`
+
+**Why Important:**
+- DataType recursion uses `string | DataType` instead of just `DataType`
+- Reduces type safety
+- Could cause validation issues
+
+**Estimated Time:** 0.5 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- ✓ DataType uses just `DataType` in recursive definitions
+- ✓ Typecheck passes
+
+**Ralph Wiggum Checklist:**
+- [ ] DataType recursion fixed
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "fix(types): fix DataType recursion"
+
+---
+
 ### P3 LOW (Post-MVP - Nice to have)
 
 #### Task P3.1: Implement WebSocket Server (Live Mode)
@@ -871,7 +1316,8 @@ COMPARE(Decimal, Decimal) → Boolean
 **Estimated Time:** 12 hours
 
 **Dependencies:**
-- P0.3 (IncrementalRuntime) - REQUIRED
+- P0.4 (IncrementalRuntime) - REQUIRED
+- P1.7 (HTTP API Best Practices) - for consistency
 
 **Acceptance Criteria (from specs/INTEGRATION_SPEC.md lines 200-361):**
 - ✓ Client connects via ws://localhost:3000/live
@@ -950,62 +1396,99 @@ COMPARE(Decimal, Decimal) → Boolean
 
 ---
 
+#### Task P3.3: Add Parallelism to Demand-Driven Evaluation
+
+**File to update:** `packages/runtime/src/evaluator/demand-driven-evaluator.ts`
+
+**Why Important:**
+- Current implementation is sequential
+- Performance improvement opportunity
+- Not critical for MVP but improves scalability
+
+**Proposed Implementation:**
+- Use `Promise.all()` to evaluate independent inputs in parallel
+- Maintain demand-driven semantics
+- No eager evaluation
+
+**Estimated Time:** 3 hours
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- ✓ Independent evaluations happen in parallel
+- ✓ Demand-driven semantics preserved
+- ✓ Performance improvement measurable
+- ✓ No race conditions
+
+**Ralph Wiggum Checklist:**
+- [ ] Parallelism implemented
+- [ ] Demand-driven semantics preserved
+- [ ] Performance tests pass
+- [ ] Typecheck passes
+- [ ] Previous tests still pass
+- [ ] Git commit with message: "perf(runtime): add parallelism to demand-driven evaluation"
+
+---
+
 ## SUMMARY TABLE
 
 | Task | Priority | Status | Time | Impact | Dependencies |
 |------|----------|--------|------|--------|--------------|
-| **P0.1: Fix Fraction type (number → Integer)** | P0 | NOT STARTED | 0.5h | **CRITICAL** - type correctness | None |
-| **P0.2: Refactor Fraction operations (overloading)** | P0 | ❌ INCORRECTLY IMPLEMENTED | 4h | **CRITICAL** - compiler can't generate tokens | None |
-| **P0.3: Implement IncrementalRuntime** | P0 | NOT STARTED | 8h | **CRITICAL** - blocks Layer 7 | None |
-| **P1.1: Implement Integer operations** | P1 | NOT STARTED | 2h | **HIGH** - type system completeness | None |
-| **P1.2: Implement Decimal operations** | P1 | NOT STARTED | 2h | **HIGH** - type system completeness | None |
-| **P1.3: Make Set/Stream operations generic** | P1 | NOT STARTED | 5h | **HIGH** - removes natural restriction | None |
-| **P1.4: Implement missing compiler validation** | P1 | NOT STARTED | 3h | **HIGH** - quality improvement | None |
-| **P1.5: Refactor HTTP API (Elysia best practices)** | P1 | NOT STARTED | 11h | Quality & maintainability | None |
-| **P2.1: Complete Spanish error messages** | P2 | NOT STARTED | 3h | Better UX for ages 6-9 | P1.4 |
-| **P2.2: Improve SORT/ALPHABETICAL_SORT operations** | P2 | NOT STARTED | 2h | Improves functionality | P1.3 |
-| **P3.1: Implement WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | P0.3 |
-| **P3.2: Complete execution trace** | P3 | NOT STARTED | 2h | Debugging support | None |
+| **P0.1: Fix nested operations** | P0 | NOT STARTED | 6h | **CRITICAL** - blocks complex expressions | None |
+| **P0.2: Refactor Fraction ops (overloading)** | P0 | ❌ INCORRECTLY IMPLEMENTED | 4h | **CRITICAL** - compiler can't generate tokens | None |
+| **P0.3: Fix temporal operators** | P0 | ❌ INCORRECTLY IMPLEMENTED | 5h | **CRITICAL** - breaks demand-driven | None |
+| **P0.4: Implement IncrementalRuntime** | P0 | NOT STARTED | 8h | **CRITICAL** - blocks Layer 7 | P0.3 |
+| **P1.1: Implement Integer operations** | P1 | NOT STARTED | 2h | HIGH - type system completeness | P0.2 |
+| **P1.2: Implement Decimal operations** | P1 | NOT STARTED | 2h | HIGH - type system completeness | P0.2 |
+| **P1.3: Curriculum type filters** | P1 | NOT STARTED | 3h | HIGH - curriculum alignment | None |
+| **P1.4: Make Set/Stream generic** | P1 | NOT STARTED | 5h | HIGH - removes natural restriction | P1.3 |
+| **P1.5: Fix Set/Object ambiguity** | P1 | NOT STARTED | 3h | HIGH - parser robustness | None |
+| **P1.6: Missing compiler validation** | P1 | NOT STARTED | 3h | HIGH - quality improvement | None |
+| **P1.7: Refactor HTTP API (Elysia)** | P1 | NOT STARTED | 11h | Quality & maintainability | None |
+| **P2.1: Fix Fraction type** | P2 | NOT STARTED | 0.5h | Type correctness | P0.2 |
+| **P2.2: Fix SetType generic** | P2 | NOT STARTED | 1h | Type safety | P1.4 |
+| **P2.3: Fix Color type** | P2 | NOT STARTED | 0.5h | Spec compliance | None |
+| **P2.4: Spanish error messages** | P2 | NOT STARTED | 3h | Better UX for ages 6-9 | P1.6 |
+| **P2.5: Improve SORT ops** | P2 | NOT STARTED | 2h | Improves functionality | P1.4 |
+| **P2.6: Fix DataType recursion** | P2 | NOT STARTED | 0.5h | Type safety | None |
+| **P3.1: WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | P0.4, P1.7 |
+| **P3.2: Execution trace** | P3 | NOT STARTED | 2h | Debugging support | None |
+| **P3.3: Add parallelism** | P3 | NOT STARTED | 3h | Performance | None |
 
-**Total Estimated Time:** 54.5 hours (0 hours completed - P0.2 incorrectly implemented)
-
-**Previous Work Completed:**
-- ✓ Layers 1-6: ~85-90% complete (Foundation, Arithmetic, Curriculum Types, Sets, Temporal, Streams)
-- ❌ 32/31 operations marked complete but Fraction ops INCORRECTLY implemented (need refactor)
-- ✓ 1 stream generator (counter)
-- ✓ All types defined (primitives, curriculum, composite, validation, program)
-- ✓ Lexer: COMPLETE - all tokens defined
-- ✓ Parser: COMPLETE - all grammar rules implemented
-- ✓ AST Builder: COMPLETE - full CST to AST conversion
-- ✓ Validation: MOSTLY COMPLETE (missing: set homogeneity, output node req)
-- ✓ Compiler: COMPLETE - full pipeline working
-- ✓ Main Runtime: COMPLETE - simple wrapper
-- ✓ Demand-Driven Evaluator: CORRECT - all temporal ops fixed (P0.1 completed)
-- ✓ Graph Implementation: CORRECT but has limitations (SORT only numbers, ALPHABETICAL_SORT converts to string)
-- ✓ HTTP API Server: COMPLETE - all 12 endpoints implemented and passing
-- ✓ 107 tests passing (100%) - 19 performance + 12 HTTP API + 11 Fraction ops (but ops don't work via compiler)
-- ❌ P0.2: Fraction operations INCORRECTLY implemented - needs refactor (separate ops, not overloading)
+**Total Estimated Time:**
+- **P0 Tasks:** 23 hours
+- **P1 Tasks:** 29 hours
+- **P2 Tasks:** 10.5 hours
+- **P3 Tasks:** 17 hours
+- **Grand Total:** 79.5 hours
 
 ---
 
 ## NEXT STEPS
 
-Focus on completing MVP - this requires finishing type system completeness and Layer 7 integration.
+Focus on completing MVP - this requires finishing P0 and P1 tasks to enable Layer 7.
 
-**Order of Implementation:**
+**Order of Implementation (Critical Path):**
 
-1. **P0.1 (0.5h): Fix Fraction Type Definition**
-   - Change numerator/denominator from `number` to `Integer`
-   - Impact: Enables proper Fraction operations
+1. **P0.1 (6h): Fix Nested Operations Support**
+   - AST builder creates IntermediateStatements for nested ops
+   - Compiler processes intermediate nodes correctly
+   - Impact: Enables ANY complex expression
 
-2. **P0.2 (4h): Refactor Fraction Operations to Use Overloading (CRITICAL - INCORRECTLY IMPLEMENTED)**
+2. **P0.2 (4h): Refactor Fraction Operations to Use Overloading**
    - Registry: Support multiple signatures for same operation name
    - Runtime: Implement dispatch based on input types
    - Remove separate ADD_FRACTION operations
    - Add integration tests (full compiler → runtime pipeline)
-   - Impact: Enables fraction operations via compiler (not just direct runtime calls)
+   - Impact: Establishes overloading pattern for Integer/Decimal too
 
-3. **P0.3 (8h): Implement IncrementalRuntime Class**
+3. **P0.3 (5h): Fix Temporal Operators Demand-Driven Semantics**
+   - FBY: Use recursive evaluate() instead of manual iteration
+   - ACCUMULATE: Recursive evaluation across timesteps
+   - NEXT: Evaluate stream at requested time
+   - Impact: Preserves core demand-driven semantics
+
+4. **P0.4 (8h): Implement IncrementalRuntime Class**
    - Partial graph evaluation with demand-driven semantics
    - Node state tracking (completed/pending/error)
    - Subscription management for multiple clients
@@ -1013,53 +1496,50 @@ Focus on completing MVP - this requires finishing type system completeness and L
    - Spanish child-friendly messages for missing inputs
    - Impact: Enables WebSocket server for IDE live feedback
 
-4. **P1.1 (2h): Implement Integer Operations**
+5. **P1.1 (2h): Implement Integer Operations**
    - ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE for Integer (via overloading)
    - Impact: Completes Integer type system
 
-5. **P1.2 (2h): Implement Decimal Operations**
+6. **P1.2 (2h): Implement Decimal Operations**
    - ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE for Decimal (via overloading)
    - Impact: Completes Decimal type system
 
-6. **P1.3 (5h): Make Set/Stream Operations Generic**
+7. **P1.3 (3h): Implement Curriculum Type Filtering Operations**
+   - FILTER_BY_COLOR for Car, Food, Animal
+   - FILTER_BY_TASTE for Food
+   - FILTER_BY_TYPE for Animal
+   - Impact: Completes curriculum type operations
+
+8. **P1.4 (5h): Make Set/Stream Operations Generic**
    - Remove natural-only restriction
    - Support any element type (Shape, Car, Food, Animal, Person)
    - Fix SetType to use proper generic `T[]` instead of `unknown[]`
    - Impact: Aligns with curriculum (sets of shapes, colors, etc.)
 
-7. **P1.4 (3h): Implement Missing Compiler Validation**
-   - Set homogeneity validation
-   - Output node requirement
-   - Impact: Better error messages for young learners
+9. **P1.5 (3h): Fix Set/Object Literal Ambiguity**
+   - Improve parser GATE logic
+   - Clear disambiguation between set and object literals
+   - Better error messages
+   - Impact: Improves parser robustness
 
-8. **P1.5 (11h): Refactor HTTP API to Follow Elysia Best Practices**
-   - Add Elysia.t validation for compile-time and runtime type safety
-   - Implement error handling middleware
-   - Use plugin pattern for route organization
-   - Add Eden Treaty for end-to-end type safety
-   - Impact: Improves code quality and maintainability
+10. **P1.6 (3h): Implement Missing Compiler Validation**
+    - Set homogeneity validation
+    - Output node requirement
+    - Literal type validation
+    - Stream source validation
+    - Impact: Better error messages for young learners
 
-9. **P2.1 (3h): Complete Child-Friendly Spanish Error Messages**
-   - Update all validation and runtime error handling
-   - Ensure messages are age-appropriate for 6-9 year olds
-   - Impact: Better UX for target demographic
+11. **P1.7 (11h): Refactor HTTP API to Follow Elysia Best Practices**
+    - Add Elysia.t validation for compile-time and runtime type safety
+    - Implement error handling middleware
+    - Use plugin pattern for route organization
+    - Add Eden Treaty for end-to-end type safety
+    - Return 422 for validation errors
+    - Impact: Improves code quality and maintainability
 
-10. **P2.2 (2h): Improve SORT/ALPHABETICAL_SORT Operations**
-    - Make SORT generic: SORT<T>(set: Set<T>) where T is Comparable
-    - Make ALPHABETICAL_SORT type-safe (preserve type, don't convert to string)
-    - Impact: Removes sorting limitations
-
-11. **P3.1 (12h): Implement WebSocket Server (Live Mode)**
-    - Connection at ws://localhost:3000/live
-    - Message handlers for validate_program, evaluate_incremental, subscribe_node, unsubscribe_node
-    - Push notifications for node state changes
-    - Multiple concurrent client support
-    - Impact: Enables IDE live feedback during program construction
-
-12. **P3.2 (2h): Complete Execution Trace Implementation**
-    - Populate executionOrder array
-    - Populate nodeEvaluations map
-    - Impact: Better debugging support
+**P2-P3 Tasks (Post-MVP):**
+- P2.1-P2.6: Type fixes, Spanish messages, SORT improvements
+- P3.1-P3.3: WebSocket server, execution trace, parallelism
 
 ---
 
@@ -1071,43 +1551,53 @@ To achieve MVP, complete the following:
 
 **Core Language (Layers 1-6):**
 - ✅ Natural numbers, arithmetic operations (ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE)
-- ❌ Fraction operations - **INCORRECTLY IMPLEMENTED** (P0.2 needs refactor - compiler can't generate tokens)
+- ⚠️ Fraction operations - **INCORRECTLY IMPLEMENTED** (P0.2 needs refactor - compiler can't generate tokens)
 - ⚠️ Integer operations - **MISSING** (P1.1)
 - ⚠️ Decimal operations - **MISSING** (P1.2)
 - ✅ Curriculum types (Shape, Car, Food, Animal, Person)
+- ⚠️ Curriculum type filters - **PARTIAL** (P1.3 needed - missing Car/Food/Animal FILTER ops)
 - ✅ Set operations (UNION, INTERSECTION, DIFFERENCE, COMPLEMENT)
-- ✅ Temporal operators (NEXT, FIRST, FBY, ACCUMULATE)
-- ✅ Filter operations (FILTER, FILTER_BY_SIZE, FILTER_BY_COLOR, etc.)
-- ⚠️ Set/Stream operations generic - **MISSING** (P1.3)
+- ⚠️ Temporal operators - **INCORRECTLY IMPLEMENTED** (P0.3 needs refactor - breaks demand-driven)
+- ✅ Filter operations (FILTER, FILTER_BY_SIZE, FILTER_BY_COLOR for Shape)
+- ⚠️ Set/Stream operations generic - **MISSING** (P1.4)
+- ⚠️ Nested operations - **NOT IMPLEMENTED** (P0.1 - CRITICAL BLOCKER)
 
 **Compiler:**
 - ✅ Validates programs, catches errors at compile-time
-- ⚠️ Set homogeneity validation - **MISSING** (P1.4)
-- ⚠️ Output node requirement - **MISSING** (P1.4)
+- ⚠️ Set homogeneity validation - **MISSING** (P1.6)
+- ⚠️ Output node requirement - **MISSING** (P1.6)
+- ⚠️ Literal type validation - **MISSING** (P1.6)
+- ⚠️ Stream source validation - **MISSING** (P1.6)
 - ✅ Type compatibility validation working
+- ⚠️ Set/Object literal ambiguity - **ISSUE** (P1.5)
+- ⚠️ Nested operations - **NOT IMPLEMENTED** (P0.1 - CRITICAL BLOCKER)
 
 **Runtime:**
-- ✅ Executes programs correctly with demand-driven semantics
-- ⚠️ IncrementalRuntime - **MISSING** (P0.3)
-- ✅ 32/31 operations working (103%) - Fraction ops complete!
+- ✅ Executes programs correctly (simple cases)
+- ⚠️ Temporal operators - **INCORRECTLY IMPLEMENTED** (P0.3 needs refactor - breaks demand-driven)
+- ⚠️ IncrementalRuntime - **MISSING** (P0.4)
+- ✅ 32/31 operations working (103%) - but Fraction ops INCORRECTLY implemented
 - ✅ Handles 5 concurrent users without degradation
 
 **Integration (Layer 7):**
 - ✅ HTTP API for batch mode (12/12 tests passing)
-- ⚠️ HTTP API Elysia best practices - **MISSING** (P1.5)
+- ⚠️ HTTP API Elysia best practices - **MISSING** (P1.7)
 - ⚠️ WebSocket Server - **MISSING** (P3.1)
 
-**MVP Completion Tasks:**
-1. P0.1: Fix Fraction type (0.5h)
-2. P0.2: Refactor Fraction operations to use overloading (4h) - **INCORRECTLY IMPLEMENTED, needs refactor**
-3. P0.3: Implement IncrementalRuntime (8h)
-4. P1.1: Implement Integer operations (2h)
-5. P1.2: Implement Decimal operations (2h)
-6. P1.3: Make Set/Stream operations generic (5h)
-7. P1.4: Implement missing compiler validation (3h)
-8. P1.5: Refactor HTTP API (11h) - **OPTIONAL for MVP**
+**MVP Completion Tasks (P0 + P1):**
+1. **P0.1:** Fix nested operations (6h) - **CRITICAL BLOCKER**
+2. **P0.2:** Refactor Fraction operations to use overloading (4h) - **CRITICAL BLOCKER**
+3. **P0.3:** Fix temporal operators demand-driven semantics (5h) - **CRITICAL BLOCKER**
+4. **P0.4:** Implement IncrementalRuntime (8h) - **CRITICAL BLOCKER**
+5. **P1.1:** Implement Integer operations (2h)
+6. **P1.2:** Implement Decimal operations (2h)
+7. **P1.3:** Implement curriculum type filters (3h)
+8. **P1.4:** Make Set/Stream operations generic (5h)
+9. **P1.5:** Fix Set/Object literal ambiguity (3h)
+10. **P1.6:** Implement missing compiler validation (3h)
+11. **P1.7:** Refactor HTTP API (11h) - **OPTIONAL for MVP**
 
-**Total MVP Time:** 25.5 hours (excluding P1.5)
+**Total MVP Time:** 41 hours (excluding P1.7)
 
 **Version 1.0 (All Layers):**
 - All P0, P1, and P2 tasks completed
@@ -1115,6 +1605,8 @@ To achieve MVP, complete the following:
 - IncrementalRuntime for partial evaluation
 - Complete test coverage (>80%)
 - Child-friendly Spanish messages throughout
+- Generic set/stream operations
+- HTTP API follows Elysia best practices
 
 ---
 
@@ -1124,9 +1616,6 @@ To achieve MVP, complete the following:
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
 - Test suite: 107/107 tests passing (100%) ✓
-  - 19/19 performance tests implemented
-  - 12/12 HTTP API tests implemented
-  - 11/11 Fraction operation tests implemented (P0.2 complete)
 
 ### Targets
 - Compilation: <100ms for programs with <100 nodes (p95)
@@ -1140,20 +1629,23 @@ To achieve MVP, complete the following:
 ## SUCCESS METRICS
 
 ### MVP (Layers 1-6 + Basic Integration)
-- ✅ All 32/31 operations implemented (103%) - Fraction ops complete!
+- ✅ All 32/31 operations implemented (103%)
+- ⚠️ But Fraction ops INCORRECTLY implemented (P0.2)
+- ⚠️ But Temporal ops INCORRECTLY implemented (P0.3)
 - ✅ Type compatibility validation working
 - ✅ HTTP API functional (12/12 tests passing)
 - ✅ Compiler validates programs correctly
-- ✅ Runtime executes programs correctly with demand-driven semantics
+- ✅ Runtime executes simple programs correctly
+- ⚠️ But nested operations NOT IMPLEMENTED (P0.1 - CRITICAL)
 - ✅ TypeScript compilation passes (no errors)
 - ✅ 107/107 tests passing (100%)
 - ✅ Handles 5 concurrent users
-- ✅ Fraction operations - **COMPLETE** (P0.2 completed 2026-03-13)
 - ⚠️ Integer operations - **MISSING** (P1.1)
 - ⚠️ Decimal operations - **MISSING** (P1.2)
-- ⚠️ Set/Stream operations generic - **MISSING** (P1.3)
-- ⚠️ IncrementalRuntime - **MISSING** (P0.3)
-- ⚠️ Complete compiler validation - **MISSING** (P1.4)
+- ⚠️ Curriculum type filters - **PARTIAL** (P1.3)
+- ⚠️ Set/Stream operations generic - **MISSING** (P1.4)
+- ⚠️ IncrementalRuntime - **MISSING** (P0.4)
+- ⚠️ Complete compiler validation - **MISSING** (P1.6)
 
 ### Version 1.0 (All Layers)
 - All P0 and P1 tasks completed
@@ -1163,100 +1655,109 @@ To achieve MVP, complete the following:
 - Child-friendly Spanish messages throughout
 - Generic set/stream operations
 - HTTP API follows Elysia best practices
+- Temporal operators preserve demand-driven semantics
+- Nested operations supported
 
 ---
 
 ## COMPREHENSIVE STUDY FINDINGS (2026-03-13)
 
 ### Study Scope
-This implementation plan was updated based on a comprehensive analysis from 5 parallel explore agents covering:
-1. **Compiler Package Analysis** (85-90% complete)
-2. **Runtime Package Analysis** (85% complete - Fraction ops added!)
-3. **Integration Layer Analysis** (60% complete)
-4. **Shared Package Analysis** (85% complete)
-5. **Test Coverage Analysis** (107 tests, 100% passing)
+This implementation plan was updated based on a comprehensive analysis from 7 parallel subagents covering:
+1. **Type Definitions Analysis** (67% correct)
+2. **Operations Registry Analysis** (~60% coverage, critical pattern issues)
+3. **Compiler Package Analysis** (70% complete - NESTED OPS NOT IMPLEMENTED)
+4. **Runtime Package Analysis** (65% complete - temporal ops break demand-driven)
+5. **HTTP API Package Analysis** (64% complete - not best practice)
+6. **Test Coverage Analysis** (107 tests, 100% passing, but gaps)
+7. **WebSocket Server Package Analysis** (0% complete - directory empty)
 
 ### Key Findings
 
 #### 1. Implementation Status Accuracy ✅ VERIFIED
 The comprehensive study revealed the accurate status:
-- **Layers 1-6**: 85-90% complete
-- **Layer 7 (Integration)**: 0% complete (IncrementalRuntime and WebSocket Server missing)
-- **Test Coverage**: 96/96 tests passing (100%)
-- **TypeScript Compilation**: Passes with zero errors
+- **Overall Progress:** ~58% (not 79% as previously estimated)
+- **Layers 1-6:** 50-100% complete (varies by layer)
+- **Layer 7 (Integration):** 0% complete (IncrementalRuntime and WebSocket Server missing)
+- **Test Coverage:** 107/107 tests passing (100%) - but gaps in integration tests
+- **TypeScript Compilation:** Passes with zero errors
 
-#### 2. Core Functionality ✅ WORKING
-**Compiler Package (90% complete):**
+#### 2. Core Functionality ❌ CRITICAL ISSUES
+**Compiler Package (70% complete):**
 - ✅ Lexer: Complete - all 104 tokens defined
-- ✅ Parser: Complete - all 17 grammar rules implemented
-- ✅ Nested operations: FULLY IMPLEMENTED (previous report was incorrect)
-- ✅ AST Builder: Complete - full CST to AST conversion
-- ✅ Validation: 75% complete (6/8 rules implemented)
-- ✅ Compiler Pipeline: Working end-to-end
-- ✅ Child-friendly Spanish error messages: Partially implemented
+- ✅ Parser: Good coverage (19 grammar rules)
+- ✅ Validation: 5/8 semantic constraints (62.5%)
+- ✅ Compiler Pipeline: Working end-to-end for simple programs
+- ❌ **NESTED OPERATIONS NOT HANDLED** (CRITICAL BLOCKER)
+- ❌ Set/Object Literal Ambiguity (parser fragility)
+- ❌ Literal ID Mismatch
 
-**Runtime Package (80% complete):**
-- ✅ Demand-Driven Evaluator: CORRECT and working
-- ✅ 28/31 Operations implemented (90%):
-  - Numeric: 5/5 ✓ (Natural only)
-  - Boolean: 3/3 ✓
-  - Comparison: 6/6 ✓
-  - Filtering: 7/7 ✓
-  - Sets: 6/6 but SORT/ALPHABETICAL_SORT have limitations
-  - Temporal: 4/4 ✓ (fixed in P0.1)
-- ✅ Graph: Basic implementation works
-- ✅ Cache: Correct for demand-driven
+**Runtime Package (65% complete):**
+- ✅ Demand-Driven Evaluator: Core structure CORRECT
+- ✅ Cache: Correct two-level memoization
+- ✅ 36/36 Operations defined in registry (but 4 fraction ops wrong pattern)
+- ❌ **Fraction operations INCORRECTLY IMPLEMENTED** (separate ops, not overloading)
+- ❌ **Temporal operators INCORRECTLY IMPLEMENTED** (break demand-driven)
+- ❌ **IncrementalRuntime DOES NOT EXIST** (P0 BLOCKER)
+- ❌ No Integer operations (0/6)
+- ❌ No Decimal operations (0/6)
+- ❌ No parallelism
 
 **Missing Operations:**
-- ❌ Fraction operations: INCORRECTLY IMPLEMENTED (separate ops, not overloading) (P0 - breaks type system completeness)
-- ❌ Integer operations: 0% complete (P1 - type system completeness)
-- ❌ Decimal operations: 0% complete (P1 - type system completeness)
+- ❌ Fraction operations: INCORRECTLY IMPLEMENTED (P0.2 - needs refactor)
+- ❌ Integer operations: 0% complete (P1.1)
+- ❌ Decimal operations: 0% complete (P1.2)
+- ❌ Curriculum type filters: PARTIAL (P1.3 - missing Car/Food/Animal FILTER ops)
+- ❌ Set/Stream operations: Not generic (P1.4)
 
 #### 3. Critical Gaps ❌ IDENTIFIED
 **P0 (CRITICAL):**
-1. IncrementalRuntime: 0% complete (blocks WebSocket Server)
-2. ❌ Fraction operations: INCORRECTLY IMPLEMENTED (separate ops, not overloading) (P0.2 needs refactor)
-3. Fraction type: Uses `number` instead of `Integer` (type mismatch - decision to keep for architectural consistency)
+1. ❌ Nested operations NOT IMPLEMENTED (P0.1 - blocks complex expressions)
+2. ❌ Fraction operations INCORRECTLY IMPLEMENTED (P0.2 - separate ops, not overloading)
+3. ❌ Temporal operators INCORRECTLY IMPLEMENTED (P0.3 - break demand-driven semantics)
+4. ❌ IncrementalRuntime DOES NOT EXIST (P0.4 - blocks WebSocket Server)
 
 **P1 (HIGH):**
-1. Integer operations: 0% complete (type defined but no arithmetic)
-2. Decimal operations: 0% complete (type defined but no arithmetic)
-3. Set/Stream operations: Not generic (hardcoded to natural only)
-4. Compiler validation: Missing 2 rules (set homogeneity, output node requirement)
-5. HTTP API: Doesn't follow Elysia best practices
+1. Integer operations: 0% complete (P1.1)
+2. Decimal operations: 0% complete (P1.2)
+3. Curriculum type filters: PARTIAL (P1.3 - missing Car/Food/Animal)
+4. Set/Stream operations: Not generic (P1.4)
+5. Set/Object literal ambiguity (P1.5)
+6. Compiler validation: Missing 3 rules (P1.6)
+7. HTTP API: Doesn't follow Elysia best practices (P1.7)
 
 **P2 (MEDIUM):**
-1. SORT: Only works with numbers
-2. ALPHABETICAL_SORT: Converts everything to string
-3. Spanish messages: Partial implementation
-4. SetType: Uses `unknown[]` instead of `T[]`
-5. Generators: Only "counter" exists
+1. Fraction type: Uses `number` instead of `Integer` (P2.1)
+2. SetType: Uses `unknown[]` instead of `T[]` (P2.2)
+3. Color type: Extra values (white, black) (P2.3)
+4. Spanish messages: Partial implementation (P2.4)
+5. SORT: Only works with numbers (P2.5)
+6. DataType recursion: Uses `string | DataType` (P2.6)
 
-#### 4. Test Coverage ✅ EXCELLENT
+#### 4. Test Coverage ✅ EXCELLENT BUT GAPS
 **107 tests, 100% passing:**
-- End-to-End: 9 tests (450% of spec requirements)
-- Type Validation: 12 tests (600% of spec requirements)
-- Curriculum Types: 4 tests (200% of spec requirements)
-- Set Operations: 4 tests (200% of spec requirements)
-- Temporal: 4 tests (200% of spec requirements)
-- Error Handling: 2 tests (100% of spec requirements)
-- Performance: 19 tests (950% of spec requirements)
-- Demand-Driven: 2 tests (100% of spec requirements)
-- HTTP API: 12 tests (100% passing)
-- Fraction Operations: 11 tests (1100% of spec requirements)
+- Integration tests: 40 tests (~81% of spec requirements)
+- Runtime unit tests: 36 tests
+- HTTP API tests: 12 tests
+- Compiler tests: 13 tests
+- Shared type tests: 14 tests
 
-**Missing:**
-- Incremental Runtime tests (13 tests required, 0% implemented)
-- WebSocket Server tests (0% implemented)
+**Critical Gaps:**
+- Incremental Runtime tests: 0/13 (0%)
+- WebSocket Server tests: 0/12 (0%)
+- Fraction operations: Unit tests only (no integration - bypass compiler)
+- Set operations: Tests with `natural` instead of curriculum types
+- Temporal operations: Missing full timestep coverage
+- Nested operations: No tests (not implemented)
 
 **No Stubbed Tests Found** ✅
 
 #### 5. Design Decisions ❌ PARTIALLY INCORRECT
 **Demand-Driven Semantics:**
 - ✅ Correct per DEMAND_DRIVEN_INCREMENTAL.md
-- ✅ No eager evaluation
+- ✅ No eager evaluation (for simple cases)
 - ✅ Cache-based memoization
-- ✅ Temporal operators fixed (P0.1 completed)
+- ❌ **BUT temporal operators break demand-driven** (P0.3 needs refactor)
 
 **Fraction Operations Approach:**
 - ✅ Should use overloading (ADD works with Natural, Integer, Decimal, Fraction)
@@ -1266,63 +1767,37 @@ The comprehensive study revealed the accurate status:
 - ❌ Compiler cannot generate ADD_FRACTION tokens
 - ❌ Needs refactor to implement overloading pattern correctly
 
+**Nested Operations:**
+- ✅ Required by spec for complex expressions
+- ❌ **NOT IMPLEMENTED** - AST builder generates IDs but no TransformStatements
+- ❌ Blocks ANY meaningful program beyond simple operations
+- ❌ P0.1 - CRITICAL BLOCKER
+
 #### 6. Completed Tasks ✅ CONFIRMED
-The following tasks are COMPLETED (despite outdated plan):
-- ✅ P0.1: Fix Temporal Operations State Bug (2 hours)
-- ✅ P0.2: Implement 2 Stubbed Performance Tests (1.5 hours)
-- ✅ P0.3: Fix 14 TypeScript Errors (4 hours)
-- ❌ P0.2: Implement Fraction Operations - INCORRECTLY IMPLEMENTED (needs refactor to use overloading)
-- ✅ P1.1: Implement HTTP API (10 hours)
-- ✅ P1.4: Implement Nested Operation Expressions (1.5 hours)
+The following components are mostly working:
+- ✅ Lexer: Complete (104 tokens)
+- ✅ Parser: Good coverage (19 rules)
+- ✅ Simple operations work via compiler
+- ✅ Cache implementation correct
+- ✅ HTTP API functional (12/12 tests)
 
 ---
 
-## RECOMMENDATIONS
+## DOCUMENTATION
 
-### Immediate Actions (P0 Tasks)
-1. **Fix Fraction type** (0.5h) - Change numerator/denominator from `number` to `Integer` - Decision: Keep current structure for architectural consistency
-2. **Refactor Fraction operations to use overloading** (4h) - **INCORRECTLY IMPLEMENTED, needs refactor** - Separate ops don't work with compiler
-3. **Implement IncrementalRuntime** (8h) - Enable Layer 7 completion
+### Spec Files
+- `specs/LANGUAGE_SPEC.md` - Complete language specification
+- `specs/GRAMMAR_SPEC.md` - Grammar and syntax
+- `specs/INTEGRATION_SPEC.md` - HTTP API, WebSocket, IncrementalRuntime
+- `specs/INTEGRATION_TESTS_SPEC.md` - Test requirements
+- `specs/ELYSIA_LLMS.md` - Elysia best practices
+- `specs/DEMAND_DRIVEN_INCREMENTAL.md` - Demand-driven evaluation model
 
-### MVP Completion (P1 Tasks)
-1. **Implement Integer operations** (2h) - Complete Integer type system
-2. **Implement Decimal operations** (2h) - Complete Decimal type system
-3. **Make Set/Stream operations generic** (5h) - Remove natural-only restriction
-4. **Implement missing compiler validation** (3h) - Improve error messages
-5. **Refactor HTTP API** (11h) - Follow Elysia best practices (optional for MVP)
-
-### Post-MVP (P2/P3 Tasks)
-1. **Complete Spanish messages** (3h) - Better UX
-2. **Improve SORT operations** (2h) - Remove limitations
-3. **Implement WebSocket Server** (12h) - IDE live feedback
-4. **Complete execution trace** (2h) - Debugging support
+### Key Design Documents
+- `PROJECT_GOALS.md` - Project objectives and MVP definition
+- `AGENTS.md` - Development guidelines and standards
 
 ---
 
-## CONCLUSION
-
-The implementation is **78% complete** with:
-- **Core compiler/runtime:** 90% complete (Fraction ops need refactor)
-- **Type system:** 80% complete (Fraction ops INCORRECTLY implemented, Integer/Decimal still missing)
-- **Layer 7 (Integration):** 0% complete (IncrementalRuntime and WebSocket Server missing)
-- **Test coverage:** 100% (107/107 tests passing, but fraction tests bypass compiler)
-
-**Critical Path to MVP (22 hours):**
-1. P0.1: Fix Fraction type (0.5h) - Decision: Keep current structure
-2. P0.2: Refactor Fraction operations to use overloading (4h) - **INCORRECTLY IMPLEMENTED, needs refactor**
-3. P0.3: Implement IncrementalRuntime (8h)
-4. P1.1: Implement Integer operations (2h)
-5. P1.2: Implement Decimal operations (2h)
-6. P1.3: Make Set/Stream operations generic (5h)
-7. P1.4: Implement missing compiler validation (3h)
-8. P1.5: Refactor HTTP API (11h) - **OPTIONAL**
-
-**Version 1.0 (54.5 hours total):**
-- Complete all P0, P1, and P2 tasks
-- WebSocket server for live feedback
-- Complete test coverage
-- Child-friendly Spanish messages throughout
-
-**Note:** The plan follows the **Ralph Wiggum method** - each layer must be fully working before moving to the next. All tasks include acceptance criteria from specs and Ralph Wiggum checklist items.
-
-**End of Implementation Plan**
+**Document Status:** Living implementation plan - update as implementation reveals better designs
+**Next Review:** After completing P0 tasks (critical blockers)
