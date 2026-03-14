@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-14 (Updated with P0 critical fixes - 116/118 tests passing, 98.3% pass rate, ~85% overall complete)
+**Last Updated:** 2026-03-14 (Analysis of manual changes - 117/124 tests passing, 94.4% pass rate, ~85% overall complete)
 
 ---
 
@@ -40,26 +40,114 @@ packages/
 ### Current Test Status
 
 **Overall Test Results:**
-- **116 passing**, 2 failing (98.3% pass rate)
-- **Total improvement:** +62 tests passing from 54/117 (46.2%) to 116/118 (98.3%)
-- **Session improvement (P0.0-P0.3):** +17 tests passing (99→116 out of 118)
+- **117 passing**, 7 failing (94.4% pass rate)
+- **Total tests:** 124 tests across 24 files
+- **Note:** After user's manual fixes to registry and validation code
+
+**Test Breakdown (After Manual Changes):**
+
+| Category | Passing | Failing | Total |
+|----------|---------|---------|-------|
+| Compiler - Lexing and Parsing | 10 | 0 | 10 |
+| Compiler - Validation | 10 | 0 | 10 |
+| Runtime - Program Loading | 3 | 0 | 3 |
+| Runtime - Execution | 25 | 1 | 26 |
+| End-to-End Arithmetic | 2 | 2 | 4 |
+| Inline Nested Operations | 6 | 1 | 7 |
+| Nested Operations | 4 | 1 | 5 |
+| Temporal (FBY) | 3 | 0 | 3 |
+| Temporal (Streams) | 2 | 0 | 2 |
+| Type Validation | 2 | 0 | 2 |
+| Other Integration Tests | 50 | 2 | 52 |
+| **TOTAL** | **117** | **7** | **124** |
+
+### Manual Changes Made by User
+
+The user reported following manual fixes before this analysis:
+1. **Fixed syntax errors** in `packages/tests/src/integration/fractions.test.ts`
+2. **Removed cross-type contracts** from registry (e.g., natural + integer, integer + decimal)
+3. **Fixed validation logic** in `packages/compiler/src/validation/dag-validator.ts` lines 148-172
+
+**Impact:** Test status changed from 116/118 (98.3%) to 117/124 (94.4%) due to:
+- 2 new tests failing from cross-type contract removal (arithmetic tests)
+- 1 test needs expectation fix (boolean/fraction)
+- 2 tests blocked by parser issue (negative integer literals)
+- 2 tests affected by missing guard clause (TypeError)
+
+### Analysis of Remaining Test Failures (7 tests)
+
+#### 1. Parser Issue: Negative Integer Literals (2 tests)
+
+**Affected Tests:**
+- `should detect type mismatch for integer and fraction` (fractions.test.ts)
+- `should detect type mismatch for mixed natural and fraction` (fractions.test.ts - partially)
+
+**Root Cause:**
+Parser doesn't support negative integer literals (e.g., `-3`). The parser expects NumberLiteral tokens but encounters Minus tokens.
+
+**Fix Required:**
+Add support for negative integer literals in the parser grammar.
+
+#### 2. Test Bug: Invalid Expectation (1 test)
+
+**Affected Test:**
+- `should detect type mismatch for boolean and fraction` (fractions.test.ts:172-186)
+
+**Root Cause:**
+Test expects `success: true` for invalid code where AND expects boolean, boolean but receives boolean, fraction.
+
+**Fix Required:**
+Correct test expectation from `toBe(true)` to `toBe(false)` and verify TYPE_ERROR.
+
+#### 3. Type Contract Mismatch After User Fixes (3 tests)
+
+**Affected Tests:**
+- `should parse and execute MULTIPLY(ADD(a, b), SUBTRACT(c, d))` (nested-operations.test.ts)
+- `should parse and execute MULTIPLY(ADD(a, b), SUBTRACT(c, d))` (inline-nested-operations.test.ts)
+- `should compile and execute multi-node arithmetic program` (arithmetic.test.ts - test 2)
+
+**Root Cause:**
+User removed cross-type contracts from registry. Tests use `MULTIPLY(natural, integer)` which no longer has a contract.
+
+**Fix Required (Recommended):**
+Fix tests to avoid cross-type operations by ensuring positive results and using natural types only.
+
+#### 4. Runtime TypeError: program.graph undefined (1 test, affects multiple)
+
+**Affected Tests:**
+- `should compile and execute multi-node arithmetic program` (arithmetic.test.ts)
+- `should preserve demand-driven evaluation order` (arithmetic.test.ts)
+
+**Root Cause:**
+Tests use non-null assertion operator when compilation fails, causing TypeError when program is undefined.
+
+**Fix Required:**
+Add guard clauses before calling `loadProgram` to handle validation failures gracefully.
+
+---
+
+### Previous Test Results (Before Manual Changes)
+
+**Overall Test Results:**
+- **99 passing**, 18 failing, 1 error (84.6% pass rate)
+- **Total improvement:** +45 tests passing from 54/117 (46.2%) to 99/118 (84.6%)
 
 **Test Breakdown by Category:**
 
 | Category | Passing | Failing | Error | Total |
 |----------|---------|---------|-------|-------|
 | Compiler - Lexing and Parsing | 10 | 0 | 0 | 10 |
-| Compiler - Validation | 10 | 0 | 0 | 10 |
+| Compiler - Validation | 8 | 2 | 0 | 10 |
 | Runtime - Program Loading | 3 | 0 | 0 | 3 |
-| Runtime - Execution | 25 | 1 | 0 | 26 |
-| End-to-End Arithmetic | 4 | 0 | 0 | 4 |
-| Inline Nested Operations | 5 | 0 | 0 | 5 |
-| Nested Operations | 4 | 0 | 0 | 4 |
-| Temporal (FBY) | 3 | 0 | 0 | 3 |
-| Temporal (Streams) | 2 | 0 | 0 | 2 |
-| Type Validation | 2 | 0 | 0 | 2 |
-| Other Integration Tests | 47 | 1 | 0 | 48 |
-| **TOTAL** | **116** | **2** | **0** | **118** |
+| Runtime - Execution | 24 | 1 | 1 | 26 |
+| End-to-End Arithmetic | 2 | 2 | 0 | 4 |
+| Inline Nested Operations | 1 | 4 | 0 | 5 |
+| Nested Operations | 1 | 3 | 0 | 4 |
+| Temporal (FBY) | 2 | 1 | 0 | 3 |
+| Temporal (Streams) | 0 | 2 | 0 | 2 |
+| Type Validation | 0 | 2 | 0 | 2 |
+| Other Integration Tests | 46 | 1 | 0 | 47 |
+| **TOTAL** | **99** | **18** | **1** | **118** |
 
 ### Current Reality Check
 
@@ -67,47 +155,71 @@ packages/
 
 | Component | Status | Completion | Test Pass Rate | Critical Issues |
 |-----------|--------|------------|----------------|-----------------|
-| **Shared Package** | Good | 95% | N/A | Integer/Decimal operations complete, mixed-type contracts added |
-| **Compiler Package** | Good | 85% | 100% (10/10) | Validation order fixed, error messages improved |
-| **Runtime Package** | Good | 90% | 96% (25/26) | Temporal ops return wrapped values, all numeric operations complete |
+| **Shared Package** | Good | 80-85% | N/A | Types correct, operations mostly complete |
+| **Compiler Package** | Good | 75% | 83.3% (10/12) | Validation logic issues, missing Integer/Decimal contracts |
+| **Runtime Package** | Partial | 70% | 96% (24/25) | Temporal ops returning raw values, missing Integer/Decimal overloading |
 | **HTTP API Package** | Functional | 64% | 100% (12/12) | Works but doesn't follow Elysia best practices |
 | **WebSocket Server Package** | Not Started | 0% | N/A | Blocked by IncrementalRuntime (70+ syntax errors) |
 
 ### New Critical Findings (2026-03-14 Analysis)
 
-#### ✅ COMPLETED Quick Wins (P0.0-P0.3 - 2026-03-14)
+#### Quick Wins (15 minutes total - Unblocks 6 tests)
 
-**✅ P0.0: Temporal Operations Return Wrapped Values (COMPLETED)**
-**File:** `packages/runtime/src/operations/temporal.ts`
+**QW1: Temporal Operations Return Raw Values Instead of Wrapped Objects (5 min)**
+**File:** `packages/runtime/src/operations/temporal.ts` lines 11-22
 **Issue:** FIRST operation returns raw value (0) instead of wrapped type object ({ kind: "natural", value: 0 })
-**Fix:** FIRST operation now returns wrapped values based on elementType
-**Impact:** Fixed 2 temporal tests (FIRST from Stream)
-**Result:** ✅ COMPLETED
+**Root Cause:** Line 21 returns `streamValue` instead of wrapping it
+**Impact:** Breaks 2 temporal tests (FIRST from Stream)
+**Fix:**
+```typescript
+// WRONG (current - line 21):
+return streamValue;
 
-**✅ P0.1: Compiler Validation Order (COMPLETED)**
+// CORRECT:
+if (typeof streamValue === 'object' && streamValue !== null && 'value' in streamValue) {
+  return streamValue.value; // Extract wrapped value
+}
+return streamValue;
+```
+
+**QW2: Compiler Validation Logic Incorrectly Prioritizes Type Errors (10 min)**
 **File:** `packages/compiler/src/validation/dag-validator.ts`
-**Issue:** Validation checks type compatibility BEFORE checking if references are defined
-**Fix:** Moved undefined identifier check before type resolution, moved arity check before signature matching
-**Impact:** Fixed 2 compiler validation tests (undefined references, wrong arity)
-**Result:** ✅ COMPLETED
-
-**✅ P0.2: Integer Operations via Overloading (COMPLETED)**
-**Files:** `packages/shared/src/operations/registry.ts`, `packages/runtime/src/operations/numeric.ts`
-**Issue:** Registry only had contracts for Natural and Fraction, SUBTRACT on Natural produces Integer but MULTIPLY doesn't accept Integer
-**Fix:** Added Integer contracts for ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE; implemented Integer operation functions; added mixed-type contracts
-**Impact:** Completes Integer type system, enables complex arithmetic
-**Result:** ✅ COMPLETED
-
-**✅ P0.3: Decimal Operations via Overloading (COMPLETED)**
-**Files:** `packages/shared/src/operations/registry.ts`, `packages/runtime/src/operations/numeric.ts`
-**Issue:** DIVIDE on Natural produces Decimal but Decimal has no operations
-**Fix:** Added Decimal contracts for ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE; implemented Decimal operation functions; added mixed-type contracts
-**Impact:** Completes Decimal type system, makes division results usable
-**Result:** ✅ COMPLETED
+**Issue:** When undefined references or wrong arity are encountered, they're caught as TYPE_ERROR instead of specific codes
+**Root Cause:** Lines 110-125 check for type compatibility BEFORE checking if references are defined (lines 165-179)
+**Impact:** Breaks 2 compiler validation tests (undefined references, wrong arity)
+**Fix:** Move undefined reference and arity checks BEFORE type compatibility check
 
 ### Major Blockers (Require 30 Minutes - 2 Hours)
 
-**MB1: IncrementalRuntime Syntax Errors (70+ errors)**
+**MB1: Integer Operations Not Implemented (1.5 hours)**
+**Files:**
+- `packages/shared/src/operations/registry.ts` (add Integer contracts)
+- `packages/runtime/src/operations/numeric.ts` (add Integer overloads)
+
+**Issue:**
+- Registry only has contracts for Natural and Fraction
+- SUBTRACT on Natural produces Integer, but MULTIPLY doesn't accept Integer
+- Error: `MULTIPLY: Unsupported types {"kind":"natural","value":5}, {"kind":"integer","value":4}`
+
+**Impact:**
+- Breaks 1 test: "should execute complex expression (3 + 2) * (10 - 6) = 20"
+- Blocks all arithmetic involving SUBTRACT results
+- Type system incomplete
+
+**MB2: Decimal Operations Not Implemented (1.5 hours)**
+**Files:**
+- `packages/shared/src/operations/registry.ts` (add Decimal contracts)
+- `packages/runtime/src/operations/numeric.ts` (add Decimal overloads)
+
+**Issue:**
+- Registry only has contracts for Natural and Fraction
+- DIVIDE on Natural produces Decimal, but Decimal has no operations
+
+**Impact:**
+- Division results cannot be used in subsequent operations
+- Type system incomplete
+
+**MB3: IncrementalRuntime Syntax Errors (70+ errors)**
 **File:** `packages/runtime/src/incremental-runtime.ts`
 **Issue:** File exists but completely broken by syntax errors
 **Blocker:** Blocks entire WebSocket Server (0% progress)
@@ -199,150 +311,249 @@ if (!isTypeCompatible(expectedType, inputType)) {
 
 ---
 
-## COMPLETED P0 CRITICAL FIXES (2026-03-14)
-
-### Summary
-
-On 2026-03-14, all P0 critical fixes were successfully completed, achieving 98.3% test pass rate:
-
-**Test Results:**
-- **Before P0 fixes:** 99 pass, 18 fail, 1 error (84.6% passing)
-- **After P0.0-P0.3:** 116 pass, 2 fail, 0 error (98.3% passing)
-- **Net Improvement:** +17 tests passing, -16 tests failing
-
-### Completed Tasks
-
-1. ✅ **P0.0: Fix Temporal Operations to Return Wrapped Values**
-   - Fixed FIRST operation to return wrapped values based on elementType
-   - Fixed FBY and ACCUMULATE operations to use evaluate() instead of accessing .value
-   - Files: packages/runtime/src/operations/temporal.ts
-
-2. ✅ **P0.1: Fix Compiler Validation Order**
-   - Moved undefined identifier check before type resolution
-   - Moved arity check before signature matching
-   - Fixed TransformStatement output type to be added to typeTable
-   - Files: packages/compiler/src/validation/dag-validator.ts
-
-3. ✅ **P0.2: Implement Integer Operations via Overloading**
-   - Added Integer contracts for ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE
-   - Implemented Integer operation functions
-   - Added mixed-type contracts (natural+integer, integer+decimal, etc.)
-   - Files: packages/shared/src/operations/registry.ts, packages/runtime/src/operations/numeric.ts
-
-4. ✅ **P0.3: Implement Decimal Operations via Overloading**
-   - Added Decimal contracts for ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE
-   - Implemented Decimal operation functions
-   - Added mixed-type contracts (natural+decimal, integer+decimal, etc.)
-   - Files: packages/shared/src/operations/registry.ts, packages/runtime/src/operations/numeric.ts
-
-### Additional Fixes
-
-5. ✅ **Mixed-Type Operations**
-   - Added contracts for mixed-type operations (natural+integer, natural+decimal, integer+decimal, etc.)
-   - Implemented mixed-type operation functions in numeric.ts
-   - Enables seamless arithmetic between different numeric types
-
-6. ✅ **Child-Friendly Spanish Error Messages**
-   - Improved error messages for type mismatches in numeric operations
-   - Added specific messages for ADD with text input
-   - Files: packages/compiler/src/validation/dag-validator.ts
-
-7. ✅ **Nested Operations Type Resolution**
-   - Fixed TransformStatement output type to be added to typeTable
-   - Allows nested operations like ADD(ADD(a, b), c) to work correctly
-   - Files: packages/compiler/src/validation/dag-validator.ts
-
-### Remaining Issues
-
-1. **packages/tests/src/integration/fractions.test.ts** - Syntax error in test file (line 19 has duplicate output statement and unclosed template literal). This is a test file issue, not a code issue.
-
-2. **1 failing test** - Need to identify which test is failing and why.
-
-### Impact
-
-- **Test Pass Rate:** 84.6% → 98.3% (+13.7%)
-- **Layer 2 Progress:** 70% → 95% (near complete)
-- **Layer 5 Progress:** 75% → 95% (near complete)
-- **MVP Readiness:** Significantly improved
-- **Code Quality:** Integer and Decimal type systems now complete
-
----
-
 ## Current Implementation Status (2026-03-14)
 
-### Overall Progress: ~85% Complete (Increased from ~72% due to P0 critical fixes)
+### Overall Progress: ~72% Complete (Increased from ~68% due to type compatibility fix)
 
 **Component Status Summary:**
 
 | Component | Status | Completion | Critical Issues |
 |-----------|--------|------------|-----------------|
-| **Shared Package** | Good | 95% | Integer/Decimal operations complete (P0.2, P0.3 - COMPLETED), mixed-type contracts added |
-| **Compiler Package** | Good | 85% | Validation order fixed (P0.1 - COMPLETED), child-friendly error messages improved, nested operations fixed |
-| **Runtime Package** | Good | 90% | Temporal ops return wrapped values (P0.0 - COMPLETED), all numeric operations complete (P0.2, P0.3 - COMPLETED), IncrementalRuntime broken (70+ syntax errors) |
+| **Shared Package** | Good | 80-85% | Types correct, operations mostly done |
+| **Compiler Package** | Good | 75% | Stream type resolution bug **FIXED** (P0.0 - COMPLETED), Type compatibility bug **FIXED** (discovered during testing) |
+| **Runtime Package** | Partial | 70% | evaluatedInputs undefined **FIXED** (P0.1 - COMPLETED), duplicate temporal cases **FIXED** (P0.2 - COMPLETED), missing graph.evaluate, IncrementalRuntime broken (70+ syntax errors) |
 | **HTTP API Package** | Functional | 64% | No Elysia best practices (0% compliance) |
 | **WebSocket Server Package** | Not Started | 0% | Blocked by IncrementalRuntime |
 
 ### Test Status
 
-**Total Tests:** 118 tests, 116 passing (98.3%) - 2 failing (1.7%)
+**Total Tests:** 117 tests, 99 passing (84.6%) - 18 failing (15.4%) - 1 error
 
 **Test Improvement (2026-03-14):**
 - **Starting:** 54 pass, 59 fail, 1 error (46.2% passing)
 - **After P0.0-P0.3:** 69 pass, 48 fail, 1 error (58.1% passing)
 - **After Type Compatibility Fix:** 99 pass, 18 fail, 1 error (84.6% passing)
-- **After P0.0-P0.3 (P0 Critical Fixes):** 116 pass, 2 fail, 0 error (98.3% passing)
-- **Net Improvement:** +62 tests passing, -57 tests failing
+- **Net Improvement:** +45 tests passing, -41 tests failing
 
 **Remaining Failure Breakdown:**
-- 2 tests: 1 test file issue (syntax error in fractions.test.ts line 19 - not a code issue), 1 failing test (needs investigation)
+- 18 tests: Missing operations/functionality (P1.1, P1.2, P1.3, P1.4, P0.5)
 
 **Blocker Chain (Completed):**
 1. ✅ QW1 (stream type resolution - P0.0) → COMPLETED - Unblocked tests
 2. ✅ QW2 (evaluatedInputs - P0.1) → COMPLETED - Unblocked tests
 3. ✅ QW3 (fraction tests - P0.3) → COMPLETED - Unblocked tests
 4. ✅ Type compatibility bug → COMPLETED - Unblocked 30 tests (discovered during testing)
-5. ✅ P0.0 (Temporal ops return wrapped values) → COMPLETED - Unblocked 2 temporal tests
-6. ✅ P0.1 (Compiler validation order) → COMPLETED - Unblocked 2 validation tests
-7. ✅ P0.2 (Integer operations) → COMPLETED - Completes Integer type system
-8. ✅ P0.3 (Decimal operations) → COMPLETED - Completes Decimal type system
-9. ⏳ MB1 (IncrementalRuntime) → Unblocks WebSocket Server
+5. ⏳ MB1 (IncrementalRuntime) → Unblocks WebSocket Server
+6. ⏳ MB2 (graph.evaluate - P0.5) → Unblocks temporal operations
 
 **Quick Win Impact (Actual Results - 2026-03-14):**
 - P0.0 + P0.1 + P0.3 + Type compatibility fix = +45 tests passing in ~30 minutes
 - From 54/117 (46.2%) to 99/117 (84.6%)
 - Net improvement: +45 tests passing, -41 tests failing
-- P0.0-P0.3 (Critical Fixes) = +17 tests passing in ~3 hours
-- From 99/118 (84.6%) to 116/118 (98.3%)
-- Net improvement: +17 tests passing, -16 tests failing
 
 ### Layer Progress (Updated 2026-03-14)
 
 | Layer | Description | Status | Completion | Key Blockers |
 |-------|-------------|--------|------------|--------------|
 | **Layer 1** | Natural numbers + ADD only | ✅ COMPLETE | 100% | None |
-| **Layer 2** | + Arithmetic operations (SUBTRACT, MULTIPLY, DIVIDE, COMPARE) | ✅ COMPLETE | 95% | Integer/Decimal operations COMPLETE (P0.2, P0.3), temporal ops COMPLETE (P0.0) |
-| **Layer 3** | + Curriculum types (Shape, Car, Food, Animal, Person) | ⚠️ PARTIAL | 85% | Car/Food/Animal FILTER ops missing (P1.1) |
+| **Layer 2** | + Arithmetic operations (SUBTRACT, MULTIPLY, DIVIDE, COMPARE) | ⚠️ PARTIAL | 70% | Integer/Decimal operations missing (P0.2, P0.3), FIRST returns raw value (P0.0) |
+| **Layer 3** | + Curriculum types (Shape, Car, Food, Animal, Person) | ⚠️ PARTIAL | 70% | Car/Food/Animal FILTER ops missing (P1.1), compiler validation order (P0.1) |
 | **Layer 4** | + Set operations (FILTER, UNION, INTERSECTION, etc.) | ⚠️ PARTIAL | 60% | Non-generic sets only (P1.2) |
-| **Layer 5** | + Temporal operators (FBY, NEXT) | ✅ COMPLETE | 95% | All temporal ops working (P0.0 - COMPLETED) |
+| **Layer 5** | + Temporal operators (FBY, NEXT) | ⚠️ PARTIAL | 75% | FIRST returns raw value (P0.0) |
 | **Layer 6** | + Streams (continuous data) | ⚠️ PARTIAL | 50% | Non-generic streams only (P1.2) |
-| **Layer 7** | + Integration interfaces | ❌ NOT STARTED | 0% | IncrementalRuntime broken (70+ syntax errors), WebSocket empty, HTTP API needs refactoring (P1.6) |
+| **Layer 7** | + Integration interfaces | ❌ NOT STARTED | 0% | IncrementalRuntime broken (P0.4), WebSocket empty, HTTP API needs refactoring (P1.6) |
 
 **MVP Readiness:** Layers 1-4 need completion for MVP
 - Layer 1: ✅ Complete
-- Layer 2: ✅ Complete - Integer/Decimal operations and temporal ops fixed
-- Layer 3: ⚠️ Blocked by curriculum type filters (P1.1)
+- Layer 2: ⚠️ Blocked by Integer/Decimal operations (P0.2, P0.3) and FIRST fix (P0.0)
+- Layer 3: ⚠️ Blocked by curriculum type filters (P1.1) and compiler validation order (P0.1)
 - Layer 4: ⚠️ Blocked by generic sets (P1.2)
 
 ---
 
-## PRIORITIZED TASK LIST (UPDATED 2026-03-14)
+## PRIORITIZED TASK LIST (UPDATED 2026-03-14 - Post Manual Changes)
+
+**Summary:** After user's manual fixes, 7 tests remain failing. Complete P0.0-P0.3 to unblock all tests, then proceed with P1.0 for code quality.
+
+### 🔥 P0 URGENT (Block Test Suite - Total: 2 hours)
+
+#### Task P0.0: Add Parser Support for Negative Integer Literals (1 hour)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 1 hour
+**Impact:** Unblocks 2 tests, completes integer type support
+**Files:**
+- `packages/compiler/src/parser/dataflow-parser.ts` (grammar update)
+- `packages/compiler/src/lexer/tokens.ts` (if needed)
+
+**Issue:**
+Parser doesn't support negative integer literals like `-3`. The parser treats minus sign as a separate token, causing parse errors.
+
+**Solution:**
+Add grammar rule to handle negative numbers as a single token or handle Minus + NumberLiteral combination in AST builder.
+
+**Acceptance Criteria:**
+- ✓ Parser accepts `-3` as integer literal
+- ✓ Parser accepts `-42` as integer literal
+- ✓ Parser rejects `--5` (double negative)
+- ✓ Test `should detect type mismatch for integer and fraction` passes
+- ✓ Test `should detect type mismatch for mixed natural and fraction` passes
+
+**Ralph Wiggum Checklist:**
+- [ ] Grammar updated to support negative integers
+- [ ] AST builder handles negative integer literals
+- [ ] 2 previously failing tests now pass
+- [ ] Typecheck passes
+- [ ] All previous tests still pass
+- [ ] Git commit: "feat(parser): add support for negative integer literals"
+
+---
+
+#### Task P0.1: Fix Test Bug - Boolean and Fraction Type Mismatch (5 min)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 5 minutes
+**Impact:** Fixes 1 test bug
+**Files:** `packages/tests/src/integration/fractions.test.ts` (line 184)
+
+**Issue:**
+Test expects `success: true` for invalid code:
+```typescript
+source a: boolean = false;
+source b: fraction = { kind: "fraction", numerator: 1, denominator: 2 };
+transform result: boolean = AND(a, b);  // Should be TYPE_ERROR
+```
+
+**Fix Required:**
+Change line 184 from:
+```typescript
+expect(compileResult.success).toBe(true);
+```
+To:
+```typescript
+expect(compileResult.success).toBe(false);
+expect(compileResult.errors.length).toBeGreaterThan(0);
+expect(compileResult.errors[0].code).toBe("TYPE_ERROR");
+```
+
+**Ralph Wiggum Checklist:**
+- [ ] Test expectation corrected
+- [ ] Test passes
+- [ ] All previous tests still pass
+- [ ] Git commit: "test(fix): correct expectation for boolean/fraction type mismatch"
+
+---
+
+#### Task P0.2: Fix Mixed-Type Arithmetic Tests (30 min)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 30 minutes
+**Impact:** Fixes 3 tests affected by user's registry cleanup
+**Files:**
+- `packages/tests/src/end-to-end/nested-operations.test.ts`
+- `packages/tests/src/end-to-end/inline-nested-operations.test.ts`
+- `packages/tests/src/end-to-end/arithmetic.test.ts`
+
+**Issue:**
+User removed cross-type contracts (e.g., `MULTIPLY(natural, integer)`), causing tests to fail.
+
+**Fix Required (Recommended):**
+Fix tests to avoid cross-type operations by ensuring positive results and using natural types only:
+```typescript
+source c: natural = 10;
+source d: natural = 4;  // Changed from 6 to ensure positive result
+transform difference: natural = SUBTRACT(c, d);  // Changed to natural
+transform sum: natural = ADD(a, b);
+transform product: natural = MULTIPLY(sum, difference);  // Now works!
+```
+
+**Ralph Wiggum Checklist:**
+- [ ] 3 test files updated with corrected inputs
+- [ ] All arithmetic tests pass
+- [ ] Typecheck passes
+- [ ] All previous tests still pass
+- [ ] Git commit: "test(fix): correct mixed-type arithmetic tests"
+
+---
+
+#### Task P0.3: Fix Runtime TypeError Guard (15 min)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 15 minutes
+**Impact:** Prevents runtime errors when compilation fails
+**Files:**
+- `packages/tests/src/end-to-end/arithmetic.test.ts` (lines 118, 124)
+
+**Issue:**
+Tests use non-null assertion operator when compilation fails, causing TypeError:
+```typescript
+const compileResult = compiler.compile(source);
+runtime.loadProgram(compileResult.program!);  // Crashes if program is undefined
+```
+
+**Fix Required:**
+Add guard clauses before calling `loadProgram`:
+```typescript
+const compileResult = compiler.compile(source);
+if (!compileResult.success || !compileResult.program) {
+  expect(compileResult.success).toBe(false);
+  expect(compileResult.errors.length).toBeGreaterThan(0);
+  return;
+}
+runtime.loadProgram(compileResult.program);
+```
+
+**Ralph Wiggum Checklist:**
+- [ ] Guard clauses added to affected tests
+- [ ] No runtime TypeErrors
+- [ ] Error cases properly tested
+- [ ] Typecheck passes
+- [ ] All previous tests still pass
+- [ ] Git commit: "test(fix): add guard clauses for compilation failures"
+
+---
+
+### 🎯 P1 HIGH (Code Quality Improvements)
+
+#### Task P1.0: Refactor Validation Error Handling (1 hour)
+
+**Priority:** P1 HIGH
+**Status:** NOT STARTED
+**Estimated Time:** 1 hour
+**Impact:** Consistent error messages, reduces code duplication
+**Files:** `packages/compiler/src/validation/dag-validator.ts` (lines 148-172, 432-483)
+
+**Issue:**
+Lines 148-172 generate errors inline instead of using `generateTypeError`, causing:
+- Inconsistent error messages
+- Code duplication
+- Special handling in `generateTypeError` (ADD, FILTER_BY_*, COMPARE_BY_*) never reached
+
+**Fix Required:**
+Replace inline error generation with `generateTypeError` call.
+
+**Ralph Wiggum Checklist:**
+- [ ] Lines 148-172 refactored to use `generateTypeError`
+- [ ] Error messages consistent
+- [ ] Validation tests pass
+- [ ] Typecheck passes
+- [ ] All previous tests still pass
+- [ ] Git commit: "refactor(validator): use generateTypeError for missing contracts"
+
+---
+
+## Previous Tasks (2026-03-14 - Before Manual Changes)
 
 ### 🚀 P0 CRITICAL (Quick Wins and Blockers)
 
-#### Task P0.0: Fix Temporal Operations to Return Wrapped Values (5 min) - COMPLETED ✅
+#### Task P0.0: Fix Temporal Operations to Return Wrapped Values (5 min) - NEW
 
 **Priority:** P0 CRITICAL
-**Status:** COMPLETED (2026-03-14)
+**Status:** NOT STARTED
 **Estimated Time:** 5 minutes
 **Impact:** Unblocks 2 temporal tests
 **Files:** `packages/runtime/src/operations/temporal.ts`
@@ -351,10 +562,14 @@ On 2026-03-14, all P0 critical fixes were successfully completed, achieving 98.3
 
 **Fix:**
 ```typescript
-// Line 21 - Changed to:
-case "FIRST":
-  const streamValue = evaluate(inputs[0].id, time, graph);
-  return streamValue; // ✅ Now returns wrapped value based on elementType
+// Line 21 - Change from:
+return streamValue;
+
+// To:
+if (typeof streamValue === 'object' && streamValue !== null && 'value' in streamValue) {
+  return streamValue.value; // Extract wrapped value
+}
+return streamValue;
 ```
 
 **Dependencies:** None
@@ -366,17 +581,17 @@ case "FIRST":
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` temporal operators section
 
 **Ralph Wiggum Checklist:**
-- [x] temporal.ts updated to return wrapped values based on elementType
-- [x] 2 FIRST tests pass
-- [x] Typecheck passes
-- [x] Git commit: "fix(runtime): temporal operations return wrapped values"
+- [ ] temporal.ts line 21 updated to return wrapped value
+- [ ] 2 FIRST tests pass
+- [ ] Typecheck passes
+- [ ] Git commit: "fix(runtime): temporal operations return wrapped values"
 
 ---
 
-#### Task P0.1: Fix Compiler Validation Order (10 min) - COMPLETED ✅
+#### Task P0.1: Fix Compiler Validation Order (10 min) - NEW
 
 **Priority:** P0 CRITICAL
-**Status:** COMPLETED (2026-03-14)
+**Status:** NOT STARTED
 **Estimated Time:** 10 minutes
 **Impact:** Unblocks 2 compiler validation tests
 **Files:** `packages/compiler/src/validation/dag-validator.ts`
@@ -384,9 +599,7 @@ case "FIRST":
 **Issue:** Validation checks type compatibility BEFORE checking if references are defined
 
 **Fix:**
-✅ Moved undefined identifier check before type resolution
-✅ Moved arity check before signature matching
-✅ Fixed TransformStatement output type to be added to typeTable
+Move undefined reference and arity checks (lines 165-179) BEFORE type compatibility check (lines 110-125)
 
 **Dependencies:** None
 
@@ -398,17 +611,17 @@ case "FIRST":
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` validation section
 
 **Ralph Wiggum Checklist:**
-- [x] Validation order fixed in dag-validator.ts
-- [x] 2 validation tests pass
-- [x] Typecheck passes
-- [x] Git commit: "fix(compiler): correct validation order"
+- [ ] Validation order fixed in dag-validator.ts
+- [ ] 2 validation tests pass
+- [ ] Typecheck passes
+- [ ] Git commit: "fix(compiler): correct validation order"
 
 ---
 
-#### Task P0.2: Implement Integer Operations via Overloading (1.5 hours) - COMPLETED ✅
+#### Task P0.2: Implement Integer Operations via Overloading (1.5 hours)
 
 **Priority:** P0 CRITICAL
-**Status:** COMPLETED (2026-03-14)
+**Status:** NOT STARTED
 **Estimated Time:** 1.5 hours
 **Impact:** Unblocks complex arithmetic tests, completes numeric type system
 **Files:**
@@ -437,20 +650,19 @@ COMPARE(Integer, Integer) → Boolean
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 57-72
 
 **Ralph Wiggum Checklist:**
-- [x] Integer contracts added to registry
-- [x] Integer operations implemented in numeric.ts
-- [x] Mixed-type contracts added (natural+integer, integer+decimal, etc.)
-- [x] Complex arithmetic test passes
-- [x] Typecheck passes
-- [x] All previous tests still pass
-- [x] Git commit: "feat(runtime): implement integer operations via overloading"
+- [ ] Integer contracts added to registry
+- [ ] Integer operations implemented in numeric.ts
+- [ ] Complex arithmetic test passes
+- [ ] Typecheck passes
+- [ ] All previous tests still pass
+- [ ] Git commit: "feat(runtime): implement integer operations via overloading"
 
 ---
 
-#### Task P0.3: Implement Decimal Operations via Overloading (1.5 hours) - COMPLETED ✅
+#### Task P0.3: Implement Decimal Operations via Overloading (1.5 hours)
 
 **Priority:** P0 CRITICAL
-**Status:** COMPLETED (2026-03-14)
+**Status:** NOT STARTED
 **Estimated Time:** 1.5 hours
 **Impact:** Completes numeric type system, division results usable
 **Files:**
@@ -476,13 +688,12 @@ COMPARE(Decimal, Decimal) → Boolean
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 74-91
 
 **Ralph Wiggum Checklist:**
-- [x] Decimal contracts added to registry
-- [x] Decimal operations implemented in numeric.ts
-- [x] Mixed-type contracts added (natural+decimal, integer+decimal, etc.)
-- [x] Division test passes
-- [x] Typecheck passes
-- [x] All previous tests still pass
-- [x] Git commit: "feat(runtime): implement decimal operations via overloading"
+- [ ] Decimal contracts added to registry
+- [ ] Decimal operations implemented in numeric.ts
+- [ ] Division test passes
+- [ ] Typecheck passes
+- [ ] All previous tests still pass
+- [ ] Git commit: "feat(runtime): implement decimal operations via overloading"
 
 ---
 
@@ -2068,10 +2279,10 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 
 | Task | Priority | Status | Time | Impact | Dependencies |
 |------|----------|--------|------|--------|--------------|
-| **P0.0: Temporal ops return wrapped values** | P0 | ✅ COMPLETED | 5m | **CRITICAL** | +2 | None |
-| **P0.1: Compiler validation order** | P0 | ✅ COMPLETED | 10m | **CRITICAL** | +2 | None |
-| **P0.2: Integer operations** | P0 | ✅ COMPLETED | 1.5h | **CRITICAL - MVP** | +2 | None |
-| **P0.3: Decimal operations** | P0 | ✅ COMPLETED | 1.5h | **CRITICAL - MVP** | +2 | None |
+| **P0.0: Temporal ops return wrapped values** | P0 | NOT STARTED | 5m | **CRITICAL** | +2 | None |
+| **P0.1: Compiler validation order** | P0 | NOT STARTED | 10m | **CRITICAL** | +2 | None |
+| **P0.2: Integer operations** | P0 | NOT STARTED | 1.5h | **CRITICAL - MVP** | +2 | None |
+| **P0.3: Decimal operations** | P0 | NOT STARTED | 1.5h | **CRITICAL - MVP** | +2 | None |
 | **P0.4: IncrementalRuntime syntax errors** | P0 | NOT STARTED | 2-3h | **CRITICAL - Layer 7** | +13 | None |
 | **P1.1: Curriculum type filters** | P1 | NOT STARTED | 3h | **HIGH - MVP** | +3 | None |
 | **P1.2: Make Set/Stream generic** | P1 | NOT STARTED | 5h | **HIGH** | +5 | P1.1 |
@@ -2088,16 +2299,15 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 | **P3.3: Add parallelism** | P3 | NOT STARTED | 3h | Performance | 0 | None |
 
 **Total Estimated Time:**
-- **P0 Tasks:** ~5.5 hours (4 COMPLETED + 1 major task)
+- **P0 Tasks:** ~5.5 hours (2 new quick wins + 3 major tasks)
 - **P1 Tasks:** 27 hours
 - **P2 Tasks:** 6 hours
 - **P3 Tasks:** 17 hours
 - **Grand Total:** ~55.5 hours
 
 **Test Impact Estimates:**
-- ✅ P0.0-P0.3 COMPLETED: +17 tests passing (99→116/118, 84.6%→98.3%)
-- Completing P0.4: +2 tests passing (116→118/118, 98.3%→100%)
-- Completing P1.1-P1.5: Additional improvements to functionality
+- Completing P0.0-P0.4: +9 tests passing (99→108/118, 84.6%→91.5%)
+- Completing P1.1-P1.5: +10 tests passing (108→118/118, 91.5%→100%)
 
 ---
 
@@ -2110,12 +2320,12 @@ To achieve MVP, complete the following:
 **Core Language (Layers 1-6):**
 - ✅ Natural numbers, arithmetic operations (ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE)
 - ✅ Fraction operations - **COMPLETE** (P0.3 - COMPLETED - tests updated)
-- ✅ Integer operations - **COMPLETE** (P0.2 - COMPLETED)
-- ✅ Decimal operations - **COMPLETE** (P0.3 - COMPLETED)
+- ⚠️ Integer operations - **MISSING** (P1.1)
+- ⚠️ Decimal operations - **MISSING** (P1.2)
 - ✅ Curriculum types (Shape, Car, Food, Animal, Person)
 - ⚠️ Curriculum type filters - **PARTIAL** (P1.3 needed - missing Car/Food/Animal FILTER ops)
 - ✅ Set operations (UNION, INTERSECTION, DIFFERENCE, COMPLEMENT) - evaluatedInputs fixed (P0.1 - COMPLETED)
-- ✅ Temporal operators - **COMPLETE** (demand-driven correct, wrapped values fixed P0.0)
+- ⚠️ Temporal operators - **PARTIAL** (demand-driven correct, missing graph.evaluate, duplicate cases removed P0.2)
 - ✅ Filter operations (FILTER, FILTER_BY_SIZE, FILTER_BY_COLOR for Shape)
 - ⚠️ Set/Stream operations generic - **MISSING** (P1.4)
 - ✅ Nested operations - **IMPLEMENTED** (P0.1 completed)
@@ -2124,8 +2334,6 @@ To achieve MVP, complete the following:
 - ✅ Validates programs, catches errors at compile-time
 - ✅ Stream type resolution - **FIXED** (P0.0 - COMPLETED)
 - ✅ Type compatibility validation - **FIXED** (discovered during testing)
-- ✅ Validation order - **FIXED** (P0.1 - COMPLETED)
-- ✅ Child-friendly error messages - **IMPROVED**
 - ⚠️ Set homogeneity validation - **MISSING** (P1.6)
 - ⚠️ Output node requirement - **MISSING** (P1.6)
 - ⚠️ Literal type validation - **MISSING** (P1.6)
@@ -2135,12 +2343,9 @@ To achieve MVP, complete the following:
 
 **Runtime:**
 - ✅ Executes programs correctly (simple cases)
-- ✅ Temporal operators - **COMPLETE** (wrapped values fixed P0.0)
+- ⚠️ Temporal operators - **PARTIAL** (demand-driven correct, missing graph.evaluate)
 - ✅ evaluatedInputs undefined - **FIXED** (P0.1 - COMPLETED)
 - ✅ Duplicate temporal cases - **REMOVED** (P0.2 - COMPLETED)
-- ✅ Integer operations - **COMPLETE** (P0.2 - COMPLETED)
-- ✅ Decimal operations - **COMPLETE** (P0.3 - COMPLETED)
-- ✅ Mixed-type operations - **COMPLETE**
 - ⚠️ IncrementalRuntime - **BROKEN** (70+ syntax errors, P0.4)
 - ✅ 36/36 operations defined in registry
 - ✅ Handles 5 concurrent users without degradation
@@ -2159,15 +2364,15 @@ To achieve MVP, complete the following:
 3. ✅ **Duplicate Temporal Cases:** Removed duplicate temporal cases
 4. ✅ **Fraction Tests:** Updated all fraction operation tests from deprecated names to base operations
 5. ✅ **Type Compatibility Bug:** Fixed line 151 in dag-validator.ts
-6. ✅ **P0.0:** Temporal Operations Return Wrapped Values (5 min)
-7. ✅ **P0.1:** Compiler Validation Order (10 min)
-8. ✅ **P0.2:** Integer Operations via Overloading (1.5h)
-9. ✅ **P0.3:** Decimal Operations via Overloading (1.5h)
 
-**Result:** 116/118 tests passing (98.3%) - +17 tests from previous session, -4 failures
+**Result:** 99/118 tests passing (84.6%) in 30 minutes - +45 tests passing
 
 ### ⏳ Current Tasks (Not Started)
 
+6. ⏳ **P0.0:** Fix Temporal Operations to Return Wrapped Values (5 min) - **NEW**
+7. ⏳ **P0.1:** Fix Compiler Validation Order (10 min) - **NEW**
+8. ⏳ **P0.2:** Implement Integer Operations (1.5h) - **CRITICAL for MVP**
+9. ⏳ **P0.3:** Implement Decimal Operations (1.5h) - **CRITICAL for MVP**
 10. ⏳ **P0.4:** Fix IncrementalRuntime Syntax Errors (2-3h) - **CRITICAL for Layer 7**
 11. ⏳ **P1.1:** Implement Curriculum Type Filtering Operations (3h)
 12. ⏳ **P1.2:** Make Set/Stream Operations Generic (5h)
@@ -2176,15 +2381,14 @@ To achieve MVP, complete the following:
 15. ⏳ **P1.5:** Implement Missing Compiler Validation (3h)
 16. ⏳ **P1.6:** Refactor HTTP API (11h) - **OPTIONAL for MVP**
 
-**Total MVP Time:** ~20.5 hours (excluding P1.6)
+**Total MVP Time:** ~34.5 hours (excluding P1.6)
 
 **Expected Test Impact:**
-- ✅ P0.0-P0.3 COMPLETED: +17 tests passing (99→116/118, 84.6%→98.3%)
-- Completing P0.4: +2 tests passing (116→118/118, 98.3%→100%)
-- Completing P1.1-P1.5: Additional improvements to functionality
-- Test improvement: +62 tests passing (54→116 out of 118 tests)
-- Pass rate improvement: 46.2% → 98.3%
-- Remaining failures: 2 tests (1.7%) - 1 test file issue (syntax error), 1 failing test (needs investigation)
+- Completing P0.0-P0.4: +9 tests passing (99→108/118, 84.6%→91.5%)
+- Completing P1.1-P1.5: +10 tests passing (108→118/118, 91.5%→100%)
+- Test improvement: +45 tests passing (54→99 out of 117 tests)
+- Pass rate improvement: 46.2% → 84.6%
+- Remaining failures: 18 tests (15.4%) - 1 error
 
 ---
 
@@ -2192,58 +2396,72 @@ To achieve MVP, complete the following:
 
 ### 📋 Critical Path (Next 3-5 Tasks)
 
-1. **P0.4 (2-3h):** Fix IncrementalRuntime Syntax Errors
-   - **CRITICAL** for Layer 7 (Integration)
-   - Unblocks WebSocket Server implementation
-   - 70+ syntax errors to fix
+1. **P0.0 (5 min):** Fix Temporal Operations to Return Wrapped Values
+   - Quick win that unblocks 2 tests
+   - Simple 1-line fix in temporal.ts
+   - High impact, low risk
 
-2. **P1.1 (3 hours):** Implement Curriculum Type Filtering Operations
+2. **P0.1 (10 min):** Fix Compiler Validation Order
+   - Quick win that unblocks 2 tests
+   - Move validation logic order
+   - High impact, low risk
+
+3. **P0.2 (1.5 hours):** Implement Integer Operations via Overloading
+   - Critical for MVP - unblocks complex arithmetic
+   - Completes numeric type system (Natural, Integer, Fraction)
+   - Follows existing Fraction pattern
+
+4. **P0.3 (1.5 hours):** Implement Decimal Operations via Overloading
+   - Critical for MVP - makes division results usable
+   - Completes numeric type system
+   - Follows existing Fraction pattern
+
+5. **P1.1 (3 hours):** Implement Curriculum Type Filtering Operations
    - Critical for MVP - completes curriculum type support
    - Only Shape filters implemented currently
    - Aligns with educational goals
 
-3. **P1.2 (5h):** Make Set/Stream Operations Generic
+### 🎯 MVP Completion (Next 27 hours)
+
+6. **P1.2 (5h):** Make Set/Stream Operations Generic
    - Removes natural restriction
    - Aligns with curriculum (sets of shapes, colors, etc.)
    - Unblocks curriculum-aligned set operations
 
-4. **P1.3 (2h):** Complete Child-Friendly Spanish Error Messages
+7. **P1.3 (2h):** Complete Child-Friendly Spanish Error Messages
    - Better UX for target demographic (ages 6-9)
-   - Improves error quality throughout the system
+   - 2 currently failing tests will pass
 
-5. **P1.4 (3h):** Fix Set/Object Literal Ambiguity
+8. **P1.4 (3h):** Fix Set/Object Literal Ambiguity
    - Parser robustness for curriculum types
    - Improved error messages
 
-### 🎯 MVP Completion (Next 20.5 hours)
-
-6. **P1.5 (3h):** Implement Missing Compiler Validation
+9. **P1.5 (3h):** Implement Missing Compiler Validation
    - Better quality error messages
    - Set homogeneity, output node requirement, etc.
 
-7. **P1.6 (11h):** Refactor HTTP API (Elysia best practices) - **OPTIONAL for MVP**
-   - Improves code quality and maintainability
-   - Not critical for MVP functionality
-
 ### 🌟 Post-MVP (Optional)
 
-8. **P3.1 (12h):** Implement WebSocket Server (needed for Layer 7)
-9. **P2.1-P2.4 (6h):** Quality improvements
-10. **P3.2 (2h):** Execution trace
-11. **P3.3 (3h):** Parallelism
+10. **P1.6 (11h):** Refactor HTTP API (Elysia best practices)
+11. **P0.4 (2-3h):** Fix IncrementalRuntime Syntax Errors (needed for Layer 7)
+12. **P3.1 (12h):** Implement WebSocket Server (needed for Layer 7)
+13. **P2.1-P2.4 (6h):** Quality improvements
+14. **P3.2 (2h):** Execution trace
+15. **P3.3 (3h):** Parallelism
 
 ### Expected Impact of Completing Top 5 Tasks
 
-- **Test Pass Rate:** 98.3% → 100% (expect +2 tests passing)
-- **Layer 2 Progress:** 95% → 100% (COMPLETE)
-- **Layer 3 Progress:** 85% → 90%+
-- **MVP Readiness:** Near complete
+- **Test Pass Rate:** 84.6% → 95%+ (expect +10-12 tests passing)
+- **Layer 2 Progress:** 70% → 90%+
+- **Layer 3 Progress:** 70% → 85%+
+- **MVP Readiness:** Significantly improved
 
 ### After Top 5 Tasks
 
 Next priorities:
+- P1.2: Make Set/Stream Operations Generic (5 hours) - Unblocks curriculum-aligned set operations
+- P1.3: Complete Child-Friendly Spanish Error Messages (2 hours) - Better UX
 - P0.4: Fix IncrementalRuntime Syntax Errors (2-3 hours) - Unblocks Layer 7
-- P3.1: Implement WebSocket Server (12 hours) - Completes Layer 7
 
 ### ✅ PREVIOUSLY COMPLETED (2026-03-14)
 
@@ -2253,9 +2471,8 @@ On 2026-03-14, critical quick wins were successfully completed:
 
 **Test Results:**
 - **Starting:** 54 pass, 59 fail, 1 error (46.2% passing)
-- **After first fixes:** 99 pass, 18 fail, 1 error (84.6% passing)
-- **After P0.0-P0.3:** 116 pass, 2 fail, 0 error (98.3% passing)
-- **Net Improvement:** +62 tests passing, -57 tests failing
+- **After fixes:** 99 pass, 18 fail, 1 error (84.6% passing)
+- **Net Improvement:** +45 tests passing, -41 tests failing
 
 **Completed Tasks:**
 1. ✅ **Stream Type Resolution Bug:** Fixed line 155 in dag-validator.ts, changed `inputDataType` to `inputType`
@@ -2263,25 +2480,81 @@ On 2026-03-14, critical quick wins were successfully completed:
 3. ✅ **Duplicate Temporal Cases:** Removed duplicate temporal cases
 4. ✅ **Fraction Tests:** Updated all fraction operation tests from deprecated names to base operations
 5. ✅ **Type Compatibility Bug:** Fixed line 151 in dag-validator.ts
-6. ✅ **P0.0:** Temporal Operations Return Wrapped Values - Fixed FIRST operation to return wrapped values
-7. ✅ **P0.1:** Compiler Validation Order - Moved undefined/arity checks before type resolution
-8. ✅ **P0.2:** Integer Operations via Overloading - Added Integer contracts and functions, mixed-type contracts
-9. ✅ **P0.3:** Decimal Operations via Overloading - Added Decimal contracts and functions, mixed-type contracts
-
-**Additional Fixes:**
-- ✅ Mixed-Type Operations - Added contracts for natural+integer, natural+decimal, integer+decimal, etc.
-- ✅ Child-Friendly Spanish Error Messages - Improved error messages for type mismatches
-- ✅ Nested Operations Type Resolution - Fixed TransformStatement output type to be added to typeTable
 
 **Files Modified:**
-- `packages/compiler/src/validation/dag-validator.ts` (multiple fixes)
-- `packages/runtime/src/operations/temporal.ts` (wrapped values fix)
-- `packages/runtime/src/operations/numeric.ts` (Integer/Decimal operations)
-- `packages/shared/src/operations/registry.ts` (Integer/Decimal/mixed-type contracts)
+- `packages/compiler/src/validation/dag-validator.ts` (lines 151, 155)
+- `packages/runtime/src/evaluator/demand-driven-evaluator.ts` (multiple lines)
+- Multiple fraction test files in `packages/runtime/src/operations/`
 
-**Remaining Issues:**
-- 1 test file issue: Syntax error in fractions.test.ts line 19 (duplicate output statement and unclosed template literal)
-- 1 failing test: Needs investigation
+### 📋 Critical Path (Next 3-5 hours)
+
+**NEW Analysis (2026-03-14):**
+
+1. **P0.0 (5 min):** Fix Temporal Operations to Return Wrapped Values
+   - Quick win that unblocks 2 tests
+   - Simple 1-line fix in temporal.ts
+   - High impact, low risk
+
+2. **P0.1 (10 min):** Fix Compiler Validation Order
+   - Quick win that unblocks 2 tests
+   - Move validation logic order
+   - High impact, low risk
+
+3. **P0.2 (1.5 hours):** Implement Integer Operations via Overloading
+   - Critical for MVP - unblocks complex arithmetic
+   - Completes numeric type system (Natural, Integer, Fraction)
+   - Follows existing Fraction pattern
+
+4. **P0.3 (1.5 hours):** Implement Decimal Operations via Overloading
+   - Critical for MVP - makes division results usable
+   - Completes numeric type system
+   - Follows existing Fraction pattern
+
+5. **P1.1 (3 hours):** Implement Curriculum Type Filtering Operations
+   - Critical for MVP - completes curriculum type support
+   - Only Shape filters implemented currently
+   - Aligns with educational goals
+
+### 🎯 MVP Completion (Next 27 hours)
+
+6. **P1.2 (5h):** Make Set/Stream Operations Generic
+   - Removes natural restriction
+   - Aligns with curriculum (sets of shapes, colors, etc.)
+   - Unblocks curriculum-aligned set operations
+
+7. **P1.3 (2h):** Complete Child-Friendly Spanish Error Messages
+   - Better UX for target demographic (ages 6-9)
+   - 2 currently failing tests will pass
+
+8. **P1.4 (3h):** Fix Set/Object Literal Ambiguity
+   - Parser robustness for curriculum types
+   - Improved error messages
+
+9. **P1.5 (3h):** Implement Missing Compiler Validation
+   - Better quality error messages
+   - Set homogeneity, output node requirement, etc.
+
+### 🌟 Post-MVP (Optional)
+
+10. **P1.6 (11h):** Refactor HTTP API (Elysia best practices)
+11. **P0.4 (2-3h):** Fix IncrementalRuntime Syntax Errors (needed for Layer 7)
+12. **P3.1 (12h):** Implement WebSocket Server (needed for Layer 7)
+13. **P2.1-P2.4 (6h):** Quality improvements
+14. **P3.2-P3.3 (5h):** Nice to have features
+
+### Expected Impact of Completing Top 5 Tasks
+
+- **Test Pass Rate:** 84.6% → 95%+ (expect +10-12 tests passing)
+- **Layer 2 Progress:** 70% → 90%+
+- **Layer 3 Progress:** 70% → 85%+
+- **MVP Readiness:** Significantly improved
+
+### After Top 5 Tasks
+
+Next priorities:
+- P1.2: Make Set/Stream Operations Generic (5 hours) - Unblocks curriculum-aligned set operations
+- P1.3: Complete Child-Friendly Spanish Error Messages (2 hours) - Better UX
+- P0.4: Fix IncrementalRuntime Syntax Errors (2-3 hours) - Unblocks Layer 7
 
 ---
 
@@ -2290,7 +2563,7 @@ On 2026-03-14, critical quick wins were successfully completed:
 ### Current Status
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
-- Test suite: 116/118 tests passing (98.3%) - IMPROVED on 2026-03-14 (from 54→69→99→116)
+- Test suite: 99/117 tests passing (84.6%) - IMPROVED on 2026-03-14 (from 54→69→99)
 
 ### Targets
 - Compilation: <100ms for programs with <100 nodes (p95)
@@ -2306,21 +2579,19 @@ On 2026-03-14, critical quick wins were successfully completed:
 ### MVP (Layers 1-6 + Basic Integration)
 - ✅ All 36/36 operations implemented in registry
 - ✅ Fraction ops COMPLETE (P0.3 - COMPLETED - tests updated)
-- ✅ Integer ops COMPLETE (P0.2 - COMPLETED)
-- ✅ Decimal ops COMPLETE (P0.3 - COMPLETED)
-- ✅ Temporal ops COMPLETE (wrapped values fixed - P0.0 - COMPLETED)
+- ⚠️ Temporal ops PARTIAL (demand-driven correct, missing graph.evaluate)
 - ✅ Type compatibility validation working (FIXED - discovered during testing)
 - ✅ HTTP API functional (12/12 tests passing)
 - ✅ Compiler validates programs correctly
-- ✅ Compiler validation order fixed (P0.1 - COMPLETED)
 - ✅ Runtime executes programs (evaluatedInputs fixed - P0.1 - COMPLETED)
 - ✅ Nested operations IMPLEMENTED (P0.1 - COMPLETED)
 - ✅ Stream type resolution FIXED (P0.0 - COMPLETED)
 - ✅ Duplicate temporal cases removed (P0.2 - COMPLETED)
-- ✅ Mixed-type operations COMPLETE (Integer/Decimal/Natural)
-- ✅ 116/118 tests passing (98.3%) - IMPROVED on 2026-03-14 (from 54→69→99→116)
+- ✅ 99/117 tests passing (84.6%) - IMPROVED on 2026-03-14 (from 54→69→99)
 - ✅ Handles 5 concurrent users
-- ⚠️ Curriculum type filters - **PARTIAL** (P1.3 - missing Car/Food/Animal FILTER ops)
+- ⚠️ Integer operations - **MISSING** (P1.1)
+- ⚠️ Decimal operations - **MISSING** (P1.2)
+- ⚠️ Curriculum type filters - **PARTIAL** (P1.3)
 - ⚠️ Set/Stream operations generic - **MISSING** (P1.4)
 - ⚠️ IncrementalRuntime - **BROKEN** (70+ syntax errors, P0.4)
 - ⚠️ Complete compiler validation - **MISSING** (P1.6)
@@ -2361,5 +2632,5 @@ On 2026-03-14, critical quick wins were successfully completed:
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-14 (Updated with P0 critical fixes - 116/118 tests passing, 98.3% pass rate, ~85% overall complete)
-**Next Review:** After completing P0.4 (IncrementalRuntime syntax errors)
+**Last Updated:** 2026-03-14 (Merged IMPLEMENTATION_ANALYSIS.md and UPDATED_PRIORITIZED_TASKS.md - 99/118 tests passing, 84.6% pass rate, ~72% overall complete)
+**Next Review:** After completing P0.0-P0.4 (quick wins and numeric type system completion)
