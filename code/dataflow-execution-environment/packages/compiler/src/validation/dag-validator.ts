@@ -148,7 +148,7 @@ export class DagValidator {
             continue;
           }
 
-          if (!this.isTypeCompatible(inputDataType, expectedType, stmt.operation, i)) {
+          if (!this.isTypeCompatible(inputType, expectedType, stmt.operation, i)) {
             const errorDetails = this.generateTypeError(
               stmt.operation,
               expectedType,
