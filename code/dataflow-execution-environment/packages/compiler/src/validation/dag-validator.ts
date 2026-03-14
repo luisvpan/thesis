@@ -54,6 +54,8 @@ export class DagValidator {
       defined.add(stmt.id);
 
       if (stmt.type === "TransformStatement") {
+        typeTable.set(stmt.id, stmt.dataType);
+        
         for (const input of stmt.inputs) {
           if (input.startsWith("literal_")) {
             defined.add(input);
@@ -107,32 +109,66 @@ export class DagValidator {
           continue;
         }
 
+        if (stmt.type === "TransformStatement" || stmt.type === "OutputStatement") {
+          const refs = stmt.type === "TransformStatement" ? stmt.inputs : [stmt.input];
+          for (const ref of refs) {
+            if (!defined.has(ref)) {
+              errors.push({
+                code: "UNDEFINED_IDENTIFIER",
+                message: `Undefined identifier: ${ref}`,
+                nodeId: stmt.id,
+                childMessage: `⚠️ ¡Ups! No encuentro el bloque "${ref}".`,
+                suggestion: "Asegúrate de que el bloque existe antes de conectarlo.",
+                example: "Crea el bloque primero, luego conéctalo."
+              });
+            }
+          }
+        }
+
         const inputTypes = stmt.inputs.map(input => this.getInputType(input, typeTable));
+
+        const arities = new Set(signatures.contracts.map(c => c.arity));
+        if (!arities.has(stmt.inputs.length)) {
+          const expectedArity = Array.from(arities).sort((a, b) => a - b)[0];
+          errors.push({
+            code: "WRONG_ARITY",
+            message: `Operation ${stmt.operation} requires ${expectedArity} ${expectedArity === 1 ? 'input' : 'inputs'}, got ${stmt.inputs.length}`,
+            nodeId: stmt.id,
+            childMessage: `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita ${expectedArity} ${expectedArity === 1 ? 'entrada' : 'entradas'}. Solo conectaste ${stmt.inputs.length}.`,
+            suggestion: `Conecta ${expectedArity - stmt.inputs.length} bloque${expectedArity - stmt.inputs.length === 1 ? '' : 's'} más al bloque "${stmt.operation}".`,
+            example: this.generateExample(stmt.operation, expectedArity)
+          });
+          continue;
+        }
+
         const inputDataTypes = inputTypes.map(t => this.stringToDataType(t)).filter((t): t is DataType => t !== null) as DataType[];
 
         const contract = resolveOperationSignature(stmt.operation, inputDataTypes);
 
         if (!contract) {
+          const numericOps = ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE"];
+          const hasNumericInput = inputTypes.some(t => ["natural", "integer", "decimal", "fraction"].includes(t));
+          const hasTextInput = inputTypes.includes("text");
+
+          let childMessage = `⚠️ ¡Ups! El bloque "${stmt.operation}" no funciona con estos tipos.`;
+          let suggestion = `Verifica que los tipos de entrada sean compatibles con el bloque "${stmt.operation}".`;
+          let example = `Usa tipos compatibles: [${signatures.contracts.map(c => c.inputTypes.join(", ")).join(" o ")}]`;
+
+          if (numericOps.includes(stmt.operation) && hasNumericInput && hasTextInput) {
+            childMessage = `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita números, no palabras.`;
+            suggestion = `Conecta bloques de números (natural, integer, decimal, fraction) al bloque "${stmt.operation}".`;
+            example = `[número 5] + [número 3] ✅`;
+          }
+
           errors.push({
             code: "TYPE_ERROR",
             message: `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}]`,
             nodeId: stmt.id,
-            childMessage: `⚠️ ¡Ups! El bloque "${stmt.operation}" no funciona con estos tipos.`,
-            suggestion: `Verifica que los tipos de entrada sean compatibles con el bloque "${stmt.operation}".`,
-            example: `Usa tipos compatibles: [${signatures.contracts.map(c => c.inputTypes.join(", ")).join(" o ")}]`
+            childMessage,
+            suggestion,
+            example
           });
           continue;
-        }
-
-        if (stmt.inputs.length !== contract.arity) {
-          errors.push({
-            code: "WRONG_ARITY",
-            message: `Operation ${stmt.operation} requires ${contract.arity} inputs, got ${stmt.inputs.length}`,
-            nodeId: stmt.id,
-            childMessage: `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita ${contract.arity} ${contract.arity === 1 ? 'entrada' : 'entradas'}. Solo conectaste ${stmt.inputs.length}.`,
-            suggestion: `Conecta ${contract.arity - stmt.inputs.length} bloque${contract.arity - stmt.inputs.length === 1 ? '' : 's'} más al bloque "${stmt.operation}".`,
-            example: this.generateExample(stmt.operation, contract.arity)
-          });
         }
 
         for (let i = 0; i < stmt.inputs.length; i++) {

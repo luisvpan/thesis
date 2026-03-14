@@ -58,7 +58,15 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
   ADD: {
     contracts: [
       { arity: 2, inputTypes: ["natural", "natural"], outputType: "natural", category: "numeric" },
-      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+      { arity: 2, inputTypes: ["integer", "integer"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "integer"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "natural"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "natural"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "integer"], outputType: "decimal", category: "numeric" }
     ],
     category: "numeric"
   },
@@ -66,7 +74,15 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
   SUBTRACT: {
     contracts: [
       { arity: 2, inputTypes: ["natural", "natural"], outputType: "integer", category: "numeric" },
-      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+      { arity: 2, inputTypes: ["integer", "integer"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "integer"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "natural"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "natural"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "integer"], outputType: "decimal", category: "numeric" }
     ],
     category: "numeric"
   },
@@ -74,7 +90,15 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
   MULTIPLY: {
     contracts: [
       { arity: 2, inputTypes: ["natural", "natural"], outputType: "natural", category: "numeric" },
-      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+      { arity: 2, inputTypes: ["integer", "integer"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "integer"], outputType: "natural", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "natural"], outputType: "natural", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "natural"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "integer"], outputType: "decimal", category: "numeric" }
     ],
     category: "numeric"
   },
@@ -82,7 +106,15 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
   DIVIDE: {
     contracts: [
       { arity: 2, inputTypes: ["natural", "natural"], outputType: "decimal", category: "numeric" },
-      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+      { arity: 2, inputTypes: ["integer", "integer"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "integer"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "natural"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["natural", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "natural"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["integer", "decimal"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["decimal", "integer"], outputType: "decimal", category: "numeric" }
     ],
     category: "numeric"
   },
@@ -90,7 +122,15 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
   COMPARE: {
     contracts: [
       { arity: 2, inputTypes: ["natural", "natural"], outputType: "boolean", category: "comparison" },
-      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "boolean", category: "comparison" }
+      { arity: 2, inputTypes: ["integer", "integer"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["decimal", "decimal"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["natural", "integer"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["integer", "natural"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["natural", "decimal"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["decimal", "natural"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["integer", "decimal"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["decimal", "integer"], outputType: "boolean", category: "comparison" }
     ],
     category: "comparison"
   },

@@ -74,6 +74,30 @@ function addNaturals(a: Natural, b: Natural): Natural {
   };
 }
 
+function addIntegers(a: Integer, b: Integer): Integer {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  return {
+    kind: "integer",
+    value: aVal + bVal
+  };
+}
+
+function addDecimals(a: Decimal, b: Decimal): Decimal {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal + bVal)) {
+    throw new Error("ADD: Invalid operation (NaN result)");
+  }
+  
+  return {
+    kind: "decimal",
+    value: aVal + bVal
+  };
+}
+
 function addFractions(a: Fraction, b: Fraction): Fraction {
   const f1 = unwrapFraction(a);
   const f2 = unwrapFraction(b);
@@ -91,6 +115,30 @@ function addFractions(a: Fraction, b: Fraction): Fraction {
     kind: "fraction",
     numerator: simplified.numerator,
     denominator: simplified.denominator
+  };
+}
+
+function subtractIntegers(a: Integer, b: Integer): Integer {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  return {
+    kind: "integer",
+    value: aVal - bVal
+  };
+}
+
+function subtractDecimals(a: Decimal, b: Decimal): Decimal {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal - bVal)) {
+    throw new Error("SUBTRACT: Invalid operation (NaN result)");
+  }
+  
+  return {
+    kind: "decimal",
+    value: aVal - bVal
   };
 }
 
@@ -121,6 +169,30 @@ function subtractFractions(a: Fraction, b: Fraction): Fraction {
     kind: "fraction",
     numerator: simplified.numerator,
     denominator: simplified.denominator
+  };
+}
+
+function multiplyIntegers(a: Integer, b: Integer): Integer {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  return {
+    kind: "integer",
+    value: aVal * bVal
+  };
+}
+
+function multiplyDecimals(a: Decimal, b: Decimal): Decimal {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal * bVal)) {
+    throw new Error("MULTIPLY: Invalid operation (NaN result)");
+  }
+  
+  return {
+    kind: "decimal",
+    value: aVal * bVal
   };
 }
 
@@ -155,6 +227,42 @@ function multiplyFractions(a: Fraction, b: Fraction): Fraction {
     kind: "fraction",
     numerator: simplified.numerator,
     denominator: simplified.denominator
+  };
+}
+
+function divideIntegers(a: Integer, b: Integer): Decimal {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (bVal === 0) {
+    throw new Error("DIVIDE: Division by zero");
+  }
+  
+  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal / bVal)) {
+    throw new Error("DIVIDE: Invalid operation (NaN result)");
+  }
+  
+  return {
+    kind: "decimal",
+    value: aVal / bVal
+  };
+}
+
+function divideDecimals(a: Decimal, b: Decimal): Decimal {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (bVal === 0) {
+    throw new Error("DIVIDE: Division by zero");
+  }
+  
+  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal / bVal)) {
+    throw new Error("DIVIDE: Invalid operation (NaN result)");
+  }
+  
+  return {
+    kind: "decimal",
+    value: aVal / bVal
   };
 }
 
@@ -200,6 +308,26 @@ function divideFractions(a: Fraction, b: Fraction): Fraction {
   };
 }
 
+function compareIntegers(a: Integer, b: Integer): Boolean {
+  const aVal = a.value;
+  const bVal = b.value;
+
+  return {
+    kind: "boolean",
+    value: aVal === bVal
+  };
+}
+
+function compareDecimals(a: Decimal, b: Decimal): Boolean {
+  const aVal = a.value;
+  const bVal = b.value;
+
+  return {
+    kind: "boolean",
+    value: aVal === bVal
+  };
+}
+
 function compareNaturals(a: Natural, b: Natural): Boolean {
   const aVal = a.value;
   const bVal = b.value;
@@ -227,40 +355,124 @@ function compareFractions(a: Fraction, b: Fraction): Boolean {
   };
 }
 
-export function ADD(inputs: Array<{ id: string; value: unknown }>): Natural | Fraction {
+export function ADD(inputs: Array<{ id: string; value: unknown }>): Natural | Integer | Decimal | Fraction {
   const [a, b] = inputs;
   
   if (isNatural(a.value) && isNatural(b.value)) {
     return addNaturals(a.value, b.value);
   }
+  if (isInteger(a.value) && isInteger(b.value)) {
+    return addIntegers(a.value, b.value);
+  }
+  if (isDecimal(a.value) && isDecimal(b.value)) {
+    return addDecimals(a.value, b.value);
+  }
   if (isFraction(a.value) && isFraction(b.value)) {
     return addFractions(a.value, b.value);
+  }
+  if (isNatural(a.value) && isInteger(b.value)) {
+    return addIntegers({ kind: "integer", value: a.value.value }, b.value);
+  }
+  if (isInteger(a.value) && isNatural(b.value)) {
+    return addIntegers(a.value, { kind: "integer", value: b.value.value });
+  }
+  if (isNatural(a.value) && isDecimal(b.value)) {
+    return addDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isNatural(b.value)) {
+    return addDecimals(a.value, { kind: "decimal", value: b.value.value });
+  }
+  if (isInteger(a.value) && isDecimal(b.value)) {
+    return addDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isInteger(b.value)) {
+    return addDecimals(a.value, { kind: "decimal", value: b.value.value });
   }
   
   throw new TypeError(`ADD: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
 }
 
-export function SUBTRACT(inputs: Array<{ id: string; value: unknown }>): Integer | Fraction {
+export function SUBTRACT(inputs: Array<{ id: string; value: unknown }>): Integer | Decimal | Fraction {
   const [a, b] = inputs;
   
   if (isNatural(a.value) && isNatural(b.value)) {
     return subtractNaturals(a.value, b.value);
   }
+  if (isInteger(a.value) && isInteger(b.value)) {
+    return subtractIntegers(a.value, b.value);
+  }
+  if (isDecimal(a.value) && isDecimal(b.value)) {
+    return subtractDecimals(a.value, b.value);
+  }
   if (isFraction(a.value) && isFraction(b.value)) {
     return subtractFractions(a.value, b.value);
+  }
+  if (isNatural(a.value) && isInteger(b.value)) {
+    return subtractIntegers({ kind: "integer", value: a.value.value }, b.value);
+  }
+  if (isInteger(a.value) && isNatural(b.value)) {
+    return subtractIntegers(a.value, { kind: "integer", value: b.value.value });
+  }
+  if (isNatural(a.value) && isDecimal(b.value)) {
+    return subtractDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isNatural(b.value)) {
+    return subtractDecimals(a.value, { kind: "decimal", value: b.value.value });
+  }
+  if (isInteger(a.value) && isDecimal(b.value)) {
+    return subtractDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isInteger(b.value)) {
+    return subtractDecimals(a.value, { kind: "decimal", value: b.value.value });
   }
   
   throw new TypeError(`SUBTRACT: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
 }
 
-export function MULTIPLY(inputs: Array<{ id: string; value: unknown }>): Natural | Fraction {
+export function MULTIPLY(inputs: Array<{ id: string; value: unknown }>): Natural | Integer | Decimal | Fraction {
   const [a, b] = inputs;
   
   if (isNatural(a.value) && isNatural(b.value)) {
     return multiplyNaturals(a.value, b.value);
   }
+  if (isNatural(a.value) && isInteger(b.value)) {
+    const result = multiplyIntegers({ kind: "integer", value: a.value.value }, b.value);
+    if (result.value >= 0) {
+      return { kind: "natural", value: result.value };
+    }
+    return result;
+  }
+  if (isInteger(a.value) && isNatural(b.value)) {
+    const result = multiplyIntegers(a.value, { kind: "integer", value: b.value.value });
+    if (result.value >= 0) {
+      return { kind: "natural", value: result.value };
+    }
+    return result;
+  }
+  if (isInteger(a.value) && isInteger(b.value)) {
+    const result = multiplyIntegers(a.value, b.value);
+    if (result.value >= 0) {
+      return { kind: "natural", value: result.value };
+    }
+    return result;
+  }
+  if (isDecimal(a.value) && isDecimal(b.value)) {
+    return multiplyDecimals(a.value, b.value);
+  }
   if (isFraction(a.value) && isFraction(b.value)) {
     return multiplyFractions(a.value, b.value);
+  }
+  if (isNatural(a.value) && isDecimal(b.value)) {
+    return multiplyDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isNatural(b.value)) {
+    return multiplyDecimals(a.value, { kind: "decimal", value: b.value.value });
+  }
+  if (isInteger(a.value) && isDecimal(b.value)) {
+    return multiplyDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isInteger(b.value)) {
+    return multiplyDecimals(a.value, { kind: "decimal", value: b.value.value });
   }
   
   throw new TypeError(`MULTIPLY: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
@@ -272,8 +484,32 @@ export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Decimal |
   if (isNatural(a.value) && isNatural(b.value)) {
     return divideNaturals(a.value, b.value);
   }
+  if (isInteger(a.value) && isInteger(b.value)) {
+    return divideIntegers(a.value, b.value);
+  }
+  if (isDecimal(a.value) && isDecimal(b.value)) {
+    return divideDecimals(a.value, b.value);
+  }
   if (isFraction(a.value) && isFraction(b.value)) {
     return divideFractions(a.value, b.value);
+  }
+  if (isNatural(a.value) && isInteger(b.value)) {
+    return divideIntegers({ kind: "integer", value: a.value.value }, b.value);
+  }
+  if (isInteger(a.value) && isNatural(b.value)) {
+    return divideIntegers(a.value, { kind: "integer", value: b.value.value });
+  }
+  if (isNatural(a.value) && isDecimal(b.value)) {
+    return divideDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isNatural(b.value)) {
+    return divideDecimals(a.value, { kind: "decimal", value: b.value.value });
+  }
+  if (isInteger(a.value) && isDecimal(b.value)) {
+    return divideDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isInteger(b.value)) {
+    return divideDecimals(a.value, { kind: "decimal", value: b.value.value });
   }
   
   throw new TypeError(`DIVIDE: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
@@ -285,8 +521,32 @@ export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Boolean 
   if (isNatural(a.value) && isNatural(b.value)) {
     return compareNaturals(a.value, b.value);
   }
+  if (isInteger(a.value) && isInteger(b.value)) {
+    return compareIntegers(a.value, b.value);
+  }
+  if (isDecimal(a.value) && isDecimal(b.value)) {
+    return compareDecimals(a.value, b.value);
+  }
   if (isFraction(a.value) && isFraction(b.value)) {
     return compareFractions(a.value, b.value);
+  }
+  if (isNatural(a.value) && isInteger(b.value)) {
+    return compareIntegers({ kind: "integer", value: a.value.value }, b.value);
+  }
+  if (isInteger(a.value) && isNatural(b.value)) {
+    return compareIntegers(a.value, { kind: "integer", value: b.value.value });
+  }
+  if (isNatural(a.value) && isDecimal(b.value)) {
+    return compareDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isNatural(b.value)) {
+    return compareDecimals(a.value, { kind: "decimal", value: b.value.value });
+  }
+  if (isInteger(a.value) && isDecimal(b.value)) {
+    return compareDecimals({ kind: "decimal", value: a.value.value }, b.value);
+  }
+  if (isDecimal(a.value) && isInteger(b.value)) {
+    return compareDecimals(a.value, { kind: "decimal", value: b.value.value });
   }
   
   throw new TypeError(`COMPARE: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
