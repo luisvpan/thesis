@@ -556,11 +556,14 @@ packages/compiler/
 export const OPERATION_REGISTRY: Record<Operation, OperationSignature> = {
   ADD: {
     arity: 2,
-    inputTypes: ["natural", "natural"],
-    outputType: "natural",
+    contracts: [
+      { inputTypes: ["natural", "natural"], outputType: "natural" },
+      { inputTypes: ["integer", "integer"], outputType: "integer" },
+      { inputTypes: ["decimal", "decimal"], outputType: "decimal" },
+      { inputTypes: ["fraction", "fraction"], outputType: "fraction" }
+    ],
     category: "numeric"
   },
-  
   FILTER_BY_COLOR: {
     arity: 2,
     inputTypes: [
@@ -618,11 +621,24 @@ type Operation =
   // Ordering
   | "SORT" | "ALPHABETICAL_SORT";
 
-interface OperationSignature {
+type OperationSignature = SingleSignature | MultiSignature;
+
+interface BaseOperation {
   arity: number;
+  category: string;
+}
+
+interface TypeConstraint {
   inputTypes: (DataType | TypeConstraint)[];
   outputType: DataType | OutputTypeRule;
-  category: string;
+}
+
+// For most simple operations with no overloading
+type SingleSignature = BaseOperation & TypeConstraint;
+
+// For operations that support overloading, like numeric operations, that work on different types of numerics
+interface MultiSignature extends BaseOperation {
+  contracts: TypeConstraint[];
 }
 ```
 
