@@ -145,13 +145,13 @@ export class DemandDrivenEvaluator {
   private evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
     switch (operation) {
       case "NEXT":
-        return NEXT(inputs, time, graph);
+        return NEXT(inputs, time, graph, this);
       case "FIRST":
-        return FIRST(inputs, time, graph);
+        return FIRST(inputs, time, graph, this);
       case "FBY":
-        return FBY(inputs, time, graph);
+        return FBY(inputs, time, graph, this);
       case "ACCUMULATE":
-        return ACCUMULATE(inputs, time, graph);
+        return ACCUMULATE(inputs, time, graph, this);
       case "ADD":
         return ADD(inputs.map(input => ({
           id: input.id,

@@ -1,49 +1,50 @@
-import { DataflowGraph } from "../graph/dataflow-graph.js";
+import type { DataflowGraph } from "../graph/dataflow-graph.js";
+import type { DemandDrivenEvaluator } from "../evaluator/demand-driven-evaluator.js";
 
-export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
   const [stream] = inputs;
-  
+
   const streamId = stream.id;
-  return graph.evaluate(streamId, time, graph);
+  return evaluator.evaluate(streamId, time, graph);
 }
 
-export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
   const [stream] = inputs;
-  
+
   const streamId = stream.id;
-  const streamValue = graph.evaluate(streamId, 0, graph) as { kind: "stream"; elementType: string; firstValue: unknown };
-  
+  const streamValue = evaluator.evaluate(streamId, 0, graph) as { kind: "stream"; elementType: string; firstValue: unknown };
+
   if (typeof streamValue === 'object' && streamValue !== null && 'firstValue' in streamValue) {
     return streamValue.firstValue;
   }
-  
+
   return streamValue;
 }
 
-export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
   const [initial, stream] = inputs;
-  
+
   if (time === 0) {
     return initial.value;
   }
-  
+
   const streamId = stream.id;
-  return graph.evaluate(streamId, time - 1, graph);
+  return evaluator.evaluate(streamId, time - 1, graph);
 }
 
-export function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+export function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
   const [stream, initial, operation] = inputs;
-  
+
   if (time === 0) {
     return initial.value;
   }
-  
+
   const streamId = stream.id;
-  const streamValue = graph.evaluate(streamId, time - 1, graph);
-  const previousAccumulated = graph.evaluate(streamId, time - 1, graph);
-  
+  const streamValue = evaluator.evaluate(streamId, time - 1, graph);
+  const previousAccumulated = evaluator.evaluate(streamId, time - 1, graph);
+
   const operationName = (operation.value as { kind: "text"; value: string }).value;
-  
+
   if (operationName === "ADD") {
     return (previousAccumulated as number) + (streamValue as number);
   }
@@ -59,6 +60,6 @@ export function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: 
     }
     return (previousAccumulated as number) / (streamValue as number);
   }
-  
+
   throw new Error(`Unknown accumulation operation: ${operationName}`);
 }

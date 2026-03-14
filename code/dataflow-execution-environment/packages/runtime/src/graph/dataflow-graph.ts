@@ -1,9 +1,10 @@
 import type { DataflowNode, DataflowEdge } from "@dataflow/shared/types";
 import { OPERATION_REGISTRY } from "@dataflow/shared/operations";
+import { DemandDrivenEvaluator } from "../evaluator";
 
 export class DataflowGraph {
   private nodes = new Map<string, DataflowNode>();
-  private edges = DataflowEdge[];
+  private edges: DataflowEdge[] = new Array<DataflowEdge>();
   private cache = new Map<string, unknown>();
 
   addNode(node: DataflowNode): void {
@@ -51,43 +52,6 @@ export class DataflowGraph {
 
   getAllEdges(): DataflowEdge[] {
     return [...this.edges];
-  }
-
-  evaluate(nodeId: string, time: number, graph: DataflowGraph): unknown {
-    const cacheKey = `${nodeId}_${time}`;
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey);
-    }
-
-    const node = this.nodes.get(nodeId);
-    if (!node) {
-      throw new Error(`Node ${nodeId} not found`);
-    }
-
-    let result: unknown;
-
-    if (node.type === "DataSource") {
-      result = node.value;
-    } else if (node.type === "Transformation") {
-      const inputNodes = this.getInputs(nodeId);
-      const { DemandDrivenEvaluator } = require("../evaluator/index.js");
-      const evaluator = new DemandDrivenEvaluator();
-      result = evaluator.evaluateOperation(node.operation, inputNodes, time, graph);
-    } else if (node.type === "Output") {
-      const inputNodes = this.getInputs(nodeId);
-      if (inputNodes.length > 0) {
-        const { DemandDrivenEvaluator } = require("../evaluator/index.js");
-        const outputEvaluator = new DemandDrivenEvaluator();
-        result = outputEvaluator.evaluate(inputNodes[0].id, time, graph);
-      } else {
-        result = undefined;
-      }
-    } else {
-      throw new Error(`Unknown node type: ${(node as any).type}`);
-    }
-
-    this.cache.set(cacheKey, result);
-    return result;
   }
 }
 
