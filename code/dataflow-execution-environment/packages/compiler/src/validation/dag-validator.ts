@@ -1,7 +1,7 @@
 import type { DataflowNode, DataflowEdge, DataType } from "@dataflow/shared/types";
 import type { ValidationError, ValidationResult } from "@dataflow/shared/types";
 import type { Statement } from "../ast/ast-types.js";
-import { OPERATION_REGISTRY, TypeConstraint } from "@dataflow/shared/operations";
+import { OPERATION_REGISTRY, TypeConstraint, resolveOperationSignature } from "@dataflow/shared/operations";
 import type { Curriculum, DataflowProgram } from "@dataflow/shared/types";
 
 export class DagValidator {
@@ -94,8 +94,8 @@ export class DagValidator {
 
     for (const stmt of statements) {
       if (stmt.type === "TransformStatement") {
-        const signature = OPERATION_REGISTRY[stmt.operation];
-        if (!signature) {
+        const signatures = OPERATION_REGISTRY[stmt.operation];
+        if (!signatures) {
           errors.push({
             code: "UNKNOWN_OPERATION",
             message: `Unknown operation: ${stmt.operation}`,
@@ -107,30 +107,52 @@ export class DagValidator {
           continue;
         }
 
-        if (stmt.inputs.length !== signature.arity) {
+        const inputTypes = stmt.inputs.map(input => this.getInputType(input, typeTable));
+        const inputDataTypes = inputTypes.map(t => this.stringToDataType(t)).filter((t): t is DataType => t !== null) as DataType[];
+
+        const contract = resolveOperationSignature(stmt.operation, inputDataTypes);
+
+        if (!contract) {
+          errors.push({
+            code: "TYPE_ERROR",
+            message: `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}]`,
+            nodeId: stmt.id,
+            childMessage: `⚠️ ¡Ups! El bloque "${stmt.operation}" no funciona con estos tipos.`,
+            suggestion: `Verifica que los tipos de entrada sean compatibles con el bloque "${stmt.operation}".`,
+            example: `Usa tipos compatibles: [${signatures.contracts.map(c => c.inputTypes.join(", ")).join(" o ")}]`
+          });
+          continue;
+        }
+
+        if (stmt.inputs.length !== contract.arity) {
           errors.push({
             code: "WRONG_ARITY",
-            message: `Operation ${stmt.operation} requires ${signature.arity} inputs, got ${stmt.inputs.length}`,
+            message: `Operation ${stmt.operation} requires ${contract.arity} inputs, got ${stmt.inputs.length}`,
             nodeId: stmt.id,
-            childMessage: `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita ${signature.arity} ${signature.arity === 1 ? 'entrada' : 'entradas'}. Solo conectaste ${stmt.inputs.length}.`,
-            suggestion: `Conecta ${signature.arity - stmt.inputs.length} bloque${signature.arity - stmt.inputs.length === 1 ? '' : 's'} más al bloque "${stmt.operation}".`,
-            example: this.generateExample(stmt.operation, signature.arity)
+            childMessage: `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita ${contract.arity} ${contract.arity === 1 ? 'entrada' : 'entradas'}. Solo conectaste ${stmt.inputs.length}.`,
+            suggestion: `Conecta ${contract.arity - stmt.inputs.length} bloque${contract.arity - stmt.inputs.length === 1 ? '' : 's'} más al bloque "${stmt.operation}".`,
+            example: this.generateExample(stmt.operation, contract.arity)
           });
         }
 
         for (let i = 0; i < stmt.inputs.length; i++) {
-          const inputType = this.getInputType(stmt.inputs[i], typeTable);
-          const expectedType = signature.inputTypes[i];
+          const inputType = inputTypes[i];
+          const expectedType = contract.inputTypes[i];
 
           if (inputType === "unknown") {
             continue;
           }
 
-          if (!this.isTypeCompatible(inputType, expectedType, stmt.operation, i)) {
+          const inputDataType = this.stringToDataType(inputType);
+          if (!inputDataType) {
+            continue;
+          }
+
+          if (!this.isTypeCompatible(inputDataType, expectedType, stmt.operation, i)) {
             const errorDetails = this.generateTypeError(
               stmt.operation,
               expectedType,
-              inputType,
+              inputDataType,
               stmt.inputs[i],
               i,
               stmt.id
@@ -229,6 +251,58 @@ export class DagValidator {
     return `Conecta ${arity} bloques al bloque "${operation}" ✅`;
   }
 
+  private stringToDataType(typeStr: string): DataType | null {
+    if (!typeStr) return null;
+
+    if (typeStr === "natural") {
+      return { kind: "natural", value: 0 };
+    }
+    if (typeStr === "integer") {
+      return { kind: "integer", value: 0 };
+    }
+    if (typeStr === "decimal") {
+      return { kind: "decimal", value: 0 };
+    }
+    if (typeStr === "fraction") {
+      return { kind: "fraction", numerator: 0, denominator: 1 };
+    }
+    if (typeStr === "text") {
+      return { kind: "text", value: "" };
+    }
+    if (typeStr === "boolean") {
+      return { kind: "boolean", value: false };
+    }
+    if (typeStr === "shape") {
+      return { kind: "shape", type: "circle", size: "small", color: "red" };
+    }
+    if (typeStr === "car") {
+      return { kind: "car", color: "red" };
+    }
+    if (typeStr === "food") {
+      return { kind: "food", taste: "sweet", color: "red" };
+    }
+    if (typeStr === "animal") {
+      return { kind: "animal", type: "dog", color: "red" };
+    }
+    if (typeStr === "person") {
+      return { kind: "person", ageGroup: "child", gender: "male" };
+    }
+
+    const setMatch = typeStr.match(/^set<(.+)>$/);
+    if (setMatch) {
+      const elementType = setMatch[1];
+      return { kind: "set", elementType, elements: [] };
+    }
+
+    const streamMatch = typeStr.match(/^stream<(.+)>$/);
+    if (streamMatch) {
+      const elementType = streamMatch[1];
+      return { kind: "stream", elementType, generator: (function*() {})() as Generator<unknown>, firstValue: undefined };
+    }
+
+    return null;
+  }
+
   private getInputType(identifier: string, typeTable: Map<string, string>): string {
     const inferredType = typeTable.get(identifier);
     if (!inferredType) {
@@ -238,20 +312,23 @@ export class DagValidator {
   }
 
   private isTypeCompatible(
-    actualType: string,
+    actualType: DataType | string,
     expectedType: DataType | TypeConstraint,
     operation: string,
     inputIndex: number
   ): boolean {
+    const actualKind = typeof actualType === "string" ? actualType : (actualType as DataType).kind;
+    const actualTypeStr = typeof actualType === "string" ? actualType : (actualType as DataType).kind;
+    const actualElementStr = typeof actualType === "string" ? this.extractElementType(actualType) : this.extractElementType(actualTypeStr);
+
     if (typeof expectedType === "string") {
       return actualType === expectedType;
     }
 
     if (expectedType.kind === "set" || expectedType.kind === "stream") {
-      const actualElementType = this.extractElementType(actualType);
-      const expectedElementType = expectedType.elementType;
+      const expectedElementStr = expectedType.elementType;
 
-      if (actualElementType !== expectedElementType) {
+      if (actualElementStr !== expectedElementStr) {
         return false;
       }
 

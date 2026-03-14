@@ -2,15 +2,10 @@ import type { DataType } from "../types/composite.js";
 
 export type Operation =
   | "ADD"
-  | "ADD_FRACTION"
   | "SUBTRACT"
-  | "SUBTRACT_FRACTION"
   | "MULTIPLY"
-  | "MULTIPLY_FRACTION"
   | "DIVIDE"
-  | "DIVIDE_FRACTION"
   | "COMPARE"
-  | "COMPARE_FRACTION"
   | "COMPARE_BY_SIZE"
   | "COMPARE_BY_COLOR"
   | "COMPARE_BY_TYPE"
@@ -47,278 +42,280 @@ export type OperationSignature = {
   category: string;
 };
 
-export const OPERATION_REGISTRY: Record<string, OperationSignature> = {
-  ADD: {
-    arity: 2,
-    inputTypes: ["natural", "natural"],
-    outputType: "natural",
-    category: "numeric"
-  },
+export type OperationContract = {
+  arity: number;
+  inputTypes: (DataType | TypeConstraint)[];
+  outputType: DataType;
+  category: string;
+};
 
-  ADD_FRACTION: {
-    arity: 2,
-    inputTypes: ["fraction", "fraction"],
-    outputType: "fraction",
+export type OperationSignatures = {
+  contracts: OperationContract[];
+  category: string;
+};
+
+export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
+  ADD: {
+    contracts: [
+      { arity: 2, inputTypes: ["natural", "natural"], outputType: "natural", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+    ],
     category: "numeric"
   },
 
   SUBTRACT: {
-    arity: 2,
-    inputTypes: ["natural", "natural"],
-    outputType: "integer",
-    category: "numeric"
-  },
-
-  SUBTRACT_FRACTION: {
-    arity: 2,
-    inputTypes: ["fraction", "fraction"],
-    outputType: "fraction",
+    contracts: [
+      { arity: 2, inputTypes: ["natural", "natural"], outputType: "integer", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+    ],
     category: "numeric"
   },
 
   MULTIPLY: {
-    arity: 2,
-    inputTypes: ["natural", "natural"],
-    outputType: "natural",
-    category: "numeric"
-  },
-
-  MULTIPLY_FRACTION: {
-    arity: 2,
-    inputTypes: ["fraction", "fraction"],
-    outputType: "fraction",
+    contracts: [
+      { arity: 2, inputTypes: ["natural", "natural"], outputType: "natural", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+    ],
     category: "numeric"
   },
 
   DIVIDE: {
-    arity: 2,
-    inputTypes: ["natural", "natural"],
-    outputType: "decimal",
-    category: "numeric"
-  },
-
-  DIVIDE_FRACTION: {
-    arity: 2,
-    inputTypes: ["fraction", "fraction"],
-    outputType: "fraction",
+    contracts: [
+      { arity: 2, inputTypes: ["natural", "natural"], outputType: "decimal", category: "numeric" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "fraction", category: "numeric" }
+    ],
     category: "numeric"
   },
 
   COMPARE: {
-    arity: 2,
-    inputTypes: ["natural", "natural"],
-    outputType: "boolean",
-    category: "comparison"
-  },
-
-  COMPARE_FRACTION: {
-    arity: 2,
-    inputTypes: ["fraction", "fraction"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["natural", "natural"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["fraction", "fraction"], outputType: "boolean", category: "comparison" }
+    ],
     category: "comparison"
   },
 
   COMPARE_BY_SIZE: {
-    arity: 2,
-    inputTypes: ["shape", "shape"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["shape", "shape"], outputType: "boolean", category: "comparison" }
+    ],
     category: "comparison"
   },
 
   COMPARE_BY_COLOR: {
-    arity: 2,
-    inputTypes: ["shape", "shape"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["shape", "shape"], outputType: "boolean", category: "comparison" }
+    ],
     category: "comparison"
   },
 
   COMPARE_BY_TYPE: {
-    arity: 2,
-    inputTypes: ["shape", "shape"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["shape", "shape"], outputType: "boolean", category: "comparison" }
+    ],
     category: "comparison"
   },
 
   COMPARE_BY_TASTE: {
-    arity: 2,
-    inputTypes: ["food", "food"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["food", "food"], outputType: "boolean", category: "comparison" }
+    ],
     category: "comparison"
   },
 
   COMPARE_BY_AGE_GROUP: {
-    arity: 2,
-    inputTypes: ["person", "person"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["person", "person"], outputType: "boolean", category: "comparison" }
+    ],
     category: "comparison"
   },
 
   COMPARE_BY_GENDER: {
-    arity: 2,
-    inputTypes: ["person", "person"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["person", "person"], outputType: "boolean", category: "comparison" }
+    ],
     category: "comparison"
   },
 
   FILTER: {
-    arity: 2,
-    inputTypes: [{ kind: "set", elementType: "natural" } as DataType, "natural"],
-    outputType: { kind: "set", elementType: "natural" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, "natural"], outputType: { kind: "set", elementType: "natural" } as DataType, category: "filtering" }
+    ],
     category: "filtering"
   },
 
   FILTER_BY_SIZE: {
-    arity: 2,
-    inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"],
-    outputType: { kind: "set", elementType: "shape" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" }
+    ],
     category: "filtering"
   },
 
   FILTER_BY_COLOR: {
-    arity: 2,
-    inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"],
-    outputType: { kind: "set", elementType: "shape" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" }
+    ],
     category: "filtering"
   },
 
   FILTER_BY_TYPE: {
-    arity: 2,
-    inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"],
-    outputType: { kind: "set", elementType: "shape" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" }
+    ],
     category: "filtering"
   },
 
   FILTER_BY_TASTE: {
-    arity: 2,
-    inputTypes: [{ kind: "set", elementType: "food" } as DataType, "text"],
-    outputType: { kind: "set", elementType: "food" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, "text"], outputType: { kind: "set", elementType: "food" } as DataType, category: "filtering" }
+    ],
     category: "filtering"
   },
 
   FILTER_BY_AGE_GROUP: {
-    arity: 2,
-    inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"],
-    outputType: { kind: "set", elementType: "person" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"], outputType: { kind: "set", elementType: "person" } as DataType, category: "filtering" }
+    ],
     category: "filtering"
   },
 
   FILTER_BY_GENDER: {
-    arity: 2,
-    inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"],
-    outputType: { kind: "set", elementType: "person" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"], outputType: { kind: "set", elementType: "person" } as DataType, category: "filtering" }
+    ],
     category: "filtering"
   },
 
   UNION: {
-    arity: 2,
-    inputTypes: [
-      { kind: "set", elementType: "natural" } as DataType,
-      { kind: "set", elementType: "natural" } as DataType
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
     ],
-    outputType: { kind: "set", elementType: "natural" } as DataType,
     category: "sets"
   },
 
   INTERSECTION: {
-    arity: 2,
-    inputTypes: [
-      { kind: "set", elementType: "natural" } as DataType,
-      { kind: "set", elementType: "natural" } as DataType
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
     ],
-    outputType: { kind: "set", elementType: "natural" } as DataType,
     category: "sets"
   },
 
   DIFFERENCE: {
-    arity: 2,
-    inputTypes: [
-      { kind: "set", elementType: "natural" } as DataType,
-      { kind: "set", elementType: "natural" } as DataType
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
     ],
-    outputType: { kind: "set", elementType: "natural" } as DataType,
     category: "sets"
   },
 
   COMPLEMENT: {
-    arity: 2,
-    inputTypes: [
-      { kind: "set", elementType: "natural" } as DataType,
-      { kind: "set", elementType: "natural" } as DataType
+    contracts: [
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
     ],
-    outputType: { kind: "set", elementType: "natural" } as DataType,
     category: "sets"
   },
 
   NEXT: {
-    arity: 1,
-    inputTypes: [{ kind: "stream", elementType: "natural" } as DataType],
-    outputType: "natural",
+    contracts: [
+      { arity: 1, inputTypes: [{ kind: "stream", elementType: "natural" } as DataType], outputType: "natural", category: "temporal" }
+    ],
     category: "temporal"
   },
 
   FIRST: {
-    arity: 1,
-    inputTypes: [{ kind: "stream", elementType: "natural" } as DataType],
-    outputType: "natural",
+    contracts: [
+      { arity: 1, inputTypes: [{ kind: "stream", elementType: "natural" } as DataType], outputType: "natural", category: "temporal" }
+    ],
     category: "temporal"
   },
 
   FBY: {
-    arity: 2,
-    inputTypes: ["natural", { kind: "stream", elementType: "natural" } as DataType],
-    outputType: { kind: "stream", elementType: "natural" } as DataType,
+    contracts: [
+      { arity: 2, inputTypes: ["natural", { kind: "stream", elementType: "natural" } as DataType], outputType: { kind: "stream", elementType: "natural" } as DataType, category: "temporal" }
+    ],
     category: "temporal"
   },
 
   ACCUMULATE: {
-    arity: 3,
-    inputTypes: [
-      { kind: "stream", elementType: "natural" } as DataType,
-      "natural",
-      "natural"
+    contracts: [
+      { arity: 3, inputTypes: [{ kind: "stream", elementType: "natural" } as DataType, "natural", "natural"], outputType: { kind: "stream", elementType: "natural" } as DataType, category: "temporal" }
     ],
-    outputType: { kind: "stream", elementType: "natural" } as DataType,
     category: "temporal"
   },
 
   SORT: {
-    arity: 1,
-    inputTypes: [{ kind: "set", elementType: "natural" } as DataType],
-    outputType: { kind: "set", elementType: "natural" } as DataType,
+    contracts: [
+      { arity: 1, inputTypes: [{ kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "ordering" }
+    ],
     category: "ordering"
   },
 
   ALPHABETICAL_SORT: {
-    arity: 1,
-    inputTypes: [{ kind: "set", elementType: "text" } as DataType],
-    outputType: { kind: "set", elementType: "text" } as DataType,
+    contracts: [
+      { arity: 1, inputTypes: [{ kind: "set", elementType: "text" } as DataType], outputType: { kind: "set", elementType: "text" } as DataType, category: "ordering" }
+    ],
     category: "ordering"
   },
 
   AND: {
-    arity: 2,
-    inputTypes: ["boolean", "boolean"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["boolean", "boolean"], outputType: "boolean", category: "boolean" }
+    ],
     category: "boolean"
   },
 
   OR: {
-    arity: 2,
-    inputTypes: ["boolean", "boolean"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 2, inputTypes: ["boolean", "boolean"], outputType: "boolean", category: "boolean" }
+    ],
     category: "boolean"
   },
 
   NOT: {
-    arity: 1,
-    inputTypes: ["boolean"],
-    outputType: "boolean",
+    contracts: [
+      { arity: 1, inputTypes: ["boolean"], outputType: "boolean", category: "boolean" }
+    ],
     category: "boolean"
   }
 };
 
-export function getOperationSignature(operation: string): OperationSignature | undefined {
+export function getOperationSignatures(operation: string): OperationSignatures | undefined {
   return OPERATION_REGISTRY[operation as Operation];
+}
+
+export function resolveOperationSignature(operation: string, inputTypes: DataType[]): OperationContract | undefined {
+  const op = OPERATION_REGISTRY[operation as Operation];
+  if (!op) return undefined;
+
+  for (const contract of op.contracts) {
+    if (contract.inputTypes.length !== inputTypes.length) continue;
+    
+    let matches = true;
+    for (let i = 0; i < inputTypes.length; i++) {
+      const expected = contract.inputTypes[i];
+      const actual = inputTypes[i];
+      
+      if (typeof expected === "string") {
+        if (expected !== actual && typeof actual !== "object") {
+          matches = false;
+          break;
+        }
+        if (typeof actual === "object" && actual !== null) {
+          const actualObj = actual as { kind: string };
+          const expectedObj = expected as string;
+          if (actualObj.kind !== expectedObj) {
+            matches = false;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (matches) {
+      return contract;
+    }
+  }
+  
+  return undefined;
 }
 
 export function isOperation(name: string): boolean {

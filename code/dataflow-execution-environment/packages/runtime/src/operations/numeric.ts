@@ -1,4 +1,4 @@
-import type { Natural, Integer, Decimal, Boolean, Fraction } from "@dataflow/shared/types";
+import type { Natural, Integer, Decimal, Boolean, Fraction, DataType } from "@dataflow/shared/types";
 
 function unwrapValue(value: unknown): number {
   if (typeof value === "number") {
@@ -10,75 +10,20 @@ function unwrapValue(value: unknown): number {
   throw new TypeError("Expected number value");
 }
 
-export function ADD(inputs: Array<{ id: string; value: unknown }>): Natural {
-  const [a, b] = inputs;
-  const aVal = unwrapValue(a.value);
-  const bVal = unwrapValue(b.value);
-  
-  if (aVal < 0 || bVal < 0) {
-    throw new RangeError("ADD requires natural numbers (>= 0)");
-  }
-  
-  return {
-    kind: "natural",
-    value: aVal + bVal
-  };
+function isNatural(value: unknown): value is Natural {
+  return typeof value === "object" && value !== null && "kind" in value && (value as { kind: string }).kind === "natural";
 }
 
-export function SUBTRACT(inputs: Array<{ id: string; value: unknown }>): Integer {
-  const [a, b] = inputs;
-  const aVal = unwrapValue(a.value);
-  const bVal = unwrapValue(b.value);
-  
-  return {
-    kind: "integer",
-    value: aVal - bVal
-  };
+function isInteger(value: unknown): value is Integer {
+  return typeof value === "object" && value !== null && "kind" in value && (value as { kind: string }).kind === "integer";
 }
 
-export function MULTIPLY(inputs: Array<{ id: string; value: unknown }>): Natural {
-  const [a, b] = inputs;
-  const aVal = unwrapValue(a.value);
-  const bVal = unwrapValue(b.value);
-  
-  if (aVal < 0 || bVal < 0) {
-    throw new RangeError("MULTIPLY requires natural numbers (>= 0)");
-  }
-  
-  return {
-    kind: "natural",
-    value: aVal * bVal
-  };
+function isDecimal(value: unknown): value is Decimal {
+  return typeof value === "object" && value !== null && "kind" in value && (value as { kind: string }).kind === "decimal";
 }
 
-export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Decimal {
-  const [a, b] = inputs;
-  const aVal = unwrapValue(a.value);
-  const bVal = unwrapValue(b.value);
-  
-  if (bVal === 0) {
-    throw new Error("DIVIDE: Division by zero");
-  }
-  
-  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal / bVal)) {
-    throw new Error("DIVIDE: Invalid operation (NaN result)");
-  }
-  
-  return {
-    kind: "decimal",
-    value: aVal / bVal
-  };
-}
-
-export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Boolean {
-  const [a, b] = inputs;
-  const aVal = unwrapValue(a.value);
-  const bVal = unwrapValue(b.value);
-
-  return {
-    kind: "boolean",
-    value: aVal === bVal
-  };
+function isFraction(value: unknown): value is Fraction {
+  return typeof value === "object" && value !== null && "kind" in value && (value as { kind: string }).kind === "fraction";
 }
 
 function unwrapFraction(value: unknown): { numerator: number; denominator: number } {
@@ -115,13 +60,26 @@ function simplifyFraction(numerator: number, denominator: number): { numerator: 
   };
 }
 
-export function ADD_FRACTION(inputs: Array<{ id: string; value: unknown }>): Fraction {
-  const [a, b] = inputs;
-  const f1 = unwrapFraction(a.value);
-  const f2 = unwrapFraction(b.value);
+function addNaturals(a: Natural, b: Natural): Natural {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (aVal < 0 || bVal < 0) {
+    throw new RangeError("ADD requires natural numbers (>= 0)");
+  }
+  
+  return {
+    kind: "natural",
+    value: aVal + bVal
+  };
+}
+
+function addFractions(a: Fraction, b: Fraction): Fraction {
+  const f1 = unwrapFraction(a);
+  const f2 = unwrapFraction(b);
 
   if (f1.denominator === 0 || f2.denominator === 0) {
-    throw new Error("ADD_FRACTION: Denominator cannot be zero");
+    throw new Error("ADD: Denominator cannot be zero");
   }
 
   const numerator = f1.numerator * f2.denominator + f2.numerator * f1.denominator;
@@ -136,13 +94,22 @@ export function ADD_FRACTION(inputs: Array<{ id: string; value: unknown }>): Fra
   };
 }
 
-export function SUBTRACT_FRACTION(inputs: Array<{ id: string; value: unknown }>): Fraction {
-  const [a, b] = inputs;
-  const f1 = unwrapFraction(a.value);
-  const f2 = unwrapFraction(b.value);
+function subtractNaturals(a: Natural, b: Natural): Integer {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  return {
+    kind: "integer",
+    value: aVal - bVal
+  };
+}
+
+function subtractFractions(a: Fraction, b: Fraction): Fraction {
+  const f1 = unwrapFraction(a);
+  const f2 = unwrapFraction(b);
 
   if (f1.denominator === 0 || f2.denominator === 0) {
-    throw new Error("SUBTRACT_FRACTION: Denominator cannot be zero");
+    throw new Error("SUBTRACT: Denominator cannot be zero");
   }
 
   const numerator = f1.numerator * f2.denominator - f2.numerator * f1.denominator;
@@ -157,13 +124,26 @@ export function SUBTRACT_FRACTION(inputs: Array<{ id: string; value: unknown }>)
   };
 }
 
-export function MULTIPLY_FRACTION(inputs: Array<{ id: string; value: unknown }>): Fraction {
-  const [a, b] = inputs;
-  const f1 = unwrapFraction(a.value);
-  const f2 = unwrapFraction(b.value);
+function multiplyNaturals(a: Natural, b: Natural): Natural {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (aVal < 0 || bVal < 0) {
+    throw new RangeError("MULTIPLY requires natural numbers (>= 0)");
+  }
+  
+  return {
+    kind: "natural",
+    value: aVal * bVal
+  };
+}
+
+function multiplyFractions(a: Fraction, b: Fraction): Fraction {
+  const f1 = unwrapFraction(a);
+  const f2 = unwrapFraction(b);
 
   if (f1.denominator === 0 || f2.denominator === 0) {
-    throw new Error("MULTIPLY_FRACTION: Denominator cannot be zero");
+    throw new Error("MULTIPLY: Denominator cannot be zero");
   }
 
   const numerator = f1.numerator * f2.numerator;
@@ -178,20 +158,37 @@ export function MULTIPLY_FRACTION(inputs: Array<{ id: string; value: unknown }>)
   };
 }
 
-export function DIVIDE_FRACTION(inputs: Array<{ id: string; value: unknown }>): Fraction {
-  const [a, b] = inputs;
-  const f1 = unwrapFraction(a.value);
-  const f2 = unwrapFraction(b.value);
+function divideNaturals(a: Natural, b: Natural): Decimal {
+  const aVal = a.value;
+  const bVal = b.value;
+  
+  if (bVal === 0) {
+    throw new Error("DIVIDE: Division by zero");
+  }
+  
+  if (isNaN(aVal) || isNaN(bVal) || isNaN(aVal / bVal)) {
+    throw new Error("DIVIDE: Invalid operation (NaN result)");
+  }
+  
+  return {
+    kind: "decimal",
+    value: aVal / bVal
+  };
+}
+
+function divideFractions(a: Fraction, b: Fraction): Fraction {
+  const f1 = unwrapFraction(a);
+  const f2 = unwrapFraction(b);
 
   if (f1.denominator === 0 || f2.denominator === 0) {
-    throw new Error("DIVIDE_FRACTION: Denominator cannot be zero");
+    throw new Error("DIVIDE: Denominator cannot be zero");
   }
 
   const numerator = f1.numerator * f2.denominator;
   const denominator = f1.denominator * f2.numerator;
 
   if (denominator === 0) {
-    throw new Error("DIVIDE_FRACTION: Division by zero");
+    throw new Error("DIVIDE: Division by zero");
   }
 
   const simplified = simplifyFraction(numerator, denominator);
@@ -203,13 +200,22 @@ export function DIVIDE_FRACTION(inputs: Array<{ id: string; value: unknown }>): 
   };
 }
 
-export function COMPARE_FRACTION(inputs: Array<{ id: string; value: unknown }>): Boolean {
-  const [a, b] = inputs;
-  const f1 = unwrapFraction(a.value);
-  const f2 = unwrapFraction(b.value);
+function compareNaturals(a: Natural, b: Natural): Boolean {
+  const aVal = a.value;
+  const bVal = b.value;
+
+  return {
+    kind: "boolean",
+    value: aVal === bVal
+  };
+}
+
+function compareFractions(a: Fraction, b: Fraction): Boolean {
+  const f1 = unwrapFraction(a);
+  const f2 = unwrapFraction(b);
 
   if (f1.denominator === 0 || f2.denominator === 0) {
-    throw new Error("COMPARE_FRACTION: Denominator cannot be zero");
+    throw new Error("COMPARE: Denominator cannot be zero");
   }
 
   const leftValue = f1.numerator / f1.denominator;
@@ -219,4 +225,69 @@ export function COMPARE_FRACTION(inputs: Array<{ id: string; value: unknown }>):
     kind: "boolean",
     value: leftValue === rightValue
   };
+}
+
+export function ADD(inputs: Array<{ id: string; value: unknown }>): Natural | Fraction {
+  const [a, b] = inputs;
+  
+  if (isNatural(a.value) && isNatural(b.value)) {
+    return addNaturals(a.value, b.value);
+  }
+  if (isFraction(a.value) && isFraction(b.value)) {
+    return addFractions(a.value, b.value);
+  }
+  
+  throw new TypeError(`ADD: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
+}
+
+export function SUBTRACT(inputs: Array<{ id: string; value: unknown }>): Integer | Fraction {
+  const [a, b] = inputs;
+  
+  if (isNatural(a.value) && isNatural(b.value)) {
+    return subtractNaturals(a.value, b.value);
+  }
+  if (isFraction(a.value) && isFraction(b.value)) {
+    return subtractFractions(a.value, b.value);
+  }
+  
+  throw new TypeError(`SUBTRACT: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
+}
+
+export function MULTIPLY(inputs: Array<{ id: string; value: unknown }>): Natural | Fraction {
+  const [a, b] = inputs;
+  
+  if (isNatural(a.value) && isNatural(b.value)) {
+    return multiplyNaturals(a.value, b.value);
+  }
+  if (isFraction(a.value) && isFraction(b.value)) {
+    return multiplyFractions(a.value, b.value);
+  }
+  
+  throw new TypeError(`MULTIPLY: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
+}
+
+export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Decimal | Fraction {
+  const [a, b] = inputs;
+  
+  if (isNatural(a.value) && isNatural(b.value)) {
+    return divideNaturals(a.value, b.value);
+  }
+  if (isFraction(a.value) && isFraction(b.value)) {
+    return divideFractions(a.value, b.value);
+  }
+  
+  throw new TypeError(`DIVIDE: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
+}
+
+export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Boolean {
+  const [a, b] = inputs;
+  
+  if (isNatural(a.value) && isNatural(b.value)) {
+    return compareNaturals(a.value, b.value);
+  }
+  if (isFraction(a.value) && isFraction(b.value)) {
+    return compareFractions(a.value, b.value);
+  }
+  
+  throw new TypeError(`COMPARE: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
 }

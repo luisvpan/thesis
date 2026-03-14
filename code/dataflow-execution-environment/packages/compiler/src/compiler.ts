@@ -128,10 +128,10 @@ export class Compiler {
     const registryEntry = OPERATION_REGISTRY[operation as any];
     if (!registryEntry) return null;
 
-    const signature = registryEntry;
-    if (inputTypes.length !== signature.arity) return null;
+    const contract = registryEntry.contracts[0];
+    if (inputTypes.length !== contract.arity) return null;
 
-    return signature.outputType as DataType;
+    return contract.outputType as DataType;
   }
 
   private inferTypeForLiteralOrNested(inputId: string, dataTypeMap: Map<string, DataType>): DataType | null {
