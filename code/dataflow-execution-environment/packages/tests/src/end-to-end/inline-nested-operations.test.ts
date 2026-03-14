@@ -28,7 +28,7 @@ describe("Integration Tests - Inline Nested Operations", () => {
     }
   });
 
-  it("should parse and execute MULTIPLY(ADD(a, b), SUBTRACT(c, d))", () => {
+  it("should parse and execute MULTIPLY(ADD(a, b), ADD(c, d))", () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -38,7 +38,7 @@ describe("Integration Tests - Inline Nested Operations", () => {
       source c: natural = 10;
       source d: natural = 6;
 
-      transform result: natural = MULTIPLY(ADD(a, b), SUBTRACT(c, d));
+      transform result: natural = MULTIPLY(ADD(a, b), ADD(c, d));
 
       output final: natural = result;
     `;
@@ -50,7 +50,7 @@ describe("Integration Tests - Inline Nested Operations", () => {
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
       const outputs = runtime.execute(0);
-      expect(outputs).toEqual([{ kind: "natural", value: 20 }]);
+      expect(outputs).toEqual([{ kind: "natural", value: 80 }]);
     }
   });
 

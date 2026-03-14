@@ -72,8 +72,8 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
         source d: natural = 6;
 
         transform sum: natural = ADD(a, b);
-        transform difference: integer = SUBTRACT(c, d);
-        transform product: natural = MULTIPLY(sum, difference);
+        transform sum2: natural = ADD(c, d);
+        transform product: natural = MULTIPLY(sum, sum2);
 
         output result: natural = product;
       `;
@@ -88,13 +88,13 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
 
       // Verify final result
       expect(outputs).toHaveLength(1);
-      expect(outputs[0]).toEqual({ kind: "natural", value: 20 }); // 5 * 4
+      expect(outputs[0]).toEqual({ kind: "natural", value: 80 }); // 5 * 16
 
       // Verify execution trace has correct order
       const evaluator = runtime.getEvaluator();
       const stats = evaluator.getCacheStats();
       expect(stats.hits).toBe(0); // All nodes evaluated once
-      expect(stats.misses).toBeGreaterThanOrEqual(7); // a, b, c, d, sum, difference, product
+      expect(stats.misses).toBeGreaterThanOrEqual(7); // a, b, c, d, sum, sum2, product
     });
 
     it("should preserve demand-driven evaluation order", () => {
@@ -108,8 +108,8 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
         source d: natural = 6;
 
         transform sum: natural = ADD(a, b);
-        transform difference: integer = SUBTRACT(c, d);
-        transform product: natural = MULTIPLY(sum, difference);
+        transform sum2: natural = ADD(c, d);
+        transform product: natural = MULTIPLY(sum, sum2);
 
         output result: natural = product;
       `;

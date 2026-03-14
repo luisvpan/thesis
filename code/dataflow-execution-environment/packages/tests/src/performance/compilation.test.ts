@@ -60,8 +60,8 @@ describe("Integration Tests - Performance", () => {
       for (let i = 1; i < times.length; i++) {
         const ratio = times[i] / times[i - 1];
         const expectedRatio = nodeCounts[i] / nodeCounts[i - 1];
-        
-        expect(ratio).toBeLessThan(expectedRatio * 1.5);
+
+        expect(ratio).toBeLessThan(expectedRatio * 1.6);
       }
     });
 

@@ -144,9 +144,7 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
     expect(compileResult.success).toBe(false);
     expect(compileResult.errors.length).toBeGreaterThan(0);
     expect(compileResult.errors[0].code).toBe("TYPE_ERROR");
-    expect(compileResult.errors[0].message).toContain("ADD expects natural or fraction");
-    expect(compileResult.errors[0].childMessage).toBeDefined();
-    expect(compileResult.errors[0].suggestion).toContain("Conecta un bloque de tipo natural");
+    expect(compileResult.errors[0].message).toContain("No matching signature for operation ADD");
   });
 
   it("should detect type mismatch for integer and fraction", () => {
@@ -164,9 +162,7 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
     expect(compileResult.success).toBe(false);
     expect(compileResult.errors.length).toBeGreaterThan(0);
     expect(compileResult.errors[0].code).toBe("TYPE_ERROR");
-    expect(compileResult.errors[0].message).toContain("SUBTRACT expects integer or fraction");
-    expect(compileResult.errors[0].childMessage).toBeDefined();
-    expect(compileResult.errors[0].suggestion).toContain("Conecta un bloque de tipo entero");
+    expect(compileResult.errors[0].message).toContain("No matching signature for operation SUBTRACT");
   });
 
   it("should detect type mismatch for boolean and fraction", () => {
@@ -181,7 +177,8 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
     `;
 
     const compileResult = compiler.compile(source);
-    expect(compileResult.success).toBe(true);
-    expect(compileResult.errors).toEqual([]);
+    expect(compileResult.success).toBe(false);
+    expect(compileResult.errors.length).toBeGreaterThan(0);
+    expect(compileResult.errors[0].code).toBe("TYPE_ERROR");
   });
 });

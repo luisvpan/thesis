@@ -12,6 +12,10 @@ export class Runtime {
   }
 
   loadProgram(program: DataflowProgram): void {
+    if (!program || !program.graph) {
+      throw new Error("Invalid program: program or program.graph is undefined");
+    }
+
     this.graph = new DataflowGraph();
     this.evaluator = new DemandDrivenEvaluator();
 

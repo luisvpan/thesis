@@ -80,6 +80,7 @@ export class AstBuilder extends BaseVisitor {
 
   literal(ctx: LiteralCstChildren) {
     if (ctx.fractionLiteral) return this.visit(ctx.fractionLiteral);
+    if (ctx.negativeIntegerLiteral) return this.visit(ctx.negativeIntegerLiteral);
     if (ctx.NumberLiteral) return parseFloat(ctx.NumberLiteral[0].image);
     if (ctx.StringLiteral) return ctx.StringLiteral[0].image.slice(1, -1);
     if (ctx.True) return true;
@@ -111,6 +112,11 @@ export class AstBuilder extends BaseVisitor {
       numerator,
       denominator
     };
+  }
+
+  negativeIntegerLiteral(ctx: any) {
+    const number = parseFloat(ctx.NumberLiteral[0].image);
+    return -number;
   }
 
   sensorSource(ctx: SensorSourceCstChildren) {

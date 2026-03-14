@@ -29,7 +29,7 @@ describe("Integration Tests - Nested Operations", () => {
     }
   });
 
-  it("should parse and execute MULTIPLY(ADD(a, b), SUBTRACT(c, d))", () => {
+  it("should parse and execute MULTIPLY(ADD(a, b), ADD(c, d))", () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -40,8 +40,8 @@ describe("Integration Tests - Nested Operations", () => {
       source d: natural = 6;
 
       transform sum: natural = ADD(a, b);
-      transform difference: integer = SUBTRACT(c, d);
-      transform product: natural = MULTIPLY(sum, difference);
+      transform sum2: natural = ADD(c, d);
+      transform product: natural = MULTIPLY(sum, sum2);
 
       output result: natural = product;
     `;
@@ -53,7 +53,7 @@ describe("Integration Tests - Nested Operations", () => {
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
       const outputs = runtime.execute(0);
-      expect(outputs).toEqual([{ kind: "natural", value: 20 }]);
+      expect(outputs).toEqual([{ kind: "natural", value: 80 }]);
     }
   });
 

@@ -169,6 +169,7 @@ export class DataflowParser extends CstParser {
   literal = this.RULE("literal", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.fractionLiteral) },
+      { ALT: () => this.SUBRULE(this.negativeIntegerLiteral) },
       { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(True) },
@@ -225,6 +226,11 @@ export class DataflowParser extends CstParser {
     this.CONSUME1(NumberLiteral);
     this.CONSUME(Slash);
     this.CONSUME2(NumberLiteral);
+  });
+
+  negativeIntegerLiteral = this.RULE("negativeIntegerLiteral", () => {
+    this.CONSUME(Minus);
+    this.CONSUME(NumberLiteral);
   });
 
   sensorSource = this.RULE("sensorSource", () => {
