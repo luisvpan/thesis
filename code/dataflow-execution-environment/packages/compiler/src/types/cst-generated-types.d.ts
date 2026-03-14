@@ -129,20 +129,11 @@ export interface LiteralCstNode extends CstNode {
 
 export type LiteralCstChildren = {
   fractionLiteral?: FractionLiteralCstNode[];
+  negativeIntegerLiteral?: NegativeIntegerLiteralCstNode[];
   NumberLiteral?: IToken[];
   StringLiteral?: IToken[];
   True?: IToken[];
   False?: IToken[];
-};
-
-export interface FractionLiteralCstNode extends CstNode {
-  name: "fractionLiteral";
-  children: FractionLiteralCstChildren;
-}
-
-export type FractionLiteralCstChildren = {
-  NumberLiteral: IToken[];
-  Slash: IToken[];
 };
 
 export interface ObjectLiteralCstNode extends CstNode {
@@ -198,6 +189,26 @@ export type StreamLiteralCstChildren = {
   generatorSource?: GeneratorSourceCstNode[];
   externalSource?: ExternalSourceCstNode[];
   RParen: IToken[];
+};
+
+export interface FractionLiteralCstNode extends CstNode {
+  name: "fractionLiteral";
+  children: FractionLiteralCstChildren;
+}
+
+export type FractionLiteralCstChildren = {
+  NumberLiteral: (IToken)[];
+  Slash: IToken[];
+};
+
+export interface NegativeIntegerLiteralCstNode extends CstNode {
+  name: "negativeIntegerLiteral";
+  children: NegativeIntegerLiteralCstChildren;
+}
+
+export type NegativeIntegerLiteralCstChildren = {
+  Minus: IToken[];
+  NumberLiteral: IToken[];
 };
 
 export interface SensorSourceCstNode extends CstNode {
@@ -304,9 +315,9 @@ export interface ArgumentCstNode extends CstNode {
 }
 
 export type ArgumentCstChildren = {
+  operationExpression?: OperationExpressionCstNode[];
   Identifier?: IToken[];
   literal?: LiteralCstNode[];
-  operationExpression?: OperationExpressionCstNode[];
 };
 
 export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
@@ -320,11 +331,12 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   streamType(children: StreamTypeCstChildren, param?: IN): OUT;
   value(children: ValueCstChildren, param?: IN): OUT;
   literal(children: LiteralCstChildren, param?: IN): OUT;
-  fractionLiteral(children: FractionLiteralCstChildren, param?: IN): OUT;
   objectLiteral(children: ObjectLiteralCstChildren, param?: IN): OUT;
   arrayLiteral(children: ArrayLiteralCstChildren, param?: IN): OUT;
   setLiteral(children: SetLiteralCstChildren, param?: IN): OUT;
   streamLiteral(children: StreamLiteralCstChildren, param?: IN): OUT;
+  fractionLiteral(children: FractionLiteralCstChildren, param?: IN): OUT;
+  negativeIntegerLiteral(children: NegativeIntegerLiteralCstChildren, param?: IN): OUT;
   sensorSource(children: SensorSourceCstChildren, param?: IN): OUT;
   generatorSource(children: GeneratorSourceCstChildren, param?: IN): OUT;
   externalSource(children: ExternalSourceCstChildren, param?: IN): OUT;

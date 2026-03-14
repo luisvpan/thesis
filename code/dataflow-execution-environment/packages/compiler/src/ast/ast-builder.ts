@@ -1,6 +1,6 @@
 import { IToken } from "chevrotain";
 import { DataflowParser } from "../parser"; // Importa tu clase de Parser
-import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, ExternalSourceCstChildren, FractionLiteralCstChildren, GeneratorSourceCstChildren, LiteralCstChildren, ObjectLiteralCstChildren, OperationExpressionCstChildren, OperationNameCstChildren, OutputStatementCstChildren, ProgramCstChildren, SensorSourceCstChildren, SetLiteralCstChildren, SetTypeCstChildren, SourceStatementCstChildren, StatementCstChildren, StreamLiteralCstChildren, StreamTypeCstChildren, TransformStatementCstChildren, TypeDeclarationCstChildren, ValueCstChildren } from "../types/cst-generated-types";
+import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, ExternalSourceCstChildren, FractionLiteralCstChildren, GeneratorSourceCstChildren, LiteralCstChildren, NegativeIntegerLiteralCstChildren, ObjectLiteralCstChildren, OperationExpressionCstChildren, OperationNameCstChildren, OutputStatementCstChildren, ProgramCstChildren, SensorSourceCstChildren, SetLiteralCstChildren, SetTypeCstChildren, SourceStatementCstChildren, StatementCstChildren, StreamLiteralCstChildren, StreamTypeCstChildren, TransformStatementCstChildren, TypeDeclarationCstChildren, ValueCstChildren } from "../types/cst-generated-types";
 
 const parserInstance = new DataflowParser();
 const BaseVisitor = parserInstance.getBaseCstVisitorConstructor();
@@ -114,7 +114,7 @@ export class AstBuilder extends BaseVisitor {
     };
   }
 
-  negativeIntegerLiteral(ctx: any) {
+  negativeIntegerLiteral(ctx: NegativeIntegerLiteralCstChildren) {
     const number = parseFloat(ctx.NumberLiteral[0].image);
     return -number;
   }
@@ -206,13 +206,13 @@ export class AstBuilder extends BaseVisitor {
     if (ctx.operationExpression) {
       const opExpr = this.visit(ctx.operationExpression);
       const opId = `nested_op_${this.nestedOpCounter++}_${opExpr.operation}`;
-      
+
       this.nestedOperations.set(opId, {
         id: opId,
         operation: opExpr.operation,
         inputs: opExpr.inputs
       });
-      
+
       return opId;
     }
   }
