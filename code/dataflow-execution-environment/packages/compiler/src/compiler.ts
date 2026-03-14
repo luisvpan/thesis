@@ -1,11 +1,12 @@
 import { Lexer } from "chevrotain";
 import { allTokens } from "./lexer/tokens.js";
 import { DataflowParser } from "./parser/dataflow-parser.js";
-import { AstBuilder, Program, statementToNode } from "./ast/index.js";
+import { AstBuilder, Program, statementToNode, TransformStatement } from "./ast/index.js";
 import { DagValidator } from "./validation/dag-validator.js";
 import type { DataflowProgram, DataflowNode, DataflowEdge, DataSourceNode } from "@dataflow/shared/types";
 import type { ValidationResult } from "@dataflow/shared/types";
 import { getGenerator as getBuiltinGenerator } from "@dataflow/shared/generators";
+import { OPERATION_REGISTRY } from "@dataflow/shared/operations";
 import type { DataType } from "@dataflow/shared/types";
 
 export class Compiler {
@@ -25,9 +26,11 @@ export class Compiler {
   compile(source: string): ValidationResult & { program?: DataflowProgram } {
     const ast = this.parse(source);
 
-    const { nodes, edges } = this.buildProgramFromAst(ast);
+    const expandedAst = this.expandNestedOperations(ast);
 
-    const validationResult = this.validator.validate(ast.statements);
+    const { nodes, edges } = this.buildProgramFromAst(expandedAst);
+
+    const validationResult = this.validator.validate(expandedAst.statements);
     if (!validationResult.success) {
       return validationResult;
     }
@@ -70,48 +73,138 @@ export class Compiler {
     return this.astBuilder.visit(cst);
   }
 
+  private expandNestedOperations(ast: Program): Program {
+    if (!ast.nestedOperations || ast.nestedOperations.size === 0) {
+      return ast;
+    }
+
+    const expandedStatements: TransformStatement[] = [];
+    const allStatements = [...ast.statements];
+    const dataTypeMap = new Map<string, DataType>();
+
+    for (const stmt of ast.statements) {
+      if (stmt.type === "SourceStatement") {
+        dataTypeMap.set(stmt.id, stmt.dataType as DataType);
+      } else if (stmt.type === "TransformStatement") {
+        dataTypeMap.set(stmt.id, stmt.dataType as DataType);
+      }
+    }
+
+    for (const [nestedOpId, nestedOp] of ast.nestedOperations) {
+      const inputTypes: DataType[] = [];
+      for (const inputId of nestedOp.inputs) {
+        const inputType = dataTypeMap.get(inputId);
+        if (!inputType) {
+          const inferredType = this.inferTypeForLiteralOrNested(inputId, dataTypeMap);
+          inputTypes.push(inferredType || "natural");
+        } else {
+          inputTypes.push(inputType);
+        }
+      }
+
+      const outputType = this.inferOutputType(nestedOp.operation, inputTypes);
+      if (outputType) {
+        dataTypeMap.set(nestedOpId, outputType);
+      }
+
+      const nestedStmt: TransformStatement = {
+        type: "TransformStatement",
+        id: nestedOpId,
+        dataType: outputType || "natural",
+        operation: nestedOp.operation,
+        inputs: nestedOp.inputs
+      };
+
+      expandedStatements.push(nestedStmt);
+    }
+
+    return {
+      type: "Program",
+      statements: [...expandedStatements, ...allStatements] as any
+    };
+  }
+
+  private inferOutputType(operation: string, inputTypes: DataType[]): DataType | null {
+    const registryEntry = OPERATION_REGISTRY[operation as any];
+    if (!registryEntry) return null;
+
+    const signature = registryEntry;
+    if (inputTypes.length !== signature.arity) return null;
+
+    return signature.outputType as DataType;
+  }
+
+  private inferTypeForLiteralOrNested(inputId: string, dataTypeMap: Map<string, DataType>): DataType | null {
+    if (inputId.startsWith("literal_number")) {
+      const num = parseInt(inputId.replace(/^literal_number_/, ""), 10);
+      return Number.isInteger(num) && num >= 0 ? "natural" : "integer";
+    }
+    if (inputId.startsWith("literal_string")) {
+      return "text";
+    }
+    if (inputId.startsWith("literal_boolean")) {
+      return "boolean";
+    }
+    if (inputId.startsWith("nested_op_")) {
+      return dataTypeMap.get(inputId) || null;
+    }
+    return null;
+  }
+
   private buildProgramFromAst(ast: Program): { nodes: DataflowNode[]; edges: DataflowEdge[] } {
     this.edgeCounter = 0;
     const nodes: DataflowNode[] = [];
     const edges: DataflowEdge[] = [];
     const literalData = new Map<string, { value: unknown; dataType: DataType }>();
 
-    for (const stmt of ast.statements) {
-      if (stmt.type === "TransformStatement") {
-        for (const input of stmt.inputs) {
-          if (input.startsWith("literal_") && !literalData.has(input)) {
-            const match = input.match(/^literal_(\w+)_(.+)$/);
-            if (match) {
-              const type = match[1];
-              const valueJson = match[2];
-              const value = JSON.parse(`"${valueJson}"`);
+      for (const stmt of ast.statements) {
+        if (stmt.type === "TransformStatement") {
+          for (const input of stmt.inputs) {
+            if (input.startsWith("literal_") && !literalData.has(input)) {
+              const match = input.match(/^literal_(\w+)_(.+)$/);
+              if (match) {
+                const type = match[1];
+                const valueJson = match[2];
+                let value: unknown;
 
-              let nodeDataType: DataType;
-              let nodeValue: unknown;
+                try {
+                  if (type === "string") {
+                    value = valueJson;
+                  } else if (type === "boolean") {
+                    value = valueJson === "true";
+                  } else {
+                    value = JSON.parse(valueJson);
+                  }
+                } catch {
+                  value = valueJson;
+                }
 
-              if (type === "number") {
-                nodeDataType = Number.isInteger(value) && value >= 0 ? "natural" : "integer";
-                nodeValue = value;
-              } else if (type === "string") {
-                nodeDataType = "text";
-                nodeValue = { kind: "text", value };
-              } else if (type === "boolean") {
-                nodeDataType = "boolean";
-                nodeValue = { kind: "boolean", value };
-              } else if (type === "object") {
-                nodeDataType = stmt.dataType as DataType;
-                nodeValue = value;
-              } else {
-                nodeDataType = "text";
-                nodeValue = value;
+                let nodeDataType: DataType;
+                let nodeValue: unknown;
+
+                if (type === "number") {
+                  nodeDataType = Number.isInteger(value) && value >= 0 ? "natural" : "integer";
+                  nodeValue = value;
+                } else if (type === "string") {
+                  nodeDataType = "text";
+                  nodeValue = { kind: "text", value };
+                } else if (type === "boolean") {
+                  nodeDataType = "boolean";
+                  nodeValue = { kind: "boolean", value };
+                } else if (type === "object") {
+                  nodeDataType = stmt.dataType as DataType;
+                  nodeValue = value;
+                } else {
+                  nodeDataType = "text";
+                  nodeValue = value;
+                }
+
+                literalData.set(input, { value: nodeValue, dataType: nodeDataType });
               }
-
-              literalData.set(input, { value: nodeValue, dataType: nodeDataType });
             }
           }
         }
       }
-    }
 
     for (const literalId of literalData.keys()) {
       const literalInfo = literalData.get(literalId)!;

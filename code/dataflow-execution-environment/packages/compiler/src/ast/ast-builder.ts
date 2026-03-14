@@ -5,8 +5,17 @@ import { ArgumentCstChildren, ArgumentListCstChildren, ArrayLiteralCstChildren, 
 const parserInstance = new DataflowParser();
 const BaseVisitor = parserInstance.getBaseCstVisitorConstructor();
 
+export type NestedOperation = {
+  id: string;
+  operation: string;
+  inputs: string[];
+  line?: number;
+  column?: number;
+};
+
 export class AstBuilder extends BaseVisitor {
   private nestedOpCounter = 0;
+  private nestedOperations: Map<string, NestedOperation> = new Map();
 
   constructor() {
     super();
@@ -14,9 +23,11 @@ export class AstBuilder extends BaseVisitor {
   }
 
   program(ctx: ProgramCstChildren) {
+    const statements = ctx.statement?.map((s) => this.visit(s)) || [];
     return {
       type: "Program",
-      statements: ctx.statement?.map((s) => this.visit(s)) || []
+      statements,
+      nestedOperations: new Map(this.nestedOperations)
     };
   }
 
@@ -189,6 +200,13 @@ export class AstBuilder extends BaseVisitor {
     if (ctx.operationExpression) {
       const opExpr = this.visit(ctx.operationExpression);
       const opId = `nested_op_${this.nestedOpCounter++}_${opExpr.operation}`;
+      
+      this.nestedOperations.set(opId, {
+        id: opId,
+        operation: opExpr.operation,
+        inputs: opExpr.inputs
+      });
+      
       return opId;
     }
   }

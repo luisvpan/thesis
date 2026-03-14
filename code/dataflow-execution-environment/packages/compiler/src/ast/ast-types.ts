@@ -1,4 +1,5 @@
 import type { DataSourceNode, TransformationNode, OutputNode, DataflowNode, NodeMetadata } from "@dataflow/shared/types";
+import type { NestedOperation } from "./ast-builder.js";
 
 export type SourceStatement = {
   type: "SourceStatement";
@@ -27,6 +28,7 @@ export type Statement = SourceStatement | TransformStatement | OutputStatement;
 export type Program = {
   type: "Program";
   statements: Statement[];
+  nestedOperations?: Map<string, NestedOperation>;
 };
 
 export function statementToNode(stmt: Statement, metadata?: NodeMetadata): DataflowNode {
