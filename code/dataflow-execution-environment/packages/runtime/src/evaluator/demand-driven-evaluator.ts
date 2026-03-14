@@ -179,61 +179,118 @@ export class DemandDrivenEvaluator {
         })));
 
       case "AND":
-        return AND(evaluatedInputs);
+        return AND(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "OR":
-        return OR(evaluatedInputs);
+        return OR(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "NOT":
-        return NOT(evaluatedInputs);
+        return NOT(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
 
       case "COMPARE_BY_SIZE":
-        return COMPARE_BY_SIZE(evaluatedInputs);
+        return COMPARE_BY_SIZE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "COMPARE_BY_COLOR":
-        return COMPARE_BY_COLOR(evaluatedInputs);
+        return COMPARE_BY_COLOR(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "COMPARE_BY_TYPE":
-        return COMPARE_BY_TYPE(evaluatedInputs);
+        return COMPARE_BY_TYPE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "COMPARE_BY_TASTE":
-        return COMPARE_BY_TASTE(evaluatedInputs);
+        return COMPARE_BY_TASTE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "COMPARE_BY_AGE_GROUP":
-        return COMPARE_BY_AGE_GROUP(evaluatedInputs);
+        return COMPARE_BY_AGE_GROUP(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "COMPARE_BY_GENDER":
-        return COMPARE_BY_GENDER(evaluatedInputs);
+        return COMPARE_BY_GENDER(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
 
       case "FILTER":
-        return FILTER(evaluatedInputs);
+        return FILTER(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "FILTER_BY_SIZE":
-        return FILTER_BY_SIZE(evaluatedInputs);
+        return FILTER_BY_SIZE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "FILTER_BY_COLOR":
-        return FILTER_BY_COLOR(evaluatedInputs);
+        return FILTER_BY_COLOR(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "FILTER_BY_TYPE":
-        return FILTER_BY_TYPE(evaluatedInputs);
+        return FILTER_BY_TYPE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "FILTER_BY_TASTE":
-        return FILTER_BY_TASTE(evaluatedInputs);
+        return FILTER_BY_TASTE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "FILTER_BY_AGE_GROUP":
-        return FILTER_BY_AGE_GROUP(evaluatedInputs);
+        return FILTER_BY_AGE_GROUP(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "FILTER_BY_GENDER":
-        return FILTER_BY_GENDER(evaluatedInputs);
+        return FILTER_BY_GENDER(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
 
       case "UNION":
-        return UNION(evaluatedInputs);
+        return UNION(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "INTERSECTION":
-        return INTERSECTION(evaluatedInputs);
+        return INTERSECTION(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "DIFFERENCE":
-        return DIFFERENCE(evaluatedInputs);
+        return DIFFERENCE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "COMPLEMENT":
-        return COMPLEMENT(evaluatedInputs);
+        return COMPLEMENT(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "SORT":
-        return SORT(evaluatedInputs);
+        return SORT(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "ALPHABETICAL_SORT":
-        return ALPHABETICAL_SORT(evaluatedInputs);
-
-      case "NEXT":
-        return NEXT(evaluatedInputs, time, graph);
-      case "FIRST":
-        return FIRST(evaluatedInputs, time, graph);
-      case "FBY":
-        return FBY(evaluatedInputs, time, graph);
-      case "ACCUMULATE":
-        return ACCUMULATE(evaluatedInputs, time, graph);
+        return ALPHABETICAL_SORT(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
 
       default:
         throw new Error(`Unknown operation: ${operation}`);

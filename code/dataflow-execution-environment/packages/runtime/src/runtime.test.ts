@@ -367,7 +367,7 @@ describe('Runtime - Execution', () => {
   });
 
   describe('Fraction Operations', () => {
-    it('should execute ADD_FRACTION operation', () => {
+    it('should execute ADD operation with fractions', () => {
       const runtime = new Runtime();
 
       const program: DataflowProgram = {
@@ -376,7 +376,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 4 } },
-            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
           ],
           edges: [
@@ -403,7 +403,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 3 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 3 } },
-            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
           ],
           edges: [
@@ -421,7 +421,7 @@ describe('Runtime - Execution', () => {
       expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 1, denominator: 1 });
     });
 
-    it('should execute SUBTRACT_FRACTION operation', () => {
+    it('should execute SUBTRACT operation with fractions', () => {
       const runtime = new Runtime();
 
       const program: DataflowProgram = {
@@ -430,7 +430,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 3, denominator: 4 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 4 } },
-            { id: 'sub', type: 'Transformation', dataType: 'fraction', operation: 'SUBTRACT_FRACTION', inputs: ['a', 'b'] },
+            { id: 'sub', type: 'Transformation', dataType: 'fraction', operation: 'SUBTRACT', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'sub' }
           ],
           edges: [
@@ -448,7 +448,7 @@ describe('Runtime - Execution', () => {
       expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 1, denominator: 2 });
     });
 
-    it('should execute MULTIPLY_FRACTION operation', () => {
+    it('should execute MULTIPLY operation with fractions', () => {
       const runtime = new Runtime();
 
       const program: DataflowProgram = {
@@ -457,7 +457,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 3 } },
-            { id: 'mul', type: 'Transformation', dataType: 'fraction', operation: 'MULTIPLY_FRACTION', inputs: ['a', 'b'] },
+            { id: 'mul', type: 'Transformation', dataType: 'fraction', operation: 'MULTIPLY', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'mul' }
           ],
           edges: [
@@ -475,7 +475,7 @@ describe('Runtime - Execution', () => {
       expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 1, denominator: 3 });
     });
 
-    it('should execute DIVIDE_FRACTION operation', () => {
+    it('should execute DIVIDE operation with fractions', () => {
       const runtime = new Runtime();
 
       const program: DataflowProgram = {
@@ -484,7 +484,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 4 } },
-            { id: 'div', type: 'Transformation', dataType: 'fraction', operation: 'DIVIDE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'div', type: 'Transformation', dataType: 'fraction', operation: 'DIVIDE', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'div' }
           ],
           edges: [
@@ -502,7 +502,7 @@ describe('Runtime - Execution', () => {
       expect(outputs[0]).toEqual({ kind: 'fraction', numerator: 2, denominator: 1 });
     });
 
-    it('should execute COMPARE_FRACTION operation with equal fractions', () => {
+    it('should execute COMPARE operation with equal fractions', () => {
       const runtime = new Runtime();
 
       const program: DataflowProgram = {
@@ -511,7 +511,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 4 } },
-            { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
           ],
           edges: [
@@ -529,7 +529,7 @@ describe('Runtime - Execution', () => {
       expect(outputs[0]).toEqual({ kind: 'boolean', value: true });
     });
 
-    it('should execute COMPARE_FRACTION operation with different fractions', () => {
+    it('should execute COMPARE operation with different fractions', () => {
       const runtime = new Runtime();
 
       const program: DataflowProgram = {
@@ -538,7 +538,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 3 } },
-            { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
           ],
           edges: [
@@ -565,7 +565,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 4 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 3, denominator: 6 } },
-            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
           ],
           edges: [
@@ -592,7 +592,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 3, denominator: 4 } },
-            { id: 'sub', type: 'Transformation', dataType: 'fraction', operation: 'SUBTRACT_FRACTION', inputs: ['a', 'b'] },
+            { id: 'sub', type: 'Transformation', dataType: 'fraction', operation: 'SUBTRACT', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'sub' }
           ],
           edges: [
@@ -610,7 +610,7 @@ describe('Runtime - Execution', () => {
       expect(outputs[0]).toEqual({ kind: 'fraction', numerator: -1, denominator: 4 });
     });
 
-    it('should error on division by zero in DIVIDE_FRACTION', () => {
+    it('should error on division by zero in DIVIDE', () => {
       const runtime = new Runtime();
 
       const program: DataflowProgram = {
@@ -619,7 +619,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 0, denominator: 1 } },
-            { id: 'div', type: 'Transformation', dataType: 'fraction', operation: 'DIVIDE_FRACTION', inputs: ['a', 'b'] },
+            { id: 'div', type: 'Transformation', dataType: 'fraction', operation: 'DIVIDE', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'div' }
           ],
           edges: [
@@ -632,7 +632,7 @@ describe('Runtime - Execution', () => {
 
       runtime.loadProgram(program);
 
-      expect(() => runtime.execute()).toThrow('DIVIDE_FRACTION: Division by zero');
+      expect(() => runtime.execute()).toThrow('DIVIDE: Division by zero');
     });
 
     it('should error on zero denominator in fraction inputs', () => {
@@ -644,7 +644,7 @@ describe('Runtime - Execution', () => {
           nodes: [
             { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
             { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 0 } },
-            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD_FRACTION', inputs: ['a', 'b'] },
+            { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD', inputs: ['a', 'b'] },
             { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
           ],
           edges: [
@@ -657,7 +657,7 @@ describe('Runtime - Execution', () => {
 
       runtime.loadProgram(program);
 
-      expect(() => runtime.execute()).toThrow('ADD_FRACTION: Denominator cannot be zero');
+      expect(() => runtime.execute()).toThrow('ADD: Denominator cannot be zero');
     });
   });
 });

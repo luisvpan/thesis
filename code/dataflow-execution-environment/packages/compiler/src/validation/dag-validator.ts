@@ -152,7 +152,7 @@ export class DagValidator {
             const errorDetails = this.generateTypeError(
               stmt.operation,
               expectedType,
-              inputDataType,
+              inputType,
               stmt.inputs[i],
               i,
               stmt.id
