@@ -627,7 +627,7 @@ interface BaseOperation {
   arity: number;
   category: string;
 }
-
+--TODO: correct these interfaces to match implementation or fix them to be viable, as TypeConstraint references itself recursively and OutputTypeRule is not defined yet
 interface TypeConstraint {
   inputTypes: (DataType | TypeConstraint)[];
   outputType: DataType | OutputTypeRule;
