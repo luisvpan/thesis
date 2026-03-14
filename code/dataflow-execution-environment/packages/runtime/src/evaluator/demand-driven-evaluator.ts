@@ -143,22 +143,40 @@ export class DemandDrivenEvaluator {
   }
 
   private evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
-    const evaluatedInputs = inputs.map(input => ({
-      id: input.id,
-      value: this.evaluate(input.id, time, graph)
-    }));
-
     switch (operation) {
+      case "NEXT":
+        return NEXT(inputs, time, graph);
+      case "FIRST":
+        return FIRST(inputs, time, graph);
+      case "FBY":
+        return FBY(inputs, time, graph);
+      case "ACCUMULATE":
+        return ACCUMULATE(inputs, time, graph);
       case "ADD":
-        return ADD(evaluatedInputs);
+        return ADD(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "SUBTRACT":
-        return SUBTRACT(evaluatedInputs);
+        return SUBTRACT(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "MULTIPLY":
-        return MULTIPLY(evaluatedInputs);
+        return MULTIPLY(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "DIVIDE":
-        return DIVIDE(evaluatedInputs);
+        return DIVIDE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
       case "COMPARE":
-        return COMPARE(evaluatedInputs);
+        return COMPARE(inputs.map(input => ({
+          id: input.id,
+          value: this.evaluate(input.id, time, graph)
+        })));
 
       case "AND":
         return AND(evaluatedInputs);
