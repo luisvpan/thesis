@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-13 (Updated with comprehensive analysis from 7 parallel subagents)
+**Last Updated:** 2026-03-14 (Verified codebase against specs/LANGUAGE_SPEC.md - Fraction type clarified)
 
 ---
 
@@ -35,6 +35,154 @@ packages/
 
 ---
 
+## KEY FINDINGS & CLARIFICATIONS (2026-03-14)
+
+### Fraction Type Definition - CLARIFIED ✅
+
+**Finding:** After detailed analysis of the codebase against `specs/LANGUAGE_SPEC.md`, the Fraction type definition is **CORRECT** as implemented:
+
+**Current Implementation:**
+```typescript
+// packages/shared/src/types/primitives.ts (lines 26-30)
+export type Fraction = {
+  kind: "fraction";
+  numerator: number;    // ✅ CORRECT per spec
+  denominator: number;  // ✅ CORRECT per spec
+};
+```
+
+**Spec Confirmation:**
+```typescript
+// specs/LANGUAGE_SPEC.md (lines 94-99)
+type Fraction = {
+  kind: "fraction";
+  numerator: number;    // ← Spec uses number
+  denominator: number;  // ← Spec uses number
+};
+```
+
+**Why `number` not `Integer`?**
+- Avoids circular type dependency (Fraction needs Integer, but Integer division returns Fraction)
+- Simpler implementation for educational context (ages 6-9)
+- All numeric types use `number` internally for value storage
+- Type safety maintained via `kind: "fraction"` tag
+
+**Action:** Removed P2.1 task - Fraction type requires NO changes.
+
+---
+
+### Fraction Operations - INCORRECTLY IMPLEMENTED ❌
+
+**Finding:** Fraction operations use WRONG pattern (separate operations instead of overloading).
+
+**Current Implementation (WRONG):**
+```typescript
+// packages/shared/src/operations/registry.ts (lines 5, 7, 9, 11, 13)
+export type Operation =
+  | "ADD_FRACTION"      // ❌ WRONG - separate operation
+  | "SUBTRACT_FRACTION" // ❌ WRONG - separate operation
+  | "MULTIPLY_FRACTION" // ❌ WRONG - separate operation
+  | "DIVIDE_FRACTION"    // ❌ WRONG - separate operation
+  | "COMPARE_FRACTION"  // ❌ WRONG - separate operation
+```
+
+**Problem:** Compiler CANNOT generate these tokens. Parser only generates "ADD", "SUBTRACT", etc.
+
+**Correct Implementation Needed:**
+```typescript
+// Registry should support overloading:
+export type Operation = "ADD" | "SUBTRACT" | "MULTIPLY" | "DIVIDE" | "COMPARE" | ...
+
+// Operation signature with multiple type support:
+export type OperationSignature = {
+  arity: number;
+  contracts: TypeConstraint[];  // Array of signatures for overloading
+  category: string;
+}
+
+const OPERATION_REGISTRY = {
+  ADD: {
+    contracts: [
+      { inputTypes: ["natural", "natural"], outputType: "natural" },
+      { inputTypes: ["fraction", "fraction"], outputType: "fraction" }, // NEW
+      { inputTypes: ["integer", "integer"], outputType: "integer" },    // NEW
+      { inputTypes: ["decimal", "decimal"], outputType: "decimal" }    // NEW
+    ],
+    category: "numeric"
+  }
+};
+```
+
+**Runtime Dispatch:**
+```typescript
+export function ADD(inputs: Array<{ id: string; value: unknown }>): DataType {
+  const [a, b] = inputs;
+  
+  // Dispatch based on input types
+  if (isFraction(a.value) && isFraction(b.value)) {
+    return addFractions(a.value as Fraction, b.value as Fraction);
+  }
+  if (isNatural(a.value) && isNatural(b.value)) {
+    return addNaturals(a.value as Natural, b.value as Natural);
+  }
+  if (isInteger(a.value) && isInteger(b.value)) {
+    return addIntegers(a.value as Integer, b.value as Integer);
+  }
+  if (isDecimal(a.value) && isDecimal(b.value)) {
+    return addDecimals(a.value as Decimal, b.value as Decimal);
+  }
+  
+  throw new Error(`ADD: Unsupported types ${a.kind}, ${b.kind}`);
+}
+```
+
+**Impact:** 
+- ❌ Fractions cannot be used in real programs (only work in unit tests)
+- ❌ Overloading pattern not established for Integer/Decimal
+- ❌ Integration tests fail (compiler → runtime broken)
+- ✅ Fraction type itself is correct
+
+**Action:** Task P0.2 remains valid and critical.
+
+---
+
+### Confirmed Issues from Previous Analysis
+
+The following issues from the 2026-03-13 analysis remain VALID and require fixing:
+
+1. **Nested Operations NOT HANDLED** (P0.1) - CRITICAL BLOCKER
+   - AST builder generates IDs but doesn't create TransformStatements
+   - `ADD(a, MULTIPLY(b, c))` fails with undefined reference
+
+2. **Temporal Operators BREAK DEMAND-DRIVEN** (P0.3) - CRITICAL
+   - FBY, NEXT, ACCUMULATE manually iterate generators
+   - Should use recursive `evaluate()` calls instead
+
+3. **IncrementalRuntime MISSING** (P0.4) - CRITICAL
+   - File doesn't exist
+   - Blocks WebSocket server implementation
+
+4. **Integer Operations MISSING** (P1.1)
+   - 0/6 operations implemented
+   - Needed for type system completeness
+
+5. **Decimal Operations MISSING** (P1.2)
+   - 0/6 operations implemented
+   - Needed for type system completeness
+
+6. **SetType Uses `unknown[]`** (P2.1, formerly P2.2)
+   - Should use generic `T[]` for type safety
+
+7. **Color Type Has Extra Values** (P2.2, formerly P2.3)
+   - Spec defines 6 colors: red, blue, yellow, green, orange, purple
+   - Implementation includes white, black (not in spec)
+
+---
+
+**Summary:** Fraction type is correct as-is. The critical issue is Fraction **operations**, not the type definition. P2.1 task removed from plan. All other P0-P2 tasks remain valid.
+
+---
+
 ## Current Implementation Status
 
 **Last Updated:** 2026-03-13 (Comprehensive analysis from 7 parallel subagents completed)
@@ -43,6 +191,7 @@ packages/
 
 **Critical Finding:** Previous assessment of ~79% was overly optimistic. Actual status is significantly lower due to:
 - Fraction operations incorrectly implemented (separate ops, not overloading)
+- **NOTE:** Fraction type definition is CORRECT per spec (uses `number`, not `Integer`)
 - Nested operations NOT handled (critical compiler blocker)
 - IncrementalRuntime missing (blocks Layer 7)
 - Temporal operators break demand-driven semantics
@@ -52,7 +201,7 @@ packages/
 
 | Component | Status | Completion | Critical Issues |
 |-----------|--------|------------|-----------------|
-| **Shared Package** | Partial | 67% | Fraction uses `number` not `Integer`, SetType uses `unknown[]` not `T[]`, Color has extra values |
+| **Shared Package** | Partial | 67% | Fraction type correct per spec (uses `number`), SetType uses `unknown[]` not `T[]`, Color has extra values |
 | **Compiler Package** | Partial | 70% | **NESTED OPERATIONS NOT HANDLED** (CRITICAL), Set/Object literal ambiguity, Literal ID mismatch, 3/8 validations missing |
 | **Runtime Package** | Partial | 65% | **IncrementalRuntime MISSING** (P0), Temporal operators break demand-driven, No Integer/Decimal operations |
 | **HTTP API Package** | Functional | 64% | No Elysia.t validation, no error middleware, returns 200 for validation errors |
@@ -1043,52 +1192,46 @@ objectLiteral: '{' identifier ':' literal+ '}'
 
 ### P2 MEDIUM (Quality Improvements & Completeness)
 
-#### Task P2.1: Fix Fraction Type Definition
+#### CLARIFICATION: Fraction Type Definition is CORRECT
 
-**File to update:** `packages/shared/src/types/primitives.ts`
+**Status:** ✅ VERIFIED - No changes needed
 
-**Why Important:**
-- **Breaks type system correctness** - Fraction uses `number` instead of `Integer`
-- Spec says numerator/denominator should be Integer type
-- Must fix before implementing Fraction operations
+**Finding:**
+After verifying the codebase against `specs/LANGUAGE_SPEC.md` lines 94-99, the current Fraction type definition is **CORRECT**:
 
-**Current Code:**
 ```typescript
+// Current implementation (packages/shared/src/types/primitives.ts lines 26-30)
 export type Fraction = {
   kind: "fraction";
-  numerator: number;    // WRONG - should be Integer
-  denominator: number;  // WRONG - should be Integer
+  numerator: number;    // ✅ CORRECT per spec
+  denominator: number;  // ✅ CORRECT per spec
 };
 ```
 
-**Should Be:**
+**Spec Confirmation:**
+The spec explicitly defines Fraction as using `number` type (not `Integer`):
+
 ```typescript
-export type Fraction = {
+// specs/LANGUAGE_SPEC.md lines 94-99
+type Fraction = {
   kind: "fraction";
-  numerator: Integer;
-  denominator: Integer;
+  numerator: number;    // ← Spec uses number
+  denominator: number;  // ← Spec uses number
 };
 ```
 
-**Estimated Time:** 0.5 hours
+**Rationale:**
+Using `number` (not `Integer`) for Fraction components is intentional:
+- Avoids circular type dependency (Fraction depends on Integer, Integer would depend on Fraction for division results)
+- Simpler implementation for educational context
+- All numeric types (Natural, Integer, Decimal, Fraction) use `number` internally
+- Type is validated by `kind: "fraction"` tag
 
-**Dependencies:** P0.2 (Fraction Overloading) - depends on when we refactor
-
-**Acceptance Criteria:**
-- ✓ Fraction type uses Integer for numerator/denominator
-- ✓ Typecheck passes
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 94-99
-
-**Ralph Wiggum Checklist:**
-- [ ] Fraction type updated to use Integer
-- [ ] Typecheck passes
-- [ ] Previous tests still pass
-- [ ] Git commit with message: "fix(types): use Integer type for Fraction numerator/denominator"
+**Action:** Remove P2.1 task - Fraction type is correct, no changes needed.
 
 ---
 
-#### Task P2.2: Fix SetType Generic Type
+#### Task P2.2: Fix SetType Generic Type (formerly P2.2)
 
 **File to update:** `packages/shared/src/types/composite.ts`
 
@@ -1445,22 +1588,21 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 | **P1.5: Fix Set/Object ambiguity** | P1 | NOT STARTED | 3h | HIGH - parser robustness | None |
 | **P1.6: Missing compiler validation** | P1 | NOT STARTED | 3h | HIGH - quality improvement | None |
 | **P1.7: Refactor HTTP API (Elysia)** | P1 | NOT STARTED | 11h | Quality & maintainability | None |
-| **P2.1: Fix Fraction type** | P2 | NOT STARTED | 0.5h | Type correctness | P0.2 |
-| **P2.2: Fix SetType generic** | P2 | NOT STARTED | 1h | Type safety | P1.4 |
-| **P2.3: Fix Color type** | P2 | NOT STARTED | 0.5h | Spec compliance | None |
-| **P2.4: Spanish error messages** | P2 | NOT STARTED | 3h | Better UX for ages 6-9 | P1.6 |
-| **P2.5: Improve SORT ops** | P2 | NOT STARTED | 2h | Improves functionality | P1.4 |
-| **P2.6: Fix DataType recursion** | P2 | NOT STARTED | 0.5h | Type safety | None |
+| **P2.1: Fix SetType generic** | P2 | NOT STARTED | 1h | Type safety | P1.4 |
+| **P2.2: Fix Color type** | P2 | NOT STARTED | 0.5h | Spec compliance | None |
+| **P2.3: Spanish error messages** | P2 | NOT STARTED | 3h | Better UX for ages 6-9 | P1.6 |
+| **P2.4: Improve SORT ops** | P2 | NOT STARTED | 2h | Improves functionality | P1.4 |
+| **P2.5: Fix DataType recursion** | P2 | NOT STARTED | 0.5h | Type safety | None |
 | **P3.1: WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | P0.4, P1.7 |
 | **P3.2: Execution trace** | P3 | NOT STARTED | 2h | Debugging support | None |
 | **P3.3: Add parallelism** | P3 | NOT STARTED | 3h | Performance | None |
-
+ 
 **Total Estimated Time:**
 - **P0 Tasks:** 23 hours
 - **P1 Tasks:** 29 hours
-- **P2 Tasks:** 10.5 hours
+- **P2 Tasks:** 10 hours (removed P2.1 - Fraction type is correct)
 - **P3 Tasks:** 17 hours
-- **Grand Total:** 79.5 hours
+- **Grand Total:** 79 hours
 
 ---
 
@@ -1538,7 +1680,7 @@ Focus on completing MVP - this requires finishing P0 and P1 tasks to enable Laye
     - Impact: Improves code quality and maintainability
 
 **P2-P3 Tasks (Post-MVP):**
-- P2.1-P2.6: Type fixes, Spanish messages, SORT improvements
+- P2.1-P2.5: Type fixes (SetType, Color), Spanish messages, SORT improvements, DataType recursion
 - P3.1-P3.3: WebSocket server, execution trace, parallelism
 
 ---
@@ -1660,17 +1802,41 @@ To achieve MVP, complete the following:
 
 ---
 
-## COMPREHENSIVE STUDY FINDINGS (2026-03-13)
+## COMPREHENSIVE STUDY FINDINGS (2026-03-14)
 
 ### Study Scope
-This implementation plan was updated based on a comprehensive analysis from 7 parallel subagents covering:
-1. **Type Definitions Analysis** (67% correct)
-2. **Operations Registry Analysis** (~60% coverage, critical pattern issues)
-3. **Compiler Package Analysis** (70% complete - NESTED OPS NOT IMPLEMENTED)
-4. **Runtime Package Analysis** (65% complete - temporal ops break demand-driven)
-5. **HTTP API Package Analysis** (64% complete - not best practice)
-6. **Test Coverage Analysis** (107 tests, 100% passing, but gaps)
-7. **WebSocket Server Package Analysis** (0% complete - directory empty)
+This implementation plan was updated based on:
+1. **Previous analysis (2026-03-13):** 7 parallel subagents covering:
+   - Type Definitions Analysis (67% correct)
+   - Operations Registry Analysis (~60% coverage, critical pattern issues)
+   - Compiler Package Analysis (70% complete - NESTED OPS NOT IMPLEMENTED)
+   - Runtime Package Analysis (65% complete - temporal ops break demand-driven)
+   - HTTP API Package Analysis (64% complete - not best practice)
+   - Test Coverage Analysis (107 tests, 100% passing, but gaps)
+   - WebSocket Server Package Analysis (0% complete - directory empty)
+
+2. **New verification (2026-03-14):** Direct code analysis to verify:
+   - Fraction type definition against spec (CORRECT per spec)
+   - Fraction operations implementation pattern (INCORRECT - needs overloading)
+   - Temporal operators demand-driven compliance (INCORRECT - manual iteration)
+   - Nested operations support (NOT IMPLEMENTED)
+   - IncrementalRuntime status (MISSING)
+
+### Key Updates from 2026-03-14 Verification
+
+**Fraction Type:** ✅ CORRECT - No changes needed
+- Verified against `specs/LANGUAGE_SPEC.md` lines 94-99
+- Spec explicitly uses `number` for numerator/denominator (not `Integer`)
+- Current implementation matches spec exactly
+- **Action:** Removed P2.1 task from plan
+
+**Fraction Operations:** ❌ INCORRECT PATTERN - Needs overloading
+- Current: Separate `ADD_FRACTION`, `SUBTRACT_FRACTION`, etc. operations
+- Issue: Compiler generates `ADD`, not `ADD_FRACTION`
+- Required: Single `ADD` operation with multiple type signatures
+- **Action:** P0.2 task remains valid and critical
+
+**All other findings from 2026-03-13 analysis remain VALID.**
 
 ### Key Findings
 
@@ -1727,12 +1893,12 @@ The comprehensive study revealed the accurate status:
 7. HTTP API: Doesn't follow Elysia best practices (P1.7)
 
 **P2 (MEDIUM):**
-1. Fraction type: Uses `number` instead of `Integer` (P2.1)
-2. SetType: Uses `unknown[]` instead of `T[]` (P2.2)
-3. Color type: Extra values (white, black) (P2.3)
-4. Spanish messages: Partial implementation (P2.4)
-5. SORT: Only works with numbers (P2.5)
-6. DataType recursion: Uses `string | DataType` (P2.6)
+1. ~~Fraction type: Uses `number` instead of `Integer`~~ **RESOLVED** - Fraction type is correct per spec (uses `number`)
+2. SetType: Uses `unknown[]` instead of `T[]` (P2.1)
+3. Color type: Extra values (white, black) (P2.2)
+4. Spanish messages: Partial implementation (P2.3)
+5. SORT: Only works with numbers (P2.4)
+6. DataType recursion: Uses `string | DataType` (P2.5)
 
 #### 4. Test Coverage ✅ EXCELLENT BUT GAPS
 **107 tests, 100% passing:**
