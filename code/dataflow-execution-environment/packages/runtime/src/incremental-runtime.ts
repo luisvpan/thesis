@@ -122,7 +122,7 @@ export class IncrementalRuntime {
         const result = this.evaluateNode(source.id, timestep);
         nodeStates.set(source.id, result.state);
 
-        if (result.state === "completed" && result.changedNodes) {
+        if (result.state.status === "completed" && result.changedNodes) {
           changedNodes.push(...result.changedNodes);
         }
       } catch (e) {
@@ -145,7 +145,8 @@ export class IncrementalRuntime {
     }
 
     try {
-      return this.evaluateNode(nodeId, 0);
+      const result = this.evaluateNode(nodeId, 0);
+      return result.state;
     } catch (e) {
       return { status: "error", error: (e as Error).message };
     }
@@ -178,71 +179,78 @@ export class IncrementalRuntime {
     if (outputNodes.length === 0) {
       return Array.from(this.subscriptions.keys())
         .map(id => this.graph.get(id)!)
-        .filter(n => n !== undefined)
-    );
+        .filter(n => n !== undefined);
+    }
 
     return outputNodes;
   }
 
   private evaluateNode(nodeId: string, time: number): { state: NodeState; value?: any; changedNodes: string[] } {
-    if (this.cache.has(nodeId, time)) {
-      const cached = this.cache.get(nodeId)!;
-      return { state: "completed", value: cached.get(time), changedNodes: [] };
+    const timeMap = this.cache.get(nodeId);
+    if (timeMap) {
+      const cached = timeMap.get(time);
+      if (cached !== undefined) {
+        return { state: { status: "completed", value: cached }, changedNodes: [] };
+      }
     }
 
     const node = this.graph.get(nodeId);
     if (!node) {
-      return { state: "error", error: `Node ${nodeId} not found` };
+      return { state: { status: "error", error: `Node ${nodeId} not found` }, changedNodes: [] };
     }
 
     try {
       if (node.type === "DataSource") {
         const value = node.value;
         const wrappedValue = this.wrapDataSourceValue(node, time);
-        this.cache.set(nodeId, time, new Map([[time, wrappedValue]]));
-        return { state: "completed", value: wrappedValue, changedNodes: [] };
+        this.cache.set(nodeId, new Map([[time, wrappedValue]]));
+        return { state: { status: "completed", value: wrappedValue }, changedNodes: [] };
       }
 
       if (node.type === "Output") {
-        const inputNodes = this.edges.filter(e => e.to === nodeId).map(e => e.from);
+        const inputEdges = Array.from(this.edges.values()).filter(e => e.to === nodeId);
+        const inputNodes = inputEdges.map(e => e.from);
         if (inputNodes.length === 0) {
-          return { state: "pending", missingInputs: [{ port: 0, nodeId: inputNodes[0].id, description: "output node needs input", childMessage: "⚠️ ¡Ups! El bloque de salida necesita una entrada" }] };
+          return { state: { status: "pending", missingInputs: [{ port: 0, nodeId: "", description: "output node needs input", childMessage: "⚠️ ¡Ups! El bloque de salida necesita una entrada" }] }, changedNodes: [] };
         }
 
-        const sourceNode = this.graph.get(inputNodes[0].id);
+        const sourceNode = this.graph.get(inputNodes[0]);
         if (!sourceNode) {
-          return { state: "pending", missingInputs: [{ port: 0, nodeId: inputNodes[0].id, description: "input not found", childMessage: `⚠️ ¡Ups! No encuentro el bloque "${inputNodes[0].id}".` }] };
+          return { state: { status: "pending", missingInputs: [{ port: 0, nodeId: inputNodes[0], description: "input not found", childMessage: `⚠️ ¡Ups! No encuentro el bloque "${inputNodes[0]}".` }] }, changedNodes: [] };
         }
 
         const sourceResult = this.evaluateNode(sourceNode.id, time);
-        if (sourceResult.state === "completed") {
-          this.cache.set(nodeId, time, new Map([[time, sourceResult.value]]));
-          return { state: "completed", value: sourceResult.value, changedNodes: sourceResult.changedNodes };
-        } else if (sourceResult.state === "pending") {
-          return { state: "pending", missingInputs: sourceResult.missingInputs };
+        if (sourceResult.state.status === "completed") {
+          this.cache.set(nodeId, new Map([[time, (sourceResult.state as any).value]]));
+          return { state: { status: "completed", value: sourceResult.value }, changedNodes: sourceResult.changedNodes };
+        } else if (sourceResult.state.status === "pending") {
+          return sourceResult;
         } else {
           return sourceResult;
         }
       }
 
       if (node.type === "Transformation") {
-        const inputNodes = this.edges.filter(e => e.to === nodeId).map(e => e.from);
+        const inputEdges = Array.from(this.edges.values()).filter(e => e.to === nodeId);
+        const inputNodes = inputEdges.map(e => e.from);
         if (inputNodes.length === 0) {
-          const missingInputs = this.extractMissingInputs(node, inputNodes);
-          return { state: "pending", missingInputs };
+          const signature = OPERATION_REGISTRY[node.operation as any];
+          const inputCount = signature?.contracts[0]?.arity || 0;
+          const missingInputs = this.createMissingInputs(node, inputCount);
+          return { state: { status: "pending", missingInputs }, changedNodes: [] };
         }
 
-        const evaluatedInputs = new Map();
+        const evaluatedInputs = new Map<string, any>();
         const missingInputsList: MissingInput[] = [];
         let allInputsComplete = true;
 
         for (let i = 0; i < inputNodes.length; i++) {
-          const inputNode = this.graph.get(inputNodes[i].id);
+          const inputNode = this.graph.get(inputNodes[i]);
           if (!inputNode) {
             allInputsComplete = false;
             missingInputsList.push({
               port: i,
-              nodeId: inputNodes[i].id,
+              nodeId: inputNodes[i],
               description: this.getInputDescription(node.operation, i),
               childMessage: this.getChildMessageForMissingInput(node.operation, i)
             });
@@ -251,39 +259,39 @@ export class IncrementalRuntime {
 
           try {
             const inputValue = this.evaluateNode(inputNode.id, time);
-            evaluatedInputs.set(inputNodes[i].id, inputValue);
+            evaluatedInputs.set(inputNodes[i], inputValue);
           } catch (e) {
             allInputsComplete = false;
             missingInputsList.push({
               port: i,
-              nodeId: inputNodes[i].id,
+              nodeId: inputNodes[i],
               description: `Error: ${e}`,
-              childMessage: "⚠️ ¡Ups! Hubo un error evaluando "${inputNodes[i].id}".`
+              childMessage: `⚠️ ¡Ups! Hubo un error evaluando "${inputNodes[i]}".`
             });
           }
         }
 
         if (missingInputsList.length > 0 || !allInputsComplete) {
-          return { state: "pending", missingInputs: missingInputsList };
+          return { state: { status: "pending", missingInputs: missingInputsList }, changedNodes: [] };
         }
 
         const signature = OPERATION_REGISTRY[node.operation as any];
-        const contract = signature.contracts[0];
+        const contract = signature?.contracts[0];
         const evaluatedInputsArray = Array.from(evaluatedInputs.values()).map(v => v.value);
 
         if (contract) {
           const result = this.executeOperation(node.operation, evaluatedInputsArray);
-          this.cache.set(nodeId, time, new Map([[time, result]]));
-          return { state: "completed", value: result, changedNodes: [] };
+          this.cache.set(nodeId, new Map([[time, result]]));
+          return { state: { status: "completed", value: result }, changedNodes: [] };
         } else {
           throw new Error(`Unknown operation: ${node.operation}`);
         }
       }
     } catch (e) {
-      return { state: "error", error: (e as Error).message };
+      return { state: { status: "error", error: (e as Error).message }, changedNodes: [] };
     }
 
-    return { state: "error", error: "Unknown node type: ${node.type}" };
+    return { state: { status: "error", error: "Unknown node type: ${node.type}" }, changedNodes: [] };
   }
 
   private wrapDataSourceValue(node: { type: "DataSource"; dataType: string | { kind: string; elementType?: any }; value: unknown }, time: number): any {
@@ -307,8 +315,8 @@ export class IncrementalRuntime {
         return { kind: "shape" as const, ...numValue as { type: string; size: string; color: string } };
       case "car":
         return { kind: "car" as const, ...numValue as { color: string } };
-      case "drone":
-        return { kind:food" as const, ...numValue as { taste: string; color: string } };
+      case "food":
+        return { kind: "food" as const, ...numValue as { taste: string; color: string } };
       case "animal":
         return { kind: "animal" as const, ...numValue as { type: string; color: string } };
       case "person":
@@ -364,17 +372,13 @@ export class IncrementalRuntime {
     const toInvalidate: string[] = [];
 
     for (const depId of dependents) {
-      for (let time = 0; time < 100; time++) {
-        if (this.cache.has(depId, time)) {
-          toInvalidate.push(depId);
-        }
+      if (this.cache.has(depId)) {
+        toInvalidate.push(depId);
       }
     }
 
     for (const id of toInvalidate) {
-      for (let time = 0; time < 100; time++) {
-        this.cache.delete(id, time);
-      }
+      this.cache.delete(id);
     }
   }
 
@@ -390,13 +394,13 @@ export class IncrementalRuntime {
     }
   }
 
-  private getCachedState(nodeId: string, time: number): { state: "completed"; value: any } | null {
+  private getCachedState(nodeId: string, time: number): NodeState | null {
     const timeMap = this.cache.get(nodeId);
     if (!timeMap) return null;
 
     for (const cachedTime of Array.from(timeMap.keys()).sort()) {
       if (cachedTime > time) continue;
-      return { state: "completed", value: timeMap.get(cachedTime) };
+      return { status: "completed", value: timeMap.get(cachedTime) };
     }
 
     return null;
@@ -415,8 +419,21 @@ export class IncrementalRuntime {
     }
   }
 
+  private createMissingInputs(node: { operation: string }, inputCount: number): MissingInput[] {
+    const missingInputs: MissingInput[] = [];
+    for (let i = 0; i < inputCount; i++) {
+      missingInputs.push({
+        port: i,
+        nodeId: "",
+        description: this.getInputDescription(node.operation, i),
+        childMessage: this.getChildMessageForMissingInput(node.operation, i)
+      });
+    }
+    return missingInputs;
+  }
+
   private getInputDescription(operation: string, inputIndex: number): string {
-    const childMessages: {
+    const childMessages: Record<string, any> = {
       ADD: {
         0: "número",
         1: "número"
@@ -447,7 +464,7 @@ export class IncrementalRuntime {
   }
 
   private getChildMessageForMissingInput(operation: string, inputIndex: number): string {
-    const operationMessages: {
+    const operationMessages: Record<string, string> = {
       ADD: "número",
       MULTIPLY: "número",
       SUBTRACT: "número",
@@ -455,10 +472,10 @@ export class IncrementalRuntime {
       COMPARE: "número"
     };
 
-    const typeMessages = {
+    const typeMessages: Record<string, string> = {
       FILTER_BY_COLOR: "color",
       FILTER_BY_SIZE: "tamaño",
-      FILTER_BY type: "tipo",
+      FILTER_BY_TYPE: "tipo",
       FILTER_BY_TASTE: "sabor",
       FILTER_BY_AGE_GROUP: "edad",
       FILTER_BY_GENDER: "género"
