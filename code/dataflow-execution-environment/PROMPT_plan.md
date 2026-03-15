@@ -65,7 +65,7 @@ IMPORTANT: Plan only. Do NOT implement anything. Do modify @IMPLEMENTATION_PLAN.
 
 ULTIMATE GOAL: We want to achieve a working dataflow programming language for 6-9 year old children that executes tangible block programs with correct demand-driven semantics and real-time AR feedback. Study @PROJECT_GOALS.md to learn the project goals.
 
-Consider missing elements and plan accordingly. If an element is missing, search first to confirm it doesn't exist, then if needed **author the specification at specs/FILENAME.md with acceptance criteria**. If you create a new spec then document the plan to implement it in @IMPLEMENTATION_PLAN.md using a subagent.
+Consider missing elements and plan accordingly. If an element is missing, search first to confirm it doesn't exist, then if needed **author the specification at specs/FILENAME.md with acceptance criteria**. If you create a new spec at specs/FILENAME.md then document the plan to implement it in @IMPLEMENTATION_PLAN.md using a subagent.
 
 ---
 
