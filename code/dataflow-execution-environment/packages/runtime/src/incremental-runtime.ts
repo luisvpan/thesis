@@ -1,5 +1,38 @@
 import type { DataflowNode, DataflowEdge, DataflowProgram, DataType } from "@dataflow/shared/types";
 import { OPERATION_REGISTRY } from "@dataflow/shared/operations";
+import {
+  ADD,
+  SUBTRACT,
+  MULTIPLY,
+  DIVIDE,
+  COMPARE
+} from "./operations/numeric.js";
+import { AND, OR, NOT } from "./operations/boolean.js";
+import {
+  COMPARE_BY_SIZE,
+  COMPARE_BY_COLOR,
+  COMPARE_BY_TYPE,
+  COMPARE_BY_TASTE,
+  COMPARE_BY_AGE_GROUP,
+  COMPARE_BY_GENDER
+} from "./operations/comparison.js";
+import {
+  FILTER,
+  FILTER_BY_SIZE,
+  FILTER_BY_COLOR,
+  FILTER_BY_TYPE,
+  FILTER_BY_TASTE,
+  FILTER_BY_AGE_GROUP,
+  FILTER_BY_GENDER
+} from "./operations/filtering.js";
+import {
+  UNION,
+  INTERSECTION,
+  DIFFERENCE,
+  COMPLEMENT,
+  SORT,
+  ALPHABETICAL_SORT
+} from "./operations/sets.js";
 
 export type NodeState =
   | { status: "completed"; value: any }
@@ -364,7 +397,92 @@ export class IncrementalRuntime {
   }
 
   private executeOperation(operation: string, inputs: unknown[]): unknown {
-    throw new Error(`Operation ${operation} not yet implemented`);
+    const signature = OPERATION_REGISTRY[operation as any];
+    if (!signature) {
+      throw new Error(`Unknown operation: ${operation}`);
+    }
+
+    const contract = signature.contracts.find(c => {
+      return c.inputTypes.every((inputType, i) => {
+        const input = inputs[i];
+        if (input === null || input === undefined) return false;
+
+        if (typeof inputType === 'string') {
+          return (input as any).kind === inputType;
+        }
+
+        if (typeof inputType === 'object') {
+          return (input as any).kind === (inputType as any).kind;
+        }
+
+        return false;
+      });
+    });
+
+    if (!contract) {
+      throw new Error(`No contract found for operation ${operation} with inputs ${inputs.map(i => (i as any).kind).join(', ')}`);
+    }
+
+    const wrappedInputs = inputs.map((value, index) => ({ id: `input_${index}`, value }));
+
+    switch (operation) {
+      case "ADD":
+        return ADD(wrappedInputs);
+      case "SUBTRACT":
+        return SUBTRACT(wrappedInputs);
+      case "MULTIPLY":
+        return MULTIPLY(wrappedInputs);
+      case "DIVIDE":
+        return DIVIDE(wrappedInputs);
+      case "COMPARE":
+        return COMPARE(wrappedInputs);
+      case "AND":
+        return AND(wrappedInputs);
+      case "OR":
+        return OR(wrappedInputs);
+      case "NOT":
+        return NOT(wrappedInputs);
+      case "COMPARE_BY_SIZE":
+        return COMPARE_BY_SIZE(wrappedInputs);
+      case "COMPARE_BY_COLOR":
+        return COMPARE_BY_COLOR(wrappedInputs);
+      case "COMPARE_BY_TYPE":
+        return COMPARE_BY_TYPE(wrappedInputs);
+      case "COMPARE_BY_TASTE":
+        return COMPARE_BY_TASTE(wrappedInputs);
+      case "COMPARE_BY_AGE_GROUP":
+        return COMPARE_BY_AGE_GROUP(wrappedInputs);
+      case "COMPARE_BY_GENDER":
+        return COMPARE_BY_GENDER(wrappedInputs);
+      case "FILTER":
+        return FILTER(wrappedInputs);
+      case "FILTER_BY_SIZE":
+        return FILTER_BY_SIZE(wrappedInputs);
+      case "FILTER_BY_COLOR":
+        return FILTER_BY_COLOR(wrappedInputs);
+      case "FILTER_BY_TYPE":
+        return FILTER_BY_TYPE(wrappedInputs);
+      case "FILTER_BY_TASTE":
+        return FILTER_BY_TASTE(wrappedInputs);
+      case "FILTER_BY_AGE_GROUP":
+        return FILTER_BY_AGE_GROUP(wrappedInputs);
+      case "FILTER_BY_GENDER":
+        return FILTER_BY_GENDER(wrappedInputs);
+      case "UNION":
+        return UNION(wrappedInputs);
+      case "INTERSECTION":
+        return INTERSECTION(wrappedInputs);
+      case "DIFFERENCE":
+        return DIFFERENCE(wrappedInputs);
+      case "COMPLEMENT":
+        return COMPLEMENT(wrappedInputs);
+      case "SORT":
+        return SORT(wrappedInputs);
+      case "ALPHABETICAL_SORT":
+        return ALPHABETICAL_SORT(wrappedInputs);
+      default:
+        throw new Error(`Unknown operation: ${operation}`);
+    }
   }
 
   private invalidateDependentCache(nodeId: string): void {
