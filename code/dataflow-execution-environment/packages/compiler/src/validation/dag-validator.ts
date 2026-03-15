@@ -160,6 +160,24 @@ export class DagValidator {
             example = `[número 5] + [número 3] ✅`;
           }
 
+          if (stmt.operation.startsWith("FILTER_BY_") || stmt.operation.startsWith("COMPARE_BY_")) {
+            const property = stmt.operation.split("_BY_")[1].toLowerCase();
+            childMessage = `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita elementos con propiedad '${property}'.`;
+            suggestion = `Usa un tipo que tenga propiedad '${property}'.`;
+            example = `set<tipo con ${property}> → filtrados ✅`;
+          }
+
+          errors.push({
+            code: "TYPE_ERROR",
+            message: stmt.operation.startsWith("FILTER_BY_") || stmt.operation.startsWith("COMPARE_BY_") 
+              ? `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}] - missing '${stmt.operation.split("_BY_")[1].toLowerCase()}' property` 
+              : `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}]`,
+            nodeId: stmt.id,
+            childMessage,
+            suggestion,
+            example
+          });
+
           errors.push({
             code: "TYPE_ERROR",
             message: `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}]`,
@@ -362,14 +380,14 @@ export class DagValidator {
     }
 
     if (expectedType.kind === "set" || expectedType.kind === "stream") {
-      const expectedElementStr = expectedType.elementType;
+      const expectedElementStr = typeof expectedType.elementType === "string" ? expectedType.elementType : (expectedType.elementType as DataType).kind;
 
       if (actualElementStr !== expectedElementStr) {
         return false;
       }
 
       if (expectedType.kind === "set") {
-        return this.validatePropertyConstraints(expectedType.elementType, operation);
+        return this.validatePropertyConstraints(expectedElementStr, operation);
       }
 
       return true;

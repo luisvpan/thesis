@@ -114,14 +114,18 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
 
   COMPARE_BY_COLOR: {
     contracts: [
-      { arity: 2, inputTypes: ["shape", "shape"], outputType: "boolean", category: "comparison" }
+      { arity: 2, inputTypes: ["shape", "shape"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["car", "car"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["food", "food"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["animal", "animal"], outputType: "boolean", category: "comparison" }
     ],
     category: "comparison"
   },
 
   COMPARE_BY_TYPE: {
     contracts: [
-      { arity: 2, inputTypes: ["shape", "shape"], outputType: "boolean", category: "comparison" }
+      { arity: 2, inputTypes: ["shape", "shape"], outputType: "boolean", category: "comparison" },
+      { arity: 2, inputTypes: ["animal", "animal"], outputType: "boolean", category: "comparison" }
     ],
     category: "comparison"
   },
@@ -163,14 +167,18 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
 
   FILTER_BY_COLOR: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, "text"], outputType: { kind: "set", elementType: "car" } as DataType, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, "text"], outputType: { kind: "set", elementType: "food" } as DataType, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, "text"], outputType: { kind: "set", elementType: "animal" } as DataType, category: "filtering" }
     ],
     category: "filtering"
   },
 
   FILTER_BY_TYPE: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, "text"], outputType: { kind: "set", elementType: "animal" } as DataType, category: "filtering" }
     ],
     category: "filtering"
   },
@@ -198,28 +206,48 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
 
   UNION: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
     ],
     category: "sets"
   },
 
   INTERSECTION: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
     ],
     category: "sets"
   },
 
   DIFFERENCE: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
     ],
     category: "sets"
   },
 
   COMPLEMENT: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
     ],
     category: "sets"
   },
@@ -310,12 +338,49 @@ export function resolveOperationSignature(operation: string, inputTypes: DataTyp
           break;
         }
         if (typeof actual === "object" && actual !== null) {
-          const actualObj = actual as { kind: string };
+          const actualObj = actual as { kind: string; elementType?: string };
           const expectedObj = expected as string;
           if (actualObj.kind !== expectedObj) {
             matches = false;
             break;
           }
+          if (actualObj.elementType) {
+            const expectedWithElement = `${actualObj.kind}<${actualObj.elementType}>`;
+            if (expected !== expectedWithElement) {
+              matches = false;
+              break;
+            }
+          }
+        }
+      } else if (typeof actual === "string") {
+        const expectedObj = expected as { kind: string; elementType?: string };
+        const actualStr = actual as string;
+        if (actualStr !== expectedObj.kind) {
+          matches = false;
+          break;
+        }
+        if (expectedObj.elementType) {
+          const actualWithElement = actualStr;
+          if (!actualWithElement.includes(`<${expectedObj.elementType}>`)) {
+            matches = false;
+            break;
+          }
+        }
+      } else {
+        const expectedObj = expected as { kind: string; elementType?: string };
+        const actualObj = actual as { kind: string; elementType?: string };
+        if (expectedObj.kind !== actualObj.kind) {
+          matches = false;
+          break;
+        }
+        if (expectedObj.elementType && actualObj.elementType) {
+          if (expectedObj.elementType !== actualObj.elementType) {
+            matches = false;
+            break;
+          }
+        } else if (expectedObj.elementType || actualObj.elementType) {
+          matches = false;
+          break;
         }
       }
     }
