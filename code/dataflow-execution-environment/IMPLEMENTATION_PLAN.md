@@ -2364,6 +2364,12 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 
 | Task | Priority | Status | Time | Impact | Dependencies |
 |------|----------|--------|------|--------|--------------|
+| **T0: Implement executeOperation in IncrementalRuntime** | 🔥 P0 | NOT STARTED | 2h | **CRITICAL** | +40 | None |
+| **T1: Create test utilities for shared runtime tests** | 🔥 P0 | NOT STARTED | 1.5h | **HIGH** | +50 | T0 |
+| **T2: Extract shared tests from runtime.test.ts** | 🎯 P1 | NOT STARTED | 3h | **HIGH** | 0 | T0, T1 |
+| **T3: Create IncrementalRuntime-specific tests** | 🎯 P1 | NOT STARTED | 4h | **CRITICAL** | +40 | T0 |
+| **T4: Reorganize integration tests** | 🔧 P2 | NOT STARTED | 5h | **MEDIUM** | 0 | T2, T3 |
+| **T5: Update batch runtime tests** | 🔧 P2 | NOT STARTED | 2h | **MEDIUM** | 0 | T2 |
 | **P0.0: Temporal ops return wrapped values** | P0 | NOT STARTED | 5m | **CRITICAL** | +2 | None |
 | **P0.1: Compiler validation order** | P0 | NOT STARTED | 10m | **CRITICAL** | +2 | None |
 | **P0.2: Integer operations** | P0 | NOT STARTED | 1.5h | **CRITICAL - MVP** | +2 | None |
@@ -2379,18 +2385,20 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 | **P2.2: Fix Color type** | P2 | NOT STARTED | 0.5h | Spec compliance | 0 | None |
 | **P2.3: Improve SORT ops** | P2 | NOT STARTED | 2h | Functionality | +2 | P1.2 |
 | **P2.4: Fix DataType recursion** | P2 | NOT STARTED | 0.5h | Type safety | 0 | None |
-| **P3.1: WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | +12 | P0.4, P1.6 |
+| **P3.1: WebSocket Server** | P3 | NOT STARTED | 12h | IDE live feedback | +12 | P0.4, T0, T3 |
 | **P3.2: Execution trace** | P3 | NOT STARTED | 2h | Debugging | 0 | None |
 | **P3.3: Add parallelism** | P3 | NOT STARTED | 3h | Performance | 0 | None |
 
 **Total Estimated Time:**
+- **T Tasks (Test Reorganization):** 17.5 hours (6 tasks)
 - **P0 Tasks:** ~5.5 hours (2 new quick wins + 3 major tasks)
 - **P1 Tasks:** 27 hours
 - **P2 Tasks:** 6 hours
 - **P3 Tasks:** 17 hours
-- **Grand Total:** ~55.5 hours
+- **Grand Total:** ~73 hours
 
 **Test Impact Estimates:**
+- Completing T0-T3: +90 tests (40 incremental + 50 shared, 124→214 tests)
 - Completing P0.0-P0.4: +9 tests passing (99→108/118, 84.6%→91.5%)
 - Completing P1.1-P1.5: +10 tests passing (108→118/118, 91.5%→100%)
 
@@ -2477,7 +2485,635 @@ To achieve MVP, complete the following:
 
 ---
 
-## NEXT STEPS (UPDATED 2026-03-14)
+## 🆕 NEW PRIORITY: Test Reorganization Between Batch and Incremental Runtimes (2026-03-15)
+
+### Critical Issue Identified
+
+**Problem:** Incremental runtime has 0 tests while normal runtime has 25 tests, and there's no clear separation of shared vs specific tests.
+
+**Current State:**
+- **Runtime (batch mode):** 25 tests in `packages/runtime/src/runtime.test.ts`
+- **IncrementalRuntime (incremental mode):** 0 tests (NO TEST FILE EXISTS)
+- **Integration tests:** 20 test files in `packages/tests/`, ALL using batch Runtime exclusively
+- **executeOperation()** in IncrementalRuntime is a stub that throws "not yet implemented"
+
+**Key Findings from Subagent Analysis:**
+
+1. **Shared Functionality (~70% of code):**
+   - Demand-driven evaluation (both use identical semantics)
+   - Program loading (both use DataflowProgram)
+   - Caching/memoization (both cache results)
+   - Operation execution (both need to execute same operations)
+   - Temporal operators (FBY, NEXT, FIRST, ACCUMULATE)
+   - Data type wrapping (natural, integer, decimal, fraction, etc.)
+   - Time parameter support (both handle temporal evaluation)
+
+2. **Batch Runtime Unique (30%):**
+   - Complete program requirement (rejects incomplete programs)
+   - Output-node driven demand (evaluates only from output nodes)
+   - Simple execution model (execute() returns array of outputs)
+   - Error handling (throws exceptions on errors)
+   - Graph reset on load (creates new graph each time)
+
+3. **IncrementalRuntime Unique (70%):**
+   - Partial graph support (accepts incomplete programs)
+   - Subscription-based demand (external code subscribes to nodes)
+   - Node state tracking (completed/pending/processing/error)
+   - Incremental updates (updateGraph with delta)
+   - Dependency tracking (maintains graph of dependencies)
+   - Cache invalidation (smart invalidation of dependent nodes)
+   - Notification system (pub/sub for change notifications)
+   - Missing input detection (returns "pending" instead of errors)
+   - Child-friendly Spanish error messages
+   - Partial evaluation (evaluatePartial() returns PartialEvaluation)
+
+### Proposed Test Structure
+
+```
+packages/tests/src/
+├── shared/                      # Tests for BOTH runtimes
+│   ├── arithmetic.test.ts      # ADD, SUBTRACT, MULTIPLY, DIVIDE
+│   ├── fractions.test.ts        # Fraction operations
+│   ├── sets.test.ts             # UNION, SORT, FILTER
+│   ├── temporal.test.ts         # FBY, FIRST, NEXT
+│   ├── curriculum.test.ts       # Shapes, comparisons
+│   ├── demand-driven.test.ts    # Core semantics (unreferenced, no-outputs)
+│   └── errors-runtime.test.ts  # Runtime errors (division by zero)
+│
+├── batch/                       # Batch Runtime specific tests
+│   ├── execution.test.ts        # Full execution, all outputs at once
+│   └── performance.test.ts      # Batch performance benchmarks
+│
+├── incremental/                 # Incremental Runtime specific tests
+│   ├── partial-evaluation.test.ts    # Partial graphs, pending states
+│   ├── subscriptions.test.ts         # Subscribe/unsubscribe
+│   ├── graph-updates.test.ts         # Add/remove nodes/edges
+│   ├── incremental-recompute.test.ts  # Re-evaluate only changed nodes
+│   ├── missing-inputs.test.ts        # Handle missing connections
+│   ├── notifications.test.ts         # State change callbacks
+│   └── cache-invalidation.test.ts    # Cache management
+│
+├── compiler/                    # Compiler-only tests (shared)
+│   ├── type-validation.test.ts  # Type checking
+│   ├── cycle-detection.test.ts  # Cycle detection
+│   ├── performance.test.ts      # Compilation performance
+│   └── ast-structure.test.ts    # AST/graph structure
+│
+└── index.ts                     # Entry point
+```
+
+### Implementation Tasks
+
+#### Task T0: Implement executeOperation() in IncrementalRuntime (CRITICAL BLOCKER)
+
+**Priority:** 🔥 P0 URGENT
+**Estimated Time:** 2 hours
+**Impact:** Unblocks ALL incremental runtime tests
+
+**File:** `packages/runtime/src/incremental-runtime.ts` line 366-368
+
+**Current State:**
+```typescript
+private executeOperation(operation: string, inputs: unknown[]): unknown {
+  throw new Error(`Operation ${operation} not yet implemented`);
+}
+```
+
+**Required Implementation:**
+```typescript
+private executeOperation(operation: string, inputs: unknown[]): unknown {
+  const signature = OPERATION_REGISTRY[operation as any];
+  if (!signature) {
+    throw new Error(`Unknown operation: ${operation}`);
+  }
+
+  // Find matching contract based on input types
+  const contract = signature.contracts.find(c => {
+    return c.inputs.every((inputType, i) => {
+      const input = inputs[i];
+      if (input === null || input === undefined) return false;
+      
+      // Check type match
+      if (typeof inputType === 'string') {
+        return (input as any).kind === inputType;
+      }
+      
+      // Handle composite types
+      if (typeof inputType === 'object') {
+        return (input as any).kind === (inputType as any).kind;
+      }
+      
+      return false;
+    });
+  });
+
+  if (!contract) {
+    throw new Error(`No contract found for operation ${operation} with inputs ${inputs.map(i => (i as any).kind).join(', ')}`);
+  }
+
+  // Execute operation using registry
+  return signature.implementation(inputs);
+}
+```
+
+**Acceptance Criteria:**
+- ✓ executeOperation() no longer throws "not yet implemented"
+- ✓ All arithmetic operations work (ADD, SUBTRACT, MULTIPLY, DIVIDE)
+- ✓ All fraction operations work
+- ✓ All set operations work (UNION, INTERSECTION, etc.)
+- ✓ All filter operations work (FILTER_BY_COLOR, etc.)
+- ✓ All temporal operations work (FBY, NEXT, FIRST, ACCUMULATE)
+- ✓ Type checking enforced at runtime
+- ✓ TypeScript typecheck passes
+
+**Dependencies:** None
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` operations section
+
+**Ralph Wiggum Checklist:**
+- [ ] executeOperation() implemented
+- [ ] All operations work correctly
+- [ ] Type checking enforced
+- [ ] TypeScript typecheck passes
+- [ ] Unit tests for executeOperation() pass
+- [ ] Git commit: "feat(incremental-runtime): implement executeOperation method"
+
+---
+
+#### Task T1: Create Test Utilities for Shared Runtime Tests
+
+**Priority:** 🔥 P0 URGENT
+**Estimated Time:** 1.5 hours
+**Impact:** Enables shared tests between runtimes
+
+**Files to Create:**
+- `packages/runtime/src/test-utils/runtime-factory.ts`
+- `packages/runtime/src/test-utils/test-fixtures.ts`
+- `packages/runtime/src/test-utils/test-helpers.ts`
+
+**Purpose:** Create utilities to run same tests with both Runtime and IncrementalRuntime
+
+**Example Implementation:**
+```typescript
+// test-utils/runtime-factory.ts
+import { Runtime } from '../runtime';
+import { IncrementalRuntime } from '../incremental-runtime';
+import type { DataflowProgram } from '@dataflow/shared/types';
+
+export type RuntimeInstance = Runtime | IncrementalRuntime;
+
+export interface RuntimeTestContext {
+  runtime: RuntimeInstance;
+  loadProgram: (program: DataflowProgram) => void;
+  execute: (time?: number) => unknown[] | { nodeStates: Map<string, any>; changedNodes: string[] };
+  getOutput: (nodeId: string, time?: number) => any;
+}
+
+export function createRuntimeContext(runtimeType: 'batch' | 'incremental'): RuntimeTestContext {
+  const runtime = runtimeType === 'batch' ? new Runtime() : new IncrementalRuntime();
+
+  return {
+    runtime,
+    loadProgram: (program: DataflowProgram) => {
+      runtime.loadProgram(program);
+    },
+    execute: (time?: number) => {
+      if (runtimeType === 'batch') {
+        return (runtime as Runtime).execute();
+      } else {
+        return (runtime as IncrementalRuntime).evaluatePartial(time || 0);
+      }
+    },
+    getOutput: (nodeId: string, time?: number) => {
+      if (runtimeType === 'batch') {
+        const outputs = (runtime as Runtime).execute();
+        return outputs[0]; // Simplified
+      } else {
+        const state = (runtime as IncrementalRuntime).getNodeState(nodeId);
+        return state.status === 'completed' ? state.value : null;
+      }
+    }
+  };
+}
+
+export function describeWithBothRuntimes(
+  name: string,
+  testFn: (context: RuntimeTestContext) => void
+) {
+  describe(`${name} (Batch Runtime)`, () => {
+    const context = createRuntimeContext('batch');
+    testFn(context);
+  });
+
+  describe(`${name} (Incremental Runtime)`, () => {
+    const context = createRuntimeContext('incremental');
+    testFn(context);
+  });
+}
+```
+
+**Acceptance Criteria:**
+- ✓ createRuntimeContext() works for both runtimes
+- ✓ describeWithBothRuntimes() runs tests with both runtimes
+- ✓ Test fixtures defined (simple programs, complex programs)
+- ✓ Test helpers defined (assertions, comparison utilities)
+- ✓ TypeScript typecheck passes
+
+**Dependencies:** T0 (executeOperation must be implemented first)
+
+**Ralph Wiggum Checklist:**
+- [ ] Runtime test utilities created
+- [ ] Test factories work for both runtimes
+- [ ] Test fixtures defined
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(runtime): create shared test utilities for both runtimes"
+
+---
+
+#### Task T2: Extract Shared Tests from runtime.test.ts
+
+**Priority:** 🎯 P1 HIGH
+**Estimated Time:** 3 hours
+**Impact:** Reduces duplication, ensures both runtimes tested
+
+**Files to Modify:**
+- `packages/runtime/src/runtime.test.ts` (extract operation tests)
+- `packages/tests/src/shared/arithmetic.test.ts` (NEW - create)
+- `packages/tests/src/shared/fractions.test.ts` (NEW - create)
+- `packages/tests/src/shared/sets.test.ts` (NEW - create)
+- `packages/tests/src/shared/temporal.test.ts` (NEW - create)
+- `packages/tests/src/shared/curriculum.test.ts` (NEW - create)
+
+**Tests to Extract to Shared:**
+From runtime.test.ts (lines 120-662):
+1. ✅ ADD operation (lines 120-145)
+2. ✅ SUBTRACT operation (lines 147-172)
+3. ✅ MULTIPLY operation (lines 174-199)
+4. ✅ DIVIDE operation (lines 201-226)
+5. ✅ COMPARE operations (lines 253-332)
+6. ✅ Complex expression (3 + 2) * (10 - 6) (lines 334-367)
+7. ✅ Fraction ADD (lines 370-395)
+8. ✅ Fraction ADD simplifies to whole number (lines 397-422)
+9. ✅ Fraction SUBTRACT (lines 424-449)
+10. ✅ Fraction MULTIPLY (lines 451-476)
+11. ✅ Fraction DIVIDE (lines 478-503)
+12. ✅ Fraction COMPARE equal (lines 505-530)
+13. ✅ Fraction COMPARE different (lines 532-557)
+14. ✅ Fraction simplification (lines 559-584)
+15. ✅ Fraction negative results (lines 586-611)
+16. ✅ Fraction division by zero (lines 613-636)
+17. ✅ Fraction zero denominator (lines 638-662)
+
+**Implementation:**
+```typescript
+// packages/tests/src/shared/arithmetic.test.ts
+import { describe, it, expect } from 'bun:test';
+import { describeWithBothRuntimes, createRuntimeContext } from '../../../runtime/src/test-utils/runtime-factory';
+import type { DataflowProgram } from '@dataflow/shared/types';
+
+describeWithBothRuntimes('Arithmetic Operations - ADD', (context) => {
+  it('should execute ADD operation', () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test' },
+      graph: {
+        nodes: [
+          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
+          { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
+          { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
+          { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
+        ],
+        edges: [
+          { id: 'e1', from: 'a', to: 'add', toPort: 0 },
+          { id: 'e2', from: 'b', to: 'add', toPort: 1 },
+          { id: 'e3', from: 'add', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = context.getOutput('result');
+
+    expect(result).toEqual({ kind: 'natural', value: 5 });
+  });
+
+  // ... other arithmetic tests
+});
+```
+
+**Acceptance Criteria:**
+- ✓ All 17 operation tests extracted from runtime.test.ts to shared files
+- ✓ Tests parameterized to run with both runtimes
+- ✓ All tests pass for both runtimes
+- ✓ Original runtime.test.ts still passes (batch-specific tests remain)
+- ✓ TypeScript typecheck passes
+
+**Dependencies:** T0 (executeOperation), T1 (test utilities)
+
+**Ralph Wiggum Checklist:**
+- [ ] Operation tests extracted to shared files
+- [ ] Tests parameterized for both runtimes
+- [ ] All tests pass for both runtimes
+- [ ] Original runtime.test.ts still passes
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(runtime): extract shared operation tests"
+
+---
+
+#### Task T3: Create IncrementalRuntime-Specific Tests
+
+**Priority:** 🎯 P1 HIGH
+**Estimated Time:** 4 hours
+**Impact:** Critical for incremental functionality verification
+
+**Files to Create:**
+- `packages/runtime/src/incremental-runtime.test.ts` (NEW - main file)
+
+**Test Categories:**
+
+**A. Subscription System Tests:**
+```typescript
+describe('IncrementalRuntime - Subscriptions', () => {
+  it('should register subscription to a node');
+  it('should unregister subscription from a node');
+  it('should notify subscribers on value changes');
+  it('should handle multiple subscribers to same node');
+  it('should clean up when no subscribers remain');
+});
+```
+
+**B. Partial Evaluation Tests:**
+```typescript
+describe('IncrementalRuntime - Partial Evaluation', () => {
+  it('should return empty result with no demand sources');
+  it('should evaluate subscribed nodes');
+  it('should evaluate output nodes');
+  it('should evaluate both outputs and subscriptions');
+  it('should return completed state for successfully evaluated nodes');
+  it('should return pending state for nodes with missing inputs');
+  it('should return error state for evaluation errors');
+});
+```
+
+**C. Missing Input Handling Tests:**
+```typescript
+describe('IncrementalRuntime - Missing Inputs', () => {
+  it('should detect missing input port');
+  it('should create MissingInput with correct port number');
+  it('should provide child-friendly error messages');
+  it('should cascade pending states through dependencies');
+  it('should differentiate between missing inputs and evaluation errors');
+  it('should report multiple missing inputs');
+});
+```
+
+**D. Graph Updates Tests:**
+```typescript
+describe('IncrementalRuntime - Graph Updates', () => {
+  it('should add nodes to graph');
+  it('should remove nodes from graph');
+  it('should add edges to graph');
+  it('should remove edges from graph');
+  it('should invalidate cache when nodes added');
+  it('should invalidate cache when nodes removed');
+  it('should notify subscribers of changed nodes');
+  it('should rebuild dependency graph on updates');
+});
+```
+
+**E. Cache Invalidation Tests:**
+```typescript
+describe('IncrementalRuntime - Cache Invalidation', () => {
+  it('should invalidate node cache when source changes');
+  it('should invalidate dependent nodes recursively');
+  it('should preserve cache for unaffected nodes');
+  it('should clear cache on program reload');
+});
+```
+
+**F. Demand-Driven Semantics Tests:**
+```typescript
+describe('IncrementalRuntime - Demand-Driven', () => {
+  it('should not evaluate nodes without demand');
+  it('should only evaluate subscribed nodes');
+  it('should only evaluate output nodes when subscribed');
+  it('should skip evaluation of unreferenced subtrees');
+});
+```
+
+**G. State Transitions Tests:**
+```typescript
+describe('IncrementalRuntime - State Transitions', () => {
+  it('should transition from pending to completed when inputs added');
+  it('should transition from completed to pending when input removed');
+  it('should transition from pending to error on evaluation error');
+  it('should track changed nodes in PartialEvaluation');
+});
+```
+
+**Acceptance Criteria:**
+- ✓ All 7 test categories implemented (35+ tests total)
+- ✓ All tests pass
+- ✓ Demand-driven semantics verified
+- ✓ Subscription system tested thoroughly
+- ✓ Cache invalidation verified
+- ✓ Child-friendly Spanish messages verified
+- ✓ TypeScript typecheck passes
+
+**Dependencies:** T0 (executeOperation)
+
+**Spec Reference:**
+- `specs/INTEGRATION_SPEC.md` lines 365-771 (Incremental Runtime section)
+- `specs/DEMAND_DRIVEN_INCREMENTAL.md`
+
+**Ralph Wiggum Checklist:**
+- [ ] All 7 test categories implemented
+- [ ] 35+ tests created for IncrementalRuntime
+- [ ] All tests pass
+- [ ] Demand-driven semantics verified
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(incremental-runtime): create comprehensive test suite"
+
+---
+
+#### Task T4: Reorganize Integration Tests
+
+**Priority:** 🔧 P2 MEDIUM
+**Estimated Time:** 5 hours
+**Impact:** Better test organization, clearer separation of concerns
+
+**Files to Reorganize:**
+Move existing integration tests from `packages/tests/src/*` to new structure:
+
+```typescript
+// Current structure:
+packages/tests/src/
+├── end-to-end/
+│   ├── arithmetic.test.ts
+│   ├── nested-operations.test.ts
+│   ├── inline-nested-operations.test.ts
+│   └── types.test.ts
+├── integration/
+│   └── fractions.test.ts
+├── curriculum/
+│   ├── shapes.test.ts
+│   └── comparison.test.ts
+├── sets/
+│   ├── union.test.ts
+│   └── filter-sort.test.ts
+├── temporal/
+│   ├── fby.test.ts
+│   └── streams.test.ts
+├── demand-driven/
+│   ├── unreferenced.test.ts
+│   └── no-outputs.test.ts
+├── errors/
+│   ├── division-zero.test.ts
+│   └── cycles.test.ts
+├── performance/
+│   ├── compilation.test.ts
+│   └── execution.test.ts
+├── types/
+│   ├── properties.test.ts
+│   └── validation.test.ts
+└── test-inline-nested.test.ts
+
+// Target structure:
+packages/tests/src/
+├── shared/
+│   ├── arithmetic.test.ts      (from end-to-end/arithmetic.test.ts)
+│   ├── fractions.test.ts        (from integration/fractions.test.ts)
+│   ├── sets.test.ts             (from sets/union.test.ts, sets/filter-sort.test.ts)
+│   ├── temporal.test.ts         (from temporal/fby.test.ts, temporal/streams.test.ts)
+│   ├── curriculum.test.ts       (from curriculum/shapes.test.ts, curriculum/comparison.test.ts)
+│   ├── demand-driven.test.ts    (from demand-driven/unreferenced.test.ts, demand-driven/no-outputs.test.ts)
+│   └── errors-runtime.test.ts  (from errors/division-zero.test.ts)
+│
+├── batch/
+│   ├── execution.test.ts        (from performance/execution.test.ts)
+│   └── full-program.test.ts    (from end-to-end/nested-operations.test.ts)
+│
+├── compiler/
+│   ├── type-validation.test.ts  (from types/validation.test.ts)
+│   ├── cycle-detection.test.ts  (from errors/cycles.test.ts)
+│   ├── performance.test.ts      (from performance/compilation.test.ts)
+│   └── ast-structure.test.ts    (from end-to-end/types.test.ts)
+│
+└── incremental/                 (empty - tests in Task T3)
+    ├── partial-evaluation.test.ts
+    ├── subscriptions.test.ts
+    ├── graph-updates.test.ts
+    ├── incremental-recompute.test.ts
+    ├── missing-inputs.test.ts
+    ├── notifications.test.ts
+    └── cache-invalidation.test.ts
+```
+
+**Acceptance Criteria:**
+- ✓ All existing integration tests moved to appropriate directories
+- ✓ Tests reorganized by scope (shared, batch, incremental, compiler)
+- ✓ All tests still pass after reorganization
+- ✓ TypeScript typecheck passes
+- ✓ No test files lost or duplicated
+
+**Dependencies:** T2 (extract shared tests), T3 (incremental tests)
+
+**Ralph Wiggum Checklist:**
+- [ ] All integration tests reorganized
+- [ ] Clear separation of shared vs specific tests
+- [ ] All tests pass after reorganization
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(reorg): reorganize integration tests by runtime type"
+
+---
+
+#### Task T5: Update Batch Runtime Tests
+
+**Priority:** 🔧 P2 MEDIUM
+**Estimated Time:** 2 hours
+**Impact:** Clear batch-specific test coverage
+
+**File:** `packages/runtime/src/runtime.test.ts`
+
+**Tests to Keep (Batch-Specific):**
+```typescript
+describe('Runtime - Program Loading', () => {
+  it('should load a simple program');
+  it('should load program with multiple nodes');
+  it('should replace previous program when loading new one');
+});
+
+describe('Runtime - Execution', () => {
+  it('should return empty array for program with no output nodes');
+  it('should execute simple output node');
+});
+
+describe('Runtime - Batch Execution', () => {
+  it('should throw error for division by zero');
+  it('should execute complete program and return all outputs');
+  it('should handle complex programs with multiple outputs');
+  it('should preserve demand-driven evaluation order');
+});
+```
+
+**Acceptance Criteria:**
+- ✓ runtime.test.ts contains only batch-specific tests
+- ✓ Operation tests removed (moved to shared)
+- ✓ All batch-specific tests pass
+- ✓ TypeScript typecheck passes
+
+**Dependencies:** T2 (extract shared tests)
+
+**Ralph Wiggum Checklist:**
+- [ ] Batch-specific tests remain in runtime.test.ts
+- [ ] Operation tests removed
+- [ ] All batch tests pass
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(runtime): update runtime.test.ts for batch-specific tests"
+
+---
+
+### Test Reorganization Summary
+
+**Current Test Coverage:**
+- **Runtime (batch):** 25 tests in runtime.test.ts
+- **IncrementalRuntime:** 0 tests (NO TEST FILE)
+- **Integration tests:** 20 test files, all using batch Runtime
+- **Total tests:** 124 (100% pass rate as of 2026-03-14)
+
+**After Reorganization:**
+- **Shared tests:** ~50 tests (arithmetic, fractions, sets, temporal, curriculum, demand-driven, errors)
+- **Batch-specific tests:** ~15 tests (execution, performance, program loading)
+- **Incremental-specific tests:** ~40 tests (NEW - subscriptions, partial evaluation, graph updates, etc.)
+- **Compiler tests:** ~20 tests (unchanged)
+- **Total tests:** ~125 tests (existing + incremental)
+
+**Benefits:**
+1. ✅ Comprehensive test coverage for IncrementalRuntime (currently 0 tests)
+2. ✅ Shared tests ensure both runtimes produce identical results
+3. ✅ Clear separation of concerns (shared vs specific)
+4. ✅ Reduced duplication through test factories
+5. ✅ Better maintainability (tests organized by scope)
+6. ✅ Easier to identify which runtime has issues
+
+**Estimated Time:**
+- T0 (executeOperation): 2 hours
+- T1 (test utilities): 1.5 hours
+- T2 (extract shared tests): 3 hours
+- T3 (incremental tests): 4 hours
+- T4 (reorganize integration): 5 hours
+- T5 (update batch tests): 2 hours
+- **Total:** 17.5 hours
+
+**Priority Order:**
+1. **T0 (executeOperation):** CRITICAL - blocks all incremental tests
+2. **T1 (test utilities):** HIGH - enables shared tests
+3. **T3 (incremental tests):** HIGH - critical for incremental functionality
+4. **T2 (extract shared tests):** MEDIUM - reduces duplication
+5. **T5 (update batch tests):** MEDIUM - clarifies batch scope
+6. **T4 (reorganize integration):** LOW - organization improvement
+
+---
+
+## NEXT STEPS (UPDATED 2026-03-15)
 
 ### 📋 Critical Path (Next 3-5 Tasks)
 
@@ -2571,31 +3207,58 @@ On 2026-03-14, critical quick wins were successfully completed:
 - `packages/runtime/src/evaluator/demand-driven-evaluator.ts` (multiple lines)
 - Multiple fraction test files in `packages/runtime/src/operations/`
 
-### 📋 Critical Path (Next 3-5 hours)
+### 📋 Critical Path (Next 3-5 Tasks - UPDATED 2026-03-15)
 
-**NEW Analysis (2026-03-14):**
+**NEW PRIORITY:** Test Reorganization Between Batch and Incremental Runtimes
 
-1. **P0.0 (5 min):** Fix Temporal Operations to Return Wrapped Values
+**Critical Issue:** IncrementalRuntime has 0 tests while Runtime has 25 tests, and there's no clear separation of shared vs specific tests. This is a major gap that needs immediate attention.
+
+1. **T0 (2 hours):** Implement executeOperation() in IncrementalRuntime
+   - **CRITICAL BLOCKER** - executeOperation() is a stub that throws "not yet implemented"
+   - Unblocks ALL incremental runtime tests
+   - File: `packages/runtime/src/incremental-runtime.ts` line 366-368
+   - Need to implement operation execution using OPERATION_REGISTRY
+   - Impact: +40 incremental tests become possible
+
+2. **T1 (1.5 hours):** Create test utilities for shared runtime tests
+   - Enables running same tests with both Runtime and IncrementalRuntime
+   - Create test factories: `describeWithBothRuntimes()`, `createRuntimeContext()`
+   - Define test fixtures and helpers
+   - Impact: +50 shared tests ensure consistency between runtimes
+
+3. **T3 (4 hours):** Create IncrementalRuntime-specific tests
+   - 7 test categories: Subscriptions, Partial Evaluation, Missing Inputs, Graph Updates, Cache Invalidation, Demand-Driven, State Transitions
+   - 35+ tests covering all incremental-specific features
+   - Verify demand-driven semantics preserved in incremental mode
+   - Verify child-friendly Spanish error messages
+   - Impact: +40 tests for incremental functionality
+
+4. **P0.0 (5 min):** Fix Temporal Operations to Return Wrapped Values
    - Quick win that unblocks 2 tests
    - Simple 1-line fix in temporal.ts
    - High impact, low risk
 
-2. **P0.1 (10 min):** Fix Compiler Validation Order
-   - Quick win that unblocks 2 tests
-   - Move validation logic order
-   - High impact, low risk
+5. **T2 (3 hours):** Extract shared tests from runtime.test.ts
+   - Extract 17 operation tests to shared test files
+   - Parameterize tests to run with both runtimes
+   - Reduces duplication, ensures both runtimes produce identical results
+   - Impact: Better test organization, reduced maintenance
 
-3. **P0.2 (1.5 hours):** Implement Integer Operations via Overloading
+### Alternative Path (MVP-Focused)
+
+If test reorganization is deferred, prioritize MVP completion:
+
+1. **P0.2 (1.5 hours):** Implement Integer Operations via Overloading
    - Critical for MVP - unblocks complex arithmetic
    - Completes numeric type system (Natural, Integer, Fraction)
    - Follows existing Fraction pattern
 
-4. **P0.3 (1.5 hours):** Implement Decimal Operations via Overloading
+2. **P0.3 (1.5 hours):** Implement Decimal Operations via Overloading
    - Critical for MVP - makes division results usable
    - Completes numeric type system
    - Follows existing Fraction pattern
 
-5. **P1.1 (3 hours):** Implement Curriculum Type Filtering Operations
+3. **P1.1 (3 hours):** Implement Curriculum Type Filtering Operations
    - Critical for MVP - completes curriculum type support
    - Only Shape filters implemented currently
    - Aligns with educational goals
@@ -2717,5 +3380,5 @@ Next priorities:
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-14 (Merged IMPLEMENTATION_ANALYSIS.md and UPDATED_PRIORITIZED_TASKS.md - 99/118 tests passing, 84.6% pass rate, ~72% overall complete)
-**Next Review:** After completing P0.0-P0.4 (quick wins and numeric type system completion)
+**Last Updated:** 2026-03-15 (Added comprehensive test reorganization plan for batch and incremental runtimes - 124 tests passing, 100% pass rate, ~72% overall complete)
+**Next Review:** After completing T0-T3 (test reorganization - executeOperation, test utilities, incremental tests, shared tests extraction)
