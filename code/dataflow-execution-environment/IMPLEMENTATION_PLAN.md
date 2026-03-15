@@ -271,6 +271,491 @@ private evaluateTransformation(node: TransformationNode, time: number, graph: Da
 
 ### 🎯 P1 HIGH (MVP Features)
 
+#### Task P0.6: Implement executeOperation in IncrementalRuntime (2 hours)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 2 hours
+**Impact:** Unblocks ALL incremental runtime tests
+**Files:** `packages/runtime/src/incremental-runtime.ts` (line 366-368)
+
+**Why Critical:**
+- executeOperation() is a stub that throws "not yet implemented"
+- Blocks ALL incremental runtime tests (40 tests)
+- IncrementalRuntime cannot evaluate any operations without this
+- Critical for Layer 7 (WebSocket Server)
+
+**Current State:**
+```typescript
+private executeOperation(operation: string, inputs: unknown[]): unknown {
+  throw new Error(`Operation ${operation} not yet implemented`);
+}
+```
+
+**Required Implementation:**
+```typescript
+private executeOperation(operation: string, inputs: unknown[]): unknown {
+  const signature = OPERATION_REGISTRY[operation as any];
+  if (!signature) {
+    throw new Error(`Unknown operation: ${operation}`);
+  }
+
+  // Find matching contract based on input types
+  const contract = signature.contracts.find(c => {
+    return c.inputs.every((inputType, i) => {
+      const input = inputs[i];
+      if (input === null || input === undefined) return false;
+
+      // Check type match
+      if (typeof inputType === 'string') {
+        return (input as any).kind === inputType;
+      }
+
+      // Handle composite types
+      if (typeof inputType === 'object') {
+        return (input as any).kind === (inputType as any).kind;
+      }
+
+      return false;
+    });
+  });
+
+  if (!contract) {
+    throw new Error(`No contract found for operation ${operation} with inputs ${inputs.map(i => (i as any).kind).join(', ')}`);
+  }
+
+  // Execute operation using registry
+  return signature.implementation(inputs);
+}
+```
+
+**Dependencies:** None
+
+**Acceptance Criteria (from specs/TESTS_SPEC.md):**
+- ✓ executeOperation() method implemented
+- ✓ Uses OPERATION_REGISTRY for dispatch
+- ✓ Handles all operation types (arithmetic, fractions, sets, temporal, curriculum)
+- ✓ Returns correct results for all operations
+- ✓ Throws appropriate errors for unknown operations
+- ✓ Throws appropriate errors for type mismatches
+
+**Required Tests:**
+- [ ] Test: executeOperation handles ADD operation
+- [ ] Test: executeOperation handles SUBTRACT operation
+- [ ] Test: executeOperation handles all fraction operations
+- [ ] Test: executeOperation handles all set operations
+- [ ] Test: executeOperation handles temporal operations
+- [ ] Test: executeOperation throws error for unknown operation
+- [ ] Test: executeOperation throws error for type mismatch
+
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 233-260
+
+**Layer:** Layer 7 (Integration)
+
+**Ralph Wiggum Checklist:**
+- [ ] executeOperation() method implemented in IncrementalRuntime
+- [ ] All operation types dispatch correctly
+- [ ] Error handling for unknown operations
+- [ ] Error handling for type mismatches
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "feat(incremental): implement executeOperation method"
+
+---
+
+#### Task P0.7: Create Test Utilities for Shared Runtime Tests (1.5 hours)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 1.5 hours
+**Impact:** Enables shared tests between runtimes
+**Files:**
+- `packages/runtime/src/test-utils/runtime-factory.ts` (NEW)
+- `packages/runtime/src/test-utils/test-fixtures.ts` (NEW)
+- `packages/runtime/src/test-utils/test-helpers.ts` (NEW)
+
+**Why Critical:**
+- Enables shared tests that run on both Runtime and IncrementalRuntime
+- Reduces test duplication and ensures both runtimes produce identical results
+- Foundation for test reorganization (P1.8, P1.9)
+- Critical for comprehensive IncrementalRuntime test coverage
+
+**Files to Create:**
+
+**1. Runtime Factory** (`packages/runtime/src/test-utils/runtime-factory.ts`):
+```typescript
+import { Runtime } from '../runtime';
+import { IncrementalRuntime } from '../incremental-runtime';
+import type { DataflowProgram } from '@dataflow/shared/types';
+
+export type RuntimeInstance = Runtime | IncrementalRuntime;
+
+export interface RuntimeTestContext {
+  runtime: RuntimeInstance;
+  loadProgram: (program: DataflowProgram) => void;
+  execute: (time?: number) => unknown[] | { nodeStates: Map<string, any>; changedNodes: string[] };
+  getOutput: (nodeId: string, time?: number) => any;
+}
+
+export function createRuntimeContext(runtimeType: 'batch' | 'incremental'): RuntimeTestContext {
+  const runtime = runtimeType === 'batch' ? new Runtime() : new IncrementalRuntime();
+
+  return {
+    runtime,
+    loadProgram: (program: DataflowProgram) => {
+      runtime.loadProgram(program);
+    },
+    execute: (time?: number) => {
+      if (runtimeType === 'batch') {
+        return (runtime as Runtime).execute();
+      } else {
+        return (runtime as IncrementalRuntime).evaluatePartial(time || 0);
+      }
+    },
+    getOutput: (nodeId: string, time?: number) => {
+      if (runtimeType === 'batch') {
+        const outputs = (runtime as Runtime).execute();
+        return outputs[0];
+      } else {
+        const state = (runtime as IncrementalRuntime).getNodeState(nodeId);
+        return state.status === 'completed' ? state.value : null;
+      }
+    }
+  };
+}
+
+export function describeWithBothRuntimes(name: string, testFn: (context: RuntimeTestContext) => void) {
+  describe(`${name} (batch)`, () => {
+    const context = createRuntimeContext('batch');
+    testFn(context);
+  });
+
+  describe(`${name} (incremental)`, () => {
+    const context = createRuntimeContext('incremental');
+    testFn(context);
+  });
+}
+```
+
+**2. Test Fixtures** (`packages/runtime/src/test-utils/test-fixtures.ts`):
+```typescript
+import type { DataflowProgram } from '@dataflow/shared/types';
+
+export const simpleArithmeticProgram: DataflowProgram = {
+  metadata: { programId: 'test-arithmetic' },
+  graph: {
+    nodes: [
+      { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
+      { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
+      { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
+      { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
+    ],
+    edges: [
+      { from: 'a', to: 'add' },
+      { from: 'b', to: 'add' },
+      { from: 'add', to: 'result' }
+    ]
+  }
+};
+
+// Add more fixtures as needed
+```
+
+**3. Test Helpers** (`packages/runtime/src/test-utils/test-helpers.ts`):
+```typescript
+import { expect } from 'bun:test';
+
+export function expectNatural(value: any, expected: number) {
+  expect(value).toEqual({ kind: 'natural', value: expected });
+}
+
+export function expectFraction(value: any, expected: { numerator: number; denominator: number }) {
+  expect(value).toEqual({ kind: 'fraction', ...expected });
+}
+
+export function expectBoolean(value: any, expected: boolean) {
+  expect(value).toEqual({ kind: 'boolean', value: expected });
+}
+
+// Add more helpers as needed
+```
+
+**Dependencies:** P0.6 (executeOperation implemented)
+
+**Acceptance Criteria (from specs/TESTS_SPEC.md):**
+- ✓ Runtime factory created with createRuntimeContext()
+- ✓ describeWithBothRuntimes() helper works
+- ✓ Test fixtures created for common programs
+- ✓ Test helpers created for common assertions
+- ✓ Both Runtime and IncrementalRuntime can be instantiated
+- ✓ Batch and incremental execution paths work
+- ✓ TypeScript typecheck passes
+
+**Required Tests:**
+- [ ] Test: createRuntimeContext('batch') works correctly
+- [ ] Test: createRuntimeContext('incremental') works correctly
+- [ ] Test: describeWithBothRuntimes runs tests on both runtimes
+- [ ] Test: Test fixtures produce valid DataflowProgram objects
+- [ ] Test: Test helpers assert correctly for all types
+
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 264-310
+
+**Layer:** Cross-layer (testing infrastructure)
+
+**Ralph Wiggum Checklist:**
+- [ ] Runtime factory created
+- [ ] Test fixtures created
+- [ ] Test helpers created
+- [ ] describeWithBothRuntimes() works
+- [ ] Both runtime types can be instantiated
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(infra): create test utilities for shared runtime tests"
+
+---
+
+#### Task P1.8: Extract Shared Tests (3 hours)
+
+**Priority:** P1 HIGH
+**Status:** NOT STARTED
+**Estimated Time:** 3 hours
+**Impact:** Reduces duplication, ensures both runtimes tested
+**Files:**
+- `packages/runtime/src/runtime.test.ts` (extract operation tests)
+- `packages/tests/src/shared/arithmetic.test.ts` (NEW)
+- `packages/tests/src/shared/fractions.test.ts` (NEW)
+- `packages/tests/src/shared/sets.test.ts` (NEW)
+- `packages/tests/src/shared/temporal.test.ts` (NEW)
+- `packages/tests/src/shared/curriculum.test.ts` (NEW)
+
+**Why Important:**
+- Reduces test duplication between runtimes
+- Ensures both runtimes produce identical results
+- Foundation for comprehensive test coverage
+- ~50 tests should run on both runtimes
+
+**Tests to Extract to Shared:**
+From `packages/runtime/src/runtime.test.ts` (lines 120-662):
+1. ✅ ADD operation (lines 120-145)
+2. ✅ SUBTRACT operation (lines 147-172)
+3. ✅ MULTIPLY operation (lines 174-199)
+4. ✅ DIVIDE operation (lines 201-226)
+5. ✅ COMPARE operations (lines 253-332)
+6. ✅ Complex expression (3 + 2) * (10 - 6) (lines 334-367)
+7. ✅ Fraction ADD (lines 370-395)
+8. ✅ Fraction ADD simplifies to whole number (lines 397-422)
+9. ✅ Fraction SUBTRACT (lines 424-449)
+10. ✅ Fraction MULTIPLY (lines 451-476)
+11. ✅ Fraction DIVIDE (lines 478-503)
+12. ✅ Fraction COMPARE equal (lines 505-530)
+13. ✅ Fraction COMPARE different (lines 532-557)
+14. ✅ Fraction simplification (lines 559-584)
+15. ✅ Fraction negative results (lines 586-611)
+16. ✅ Fraction division by zero (lines 613-636)
+17. ✅ Fraction zero denominator (lines 638-662)
+
+**Implementation:**
+```typescript
+// packages/tests/src/shared/arithmetic.test.ts
+import { describe, it, expect } from 'bun:test';
+import { describeWithBothRuntimes, createRuntimeContext } from '../../../runtime/src/test-utils/runtime-factory';
+import type { DataflowProgram } from '@dataflow/shared/types';
+
+describeWithBothRuntimes('Arithmetic Operations - ADD', (context) => {
+  it('should execute ADD operation', () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test' },
+      graph: {
+        nodes: [
+          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
+          { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
+          { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
+          { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
+        ],
+        edges: [
+          { from: 'a', to: 'add' },
+          { from: 'b', to: 'add' },
+          { from: 'add', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = context.getOutput('result');
+    expect(result).toEqual({ kind: 'natural', value: 5 });
+  });
+});
+
+// More tests...
+```
+
+**Dependencies:** P0.7 (Test Utilities)
+
+**Acceptance Criteria (from specs/TESTS_SPEC.md):**
+- ✓ All operation tests extracted from runtime.test.ts
+- ✓ ~50 shared tests created in shared/ directory
+- ✓ All shared tests use describeWithBothRuntimes
+- ✓ All shared tests pass on both runtimes
+- ✓ runtime.test.ts updated (batch-specific only)
+- ✓ No tests lost or duplicated
+
+**Required Tests:**
+- [ ] Test: All arithmetic operations work on both runtimes
+- [ ] Test: All fraction operations work on both runtimes
+- [ ] Test: All set operations work on both runtimes
+- [ ] Test: All temporal operators work on both runtimes
+- [ ] Test: All curriculum types work on both runtimes
+- [ ] Test: Demand-driven semantics work on both runtimes
+
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 312-410
+
+**Layer:** Cross-layer (testing)
+
+**Ralph Wiggum Checklist:**
+- [ ] Operation tests extracted to shared/
+- [ ] All shared tests use describeWithBothRuntimes
+- [ ] All shared tests pass on both runtimes
+- [ ] runtime.test.ts updated
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(shared): extract shared runtime tests"
+
+---
+
+#### Task P1.9: Create IncrementalRuntime-Specific Tests (4 hours)
+
+**Priority:** P1 HIGH
+**Status:** NOT STARTED
+**Estimated Time:** 4 hours
+**Impact:** Critical for incremental functionality verification
+**Files:**
+- `packages/tests/src/incremental/partial-evaluation.test.ts` (NEW)
+- `packages/tests/src/incremental/subscriptions.test.ts` (NEW)
+- `packages/tests/src/incremental/graph-updates.test.ts` (NEW)
+- `packages/tests/src/incremental/incremental-recompute.test.ts` (NEW)
+- `packages/tests/src/incremental/missing-inputs.test.ts` (NEW)
+- `packages/tests/src/incremental/notifications.test.ts` (NEW)
+- `packages/tests/src/incremental/cache-invalidation.test.ts` (NEW)
+
+**Why Important:**
+- IncrementalRuntime currently has 0 tests
+- Critical for verifying unique incremental features
+- Essential for Layer 7 (WebSocket Server)
+- ~40 tests needed for comprehensive coverage
+
+**Test Categories:**
+
+**A. Subscription System Tests (~5 tests):**
+```typescript
+describe('IncrementalRuntime - Subscriptions', () => {
+  it('should register subscription to a node');
+  it('should unregister subscription from a node');
+  it('should notify subscribers on value changes');
+  it('should handle multiple subscribers to same node');
+  it('should clean up when no subscribers remain');
+});
+```
+
+**B. Partial Evaluation Tests (~7 tests):**
+```typescript
+describe('IncrementalRuntime - Partial Evaluation', () => {
+  it('should return empty result with no demand sources');
+  it('should evaluate subscribed nodes');
+  it('should evaluate output nodes');
+  it('should evaluate both outputs and subscriptions');
+  it('should return completed state for successfully evaluated nodes');
+  it('should return pending state for nodes with missing inputs');
+  it('should return error state for evaluation errors');
+});
+```
+
+**C. Missing Input Handling Tests (~6 tests):**
+```typescript
+describe('IncrementalRuntime - Missing Inputs', () => {
+  it('should detect missing input port');
+  it('should create MissingInput with correct port number');
+  it('should provide child-friendly error messages');
+  it('should cascade pending states through dependencies');
+  it('should differentiate between missing inputs and evaluation errors');
+  it('should report multiple missing inputs');
+});
+```
+
+**D. Graph Updates Tests (~8 tests):**
+```typescript
+describe('IncrementalRuntime - Graph Updates', () => {
+  it('should add nodes to graph');
+  it('should remove nodes from graph');
+  it('should update node values');
+  it('should trigger only affected node re-evaluation');
+  it('should maintain cache for unchanged nodes');
+  it('should handle multiple node updates');
+  it('should update dependency graph correctly');
+  it('should handle updates during evaluation');
+});
+```
+
+**E. Incremental Recompute Tests (~6 tests):**
+```typescript
+describe('IncrementalRuntime - Incremental Recompute', () => {
+  it('should re-evaluate only changed nodes');
+  it('should re-evaluate only dependent nodes');
+  it('should preserve cache for unchanged nodes');
+  it('should handle circular dependencies');
+  it('should show performance improvement over full re-evaluation');
+  it('should handle cache invalidation correctly');
+});
+```
+
+**F. Notification Tests (~5 tests):**
+```typescript
+describe('IncrementalRuntime - Notifications', () => {
+  it('should push node_state_changed events');
+  it('should include correct node data in notifications');
+  it('should include timestamp in notifications');
+  it('should batch notifications for efficiency');
+  it('should handle multiple changes in single evaluation');
+});
+```
+
+**G. Cache Invalidation Tests (~4 tests):**
+```typescript
+describe('IncrementalRuntime - Cache Invalidation', () => {
+  it('should invalidate dependent nodes on change');
+  it('should preserve cache for unaffected nodes');
+  it('should clear cache on program reload');
+  it('should handle multiple levels of dependencies');
+});
+```
+
+**Dependencies:** P0.6 (executeOperation), P0.7 (Test Utilities)
+
+**Acceptance Criteria (from specs/TESTS_SPEC.md):**
+- ✓ All 7 test categories implemented
+- ✓ ~40 tests created for IncrementalRuntime
+- ✓ All unique incremental features tested
+- ✓ All incremental tests pass
+- ✓ Test coverage for incremental-specific features
+
+**Required Tests:**
+- [ ] Test: All 5 subscription tests pass
+- [ ] Test: All 7 partial evaluation tests pass
+- [ ] Test: All 6 missing input tests pass
+- [ ] Test: All 8 graph update tests pass
+- [ ] Test: All 6 incremental recompute tests pass
+- [ ] Test: All 5 notification tests pass
+- [ ] Test: All 4 cache invalidation tests pass
+
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 412-570
+
+**Layer:** Layer 7 (Integration)
+
+**Ralph Wiggum Checklist:**
+- [ ] All 7 test categories implemented
+- [ ] ~40 tests created
+- [ ] All incremental tests pass
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(incremental): create IncrementalRuntime-specific tests"
+
+---
+
 #### Task P1.1: Implement Integer Operations (2 hours)
 
 **Priority:** P1 HIGH
@@ -807,27 +1292,117 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 
 #### Task P2.4: Fix DataType Recursion (0.5 hours)
 
+#### Task P2.5: Reorganize Integration Tests (5 hours)
+
 **Priority:** P2 MEDIUM
 **Status:** NOT STARTED
-**Estimated Time:** 0.5 hours
-**Impact:** Type safety
-**Files:** `packages/shared/src/types/composite.ts`
+**Estimated Time:** 5 hours
+**Impact:** Better test organization, clearer separation of concerns
+**Files:**
+- All test files in `packages/tests/src/*` (reorganize structure)
 
 **Why Important:**
-- DataType recursion uses string | DataType instead of just DataType
-- Reduces type safety
-- Could cause validation issues
+- Current structure mixes shared and specific tests
+- No clear separation between batch and incremental tests
+- Difficult to identify which runtime has issues
+- Better organization improves maintainability
 
-**Dependencies:** None
+**Files to Reorganize:**
+Move existing integration tests from `packages/tests/src/*` to new structure:
 
-**Acceptance Criteria:**
-- ✓ DataType uses just DataType in recursive definitions
-- ✓ Typecheck passes
+```typescript
+// Current structure:
+packages/tests/src/
+├── end-to-end/
+│   ├── arithmetic.test.ts
+│   ├── nested-operations.test.ts
+│   ├── inline-nested-operations.test.ts
+│   └── types.test.ts
+├── integration/
+│   └── fractions.test.ts
+├── curriculum/
+│   ├── shapes.test.ts
+│   └── comparison.test.ts
+├── sets/
+│   ├── union.test.ts
+│   └── filter-sort.test.ts
+├── temporal/
+│   ├── fby.test.ts
+│   └── streams.test.ts
+├── demand-driven/
+│   ├── unreferenced.test.ts
+│   └── no-outputs.test.ts
+├── errors/
+│   ├── division-zero.test.ts
+│   └── cycles.test.ts
+├── performance/
+│   ├── compilation.test.ts
+│   └── execution.test.ts
+├── types/
+│   ├── properties.test.ts
+│   └── validation.test.ts
+└── test-inline-nested.test.ts
+
+// Target structure:
+packages/tests/src/
+├── shared/
+│   ├── arithmetic.test.ts      (from end-to-end/arithmetic.test.ts)
+│   ├── fractions.test.ts        (from integration/fractions.test.ts)
+│   ├── sets.test.ts             (from sets/union.test.ts, sets/filter-sort.test.ts)
+│   ├── temporal.test.ts         (from temporal/fby.test.ts, temporal/streams.test.ts)
+│   ├── curriculum.test.ts       (from curriculum/shapes.test.ts, curriculum/comparison.test.ts)
+│   ├── demand-driven.test.ts    (from demand-driven/unreferenced.test.ts, demand-driven/no-outputs.test.ts)
+│   └── errors-runtime.test.ts  (from errors/division-zero.test.ts)
+│
+├── batch/
+│   ├── execution.test.ts        (from performance/execution.test.ts)
+│   └── full-program.test.ts    (from end-to-end/nested-operations.test.ts)
+│
+├── compiler/
+│   ├── type-validation.test.ts  (from types/validation.test.ts)
+│   ├── cycle-detection.test.ts  (from errors/cycles.test.ts)
+│   ├── performance.test.ts      (from performance/compilation.test.ts)
+│   └── ast-structure.test.ts    (from end-to-end/types.test.ts)
+│
+└── incremental/                 (empty - tests in Task P1.9)
+    ├── partial-evaluation.test.ts
+    ├── subscriptions.test.ts
+    ├── graph-updates.test.ts
+    ├── incremental-recompute.test.ts
+    ├── missing-inputs.test.ts
+    ├── notifications.test.ts
+    └── cache-invalidation.test.ts
+```
+
+**Dependencies:** P1.8 (extract shared tests), P1.9 (incremental tests)
+
+**Acceptance Criteria (from specs/TESTS_SPEC.md):**
+- ✓ All existing integration tests moved to appropriate directories
+- ✓ Tests reorganized by scope (shared, batch, incremental, compiler)
+- ✓ All tests still pass after reorganization
+- ✓ TypeScript typecheck passes
+- ✓ No test files lost or duplicated
+
+**Required Tests:**
+- [ ] Test: All tests moved to new structure
+- [ ] Test: All tests still pass
+- [ ] Test: TypeScript typecheck passes
+- [ ] Test: Clear separation of shared vs specific tests
+
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 572-650
+
+**Layer:** Cross-layer (testing organization)
 
 **Ralph Wiggum Checklist:**
-- [ ] DataType recursion fixed
-- [ ] Typecheck passes
-- [ ] Git commit: "fix(types): fix DataType recursion"
+- [ ] All integration tests reorganized
+- [ ] Clear separation of shared vs specific tests
+- [ ] All tests pass after reorganization
+- [ ] TypeScript typecheck passes
+- [ ] Git commit: "test(reorg): reorganize integration tests by runtime type"
+
+---
+
+#### Task P2.6: Update Batch Runtime Tests (2 hours)
 
 ---
 
@@ -978,6 +1553,8 @@ To achieve MVP, complete the following:
 - ✅ HTTP API for batch mode (12/12 tests passing)
 - ⚠️ HTTP API Elysia best practices - MISSING (P1.7)
 - ⚠️ WebSocket Server - BLOCKED by IncrementalRuntime (P0.4)
+- ⚠️ IncrementalRuntime tests - 0 tests (P0.6, P0.7, P1.9 needed)
+- ⚠️ Test organization - mixed shared/specific tests (P1.8, P2.5, P2.6 needed)
 
 **MVP Completion Tasks:**
 
@@ -988,32 +1565,58 @@ To achieve MVP, complete the following:
 3. ✅ Duplicate Temporal Cases
 4. ✅ Fraction Tests
 5. ✅ Type Compatibility Bug
+6. ✅ Parser Support for Negative Integer Literals
+7. ✅ Fixed Test Bug - Boolean and Fraction Type Mismatch
+8. ✅ Fixed Mixed-Type Arithmetic Tests
+9. ✅ Fixed Runtime TypeError Guard
 
-**Result:** 99/118 tests passing (84.6%) in 30 minutes - +45 tests passing
+**Result:** 124/124 tests passing (100%) in 2026-03-14
 
 ### ⏳ Current Tasks (Not Started)
 
-6. ⏳ P0.4: Fix IncrementalRuntime Syntax Errors (2-3h) - CRITICAL for Layer 7
-7. ⏳ P0.5: Implement DataflowGraph.evaluate Method (30 min)
-8. ⏳ P1.1: Implement Integer Operations (2h) - CRITICAL for MVP
-9. ⏳ P1.2: Implement Decimal Operations (2h) - CRITICAL for MVP
-10. ⏳ P1.3: Implement Curriculum Type Filtering Operations (3h)
-11. ⏳ P1.4: Make Set/Stream Operations Generic (5h)
-12. ⏳ P1.5: Fix Set/Object Literal Ambiguity (3h)
-13. ⏳ P1.6: Implement Missing Compiler Validation (3h)
-14. ⏳ P1.7: Refactor HTTP API (11h) - OPTIONAL for MVP
+**Test Reorganization (CRITICAL for Layer 7):**
+10. ⏳ P0.6: Implement executeOperation in IncrementalRuntime (2h) - CRITICAL for all incremental tests
+11. ⏳ P0.7: Create test utilities for shared runtime tests (1.5h) - enables shared tests
+12. ⏳ P1.9: Create IncrementalRuntime-specific tests (4h) - 0 tests → ~40 tests
+13. ⏳ P1.8: Extract shared tests (3h) - reduces duplication
+14. ⏳ P2.5: Reorganize integration tests (5h) - better organization
+15. ⏳ P2.6: Update batch runtime tests (2h) - clear batch-specific tests
 
-**Total MVP Time:** ~34.5 hours (excluding P1.7)
+**Core Language & Runtime:**
+16. ⏳ P0.4: Fix IncrementalRuntime syntax errors (2-3h) - CRITICAL for Layer 7
+17. ⏳ P0.5: Implement DataflowGraph.evaluate Method (30 min)
+18. ⏳ P1.1: Implement Integer Operations (2h) - CRITICAL for MVP
+19. ⏳ P1.2: Implement Decimal Operations (2h) - CRITICAL for MVP
+20. ⏳ P1.3: Implement Curriculum Type Filtering Operations (3h)
+21. ⏳ P1.4: Make Set/Stream Operations Generic (5h)
+22. ⏳ P1.5: Fix Set/Object Literal Ambiguity (3h)
+23. ⏳ P1.6: Implement Missing Compiler Validation (3h)
+24. ⏳ P1.7: Refactor HTTP API (11h) - OPTIONAL for MVP
+
+**Total MVP Time:** ~49.5 hours (excluding P1.7, P2.5, P2.6)
+
+**Expected Test Coverage After Reorganization:**
+- Shared tests: ~50 tests (run on both runtimes)
+- Batch-specific tests: ~15 tests
+- Incremental-specific tests: ~40 tests (up from 0)
+- Compiler tests: ~20 tests
+- **Total: ~125 tests** (up from 124)
 
 ---
 
 ## Next Immediate Actions
 
-1. [ ] P0.4: Fix IncrementalRuntime syntax errors (2-3 hours)
-2. [ ] P0.5: Implement DataflowGraph.evaluate (30 min)
-3. [ ] P1.1: Implement Integer operations (2 hours)
-4. [ ] P1.2: Implement Decimal operations (2 hours)
-5. [ ] P1.3: Implement curriculum type filtering (3 hours)
+1. [ ] P0.6: Implement executeOperation in IncrementalRuntime (2 hours) - CRITICAL for all incremental tests
+2. [ ] P0.7: Create test utilities for shared runtime tests (1.5 hours) - enables shared tests
+3. [ ] P0.4: Fix IncrementalRuntime syntax errors (2-3 hours) - unblocks WebSocket Server
+4. [ ] P0.5: Implement DataflowGraph.evaluate (30 min) - unblocks temporal operations
+5. [ ] P1.9: Create IncrementalRuntime-specific tests (4 hours) - comprehensive incremental coverage
+6. [ ] P1.8: Extract shared tests (3 hours) - reduces duplication
+7. [ ] P1.1: Implement Integer operations (2 hours) - completes numeric type system
+8. [ ] P1.2: Implement Decimal operations (2 hours) - completes numeric type system
+9. [ ] P1.3: Implement curriculum type filtering (3 hours) - completes curriculum types
+10. [ ] P2.5: Reorganize integration tests (5 hours) - better test organization
+11. [ ] P2.6: Update batch runtime tests (2 hours) - clear batch-specific tests
 
 ---
 
@@ -1023,6 +1626,7 @@ To achieve MVP, complete the following:
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
 - Test suite: 124/124 tests passing (100%) - IMPROVED on 2026-03-15
+- IncrementalRuntime tests: 0/40 tests (0%) - BLOCKED by P0.6
 
 ### Targets
 - Compilation: <100ms for programs with <100 nodes (p95)
@@ -1030,6 +1634,8 @@ To achieve MVP, complete the following:
 - Concurrent: 5 simultaneous requests without degradation
 - Incremental update: 5x faster than full re-evaluation
 - WebSocket roundtrip: <50ms (p95)
+- Test suite execution: <5 seconds for full test suite (~125 tests)
+- Test startup: <1 second per test file
 
 ---
 
@@ -1051,18 +1657,26 @@ To achieve MVP, complete the following:
 - ⚠️ Curriculum type filters - PARTIAL (P1.3)
 - ⚠️ Set/Stream operations generic - MISSING (P1.4)
 - ⚠️ IncrementalRuntime - BROKEN (70+ syntax errors, P0.4)
+- ⚠️ IncrementalRuntime tests - 0/40 tests (0%) - BLOCKED by P0.6, P0.7, P1.9
+- ⚠️ Test organization - mixed shared/specific tests (P1.8, P2.5, P2.6 needed)
 - ⚠️ Complete compiler validation - MISSING (P1.6)
 
 ### Version 1.0 (All Layers)
 - All P0 and P1 tasks completed
 - WebSocket server for live feedback
 - IncrementalRuntime for partial evaluation
-- Complete test coverage (>80%)
+- Complete test coverage (>80%):
+  - Shared tests: ~50 tests (run on both runtimes)
+  - Batch-specific tests: ~15 tests
+  - Incremental-specific tests: ~40 tests
+  - Compiler tests: ~20 tests
+  - Total: ~125 tests
 - Child-friendly Spanish messages throughout
 - Generic set/stream operations
 - HTTP API follows Elysia best practices
 - Temporal operators preserve demand-driven semantics
 - Nested operations supported
+- Clear test organization (shared vs specific)
 
 ---
 
@@ -1075,6 +1689,7 @@ To achieve MVP, complete the following:
 - `specs/INTEGRATION_TESTS_SPEC.md` - Test requirements
 - `specs/ELYSIA_LLMS.md` - Elysia best practices
 - `specs/DEMAND_DRIVEN_INCREMENTAL.md` - Demand-driven evaluation model
+- `specs/TESTS_SPEC.md` - Test reorganization specification (NEW)
 
 ### Key Design Documents
 - `PROJECT_GOALS.md` - Project objectives and MVP definition
@@ -1089,5 +1704,5 @@ Detailed historical information about completed tasks and bug fixes is preserved
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-15 (124 tests passing, 100% pass rate, ~72% overall complete)
-**Next Review:** After completing P0.4-P0.5 tasks
+**Last Updated:** 2026-03-15 (124 tests passing, 100% pass rate, ~68% overall complete, test reorganization plan added)
+**Next Review:** After completing P0.6 and P0.7 tasks (executeOperation and test utilities)
