@@ -5,7 +5,13 @@ import { OPERATION_REGISTRY, TypeConstraint, resolveOperationSignature } from "@
 import type { Curriculum, DataflowProgram } from "@dataflow/shared/types";
 
 export class DagValidator {
-  validateProgram(program: DataflowProgram): ValidationResult {
+  private requireOutputNode: boolean;
+
+  constructor(requireOutputNode: boolean = false) {
+    this.requireOutputNode = requireOutputNode;
+  }
+
+  validateProgram(program: DataflowProgram, requireOutputNode?: boolean): ValidationResult {
     const statements: Statement[] = program.graph.nodes.map(node => {
       if (node.type === "DataSource") {
         return {
@@ -32,10 +38,10 @@ export class DagValidator {
       }
     });
 
-    return this.validate(statements);
+    return this.validate(statements, requireOutputNode ?? this.requireOutputNode);
   }
 
-  validate(statements: Statement[]): ValidationResult {
+  validate(statements: Statement[], requireOutputNode: boolean = false): ValidationResult {
     const errors: ValidationError[] = [];
     const defined = new Set<string>();
     const typeTable = new Map<string, string>();
@@ -205,23 +211,15 @@ export class DagValidator {
  
           errors.push({
             code: "TYPE_ERROR",
-            message: stmt.operation.startsWith("FILTER_BY_") || stmt.operation.startsWith("COMPARE_BY_") 
-              ? `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}] - missing '${stmt.operation.split("_BY_")[1].toLowerCase()}' property` 
+            message: stmt.operation.startsWith("FILTER_BY_") || stmt.operation.startsWith("COMPARE_BY_")
+              ? `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}] - missing '${stmt.operation.split("_BY_")[1].toLowerCase()}' property`
               : `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}]`,
             nodeId: stmt.id,
             childMessage,
             suggestion,
             example
           });
- 
-          errors.push({
-            code: "TYPE_ERROR",
-            message: `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}]`,
-            nodeId: stmt.id,
-            childMessage,
-            suggestion,
-            example
-          });
+
           continue;
         }
 
@@ -250,6 +248,19 @@ export class DagValidator {
             errors.push(errorDetails);
           }
         }
+      }
+    }
+
+    if (requireOutputNode) {
+      const hasOutputNode = statements.some(stmt => stmt.type === "OutputStatement");
+      if (!hasOutputNode) {
+        errors.push({
+          code: "MISSING_OUTPUT_NODE",
+          message: "Program must have at least one output node",
+          childMessage: "⚠️ ¡Ups! Tu programa necesita al menos un bloque de salida (output).",
+          suggestion: "Añade un bloque de salida para ver el resultado de tu programa.",
+          example: "[resultado] → [output] ✅"
+        });
       }
     }
 

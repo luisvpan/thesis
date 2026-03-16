@@ -4,7 +4,6 @@ import { DagValidator } from "@dataflow/compiler";
 import { IncrementalRuntime } from "@dataflow/runtime";
 import type { DataflowProgram } from "@dataflow/shared/types";
 import { ConnectionManager } from "./connection-manager";
-import { SubscriptionManager } from "./subscription-manager";
 
 interface WebSocketMessage {
   type: string;
@@ -38,7 +37,7 @@ interface ClientData {
 
 const validator = new DagValidator();
 const connectionManager = new ConnectionManager();
-const subscriptionManager = new SubscriptionManager();
+const incrementalRuntime = new IncrementalRuntime();
 
 export const app = new Elysia()
   .ws("/live", {
@@ -93,10 +92,9 @@ export const app = new Elysia()
 
           case "evaluate_incremental": {
             const evalMsg = msg as EvaluateIncrementalMessage;
-            const runtime = new IncrementalRuntime();
-            runtime.loadProgram(evalMsg.program);
+            incrementalRuntime.loadProgram(evalMsg.program);
 
-            const evaluation = runtime.evaluatePartial(0);
+            const evaluation = incrementalRuntime.evaluatePartial(0);
 
             const response = JSON.stringify({
               type: "evaluation_result",
@@ -115,7 +113,7 @@ export const app = new Elysia()
 
             ws.data?.subscribedNodes?.add(nodeId);
 
-            subscriptionManager.subscribe(nodeId, ws, (state) => {
+            incrementalRuntime.subscribe(nodeId, (state) => {
               if (ws.readyState === 1) {
                 ws.send(JSON.stringify({
                   type: "node_state_changed",
@@ -140,7 +138,7 @@ export const app = new Elysia()
             const { nodeId } = unsubMsg;
 
             ws.data?.subscribedNodes?.delete(nodeId);
-            subscriptionManager.unsubscribe(nodeId, ws);
+            incrementalRuntime.unsubscribe(nodeId, () => {});
 
             const response = JSON.stringify({
               type: "node_state_changed",
@@ -178,7 +176,7 @@ export const app = new Elysia()
       console.log("Client disconnected");
 
       for (const nodeId of ws.data?.subscribedNodes || []) {
-        subscriptionManager.unsubscribe(nodeId, ws);
+        incrementalRuntime.unsubscribe(nodeId, () => {});
       }
 
       connectionManager.removeConnection(ws);

@@ -518,20 +518,20 @@ export class IncrementalRuntime {
         case "boolean":
           return { kind: "boolean", value: firstValue as boolean };
         case "shape":
-          const shape = firstValue as { kind: string; color: string; sides: number };
-          return { kind: "shape", shape: shape.kind, color: shape.color, sides: shape.sides };
+          const shape = firstValue as { type: string; size: string; color: string };
+          return { kind: "shape", type: shape.type, size: shape.size, color: shape.color };
         case "car":
-          const car = firstValue as { brand: string; color: string; speed: number };
-          return { kind: "car", brand: car.brand, color: car.color, speed: car.speed };
+          const car = firstValue as { color: string };
+          return { kind: "car", color: car.color };
         case "food":
-          const food = firstValue as { kind: string; color: string; calories: number };
-          return { kind: "food", type: food.kind, color: food.color, calories: food.calories };
+          const food = firstValue as { taste: string; color: string };
+          return { kind: "food", taste: food.taste, color: food.color };
         case "animal":
-          const animal = firstValue as { species: string; color: string; legs: number };
-          return { kind: "animal", species: animal.species, color: animal.color, legs: animal.legs };
+          const animal = firstValue as { type: string; color: string };
+          return { kind: "animal", type: animal.type, color: animal.color };
         case "person":
-          const person = firstValue as { name: string; age: number; color: string };
-          return { kind: "person", name: person.name, age: person.age, hairColor: person.color };
+          const person = firstValue as { ageGroup: string; gender: string };
+          return { kind: "person", ageGroup: person.ageGroup, gender: person.gender };
         default:
           return firstValue;
       }
@@ -544,25 +544,52 @@ export class IncrementalRuntime {
     const initialNodeId = inputNodeIds[0];
     const streamNodeId = inputNodeIds[1];
 
-    if (time === 0) {
-      const result = this.evaluateNode(initialNodeId, time);
-      if (result.state.status !== 'completed') {
-        throw new Error(`FBY: Failed to evaluate initial node ${initialNodeId}`);
+    const initialResult = this.evaluateNode(initialNodeId, 0);
+    if (initialResult.state.status !== 'completed') {
+      throw new Error(`FBY: Failed to evaluate initial node ${initialNodeId}`);
+    }
+    const initialValue = initialResult.state.value;
+
+    const streamResult = this.evaluateNode(streamNodeId, 0);
+    if (streamResult.state.status !== 'completed') {
+      throw new Error(`FBY: Failed to evaluate stream node ${streamNodeId}`);
+    }
+    const streamValue = streamResult.state.value as { kind: "stream"; elementType: string; generator: Generator<unknown> };
+
+    function* fbyGenerator(): Generator<unknown> {
+      let t = 0;
+      while (true) {
+        if (t === 0) {
+          yield initialValue;
+        } else {
+          const streamGen = streamValue.generator;
+          let value: unknown;
+          for (let i = 0; i < t; i++) {
+            const result = streamGen.next();
+            if (result.done) {
+              value = initialValue;
+              break;
+            }
+            value = result.value;
+          }
+          yield value;
+        }
+        t++;
       }
-      return result.state.value;
     }
 
-    const result = this.evaluateNode(streamNodeId, time - 1);
-    if (result.state.status !== 'completed') {
-      throw new Error(`FBY: Failed to evaluate stream node ${streamNodeId} at time ${time - 1}`);
-    }
-    return result.state.value;
+    return {
+      kind: "stream" as const,
+      elementType: streamValue.elementType,
+      generator: fbyGenerator(),
+      firstValue: initialValue
+    };
   }
 
   private executeACCUMULATE(inputs: unknown[], time: number, inputNodeIds: string[], currentNodeId: string): unknown {
     const streamNodeId = inputNodeIds[0];
-    const initialNodeId = inputNodeIds[1];
-    const operationNodeId = inputNodeIds[2];
+    const operationNodeId = inputNodeIds[1];
+    const initialNodeId = inputNodeIds[2];
 
     if (time === 0) {
       const result = this.evaluateNode(initialNodeId, time);
@@ -619,7 +646,6 @@ export class IncrementalRuntime {
   }
 
   private invalidateDependentCache(nodeId: string): void {
-    const dependents = this.nodeDependencies.get(nodeId) || new Set();
     const toInvalidate: string[] = [];
     const visited = new Set<string>();
 
@@ -627,11 +653,12 @@ export class IncrementalRuntime {
       if (visited.has(id)) return;
       visited.add(id);
 
+      if (this.cache.has(id)) {
+        toInvalidate.push(id);
+      }
+
       const deps = this.nodeDependencies.get(id) || new Set();
       for (const depId of deps) {
-        if (this.cache.has(depId)) {
-          toInvalidate.push(depId);
-        }
         traverse(depId);
       }
     };

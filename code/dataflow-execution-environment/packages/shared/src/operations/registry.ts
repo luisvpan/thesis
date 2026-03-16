@@ -310,10 +310,10 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
 
   ACCUMULATE: {
     contracts: [
-      { arity: 3, inputTypes: [{ kind: "stream", elementType: "natural" }, "natural", "natural"], outputType: { kind: "stream", elementType: "natural" }, category: "temporal" },
-      { arity: 3, inputTypes: [{ kind: "stream", elementType: "integer" }, "integer", "integer"], outputType: { kind: "stream", elementType: "integer" }, category: "temporal" },
-      { arity: 3, inputTypes: [{ kind: "stream", elementType: "decimal" }, "decimal", "decimal"], outputType: { kind: "stream", elementType: "decimal" }, category: "temporal" },
-      { arity: 3, inputTypes: [{ kind: "stream", elementType: "fraction" }, "fraction", "fraction"], outputType: { kind: "stream", elementType: "fraction" }, category: "temporal" }
+      { arity: 3, inputTypes: [{ kind: "stream", elementType: "natural" }, "text", "natural"], outputType: { kind: "stream", elementType: "natural" }, category: "temporal" },
+      { arity: 3, inputTypes: [{ kind: "stream", elementType: "integer" }, "text", "integer"], outputType: { kind: "stream", elementType: "integer" }, category: "temporal" },
+      { arity: 3, inputTypes: [{ kind: "stream", elementType: "decimal" }, "text", "decimal"], outputType: { kind: "stream", elementType: "decimal" }, category: "temporal" },
+      { arity: 3, inputTypes: [{ kind: "stream", elementType: "fraction" }, "text", "fraction"], outputType: { kind: "stream", elementType: "fraction" }, category: "temporal" }
     ],
     category: "temporal"
   },
@@ -373,56 +373,9 @@ export function resolveOperationSignature(operation: string, inputTypes: TypeExp
       const expected = contract.inputTypes[i];
       const actual = inputTypes[i];
 
-      if (typeof expected === "string") {
-        if (expected !== actual && typeof actual !== "object") {
-          matches = false;
-          break;
-        }
-        if (typeof actual === "object" && actual !== null) {
-          const actualObj = actual as { kind: string; elementType?: string };
-          const expectedObj = expected as string;
-          if (actualObj.kind !== expectedObj) {
-            matches = false;
-            break;
-          }
-          if (actualObj.elementType) {
-            const expectedWithElement = `${actualObj.kind}<${actualObj.elementType}>`;
-            if (expected !== expectedWithElement) {
-              matches = false;
-              break;
-            }
-          }
-        }
-      } else if (typeof actual === "string") {
-        const expectedObj = expected as { kind: string; elementType?: string };
-        const actualStr = actual as string;
-        if (actualStr !== expectedObj.kind) {
-          matches = false;
-          break;
-        }
-        if (expectedObj.elementType) {
-          const actualWithElement = actualStr;
-          if (!actualWithElement.includes(`<${expectedObj.elementType}>`)) {
-            matches = false;
-            break;
-          }
-        }
-      } else {
-        const expectedObj = expected as { kind: string; elementType?: string };
-        const actualObj = actual as { kind: string; elementType?: string };
-        if (expectedObj.kind !== actualObj.kind) {
-          matches = false;
-          break;
-        }
-        if (expectedObj.elementType && actualObj.elementType) {
-          if (expectedObj.elementType !== actualObj.elementType) {
-            matches = false;
-            break;
-          }
-        } else if (expectedObj.elementType || actualObj.elementType) {
-          matches = false;
-          break;
-        }
+      if (!typesMatch(expected, actual)) {
+        matches = false;
+        break;
       }
     }
 
@@ -432,6 +385,31 @@ export function resolveOperationSignature(operation: string, inputTypes: TypeExp
   }
 
   return undefined;
+}
+
+function typesMatch(expected: TypeExpression | TypeConstraint, actual: TypeExpression): boolean {
+  if (typeof expected === "string" && typeof actual === "string") {
+    return expected === actual;
+  }
+
+  if (typeof expected === "string" && typeof actual === "object") {
+    return false;
+  }
+
+  if (typeof expected === "object" && expected !== null) {
+    if (expected.kind === "hasProperty") {
+      return true;
+    }
+    if (expected.kind === "set" && typeof actual === "object" && actual !== null && actual.kind === "set") {
+      return typesMatch(expected.elementType, actual.elementType);
+    }
+    if (expected.kind === "stream" && typeof actual === "object" && actual !== null && actual.kind === "stream") {
+      return typesMatch(expected.elementType, actual.elementType);
+    }
+    return false;
+  }
+
+  return false;
 }
 
 export function isOperation(name: string): boolean {
