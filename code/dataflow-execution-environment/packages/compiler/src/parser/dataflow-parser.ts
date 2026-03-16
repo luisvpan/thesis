@@ -158,7 +158,7 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.SUBRULE(this.literal) },
       {
         ALT: () => this.SUBRULE(this.objectLiteral),
-        GATE: () => this.LA(2).tokenType === Identifier
+        GATE: () => this.LA(2).tokenType === Identifier && this.LA(3).tokenType === Colon
       },
       { ALT: () => this.SUBRULE(this.arrayLiteral) },
       { ALT: () => this.SUBRULE(this.setLiteral) },
