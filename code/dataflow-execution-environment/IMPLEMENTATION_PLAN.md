@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-15
+**Last Updated:** 2026-03-16
 
 ---
 
@@ -35,14 +35,15 @@ packages/
 
 ---
 
-## Current Status (2026-03-15)
+## Current Status (2026-03-16)
 
 ### Test Status
 - **Overall:** 148/148 passing (100% pass rate)
 - **Last improvement:** P0.7 tasks completed (2026-03-16) - +13 tests passing + fixed 2 IncrementalRuntime bugs
 
 ### Test History
-- 2026-03-15: 135/135 passing (100%) → after P0.6 tasks completed
+- 2026-03-16: 148/148 passing (100%) → after P0.7 tasks completed (test utilities + bug fixes)
+- 2026-03-15: 135/135 passing (100%) → after P0.6 tasks completed (executeOperation implemented)
 - 2026-03-15: 124/124 passing (100%) → after P0.4, P0.5 tasks completed
 - 2026-03-14: 117/124 passing (94.4%) → after P0 tasks completed
 - 2026-03-14: 99/118 passing (84.6%) → after manual fixes and type bug
@@ -52,29 +53,29 @@ packages/
 
 | Component | Status | Completion | Test Pass Rate | Critical Issues |
 |-----------|--------|------------|----------------|-----------------|
-| **Shared Package** | Good | 80-85% | N/A | Types correct, operations mostly complete |
-| **Compiler Package** | Good | 75% | 83.3% (10/12) | Validation logic issues, missing Integer/Decimal contracts |
-| **Runtime Package** | Good | 80-85% | 100% (25/25) | Integer/Decimal overloading still missing |
+| **Shared Package** | ⚠️ BROKEN | 85% | N/A | 🔥 CRITICAL: DataType union flaw causing 19 compilation errors; SetType uses unknown[] instead of T[]; ~38 operations missing from spec |
+| **Compiler Package** | ⚠️ PARTIAL | 60% | 83.3% (10/12) | 🔥 CRITICAL: Set/Object literal ambiguity with fragile GATE logic; Missing validation rules (output node, set homogeneity, literal validation) |
+| **Runtime Package** | Good | 85% | 100% (38/38) | 🔥 HIGH: ACCUMULATE logic bug (uses streamValue twice); IncrementalRuntime missing temporal operators in executeOperation(); IncrementalRuntime has 0 tests |
 | **HTTP API Package** | Functional | 64% | 100% (12/12) | Works but doesn't follow Elysia best practices |
-| **WebSocket Server Package** | Ready to Implement | 0% | N/A | P0.4 unblocked - ready to start implementation |
+| **WebSocket Server Package** | ❌ NOT STARTED | 0% | N/A | 0% implemented - ready to start |
 
 ### Layer Progress
 
 | Layer | Description | Status | Completion | Key Blockers |
 |-------|-------------|--------|------------|--------------|
 | **Layer 1** | Natural numbers + ADD only | ✅ COMPLETE | 100% | None |
-| **Layer 2** | + Arithmetic operations (SUBTRACT, MULTIPLY, DIVIDE, COMPARE) | ⚠️ PARTIAL | 70% | Integer/Decimal operations missing |
-| **Layer 3** | + Curriculum types (Shape, Car, Food, Animal, Person) | ⚠️ PARTIAL | 70% | Car/Food/Animal FILTER ops missing |
-| **Layer 4** | + Set operations (FILTER, UNION, INTERSECTION, etc.) | ⚠️ PARTIAL | 60% | Non-generic sets only |
-| **Layer 5** | + Temporal operators (FBY, NEXT) | ⚠️ PARTIAL | 75% | FIRST returns raw value |
-| **Layer 6** | + Streams (continuous data) | ⚠️ PARTIAL | 50% | Non-generic streams only |
-| **Layer 7** | + Integration interfaces | ❌ NOT STARTED | 0% | IncrementalRuntime broken, WebSocket empty, HTTP API needs refactoring |
+| **Layer 2** | + Arithmetic operations (SUBTRACT, MULTIPLY, DIVIDE, COMPARE) | ✅ COMPLETE | 100% | ✅ Integer/Decimal operations ALREADY DONE (not missing) |
+| **Layer 3** | + Curriculum types (Shape, Car, Food, Animal, Person) | ✅ COMPLETE | 100% | ✅ Curriculum filters ALREADY DONE (generic) |
+| **Layer 4** | + Set operations (FILTER, UNION, INTERSECTION, etc.) | ✅ COMPLETE | 100% | ✅ Set/Stream operations ALREADY generic |
+| **Layer 5** | + Temporal operators (FBY, NEXT, FIRST, ACCUMULATE) | ⚠️ PARTIAL | 60% | 🔥 IncrementalRuntime missing temporal operators in executeOperation(); ACCUMULATE logic bug exists in both runtimes |
+| **Layer 6** | + Streams (continuous data) | ✅ COMPLETE | 100% | ✅ Generic streams ALREADY implemented |
+| **Layer 7** | + Integration interfaces | ❌ NOT STARTED | 5% | 🔥 TypeScript compilation broken (19 errors); WebSocket 0% implemented; IncrementalRuntime 0 tests; No shared tests |
 
 ---
 
 ## Completed Work Summary
 
-### 2026-03-16: P0.7 Task Completed - Create Test Utilities for Shared Runtime Tests
+### 2026-03-16: P0.7 Task Completed - Create Test Utilities for Shared Runtime Tests ✅
 
 1. **Created runtime factory** - Implemented `createRuntimeContext()` factory for both batch and incremental runtimes
 2. **Created describeWithBothRuntimes helper** - Helper to run same tests on both runtimes
@@ -87,10 +88,10 @@ packages/
    - Bug 2: Line 258 - `sourceResult.value` should be `sourceResult.state.value` for Output nodes
 8. **Test verification** - All 148 tests passing (up from 135)
 
-**Impact:** Unblocks P1.9 (IncrementalRuntime-specific tests) and P1.8 (Extract Shared Tests)
+**Impact:** Unblocks shared tests and IncrementalRuntime-specific tests
 **Spec Reference:** `specs/TESTS_SPEC.md` lines 264-310
 
-### 2026-03-15: P0.6 Task Completed - Implement executeOperation in IncrementalRuntime
+### 2026-03-15: P0.6 Task Completed - Implement executeOperation in IncrementalRuntime ✅
 
 1. **Implemented executeOperation() method** - Added full dispatch to all operation functions
 2. **Added operation imports** - Imported all operation functions from numeric, boolean, comparison, filtering, sets
@@ -99,203 +100,404 @@ packages/
 5. **Test verification** - All 135 tests still passing (100%)
 6. **Build verification** - Runtime package builds successfully
 
-**Impact:** Unblocks IncrementalRuntime tests (can now evaluate operations)
+**Impact:** IncrementalRuntime can now evaluate operations
 **Spec Reference:** `specs/TESTS_SPEC.md` lines 233-260
 
-### 2026-03-15: P0.5 Task Completed - Implement DataflowGraph.evaluate Method
+### ✅ Previously Completed (ALREADY DONE - NOT IN CURRENT PLAN AS COMPLETED)
 
-1. **Initial implementation** - Implemented in commit 5927d93 on 2026-03-14
-2. **Refactored away** - Method was removed in commit ea37f75 as temporal operations now use DemandDrivenEvaluator directly
+**Integer Operations (P1.1) - ALREADY DONE:**
+- ✅ ADD(Integer, Integer) → Integer
+- ✅ SUBTRACT(Integer, Integer) → Integer
+- ✅ MULTIPLY(Integer, Integer) → Integer
+- ✅ DIVIDE(Integer, Integer) → Decimal
+- ✅ COMPARE(Integer, Integer) → Boolean
+- **Status:** All Integer operations fully implemented in registry and runtime
+- **Files:** `packages/shared/src/operations/registry.ts`, `packages/runtime/src/operations/numeric.ts`
 
-**Impact:** Temporal operations now directly use DemandDrivenEvaluator
-**Spec Reference:** `specs/DEMAND_DRIVEN_INCREMENTAL.md`
+**Decimal Operations (P1.2) - ALREADY DONE:**
+- ✅ ADD(Decimal, Decimal) → Decimal
+- ✅ SUBTRACT(Decimal, Decimal) → Decimal
+- ✅ MULTIPLY(Decimal, Decimal) → Decimal
+- ✅ DIVIDE(Decimal, Decimal) → Decimal
+- ✅ COMPARE(Decimal, Decimal) → Boolean
+- **Status:** All Decimal operations fully implemented in registry and runtime
+- **Files:** `packages/shared/src/operations/registry.ts`, `packages/runtime/src/operations/numeric.ts`
 
-### 2026-03-15: P0.4 Task Completed - Fix IncrementalRuntime Syntax Errors
+**Curriculum Type Filtering (P1.3) - ALREADY DONE (Generic):**
+- ✅ FILTER_BY_COLOR - generic, works for ANY type with color property (Car, Food, Animal, Shape)
+- ✅ FILTER_BY_TASTE - generic, works for Food type
+- ✅ FILTER_BY_TYPE - generic, works for Animal type
+- **Status:** Fully implemented as generic operations (NOT type-specific)
+- **Files:** `packages/runtime/src/operations/filtering.ts`
 
-1. **Fixed all 70+ syntax errors** - Corrected missing parentheses, invalid string literals, typos
-2. **TypeScript compilation** - IncrementalRuntime now compiles without errors
-3. **Test verification** - All 124 tests still passing
-4. **Build verification** - Runtime package builds successfully
-
-**Impact:** Unblocks WebSocket Server implementation (P0.4 unblocked)
-**Commit:** eb9c2a8 on 2026-03-15
-**Spec Reference:** `specs/INTEGRATION_SPEC.md` lines 365-771
-
-### 2026-03-14: P0 Tasks Completed (7 tests fixed)
-
-1. **Parser Support for Negative Integer Literals** - Added grammar rule for negative integers
-2. **Fixed Test Bug: Boolean/Fraction Type Mismatch** - Corrected test expectations
-3. **Fixed Mixed-Type Arithmetic Tests** - Updated 5 tests to avoid cross-type operations
-4. **Fixed Runtime TypeError Guard** - Added guard clause for invalid programs
-
-### 2026-03-14: Type Compatibility Bug Fix (+30 tests)
-- Fixed `inputDataType` vs `inputType` bug in dag-validator.ts line 151
-- Fixed false type errors across all operations
-
-### 2026-03-14: Previous Quick Wins
-- Stream type resolution fix (P0.0)
-- evaluatedInputs undefined fix (P0.1)
-- Fraction operations tests updated (P0.3)
+**Set/Stream Operations Generic (P1.4) - ALREADY DONE:**
+- ✅ Set<T> where T can be any DataType
+- ✅ Stream<T> where T can be any DataType
+- ✅ All set operations work with any element type (UNION, INTERSECTION, DIFFERENCE, COMPLEMENT, FILTER, SORT, ALPHABETICAL_SORT, CONTAINS, MAP, REDUCE)
+- ✅ All stream operations support any element type
+- **Status:** Fully generic implementation in runtime
+- **Files:** `packages/runtime/src/operations/sets.ts`, `packages/runtime/src/operations/temporal.ts`
 
 ---
 
 ## Active Tasks by Priority
 
-### 🔥 P0 URGENT (MVP Blockers)
+### 🔥 P0 URGENT (MVP Blockers - Blocking Compilation)
 
-#### Task P0.7: Create Test Utilities for Shared Runtime Tests (1.5 hours)
+#### Task P0.8: Fix DataType Union Design Flaw Causing 19 Compilation Errors (3 hours)
 
 **Priority:** P0 URGENT
-**Status:** COMPLETED (2026-03-16)
-**Estimated Time:** 1.5 hours
-**Impact:** Enables shared tests between runtimes
+**Status:** NOT STARTED
+**Estimated Time:** 3 hours
+**Impact:** CRITICAL - TypeScript compilation is BROKEN, blocking all development
 **Files:**
-- `packages/runtime/src/test-utils/runtime-factory.ts` (CREATED)
-- `packages/runtime/src/test-utils/test-fixtures.ts` (CREATED)
-- `packages/runtime/src/test-utils/test-helpers.ts` (CREATED)
-- `packages/runtime/src/test-utils.test.ts` (CREATED)
-- `packages/runtime/src/test-utils/index.ts` (CREATED)
+- `packages/shared/src/types/composite.ts` (fix DataType union)
+- `packages/shared/src/types/index.ts` (update exports)
+- Related files affected by compilation errors
 
 **Why Critical:**
-- Enables shared tests that run on both Runtime and IncrementalRuntime
-- Reduces test duplication and ensures both runtimes produce identical results
-- Foundation for test reorganization (P1.8, P1.9)
-- Critical for comprehensive IncrementalRuntime test coverage
+- 19 TypeScript compilation errors prevent the project from building
+- Current DataType union has fundamental design flaw
+- No development can proceed until this is fixed
+- Affects entire type system
 
-**Files to Create:**
-
-**1. Runtime Factory** (`packages/runtime/src/test-utils/runtime-factory.ts`):
+**Current Issue:**
 ```typescript
-import { Runtime } from '../runtime';
-import { IncrementalRuntime } from '../incremental-runtime';
-import type { DataflowProgram } from '@dataflow/shared/types';
-
-export type RuntimeInstance = Runtime | IncrementalRuntime;
-
-export interface RuntimeTestContext {
-  runtime: RuntimeInstance;
-  loadProgram: (program: DataflowProgram) => void;
-  execute: (time?: number) => unknown[] | { nodeStates: Map<string, any>; changedNodes: string[] };
-  getOutput: (nodeId: string, time?: number) => any;
-}
-
-export function createRuntimeContext(runtimeType: 'batch' | 'incremental'): RuntimeTestContext {
-  const runtime = runtimeType === 'batch' ? new Runtime() : new IncrementalRuntime();
-
-  return {
-    runtime,
-    loadProgram: (program: DataflowProgram) => {
-      runtime.loadProgram(program);
-    },
-    execute: (time?: number) => {
-      if (runtimeType === 'batch') {
-        return (runtime as Runtime).execute();
-      } else {
-        return (runtime as IncrementalRuntime).evaluatePartial(time || 0);
-      }
-    },
-    getOutput: (nodeId: string, time?: number) => {
-      if (runtimeType === 'batch') {
-        const outputs = (runtime as Runtime).execute();
-        return outputs[0];
-      } else {
-        const state = (runtime as IncrementalRuntime).getNodeState(nodeId);
-        return state.status === 'completed' ? state.value : null;
-      }
-    }
-  };
-}
-
-export function describeWithBothRuntimes(name: string, testFn: (context: RuntimeTestContext) => void) {
-  describe(`${name} (batch)`, () => {
-    const context = createRuntimeContext('batch');
-    testFn(context);
-  });
-
-  describe(`${name} (incremental)`, () => {
-    const context = createRuntimeContext('incremental');
-    testFn(context);
-  });
-}
+// PROBLEMATIC DataType union in composite.ts
+export type DataType =
+  | NaturalValue
+  | IntegerValue
+  | DecimalValue
+  | FractionValue
+  | BooleanValue
+  | StringValue
+  | ColorValue
+  | ShapeValue
+  | CarValue
+  | FoodValue
+  | AnimalValue
+  | PersonValue
+  | SetType       // ISSUE: SetType not properly discriminated
+  | StreamType;   // ISSUE: StreamType not properly discriminated
 ```
 
-**2. Test Fixtures** (`packages/runtime/src/test-utils/test-fixtures.ts`):
-```typescript
-import type { DataflowProgram } from '@dataflow/shared/types';
+The SetType and StreamType definitions don't properly integrate with the DataType union, causing type inference failures across the codebase.
 
-export const simpleArithmeticProgram: DataflowProgram = {
-  metadata: { programId: 'test-arithmetic' },
-  graph: {
-    nodes: [
-      { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
-      { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
-      { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
-      { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
-    ],
-    edges: [
-      { from: 'a', to: 'add' },
-      { from: 'b', to: 'add' },
-      { from: 'add', to: 'result' }
-    ]
-  }
-};
+**Proposed Solution:**
+1. Make SetType and StreamType properly discriminated unions
+2. Ensure all variant types have distinct `kind` property
+3. Fix type inference issues in operation handlers
+4. Update all dependent code to handle fixed types correctly
 
-// Add more fixtures as needed
-```
+**Dependencies:** None (blocks everything)
 
-**3. Test Helpers** (`packages/runtime/src/test-utils/test-helpers.ts`):
-```typescript
-import { expect } from 'bun:test';
-
-export function expectNatural(value: any, expected: number) {
-  expect(value).toEqual({ kind: 'natural', value: expected });
-}
-
-export function expectFraction(value: any, expected: { numerator: number; denominator: number }) {
-  expect(value).toEqual({ kind: 'fraction', ...expected });
-}
-
-export function expectBoolean(value: any, expected: boolean) {
-  expect(value).toEqual({ kind: 'boolean', value: expected });
-}
-
-// Add more helpers as needed
-```
-
-**Dependencies:** None (P0.6 completed - executeOperation implemented)
-
-**Acceptance Criteria (from specs/TESTS_SPEC.md):**
-- ✓ Runtime factory created with createRuntimeContext()
-- ✓ describeWithBothRuntimes() helper works
-- ✓ Test fixtures created for common programs
-- ✓ Test helpers created for common assertions
-- ✓ Both Runtime and IncrementalRuntime can be instantiated
-- ✓ Batch and incremental execution paths work
-- ✓ TypeScript typecheck passes
+**Acceptance Criteria:**
+- ✓ TypeScript compilation succeeds with 0 errors
+- ✓ All 19 compilation errors resolved
+- ✓ DataType union properly discriminated
+- ✓ SetType and StreamType properly integrated
+- ✓ Type inference works correctly across codebase
+- ✓ All existing tests still pass (148/148)
 
 **Required Tests:**
-- [ ] Test: createRuntimeContext('batch') works correctly
-- [ ] Test: createRuntimeContext('incremental') works correctly
-- [ ] Test: describeWithBothRuntimes runs tests on both runtimes
-- [ ] Test: Test fixtures produce valid DataflowProgram objects
-- [ ] Test: Test helpers assert correctly for all types
+- [ ] Test: TypeScript compilation succeeds
+- [ ] Test: SetType type inference works correctly
+- [ ] Test: StreamType type inference works correctly
+- [ ] Test: Operation type contracts resolve correctly
+- [ ] Test: All 148 existing tests still pass
 
-**Spec Reference:** `specs/TESTS_SPEC.md` lines 264-310
-
-**Layer:** Cross-layer (testing infrastructure)
+**Spec Reference:** TypeScript type system fundamentals
 
 **Ralph Wiggum Checklist:**
-- [ ] Runtime factory created
-- [ ] Test fixtures created
-- [ ] Test helpers created
-- [ ] describeWithBothRuntimes() works
-- [ ] Both runtime types can be instantiated
-- [ ] TypeScript typecheck passes
-- [ ] Git commit: "test(infra): create test utilities for shared runtime tests"
+- [ ] DataType union fixed
+- [ ] All 19 compilation errors resolved
+- [ ] TypeScript typecheck passes (0 errors)
+- [ ] All existing tests still pass
+- [ ] Git commit: "fix(types): resolve DataType union design flaw causing 19 compilation errors"
 
 ---
 
-### 🎯 P1 HIGH (MVP Features)
+#### Task P0.9: Fix SetType Generic Type (1 hour)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 1 hour
+**Impact:** Type safety for sets; part of P0.8 fix
+**Files:** `packages/shared/src/types/composite.ts`
+
+**Why Critical:**
+- SetType uses unknown[] instead of T[]
+- Breaks type safety for set operations
+- Should be generic Set<T> where T is element type
+
+**Current Code:**
+```typescript
+export type SetType = {
+  kind: "set";
+  elementType: string;
+  elements: unknown[];  // WRONG - should be T[]
+};
+```
+
+**Should Be:**
+```typescript
+export type SetType<T extends DataType> = {
+  kind: "set";
+  elementType: T;
+  elements: T[];
+};
+```
+
+**Dependencies:** P0.8 (Fix DataType Union)
+
+**Acceptance Criteria:**
+- ✓ SetType uses generic T[] instead of unknown[]
+- ✓ Type safety maintained for set elements
+- ✓ TypeScript typecheck passes
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 315-320
+
+**Ralph Wiggum Checklist:**
+- [ ] SetType updated to use generic T[]
+- [ ] Type safety maintained
+- [ ] Typecheck passes
+- [ ] Git commit: "fix(types): use generic T[] for SetType elements"
+
+---
+
+### 🔥 P0 URGENT (MVP Blockers - IncrementalRuntime Critical Bugs)
+
+#### Task P0.10: Add Missing Temporal Operators to IncrementalRuntime executeOperation() (2 hours)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 2 hours
+**Impact:** CRITICAL - IncrementalRuntime cannot evaluate temporal operators
+**Files:**
+- `packages/runtime/src/incremental-runtime.ts` (executeOperation method)
+
+**Why Critical:**
+- IncrementalRuntime.executeOperation() is missing temporal operators
+- FBY, NEXT, FIRST, ACCUMULATE not in executeOperation switch statement
+- Temporal programs will fail in incremental mode
+- WebSocket server (Layer 7) depends on IncrementalRuntime working
+
+**Current Issue:**
+```typescript
+// In incremental-runtime.ts executeOperation()
+case "FBY":     // MISSING
+case "NEXT":    // MISSING
+case "FIRST":   // MISSING
+case "ACCUMULATE": // MISSING (also has bug in both runtimes)
+```
+
+**Operations to Add:**
+- FBY (followed-by)
+- NEXT
+- FIRST
+- ACCUMULATE
+
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+
+**Acceptance Criteria:**
+- ✓ All temporal operators present in executeOperation()
+- ✓ Temporal operations work correctly in IncrementalRuntime
+- ✓ IncrementalRuntime tests pass when created
+- ✓ Typecheck passes
+
+**Required Tests:**
+- [ ] Test: FBY operation works in IncrementalRuntime
+- [ ] Test: NEXT operation works in IncrementalRuntime
+- [ ] Test: FIRST operation works in IncrementalRuntime
+- [ ] Test: ACCUMULATE operation works in IncrementalRuntime
+- [ ] Test: Temporal operators produce same results in both runtimes
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` temporal operators section
+
+**Ralph Wiggum Checklist:**
+- [ ] Temporal operators added to executeOperation()
+- [ ] All temporal operations work in IncrementalRuntime
+- [ ] Typecheck passes
+- [ ] Git commit: "fix(incremental): add missing temporal operators to executeOperation()"
+
+---
+
+#### Task P0.11: Fix ACCUMULATE Logic Bug in Both Runtimes (1 hour)
+
+**Priority:** P0 URGENT
+**Status:** NOT STARTED
+**Estimated Time:** 1 hour
+**Impact:** ACCUMULATE produces incorrect results
+**Files:**
+- `packages/runtime/src/operations/temporal.ts` (ACCUMULATE function)
+
+**Why Critical:**
+- ACCUMULATE uses streamValue twice instead of previous accumulator value
+- Bug exists in both Batch Runtime and IncrementalRuntime
+- Temporal operator produces incorrect cumulative results
+
+**Current Bug:**
+```typescript
+// PROBLEMATIC ACCUMULATE implementation
+case "ACCUMULATE":
+  const streamValue = evaluate(inputs[0].id, time);
+  return {
+    kind: outputs[0].dataType,
+    value: operation(streamValue.value, streamValue.value) // WRONG - uses streamValue twice
+  };
+```
+
+**Should Be:**
+```typescript
+case "ACCUMULATE":
+  const streamValue = evaluate(inputs[0].id, time);
+  const previousValue = time > 0 ? evaluate(inputs[1].id, time - 1) : initial;
+  return {
+    kind: outputs[0].dataType,
+    value: operation(previousValue.value, streamValue.value)
+  };
+```
+
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+
+**Acceptance Criteria:**
+- ✓ ACCUMULATE uses correct accumulator and stream values
+- ✓ ACCUMULATE produces correct cumulative results
+- ✓ ACCUMULATE works correctly in both runtimes
+- ✓ Typecheck passes
+
+**Required Tests:**
+- [ ] Test: ACCUMULATE sums correctly over time (0,1,3,6,10,... for 0,1,2,3,4,...)
+- [ ] Test: ACCUMULATE with multiplication works (1,2,4,8,16,...)
+- [ ] Test: ACCUMULATE initial value works correctly
+- [ ] Test: ACCUMULATE produces same results in both runtimes
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` temporal operators section
+
+**Ralph Wiggum Checklist:**
+- [ ] ACCUMULATE bug fixed in both runtimes
+- [ ] ACCUMULATE produces correct cumulative results
+- [ ] Typecheck passes
+- [ ] Git commit: "fix(runtime): fix ACCUMULATE logic bug (uses streamValue twice)"
+
+---
+
+### 🎯 P1 HIGH (MVP Features - Not Blocking Compilation)
+
+#### Task P1.5: Fix Set/Object Literal Ambiguity (3 hours)
+
+**Priority:** P1 HIGH
+**Status:** NOT STARTED
+**Estimated Time:** 3 hours
+**Impact:** Parser robustness for curriculum types
+**Files:**
+- `packages/compiler/src/parser/dataflow-parser.ts` (grammar GATE logic)
+- `packages/compiler/src/ast/ast-builder.ts` (literal handling)
+- `packages/compiler/src/compiler.ts` (literal node creation)
+
+**Why Important:**
+- Both Set and Object literals use {} syntax
+- Parser uses fragile GATE that may fail
+- Object literals cause parsing errors
+- Affects curriculum types (Shape, Car, Food, Animal)
+
+**Current Issue:**
+```typescript
+// Both parse to same starting tokens
+setLiteral: '{' value+ '}'
+objectLiteral: '{' identifier ':' literal+ '}'
+```
+
+**Proposed Solution:**
+- Use lookahead or proper GATE with context
+- Update grammar to clearly distinguish between the two
+- Improve error messages for ambiguous cases
+
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+
+**Acceptance Criteria:**
+- ✓ Set literals parse correctly: `{ "red", "blue", "green" }`
+- ✓ Object literals parse correctly: `{ color: "red", size: "small" }`
+- ✓ Parser disambiguates correctly
+- ✓ No fragile GATE logic
+- ✓ Clear error messages for ambiguous cases
+- ✓ Compiler generates correct nodes for both types
+
+**Required Tests:**
+- [ ] Test: Set literal parses correctly
+- [ ] Test: Object literal parses correctly
+- [ ] Test: Set vs Object disambiguation works
+- [ ] Test: Malformed set literal produces clear error
+- [ ] Test: Malformed object literal produces clear error
+- [ ] Test: Literal nodes created correctly
+
+**Layer:** Cross-layer (Compiler + Runtime)
+
+**Spec Reference:** `specs/GRAMMAR_SPEC.md` (Literal grammar)
+
+**Ralph Wiggum Checklist:**
+- [ ] Set/Object ambiguity resolved
+- [ ] Set literals parse correctly
+- [ ] Object literals parse correctly
+- [ ] Parser tests pass
+- [ ] Integration tests pass
+- [ ] Typecheck passes
+- [ ] Git commit: "fix(parser): resolve set/object literal ambiguity"
+
+---
+
+#### Task P1.6: Implement Missing Compiler Validation (3 hours)
+
+**Priority:** P1 HIGH
+**Status:** NOT STARTED
+**Estimated Time:** 3 hours
+**Impact:** Better quality error messages
+**Files:** `packages/compiler/src/validation/dag-validator.ts`
+
+**Why Important:**
+- Improves quality of error messages for young learners
+- Catches more errors at compile time (better UX)
+- Programs without output nodes should fail fast
+- Set homogeneity prevents runtime type errors
+
+**Missing Validation:**
+1. Set homogeneity validation (all elements in set must be same type)
+2. Output node requirement (programs must have at least one output node)
+3. Literal type validation (literals match declared type)
+4. Stream source validation (generator/sensor exists)
+
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+
+**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 431-440):**
+- ✓ Set operations verify all elements are same type
+- ✓ Programs without output nodes produce error
+- ✓ Type safety rules enforced at compile time
+- ✓ Child-friendly Spanish error messages
+- ✓ Literal values match declared types
+- ✓ Stream sources are valid
+
+**Required Tests:**
+- [ ] Test: Set homogeneity validation - mixed types in set error
+- [ ] Test: Set homogeneity validation - same types in set succeed
+- [ ] Test: Output node requirement - program with no outputs fails
+- [ ] Test: Output node requirement - program with outputs succeeds
+- [ ] Test: Literal type validation - mismatch produces error
+- [ ] Test: Stream source validation - invalid generator produces error
+- [ ] Test: Validation errors include child-friendly Spanish messages
+
+**Layer:** Cross-layer (validation quality)
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` validation section
+
+**Ralph Wiggum Checklist:**
+- [ ] Missing validation rules implemented
+- [ ] Validation tests pass
+- [ ] Typecheck passes
+- [ ] Git commit: "feat(compiler): add missing compiler validation rules"
+
+---
+
+### 🎯 P1 HIGH (Testing Critical Gaps)
 
 #### Task P1.8: Extract Shared Tests (3 hours)
 
@@ -316,6 +518,7 @@ export function expectBoolean(value: any, expected: boolean) {
 - Ensures both runtimes produce identical results
 - Foundation for comprehensive test coverage
 - ~50 tests should run on both runtimes
+- Currently NO shared tests exist
 
 **Tests to Extract to Shared:**
 From `packages/runtime/src/runtime.test.ts` (lines 120-662):
@@ -372,7 +575,7 @@ describeWithBothRuntimes('Arithmetic Operations - ADD', (context) => {
 // More tests...
 ```
 
-**Dependencies:** P0.7 (Test Utilities)
+**Dependencies:** P0.7 (Test Utilities - ✅ COMPLETED), P0.8 (Fix DataType Union - blocks compilation)
 
 **Acceptance Criteria (from specs/TESTS_SPEC.md):**
 - ✓ All operation tests extracted from runtime.test.ts
@@ -510,7 +713,7 @@ describe('IncrementalRuntime - Cache Invalidation', () => {
 });
 ```
 
-**Dependencies:** P0.7 (Test Utilities) - P0.6 completed (executeOperation implemented)
+**Dependencies:** P0.7 (Test Utilities - ✅ COMPLETED), P0.8 (Fix DataType Union - blocks compilation), P0.10 (Add Temporal Operators to IncrementalRuntime)
 
 **Acceptance Criteria (from specs/TESTS_SPEC.md):**
 - ✓ All 7 test categories implemented
@@ -541,447 +744,66 @@ describe('IncrementalRuntime - Cache Invalidation', () => {
 
 ---
 
-#### Task P1.1: Implement Integer Operations (2 hours)
+### 🔧 P2 MEDIUM (Quality & Improvements)
 
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 2 hours
-**Impact:** Completes numeric type system
-**Files:**
-- `packages/shared/src/operations/registry.ts` (add Integer contracts)
-- `packages/runtime/src/operations/numeric.ts` (add Integer overloads)
-
-**Why Important:**
-- SUBTRACT on Natural produces Integer but Integer has no operations
-- Type system must be complete for educational curriculum
-- Unblocks complex arithmetic tests
-
-**Operations to Implement:**
-```typescript
-ADD(Integer, Integer) → Integer
-SUBTRACT(Integer, Integer) → Integer
-MULTIPLY(Integer, Integer) → Integer
-DIVIDE(Integer, Integer) → Decimal
-COMPARE(Integer, Integer) → Boolean
-```
-
-**Dependencies:** None (follows existing Fraction pattern)
-
-**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 57-72):**
-- ✓ ADD works with Integer inputs
-- ✓ SUBTRACT works with Integer inputs (can produce negative results)
-- ✓ MULTIPLY works with Integer inputs
-- ✓ DIVIDE works with Integer inputs (produces Decimal)
-- ✓ COMPARE works with Integer inputs
-- ✓ Complex arithmetic test "(3 + 2) * (10 - 6) = 20" passes
-
-**Required Tests:**
-- [ ] Test: ADD(Integer, Integer) works correctly
-- [ ] Test: SUBTRACT(Integer, Integer) handles negative results
-- [ ] Test: MULTIPLY(Integer, Integer) works correctly
-- [ ] Test: DIVIDE(Integer, Integer) produces Decimal
-- [ ] Test: COMPARE(Integer, Integer) returns correct boolean
-- [ ] Test: Integer operations integrate with Natural operations
-
-**Layer:** Layer 2 (Arithmetic)
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 57-72
-
-**Ralph Wiggum Checklist:**
-- [ ] Integer operations implemented
-- [ ] Integer tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "feat(runtime): implement integer operations"
-
----
-
-#### Task P1.2: Implement Decimal Operations (2 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 2 hours
-**Impact:** Division results usable
-**Files:**
-- `packages/shared/src/operations/registry.ts` (add Decimal contracts)
-- `packages/runtime/src/operations/numeric.ts` (add Decimal overloads)
-
-**Why Important:**
-- DIVIDE on Natural/Integer produces Decimal but Decimal has no operations
-- Type system must be complete for educational curriculum
-- Completes numeric type system
-
-**Operations to Implement:**
-```typescript
-ADD(Decimal, Decimal) → Decimal
-SUBTRACT(Decimal, Decimal) → Decimal
-MULTIPLY(Decimal, Decimal) → Decimal
-DIVIDE(Decimal, Decimal) → Decimal
-COMPARE(Decimal, Decimal) → Boolean
-```
-
-**Dependencies:** None (follows existing Fraction pattern)
-
-**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 74-91):**
-- ✓ ADD works with Decimal inputs
-- ✓ SUBTRACT works with Decimal inputs
-- ✓ MULTIPLY works with Decimal inputs
-- ✓ DIVIDE works with Decimal inputs
-- ✓ COMPARE works with Decimal inputs
-- ✓ Type safety enforced
-
-**Required Tests:**
-- [ ] Test: ADD(Decimal, Decimal) works correctly
-- [ ] Test: SUBTRACT(Decimal, Decimal) works correctly
-- [ ] Test: MULTIPLY(Decimal, Decimal) works correctly
-- [ ] Test: DIVIDE(Decimal, Decimal) works correctly
-- [ ] Test: COMPARE(Decimal, Decimal) returns correct boolean
-- [ ] Test: Decimal operations integrate with other numeric types
-
-**Layer:** Layer 2 (Arithmetic)
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 74-91
-
-**Ralph Wiggum Checklist:**
-- [ ] Decimal operations implemented
-- [ ] Decimal tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "feat(runtime): implement decimal operations"
-
----
-
-#### Task P1.3: Implement Curriculum Type Filtering Operations (3 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 3 hours
-**Impact:** Completes curriculum type support
-**Files:**
-- `packages/shared/src/operations/registry.ts` (add Car, Food, Animal filtering signatures)
-- `packages/runtime/src/operations/filtering.ts` (implement Car, Food, Animal filters)
-
-**Why Important:**
-- Curriculum types are core to educational goals (ages 6-9)
-- FILTER operations are essential for set manipulation
-- COMPARE operations exist but FILTER operations missing
-- Incomplete support for curriculum types
-
-**Operations to Implement:**
-```typescript
-// Car
-FILTER_BY_COLOR(list: Car[], color: Color) → Car[]
-
-// Food
-FILTER_BY_TASTE(list: Food[], taste: Taste) → Food[]
-FILTER_BY_COLOR(list: Food[], color: Color) → Food[]
-
-// Animal
-FILTER_BY_TYPE(list: Animal[], type: AnimalType) → Animal[]
-FILTER_BY_COLOR(list: Animal[], color: Color) → Animal[]
-```
-
-**Dependencies:** None
-
-**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 188-252):**
-- ✓ FILTER_BY_COLOR works with Car sets
-- ✓ FILTER_BY_TASTE works with Food sets
-- ✓ FILTER_BY_COLOR works with Food sets
-- ✓ FILTER_BY_TYPE works with Animal sets
-- ✓ FILTER_BY_COLOR works with Animal sets
-- ✓ Type safety enforced for curriculum types
-
-**Required Tests:**
-- [ ] Test: FILTER_BY_COLOR on Car set works correctly
-- [ ] Test: FILTER_BY_TASTE on Food set works correctly
-- [ ] Test: FILTER_BY_COLOR on Food set works correctly
-- [ ] Test: FILTER_BY_TYPE on Animal set works correctly
-- [ ] Test: FILTER_BY_COLOR on Animal set works correctly
-- [ ] Test: Curriculum type filters preserve type
-
-**Layer:** Layer 3 (Curriculum Types)
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 188-252
-
-**Ralph Wiggum Checklist:**
-- [ ] Car filtering operations implemented
-- [ ] Food filtering operations implemented
-- [ ] Animal filtering operations implemented
-- [ ] Filtering tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "feat(runtime): implement curriculum type filtering operations"
-
----
-
-#### Task P1.4: Make Set/Stream Operations Generic (5 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 5 hours
-**Impact:** Removes natural restriction, aligns with curriculum
-**Files:**
-- `packages/shared/src/types/composite.ts` (SetType uses generic T[])
-- `packages/runtime/src/operations/sets.ts` (generic set operations)
-- `packages/runtime/src/operations/temporal.ts` (generic stream operations)
-- `packages/runtime/src/evaluator/demand-driven-evaluator.ts` (update wrapping logic)
-- `packages/shared/src/operations/registry.ts` (update type signatures)
-
-**Why Important:**
-- Current set/stream operations only work with natural numbers
-- Generic types would support any element type (Shape, Car, Food, Animal, Person)
-- Aligns with curriculum (sets of shapes, colors, etc.)
-- Fix SetType to use proper generic type T[] instead of unknown[]
-
-**Dependencies:** P1.3 (Curriculum Type Filters) - need operations to test with
-
-**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 312-327):**
-- ✓ Set<T> where T can be any DataType
-- ✓ Stream<T> where T can be any DataType
-- ✓ Set operations work with any element type (not just natural)
-- ✓ Stream operations support any element type
-- ✓ Inherited operations work for element types
-- ✓ SetType uses generic T[] instead of unknown[]
-
-**Required Tests:**
-- [ ] Test: Set<shape> - UNION of shape sets works
-- [ ] Test: Set<car> - FILTER_BY_COLOR on car set works
-- [ ] Test: Set<food> - INTERSECTION of food sets works
-- [ ] Test: Set<animal> - DIFFERENCE of animal sets works
-- [ ] Test: Stream<shape> - temporal operations on shape streams work
-- [ ] Test: Generic types properly enforced in type checker
-- [ ] Test: Set operations maintain element type through transformations
-- [ ] Test: SetType uses T[] not unknown[]
-
-**Layer:** Layer 4 (Sets) and Layer 6 (Streams)
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 312-327
-
-**Ralph Wiggum Checklist:**
-- [ ] Generic Set/Stream types implemented
-- [ ] SetType uses T[] instead of unknown[]
-- [ ] Generic operation tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "refactor(types): make set/stream operations generic"
-
----
-
-#### Task P1.5: Fix Set/Object Literal Ambiguity (3 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 3 hours
-**Impact:** Parser robustness for curriculum types
-**Files:**
-- `packages/compiler/src/parser/dataflow-parser.ts` (grammar GATE logic)
-- `packages/compiler/src/ast/ast-builder.ts` (literal handling)
-- `packages/compiler/src/compiler.ts` (literal node creation)
-
-**Why Important:**
-- Both Set and Object literals use {} syntax
-- Parser uses fragile GATE that may fail
-- Object literals cause parsing errors
-- Affects curriculum types (Shape, Car, Food, Animal)
-
-**Current Issue:**
-```typescript
-// Both parse to same starting tokens
-setLiteral: '{' value+ '}'
-objectLiteral: '{' identifier ':' literal+ '}'
-```
-
-**Proposed Solution:**
-- Use lookahead or proper GATE with context
-- Update grammar to clearly distinguish between the two
-- Improve error messages for ambiguous cases
-
-**Dependencies:** None
-
-**Acceptance Criteria:**
-- ✓ Set literals parse correctly: `{ "red", "blue", "green" }`
-- ✓ Object literals parse correctly: `{ color: "red", size: "small" }`
-- ✓ Parser disambiguates correctly
-- ✓ No fragile GATE logic
-- ✓ Clear error messages for ambiguous cases
-- ✓ Compiler generates correct nodes for both types
-
-**Required Tests:**
-- [ ] Test: Set literal parses correctly
-- [ ] Test: Object literal parses correctly
-- [ ] Test: Set vs Object disambiguation works
-- [ ] Test: Malformed set literal produces clear error
-- [ ] Test: Malformed object literal produces clear error
-- [ ] Test: Literal nodes created correctly
-
-**Layer:** Cross-layer (Compiler + Runtime)
-
-**Spec Reference:** `specs/GRAMMAR_SPEC.md` (Literal grammar)
-
-**Ralph Wiggum Checklist:**
-- [ ] Set/Object ambiguity resolved
-- [ ] Set literals parse correctly
-- [ ] Object literals parse correctly
-- [ ] Parser tests pass
-- [ ] Integration tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "fix(parser): resolve set/object literal ambiguity"
-
----
-
-#### Task P1.6: Implement Missing Compiler Validation (3 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 3 hours
-**Impact:** Better quality error messages
-**Files:** `packages/compiler/src/validation/dag-validator.ts`
-
-**Why Important:**
-- Improves quality of error messages for young learners
-- Catches more errors at compile time (better UX)
-- Programs without output nodes should fail fast
-- Set homogeneity prevents runtime type errors
-
-**Missing Validation:**
-1. Set homogeneity validation (all elements in set must be same type)
-2. Output node requirement (programs must have at least one output node)
-3. Literal type validation (literals match declared type)
-4. Stream source validation (generator/sensor exists)
-
-**Dependencies:** None
-
-**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 431-440):**
-- ✓ Set operations verify all elements are same type
-- ✓ Programs without output nodes produce error
-- ✓ Type safety rules enforced at compile time
-- ✓ Child-friendly Spanish error messages
-- ✓ Literal values match declared types
-- ✓ Stream sources are valid
-
-**Required Tests:**
-- [ ] Test: Set homogeneity validation - mixed types in set error
-- [ ] Test: Set homogeneity validation - same types in set succeed
-- [ ] Test: Output node requirement - program with no outputs fails
-- [ ] Test: Output node requirement - program with outputs succeeds
-- [ ] Test: Literal type validation - mismatch produces error
-- [ ] Test: Stream source validation - invalid generator produces error
-- [ ] Test: Validation errors include child-friendly Spanish messages
-
-**Layer:** Cross-layer (validation quality)
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` validation section
-
-**Ralph Wiggum Checklist:**
-- [ ] Missing validation rules implemented
-- [ ] Validation tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "feat(compiler): add missing compiler validation rules"
-
----
-
-#### Task P1.7: Refactor HTTP API to Follow Elysia Best Practices (11 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 11 hours
-**Impact:** Code quality and maintainability
-**Files:**
-- `packages/http-api/src/server.ts` (use Elysia plugins, add error middleware)
-- `packages/http-api/src/routes.ts` (use Elysia.t for schema validation)
-- `packages/http-api/src/index.ts` (add Eden Treaty for end-to-end type safety)
-
-**Why Important:**
-- Current implementation works but doesn't follow Elysia best practices
-- Missing Elysia.t validation (runtime + compile-time type safety)
-- Missing error handling middleware
-- Missing plugin pattern for route organization
-- Missing Eden Treaty for end-to-end type safety
-- Uses manual type assertions instead of schema validation
-- Returns 200 OK for validation errors (should be 422)
-
-**Dependencies:** None (can start immediately)
-
-**Acceptance Criteria (from specs/ELYSIA_LLMS.md):**
-- ✓ Use Elysia.t for request/response schema validation
-- ✓ Implement error handling middleware (Elysia.onError)
-- ✓ Use plugin pattern for route organization
-- ✓ Add Eden Treaty for end-to-end type safety
-- ✓ Remove manual type assertions, use schema validation
-- ✓ Return 422 for validation errors (not 200 OK)
-- ✓ Follow Elysia best practices
-
-**Required Refactoring:**
-- [ ] Replace manual type assertions with Elysia.t schema validation
-- [ ] Add global error handling middleware (Elysia.onError)
-- [ ] Organize routes using plugin pattern
-- [ ] Add Eden Treaty export for client type safety
-- [ ] Use Elysia plugins for CORS, logging, etc.
-- [ ] Return 422 status for validation errors
-- [ ] All existing tests still pass (12/12 HTTP API tests)
-- [ ] Typecheck passes with no errors
-- [ ] Code follows Elysia best practices from specs/ELYSIA_LLMS.md
-
-**Layer:** Layer 7 (Integration)
-
-**Spec Reference:** `specs/ELYSIA_LLMS.md` (Best Practices, Validation, Error Handling, Plugin Pattern, Eden Treaty)
-
-**Ralph Wiggum Checklist:**
-- [ ] HTTP API refactored to follow Elysia best practices
-- [ ] Elysia.t validation implemented for all endpoints
-- [ ] Error handling middleware added
-- [ ] Plugin pattern used for route organization
-- [ ] Eden Treaty configured for end-to-end type safety
-- [ ] Returns 422 for validation errors
-- [ ] All 12/12 HTTP API tests still pass
-- [ ] Typecheck passes
-- [ ] Git commit: "refactor(http-api): implement Elysia best practices"
-
----
-
-### 🔧 P2 MEDIUM (Quality)
-
-#### Task P2.1: Fix SetType Generic Type (1 hour)
+#### Task P2.1: Add Missing Operations to Registry (~4 hours)
 
 **Priority:** P2 MEDIUM
 **Status:** NOT STARTED
-**Estimated Time:** 1 hour
-**Impact:** Type safety for sets
-**Files:** `packages/shared/src/types/composite.ts`
+**Estimated Time:** 4 hours
+**Impact:** Completes operation registry per spec
+**Files:** `packages/shared/src/operations/registry.ts`
 
 **Why Important:**
-- SetType uses unknown[] instead of T[]
-- Breaks type safety for set operations
-- Should be generic Set<T> where T is element type
+- ~38 operations missing from spec
+- COMPARE for text/boolean types missing
+- SORT for integer/decimal/fraction types missing
+- Temporal operations for non-Natural types missing
+- ACCUMULATE parameter type issue exists
 
-**Current Code:**
-```typescript
-export type SetType = {
-  kind: "set";
-  elementType: string;
-  elements: unknown[];  // WRONG - should be T[]
-};
-```
+**Missing Operations by Category:**
 
-**Should Be:**
-```typescript
-export type SetType<T extends DataType> = {
-  kind: "set";
-  elementType: T;
-  elements: T[];
-};
-```
+1. **Text/Boolean Comparisons:**
+   - COMPARE(String, String) → Boolean
+   - COMPARE(Boolean, Boolean) → Boolean
 
-**Dependencies:** P1.4 (Make Set/Stream Generic)
+2. **SORT for Numeric Types:**
+   - SORT(Integer[]) → Integer[]
+   - SORT(Decimal[]) → Decimal[]
+   - SORT(Fraction[]) → Fraction[]
+
+3. **Temporal Operations for Non-Natural:**
+   - FBY, NEXT, FIRST, ACCUMULATE for Integer, Decimal, Fraction, Boolean, String, Shape, Car, Food, Animal, Person
+
+4. **ACCUMULATE Parameter Fix:**
+   - Currently: ACCUMULATE(stream: Stream<T>, initial: T, operation: (T, T) → T)
+   - May need parameter type validation
+
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
 
 **Acceptance Criteria:**
-- ✓ SetType uses generic T[] instead of unknown[]
-- ✓ Type safety maintained for set elements
+- ✓ COMPARE operations added for text/boolean types
+- ✓ SORT operations added for integer/decimal/fraction types
+- ✓ Temporal operations work for all types (not just Natural)
+- ✓ ACCUMULATE parameter type validated correctly
+- ✓ All operations in spec present in registry
 - ✓ Typecheck passes
 
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 315-320
+**Required Tests:**
+- [ ] Test: COMPARE works with string inputs
+- [ ] Test: COMPARE works with boolean inputs
+- [ ] Test: SORT works with integer arrays
+- [ ] Test: SORT works with decimal arrays
+- [ ] Test: SORT works with fraction arrays
+- [ ] Test: Temporal operators work with non-Natural types
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` operations section
 
 **Ralph Wiggum Checklist:**
-- [ ] SetType updated to use generic T[]
-- [ ] Type safety maintained
+- [ ] Missing operations added to registry
+- [ ] All operations in spec present
 - [ ] Typecheck passes
-- [ ] Git commit: "fix(types): use generic T[] for SetType elements"
+- [ ] Git commit: "feat(operations): add missing operations to registry"
 
 ---
 
@@ -1008,7 +830,7 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple" | "white"
 type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 ```
 
-**Dependencies:** None
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
 
 **Acceptance Criteria:**
 - ✓ Color type matches spec (6 colors only)
@@ -1048,7 +870,7 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 - Make ALPHABETICAL_SORT type-safe: ALPHABETICAL_SORT<T>(set: Set<T>) → Set<T> where T is String
 - Add type constraints to ensure comparability
 
-**Dependencies:** P1.4 (Make Set/Stream Operations Generic)
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P1.4 (Set/Stream Generic - ✅ ALREADY DONE)
 
 **Acceptance Criteria (from specs/LANGUAGE_SPEC.md):**
 - ✓ SORT operation works with any comparable type (not just numbers)
@@ -1075,9 +897,7 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 
 ---
 
-#### Task P2.4: Fix DataType Recursion (0.5 hours)
-
-#### Task P2.5: Reorganize Integration Tests (5 hours)
+#### Task P2.4: Reorganize Integration Tests (5 hours)
 
 **Priority:** P2 MEDIUM
 **Status:** NOT STARTED
@@ -1159,7 +979,7 @@ packages/tests/src/
     └── cache-invalidation.test.ts
 ```
 
-**Dependencies:** P1.8 (extract shared tests), P1.9 (incremental tests)
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P1.8 (extract shared tests), P1.9 (incremental tests)
 
 **Acceptance Criteria (from specs/TESTS_SPEC.md):**
 - ✓ All existing integration tests moved to appropriate directories
@@ -1187,19 +1007,104 @@ packages/tests/src/
 
 ---
 
-#### Task P2.6: Update Batch Runtime Tests (2 hours)
+#### Task P2.5: Update Batch Runtime Tests (2 hours)
+
+**Priority:** P2 MEDIUM
+**Status:** NOT STARTED
+**Estimated Time:** 2 hours
+**Impact:** Clear batch-specific tests
+**Files:** `packages/runtime/src/runtime.test.ts`
+
+**Why Important:**
+- After extracting shared tests (P1.8), runtime.test.ts should only contain batch-specific tests
+- Ensures clear separation of concerns
+- Makes test maintenance easier
+
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P1.8 (extract shared tests)
+
+**Acceptance Criteria:**
+- ✓ runtime.test.ts contains only batch-specific tests
+- ✓ All shared tests extracted to shared/ directory
+- ✓ All tests pass
+- ✓ TypeScript typecheck passes
+
+**Ralph Wiggum Checklist:**
+- [ ] runtime.test.ts updated
+- [ ] Batch-specific tests only remain
+- [ ] All tests pass
+- [ ] Typecheck passes
+- [ ] Git commit: "test(batch): update batch runtime tests"
 
 ---
 
 ### 🌟 P3 LOW (Post-MVP)
 
+#### Task P1.7: Refactor HTTP API to Follow Elysia Best Practices (11 hours)
+
+**Priority:** P3 LOW (demoted from P1 - not blocking MVP)
+**Status:** NOT STARTED
+**Estimated Time:** 11 hours
+**Impact:** Code quality and maintainability
+**Files:**
+- `packages/http-api/src/server.ts` (use Elysia plugins, add error middleware)
+- `packages/http-api/src/routes.ts` (use Elysia.t for schema validation)
+- `packages/http-api/src/index.ts` (add Eden Treaty for end-to-end type safety)
+
+**Why Important:**
+- Current implementation works but doesn't follow Elysia best practices
+- Missing Elysia.t validation (runtime + compile-time type safety)
+- Missing error handling middleware
+- Missing plugin pattern for route organization
+- Missing Eden Treaty for end-to-end type safety
+- Uses manual type assertions instead of schema validation
+- Returns 200 OK for validation errors (should be 422)
+
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+
+**Acceptance Criteria (from specs/ELYSIA_LLMS.md):**
+- ✓ Use Elysia.t for request/response schema validation
+- ✓ Implement error handling middleware (Elysia.onError)
+- ✓ Use plugin pattern for route organization
+- ✓ Add Eden Treaty for end-to-end type safety
+- ✓ Remove manual type assertions, use schema validation
+- ✓ Return 422 for validation errors (not 200 OK)
+- ✓ Follow Elysia best practices
+
+**Required Refactoring:**
+- [ ] Replace manual type assertions with Elysia.t schema validation
+- [ ] Add global error handling middleware (Elysia.onError)
+- [ ] Organize routes using plugin pattern
+- [ ] Add Eden Treaty export for client type safety
+- [ ] Use Elysia plugins for CORS, logging, etc.
+- [ ] Return 422 status for validation errors
+- [ ] All existing tests still pass (12/12 HTTP API tests)
+- [ ] Typecheck passes with no errors
+- [ ] Code follows Elysia best practices from specs/ELYSIA_LLMS.md
+
+**Layer:** Layer 7 (Integration)
+
+**Spec Reference:** `specs/ELYSIA_LLMS.md` (Best Practices, Validation, Error Handling, Plugin Pattern, Eden Treaty)
+
+**Ralph Wiggum Checklist:**
+- [ ] HTTP API refactored to follow Elysia best practices
+- [ ] Elysia.t validation implemented for all endpoints
+- [ ] Error handling middleware added
+- [ ] Plugin pattern used for route organization
+- [ ] Eden Treaty configured for end-to-end type safety
+- [ ] Returns 422 for validation errors
+- [ ] All 12/12 HTTP API tests still pass
+- [ ] Typecheck passes
+- [ ] Git commit: "refactor(http-api): implement Elysia best practices"
+
+---
+
 #### Task P3.1: Implement WebSocket Server (12 hours)
 
-**Priority:** P3 LOW
+**Priority:** P3 LOW (demoted from P3 - not blocking MVP)
 **Status:** NOT STARTED
 **Estimated Time:** 12 hours
 **Impact:** IDE live feedback
-**Dependencies:** P1.7 (HTTP API Best Practices) - P0.4 completed (IncrementalRuntime fixed)
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P0.10 (Add Temporal Operators to IncrementalRuntime), P1.9 (IncrementalRuntime tests)
 
 **Acceptance Criteria (from specs/INTEGRATION_SPEC.md lines 200-361):**
 - ✓ Client connects via ws://localhost:3000/live
@@ -1255,7 +1160,7 @@ packages/tests/src/
 **Impact:** Debugging support
 **Files:** `packages/runtime/src/runtime.ts`
 
-**Dependencies:** None
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
 
 **Acceptance Criteria:**
 - ✓ executionOrder array populated with node evaluation order
@@ -1281,7 +1186,7 @@ packages/tests/src/
 **Impact:** Performance
 **Files:** `packages/runtime/src/evaluator/demand-driven-evaluator.ts`
 
-**Dependencies:** None
+**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
 
 **Acceptance Criteria:**
 - ✓ Independent evaluations happen in parallel
@@ -1307,14 +1212,14 @@ To achieve MVP, complete the following:
 **Core Language (Layers 1-6):**
 - ✅ Natural numbers, arithmetic operations (ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE)
 - ✅ Fraction operations - COMPLETE
-- ⚠️ Integer operations - MISSING (P1.1)
-- ⚠️ Decimal operations - MISSING (P1.2)
+- ✅ Integer operations - ✅ ALREADY DONE (not missing)
+- ✅ Decimal operations - ✅ ALREADY DONE (not missing)
 - ✅ Curriculum types (Shape, Car, Food, Animal, Person)
-- ⚠️ Curriculum type filters - PARTIAL (P1.3 needed)
+- ✅ Curriculum type filters - ✅ ALREADY DONE (generic)
 - ✅ Set operations (UNION, INTERSECTION, DIFFERENCE, COMPLEMENT)
-- ⚠️ Temporal operators - PARTIAL (demand-driven correct, missing graph.evaluate)
+- ⚠️ Temporal operators - PARTIAL (demand-driven correct, missing in IncrementalRuntime.executeOperation(), ACCUMULATE has bug)
 - ✅ Filter operations (FILTER, FILTER_BY_SIZE, FILTER_BY_COLOR for Shape)
-- ⚠️ Set/Stream operations generic - MISSING (P1.4)
+- ✅ Set/Stream operations generic - ✅ ALREADY DONE (not missing)
 - ✅ Nested operations - IMPLEMENTED
 
 **Compiler:**
@@ -1325,99 +1230,114 @@ To achieve MVP, complete the following:
 - ⚠️ Output node requirement - MISSING (P1.6)
 - ⚠️ Literal type validation - MISSING (P1.6)
 - ⚠️ Stream source validation - MISSING (P1.6)
-- ⚠️ Set/Object literal ambiguity - ISSUE (P1.5)
+- 🔥 CRITICAL: Set/Object literal ambiguity - ISSUE (P1.5)
 - ✅ Nested operations - IMPLEMENTED
 
 **Runtime:**
 - ✅ Executes programs correctly (simple cases)
-- ⚠️ Temporal operators - PARTIAL (demand-driven correct, missing graph.evaluate)
-- ✅ 36/36 operations defined in registry
+- ✅ Integer/Decimal operations - ✅ FULLY IMPLEMENTED
+- ✅ 31/31 operations in registry (plus ~38 missing operations)
+- ✅ Generic set/stream operations - ✅ FULLY IMPLEMENTED
+- 🔥 CRITICAL: Temporal operators in IncrementalRuntime - MISSING in executeOperation() (P0.10)
+- 🔥 HIGH: ACCUMULATE logic bug - uses streamValue twice (P0.11)
 - ✅ Handles 5 concurrent users without degradation
 
 **Integration (Layer 7):**
 - ✅ HTTP API for batch mode (12/12 tests passing)
-- ✅ IncrementalRuntime - P0.4, P0.5, P0.6 completed (syntax errors fixed, executeOperation implemented)
-- ⚠️ HTTP API Elysia best practices - MISSING (P1.7)
-- ⚠️ WebSocket Server - Ready to implement (P0.4 unblocked)
-- ⚠️ IncrementalRuntime tests - 0 tests (P0.7, P1.9 needed)
-- ⚠️ Test organization - mixed shared/specific tests (P1.8, P2.5, P2.6 needed)
+- 🔥 CRITICAL: IncrementalRuntime - executeOperation() ✅ implemented, but missing temporal operators (P0.10)
+- 🔥 CRITICAL: IncrementalRuntime tests - 0/40 tests (0%) - NEEDED (P1.9)
+- 🔥 CRITICAL: Shared tests - 0/50 tests (0%) - NEEDED (P1.8)
+- 🔥 CRITICAL: TypeScript compilation - BROKEN (19 errors) - BLOCKS EVERYTHING (P0.8)
+- ⚠️ HTTP API Elysia best practices - MISSING (P1.7) - not blocking MVP
+- ❌ WebSocket Server - 0% implemented (P3.1) - not blocking MVP
 
 **MVP Completion Tasks:**
 
-### ✅ Previously Completed (2026-03-14)
+### ✅ Previously Completed (2026-03-16)
 
-1. ✅ Stream Type Resolution Bug
-2. ✅ evaluatedInputs Undefined
-3. ✅ Duplicate Temporal Cases
-4. ✅ Fraction Tests
-5. ✅ Type Compatibility Bug
-6. ✅ Parser Support for Negative Integer Literals
-7. ✅ Fixed Test Bug - Boolean and Fraction Type Mismatch
-8. ✅ Fixed Mixed-Type Arithmetic Tests
-9. ✅ Fixed Runtime TypeError Guard
+1. ✅ Test Utilities (P0.7) - Fully implemented with 13 tests passing
+2. ✅ executeOperation in IncrementalRuntime (P0.6) - Fully implemented
+3. ✅ Integer Operations (P1.1) - ALREADY DONE - all operations implemented
+4. ✅ Decimal Operations (P1.2) - ALREADY DONE - all operations implemented
+5. ✅ Curriculum Type Filtering (P1.3) - ALREADY DONE - generic implementation
+6. ✅ Set/Stream Operations Generic (P1.4) - ALREADY DONE - fully generic
+7. ✅ Fixed 2 IncrementalRuntime bugs (2026-03-16)
 
-**Result:** 135/135 tests passing (100%) in 2026-03-15 (P0.4, P0.5, P0.6 completed)
+### 🔥 CRITICAL BLOCKERS (Must Complete First)
 
-### ⏳ Current Tasks (Not Started)
+8. 🔥 P0.8: Fix DataType Union Design Flaw (3h) - CRITICAL - 19 compilation errors blocking everything
+9. 🔥 P0.9: Fix SetType Generic Type (1h) - Part of P0.8 fix
+10. 🔥 P0.10: Add Temporal Operators to IncrementalRuntime (2h) - CRITICAL - missing in executeOperation()
+11. 🔥 P0.11: Fix ACCUMULATE Logic Bug (1h) - HIGH - bug in both runtimes
 
-**Test Reorganization (CRITICAL for Layer 7):**
-10. ⏳ P0.7: Create test utilities for shared runtime tests (1.5h) - enables shared tests
-11. ⏳ P1.9: Create IncrementalRuntime-specific tests (4h) - 0 tests → ~40 tests
-12. ⏳ P1.8: Extract shared tests (3h) - reduces duplication
-13. ⏳ P2.5: Reorganize integration tests (5h) - better organization
-14. ⏳ P2.6: Update batch runtime tests (2h) - clear batch-specific tests
+### ⏳ High Priority (After Blockers)
 
-**Core Language & Runtime:**
-15. ⏳ P1.1: Implement Integer Operations (2h) - CRITICAL for MVP
-16. ⏳ P1.2: Implement Decimal Operations (2h) - CRITICAL for MVP
-17. ⏳ P1.3: Implement Curriculum Type Filtering Operations (3h)
-18. ⏳ P1.4: Make Set/Stream Operations Generic (5h)
-19. ⏳ P1.5: Fix Set/Object Literal Ambiguity (3h)
-20. ⏳ P1.6: Implement Missing Compiler Validation (3h)
-21. ⏳ P1.7: Refactor HTTP API (11h) - OPTIONAL for MVP
+12. ⏳ P1.5: Fix Set/Object Literal Ambiguity (3h) - HIGH - parser robustness
+13. ⏳ P1.6: Implement Missing Compiler Validation (3h) - HIGH - better error messages
+14. ⏳ P1.8: Extract Shared Tests (3h) - HIGH - 0/50 shared tests
+15. ⏳ P1.9: Create IncrementalRuntime Tests (4h) - HIGH - 0/40 incremental tests
 
-**Integration:**
-22. ⏳ P3.1: Implement WebSocket Server (12h) - ready to start (P0.4 unblocked)
+### 🔧 Medium Priority (After High Priority)
 
-**Total MVP Time:** ~46.5 hours (excluding P1.7, P2.5, P2.6, P3.1)
+16. ⏳ P2.1: Add Missing Operations to Registry (4h) - ~38 operations missing
+17. ⏳ P2.2: Fix Color Type Extra Values (0.5h) - spec compliance
+18. ⏳ P2.3: Improve SORT/ALPHABETICAL_SORT (2h) - type safety
+19. ⏳ P2.4: Reorganize Integration Tests (5h) - test organization
+20. ⏳ P2.5: Update Batch Runtime Tests (2h) - clear batch-specific tests
+
+### 🌟 Low Priority (Post-MVP)
+
+21. ⏳ P1.7: Refactor HTTP API (11h) - OPTIONAL - code quality, not blocking
+22. ⏳ P3.1: Implement WebSocket Server (12h) - OPTIONAL - Layer 7, not blocking MVP
+23. ⏳ P3.2: Complete Execution Trace (2h) - debugging support
+24. ⏳ P3.3: Add Parallelism (3h) - performance
+
+**Total MVP Time:** ~24.5 hours (P0.8, P0.9, P0.10, P0.11, P1.5, P1.6, P1.8, P1.9)
+**Total with Medium Priority:** ~38 hours (+ P2.1-P2.5)
+**Total Complete Implementation:** ~54 hours (+ P1.7, P3.1-P3.3)
 
 **Expected Test Coverage After Reorganization:**
-- Shared tests: ~50 tests (run on both runtimes)
+- Shared tests: ~50 tests (run on both runtimes) - Currently 0/50
 - Batch-specific tests: ~15 tests
-- Incremental-specific tests: ~40 tests (up from 0)
+- Incremental-specific tests: ~40 tests (up from 0) - Currently 0/40
 - Compiler tests: ~20 tests
-- **Total: ~125 tests** (up from 124)
+- Test utilities: 13 tests - ✅ COMPLETE
+- HTTP API tests: 12 tests - ✅ COMPLETE
+- **Total: ~150 tests** (up from 148)
 
 ---
 
 ## Next Immediate Actions
 
-1. [ ] P0.7: Create test utilities for shared runtime tests (1.5 hours) - enables shared tests
-2. [ ] P1.9: Create IncrementalRuntime-specific tests (4 hours) - comprehensive incremental coverage
-3. [ ] P1.8: Extract shared tests (3 hours) - reduces duplication
-4. [ ] P1.1: Implement Integer operations (2 hours) - completes numeric type system
-5. [ ] P1.2: Implement Decimal operations (2 hours) - completes numeric type system
-6. [ ] P1.3: Implement curriculum type filtering (3 hours) - completes curriculum types
-7. [ ] P2.5: Reorganize integration tests (5 hours) - better test organization
-8. [ ] P2.6: Update batch runtime tests (2 hours) - clear batch-specific tests
+1. [ ] P0.8: Fix DataType Union Design Flaw (3 hours) - CRITICAL - blocks everything
+2. [ ] P0.9: Fix SetType Generic Type (1 hour) - part of P0.8
+3. [ ] P0.10: Add Temporal Operators to IncrementalRuntime (2 hours) - CRITICAL
+4. [ ] P0.11: Fix ACCUMULATE Logic Bug (1 hour) - HIGH
+5. [ ] P1.5: Fix Set/Object Literal Ambiguity (3 hours) - HIGH
+6. [ ] P1.6: Implement Missing Compiler Validation (3 hours) - HIGH
+7. [ ] P1.8: Extract Shared Tests (3 hours) - HIGH
+8. [ ] P1.9: Create IncrementalRuntime-Specific Tests (4 hours) - HIGH
 
 ---
 
 ## Performance Targets
 
 ### Current Status
+- 🔥 TypeScript compilation: FAILED (19 errors) - BLOCKS ALL DEVELOPMENT
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
-- Test suite: 135/135 tests passing (100%) - IMPROVED on 2026-03-15 (P0.4, P0.5, P0.6 completed)
-- IncrementalRuntime tests: 0/40 tests (0%) - BLOCKED by P0.7, P1.9
+- Test suite: 148/148 tests passing (100%)
+- IncrementalRuntime tests: 0/40 tests (0%)
+- Shared tests: 0/50 tests (0%)
 
 ### Targets
+- TypeScript compilation: ✅ 0 errors (CRITICAL for MVP)
 - Compilation: <100ms for programs with <100 nodes (p95)
 - Execution: <50ms for programs with <100 nodes (p95)
 - Concurrent: 5 simultaneous requests without degradation
 - Incremental update: 5x faster than full re-evaluation
 - WebSocket roundtrip: <50ms (p95)
-- Test suite execution: <5 seconds for full test suite (~125 tests)
+- Test suite execution: <5 seconds for full test suite (~150 tests)
 - Test startup: <1 second per test file
 
 ---
@@ -1425,41 +1345,46 @@ To achieve MVP, complete the following:
 ## Success Metrics
 
 ### MVP (Layers 1-6 + Basic Integration)
-- ✅ All 36/36 operations implemented in registry
+- ✅ All 31/31 operations implemented in registry (plus ~38 missing)
 - ✅ Fraction ops COMPLETE
-- ⚠️ Temporal ops PARTIAL (demand-driven correct, missing graph.evaluate)
+- ✅ Integer ops COMPLETE (was marked missing - ALREADY DONE)
+- ✅ Decimal ops COMPLETE (was marked missing - ALREADY DONE)
+- ✅ Curriculum type filters COMPLETE (was marked partial - ALREADY DONE as generic)
+- ✅ Set/Stream operations generic COMPLETE (was marked missing - ALREADY DONE)
+- 🔥 Temporal ops PARTIAL (P0.10, P0.11 - missing in IncrementalRuntime, ACCUMULATE bug)
 - ✅ Type compatibility validation working
 - ✅ HTTP API functional (12/12 tests passing)
 - ✅ Compiler validates programs correctly
 - ✅ Runtime executes programs
 - ✅ Nested operations supported
-- ✅ 135/135 tests passing (100%)
+- ✅ 148/148 tests passing (100%)
 - ✅ Handles 5 concurrent users
-- ✅ IncrementalRuntime - syntax errors fixed, executeOperation implemented (P0.4, P0.5, P0.6 completed)
-- ⚠️ Integer operations - MISSING (P1.1)
-- ⚠️ Decimal operations - MISSING (P1.2)
-- ⚠️ Curriculum type filters - PARTIAL (P1.3)
-- ⚠️ Set/Stream operations generic - MISSING (P1.4)
-- ⚠️ IncrementalRuntime tests - 0/40 tests (0%) - BLOCKED by P0.7, P1.9
-- ⚠️ Test organization - mixed shared/specific tests (P1.8, P2.5, P2.6 needed)
-- ⚠️ Complete compiler validation - MISSING (P1.6)
+- ✅ IncrementalRuntime - executeOperation implemented (P0.6), missing temporal operators (P0.10), ACCUMULATE bug (P0.11)
+- 🔥 TypeScript compilation - BROKEN (19 errors) - CRITICAL BLOCKER (P0.8)
+- ⏳ IncrementalRuntime tests - 0/40 tests (0%) - HIGH PRIORITY (P1.9)
+- ⏳ Shared tests - 0/50 tests (0%) - HIGH PRIORITY (P1.8)
+- ⏳ Complete compiler validation - MISSING (P1.6)
+- ⏳ Set/Object literal ambiguity - ISSUE (P1.5)
 
 ### Version 1.0 (All Layers)
 - All P0 and P1 tasks completed
 - WebSocket server for live feedback
-- IncrementalRuntime for partial evaluation
+- IncrementalRuntime for partial evaluation (with temporal operators and tests)
 - Complete test coverage (>80%):
+  - Test utilities: 13 tests ✅
+  - HTTP API tests: 12 tests ✅
   - Shared tests: ~50 tests (run on both runtimes)
   - Batch-specific tests: ~15 tests
   - Incremental-specific tests: ~40 tests
   - Compiler tests: ~20 tests
-  - Total: ~125 tests
+  - Total: ~150 tests
 - Child-friendly Spanish messages throughout
 - Generic set/stream operations
 - HTTP API follows Elysia best practices
 - Temporal operators preserve demand-driven semantics
 - Nested operations supported
 - Clear test organization (shared vs specific)
+- ✅ TypeScript compilation with 0 errors
 
 ---
 
@@ -1472,7 +1397,7 @@ To achieve MVP, complete the following:
 - `specs/INTEGRATION_TESTS_SPEC.md` - Test requirements
 - `specs/ELYSIA_LLMS.md` - Elysia best practices
 - `specs/DEMAND_DRIVEN_INCREMENTAL.md` - Demand-driven evaluation model
-- `specs/TESTS_SPEC.md` - Test reorganization specification (NEW)
+- `specs/TESTS_SPEC.md` - Test reorganization specification
 
 ### Key Design Documents
 - `PROJECT_GOALS.md` - Project objectives and MVP definition
@@ -1480,12 +1405,35 @@ To achieve MVP, complete the following:
 
 ---
 
-## Appendix: Historical Details
+## Appendix: Key Insights from Analysis
 
-Detailed historical information about completed tasks and bug fixes is preserved in the git commit history. The completed work summary above provides a concise overview of major accomplishments. For full details of the implementation journey, refer to the commit log and previous versions of this document.
+### Already Completed (Marked as Missing in Current Plan)
+1. **Integer Operations (P1.1)** - ALREADY DONE: ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE all implemented
+2. **Decimal Operations (P1.2)** - ALREADY DONE: All arithmetic operations implemented
+3. **Curriculum Type Filtering (P1.3)** - ALREADY DONE: Generic FILTER_BY_COLOR, FILTER_BY_TASTE, FILTER_BY_TYPE implemented
+4. **Set/Stream Operations Generic (P1.4)** - ALREADY DONE: All set/stream operations are generic
+5. **Test Utilities (P0.7)** - COMPLETED: 13 tests passing
+
+### New Critical Issues Found
+1. **🔥 CRITICAL: DataType union design flaw** - 19 TypeScript compilation errors blocking all development
+2. **🔥 CRITICAL: IncrementalRuntime missing temporal operators** - executeOperation() missing FBY, NEXT, FIRST, ACCUMULATE
+3. **🔥 HIGH: ACCUMULATE logic bug** - Uses streamValue twice in both runtimes
+4. **🔥 HIGH: IncrementalRuntime has 0 tests** - Critical for Layer 7
+5. **🔥 HIGH: No shared tests exist** - 0/50 shared tests
+6. **🔥 HIGH: Set/Object literal ambiguity** - Fragile GATE logic in parser
+7. **🔥 HIGH: Compiler missing validation rules** - Output node, set homogeneity, literal validation
+8. **🔥 MEDIUM: ~38 operations missing from registry** - COMPARE for text/boolean, SORT for numeric types, temporal for non-Natural
+9. **🔥 MEDIUM: WebSocket Server is 0% implemented** - Was in P3, still not started
+
+### Test Status Correction
+- Overall: 148/148 passing (100%) - NOT 135 as stated in current plan
+- HTTP API: 12/12 passing ✅
+- Runtime: 25 tests (batch) + 13 tests (test utils) = 38 tests
+- Integration: 22 tests
+- IncrementalRuntime: **0 tests** - Was incorrectly marked as having tests
 
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-15 (135 tests passing, 100% pass rate, ~70% overall complete, P0.4, P0.5, P0.6 completed)
-**Next Review:** After completing P0.7 task (test utilities)
+**Last Updated:** 2026-03-16 (148 tests passing, 100% pass rate, ~60% overall complete, P0.7 completed, P0.8-P0.11 critical blockers identified)
+**Next Review:** After completing P0.8 task (fix DataType union - CRITICAL BLOCKER)
