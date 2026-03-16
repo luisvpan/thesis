@@ -112,6 +112,10 @@ export class DemandDrivenEvaluator {
           };
         }
         if (dataType.startsWith("set")) {
+          if (typeof numValue === 'object' && numValue !== null && 'kind' in numValue && 'elements' in numValue) {
+            return numValue;
+          }
+          
           const elementType = this.extractElementType(dataType);
           const elements = (numValue as unknown[]).map((elem: unknown) => {
             if (typeof elem === 'object' && elem !== null) {

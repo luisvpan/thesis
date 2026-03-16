@@ -26,6 +26,10 @@ function isFraction(value: unknown): value is Fraction {
   return typeof value === "object" && value !== null && "kind" in value && (value as { kind: string }).kind === "fraction";
 }
 
+function isBoolean(value: unknown): value is Boolean {
+  return typeof value === "object" && value !== null && "kind" in value && (value as { kind: string }).kind === "boolean";
+}
+
 function unwrapFraction(value: unknown): { numerator: number; denominator: number } {
   if (typeof value === "object" && value !== null && "kind" in value && (value as Fraction).kind === "fraction") {
     return {
@@ -355,6 +359,20 @@ function compareFractions(a: Fraction, b: Fraction): Boolean {
   };
 }
 
+function compareText(a: { kind: string; value: string }, b: { kind: string; value: string }): Boolean {
+  return {
+    kind: "boolean",
+    value: a.value === b.value
+  };
+}
+
+function compareBoolean(a: Boolean, b: Boolean): Boolean {
+  return {
+    kind: "boolean",
+    value: a.value === b.value
+  };
+}
+
 export function ADD(inputs: Array<{ id: string; value: unknown }>): Natural | Integer | Decimal | Fraction {
   const [a, b] = inputs;
   
@@ -517,7 +535,7 @@ export function DIVIDE(inputs: Array<{ id: string; value: unknown }>): Decimal |
 
 export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Boolean {
   const [a, b] = inputs;
-  
+
   if (isNatural(a.value) && isNatural(b.value)) {
     return compareNaturals(a.value, b.value);
   }
@@ -529,6 +547,14 @@ export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Boolean 
   }
   if (isFraction(a.value) && isFraction(b.value)) {
     return compareFractions(a.value, b.value);
+  }
+  if (typeof a.value === "object" && a.value !== null && "kind" in a.value && (a.value as { kind: string }).kind === "text") {
+    if (typeof b.value === "object" && b.value !== null && "kind" in b.value && (b.value as { kind: string }).kind === "text") {
+      return compareText(a.value as { kind: string; value: string }, b.value as { kind: string; value: string });
+    }
+  }
+  if (isBoolean(a.value) && isBoolean(b.value)) {
+    return compareBoolean(a.value, b.value);
   }
   if (isNatural(a.value) && isInteger(b.value)) {
     return compareIntegers({ kind: "integer", value: a.value.value }, b.value);
@@ -548,6 +574,6 @@ export function COMPARE(inputs: Array<{ id: string; value: unknown }>): Boolean 
   if (isDecimal(a.value) && isInteger(b.value)) {
     return compareDecimals(a.value, { kind: "decimal", value: b.value.value });
   }
-  
+
   throw new TypeError(`COMPARE: Unsupported types ${JSON.stringify(a.value)}, ${JSON.stringify(b.value)}`);
 }

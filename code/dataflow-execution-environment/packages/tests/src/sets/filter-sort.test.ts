@@ -23,9 +23,17 @@ describe("Integration Tests - Sets", () => {
       const outputs = runtime.execute();
 
       expect(outputs).toHaveLength(1);
-      const result = outputs[0] as { kind: string; elements: number[] };
+      const result = outputs[0] as { kind: string; elements: unknown[] };
       expect(result.kind).toBe("set");
-      expect(result.elements).toEqual([1, 2, 3, 5, 7, 8, 9]);
+      expect(result.elements).toEqual([
+        { kind: "natural", value: 1 },
+        { kind: "natural", value: 2 },
+        { kind: "natural", value: 3 },
+        { kind: "natural", value: 5 },
+        { kind: "natural", value: 7 },
+        { kind: "natural", value: 8 },
+        { kind: "natural", value: 9 }
+      ]);
     });
 
     it("should maintain order through chain", () => {
@@ -47,9 +55,15 @@ describe("Integration Tests - Sets", () => {
       const outputs = runtime.execute();
 
       expect(outputs).toHaveLength(1);
-      const result = outputs[0] as { kind: string; elements: number[] };
+      const result = outputs[0] as { kind: string; elements: unknown[] };
       expect(result.kind).toBe("set");
-      expect(result.elements).toEqual([1, 2, 5, 8, 9]);
+      expect(result.elements).toEqual([
+        { kind: "natural", value: 1 },
+        { kind: "natural", value: 2 },
+        { kind: "natural", value: 5 },
+        { kind: "natural", value: 8 },
+        { kind: "natural", value: 9 }
+      ]);
     });
   });
 });

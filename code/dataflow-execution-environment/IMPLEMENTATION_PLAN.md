@@ -1864,7 +1864,7 @@ NEXT: {
 9. ~~🔥 MEDIUM: Color type has extra values~~ ✅ RESOLVED (P2.2) - 264/264 tests complete
 
 ### Test Status Correction
-- Overall: 264/264 passing (100%)
+- Overall: 356/356 passing (100%)
 - HTTP API: 12/12 passing ✅
 - WebSocket Server: 14/14 passing ✅ (NEW - P1.1 complete)
 - Runtime: 104 tests (78 batch + 26 incremental)
@@ -1872,9 +1872,18 @@ NEXT: {
 - Shared tests: 40 tests (all passing on both runtimes)
 - IncrementalRuntime: **40/40 tests** ✅ (100% complete - P0.1)
 - Color Type: **1/1 tests** ✅ (100% complete - P2.2)
+- **P2.1: Add missing operation contracts** ✅ COMPLETED
+  - Added COMPARE contracts for Text and Boolean
+  - Added FILTER contracts for Integer, Decimal, Fraction
+  - Added SORT contracts for Integer, Decimal, Fraction
+  - Added temporal operation contracts for all types (Natural, Integer, Decimal, Fraction, Text, Boolean, Shape, Car, Food, Animal, Person)
+  - Fixed literal value encoding (base64) to preserve decimals and negative numbers
+  - Fixed type inference for integers, decimals, and fractions
+  - Fixed set element wrapping to match test expectations
+  - All 356 tests passing (including 92 new tests for extended contracts)
 
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-16 (264 tests passing, 100% pass rate, ~76% overall complete, P0.1, P1.1, P0.2, P0.3, P2.2 completed, P0.8-P0.11 completed, P1.8 completed, P1.9 completed, Layer 7 partially complete (40% - WebSocket 100%))
-**Next Review:** Continue with P2.1 (Add missing operation contracts)
+**Last Updated:** 2026-03-16 (356 tests passing, 100% pass rate, ~78% overall complete, P0.1, P1.1, P0.2, P0.3, P2.1 completed, P2.2 completed, P0.8-P0.11 completed, P1.8 completed, P1.9 completed, Layer 7 partially complete (40% - WebSocket 100%))
+**Next Review:** Continue with P2.3 (Improve SORT type safety)

@@ -62,13 +62,31 @@ export class DagValidator {
             const match = input.match(/^literal_(\w+)_(.+)$/);
             if (match) {
               const type = match[1];
+              const valueStr = match[2];
               let dataType: string;
               if (type === "number") {
-                dataType = "natural";
+                const value = JSON.parse(atob(valueStr));
+                if (Number.isInteger(value)) {
+                  dataType = value < 0 ? "integer" : "natural";
+                } else {
+                  dataType = "decimal";
+                }
               } else if (type === "string") {
                 dataType = "text";
               } else if (type === "boolean") {
                 dataType = "boolean";
+              } else if (type === "object") {
+                const value = JSON.parse(atob(valueStr));
+                if (typeof value === 'object' && value !== null && 'kind' in value) {
+                  const kind = (value as { kind: string }).kind;
+                  if (['fraction', 'shape', 'car', 'food', 'animal', 'person'].includes(kind)) {
+                    dataType = kind;
+                  } else {
+                    dataType = "unknown";
+                  }
+                } else {
+                  dataType = "unknown";
+                }
               } else {
                 dataType = "unknown";
               }
@@ -257,7 +275,7 @@ export class DagValidator {
     const declaredElementType = setMatch[1];
 
     for (const element of value) {
-      const elementType = this.inferType(element);
+      const elementType = this.inferType(element, declaredElementType);
 
       if (elementType && elementType !== declaredElementType) {
         return [{
@@ -285,30 +303,30 @@ export class DagValidator {
 
     const declaredType = stmt.dataType as string;
 
-    const setMatch = declaredType.match(/^set<(.+)>$/);
-    if (setMatch) {
-      const elementType = setMatch[1];
-      const valueArray = stmt.value as unknown[];
+      const setMatch = declaredType.match(/^set<(.+)>$/);
+      if (setMatch) {
+        const elementType = setMatch[1];
+        const valueArray = stmt.value as unknown[];
 
-      if (Array.isArray(valueArray)) {
-        for (let i = 0; i < valueArray.length; i++) {
-          const elementValue = valueArray[i];
-          const valueType = this.inferType(elementValue);
+        if (Array.isArray(valueArray)) {
+          for (let i = 0; i < valueArray.length; i++) {
+            const elementValue = valueArray[i];
+            const valueType = this.inferType(elementValue, elementType);
 
-          if (valueType && valueType !== elementType) {
-            return [{
-              code: "LITERAL_TYPE_MISMATCH",
-              message: `Set element at index ${i} has type ${valueType}, but set expects ${elementType}`,
-              nodeId: stmt.id,
-              childMessage: `⚠️ ¡Ups! El elemento en posición ${i} no coincide con el tipo ${elementType}.`,
-              suggestion: `Cambia el elemento o usa el bloque de tipo correcto.`,
-              example: `Para "set<${elementType}>", usa elementos de tipo ${elementType}`
-            }];
+            if (valueType && valueType !== elementType) {
+              return [{
+                code: "LITERAL_TYPE_MISMATCH",
+                message: `Set element at index ${i} has type ${valueType}, but set expects ${elementType}`,
+                nodeId: stmt.id,
+                childMessage: `⚠️ ¡Ups! El elemento en posición ${i} no coincide con el tipo ${elementType}.`,
+                suggestion: `Cambia el elemento o usa el bloque de tipo correcto.`,
+                example: `Para "set<${elementType}>", usa elementos de tipo ${elementType}`
+              }];
+            }
           }
         }
+        return [];
       }
-      return [];
-    }
 
     const valueType = this.inferType(stmt.value);
     if (valueType && valueType !== declaredType) {
@@ -325,19 +343,18 @@ export class DagValidator {
     return [];
   }
 
-  private inferType(value: unknown): string | null {
+  private inferType(value: unknown, expectedType?: string): string | null {
     if (value === null || value === undefined) {
       return null;
     }
 
     if (typeof value === "number") {
-      if (Number.isInteger(value) && value >= 0) {
-        return "natural";
-      } else if (Number.isInteger(value)) {
-        return "integer";
-      } else {
-        return "decimal";
-      }
+      const result = Number.isInteger(value)
+        ? (value >= 0
+            ? (expectedType === "integer" ? "integer" : "natural")
+            : "integer")
+        : "decimal";
+      return result;
     }
 
     if (typeof value === "string") {

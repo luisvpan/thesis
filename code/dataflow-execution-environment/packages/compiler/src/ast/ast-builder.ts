@@ -38,11 +38,12 @@ export class AstBuilder extends BaseVisitor {
   }
 
   sourceStatement(ctx: SourceStatementCstChildren) {
+    const value = this.visit(ctx.value);
     return {
       type: "SourceStatement",
       id: ctx.Identifier[0].image,
       dataType: this.visit(ctx.typeDeclaration),
-      value: this.visit(ctx.value) // El visitor entra solo a la subregla
+      value: value // El visitor entra solo a la subregla
     };
   }
 
@@ -200,7 +201,7 @@ export class AstBuilder extends BaseVisitor {
     if (ctx.Identifier) return ctx.Identifier[0].image;
     if (ctx.literal) {
       const literalValue = this.visit(ctx.literal);
-      const literalId = `literal_${typeof literalValue}_${JSON.stringify(literalValue).replace(/[^a-zA-Z0-9]/g, '')}`;
+      const literalId = `literal_${typeof literalValue}_${btoa(JSON.stringify(literalValue))}`;
       return literalId;
     }
     if (ctx.operationExpression) {

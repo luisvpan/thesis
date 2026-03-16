@@ -122,7 +122,7 @@ export const Minus = createToken({ name: "Minus", pattern: /-/ });
 
 export const Identifier = createToken({ name: "Identifier", pattern: /[a-zA-Z_]\w*/ });
 
-export const NumberLiteral = createToken({ name: "NumberLiteral", pattern: /[0-9]+(\.[0-9]+)?/ });
+export const NumberLiteral = createToken({ name: "NumberLiteral", pattern: /-?[0-9]+(\.[0-9]+)?/ });
 
 export const StringLiteral = createToken({ name: "StringLiteral", pattern: /"[^"]*"/ });
 

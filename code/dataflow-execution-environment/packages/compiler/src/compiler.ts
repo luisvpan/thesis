@@ -136,14 +136,43 @@ export class Compiler {
 
   private inferTypeForLiteralOrNested(inputId: string, dataTypeMap: Map<string, DataType>): DataType | null {
     if (inputId.startsWith("literal_number")) {
-      const num = parseInt(inputId.replace(/^literal_number_/, ""), 10);
-      return Number.isInteger(num) && num >= 0 ? "natural" : "integer";
+      const match = inputId.match(/^literal_number_(.+)$/);
+      if (match) {
+        try {
+          const value = JSON.parse(atob(match[1]));
+          const num = value as number;
+          if (!Number.isInteger(num)) {
+            return "decimal";
+          }
+          return num >= 0 ? "natural" : "integer";
+        } catch {
+          // Ignore parsing errors
+        }
+      }
+      return null;
     }
     if (inputId.startsWith("literal_string")) {
       return "text";
     }
     if (inputId.startsWith("literal_boolean")) {
       return "boolean";
+    }
+    if (inputId.startsWith("literal_object")) {
+      const match = inputId.match(/^literal_object_(.+)$/);
+      if (match) {
+        try {
+          const value = JSON.parse(atob(match[1]));
+          if (typeof value === 'object' && value !== null && 'kind' in value) {
+            const kind = (value as { kind: string }).kind;
+            if (['fraction', 'shape', 'car', 'food', 'animal', 'person'].includes(kind)) {
+              return kind as DataType;
+            }
+          }
+        } catch {
+          // Ignore parsing errors
+        }
+      }
+      return null;
     }
     if (inputId.startsWith("nested_op_")) {
       return dataTypeMap.get(inputId) || null;
@@ -173,7 +202,7 @@ export class Compiler {
                   } else if (type === "boolean") {
                     value = valueJson === "true";
                   } else {
-                    value = JSON.parse(valueJson);
+                    value = JSON.parse(atob(valueJson));
                   }
                 } catch {
                   value = valueJson;
@@ -184,7 +213,13 @@ export class Compiler {
 
                 if (type === "number") {
                   const numValue = value as number;
-                  nodeDataType = Number.isInteger(numValue) && numValue >= 0 ? "natural" : "integer";
+                  if (!Number.isInteger(numValue)) {
+                    nodeDataType = "decimal";
+                  } else if (numValue >= 0) {
+                    nodeDataType = "natural";
+                  } else {
+                    nodeDataType = "integer";
+                  }
                   nodeValue = numValue;
                 } else if (type === "string") {
                   nodeDataType = "text";
@@ -193,7 +228,16 @@ export class Compiler {
                   nodeDataType = "boolean";
                   nodeValue = { kind: "boolean", value };
                 } else if (type === "object") {
-                  nodeDataType = stmt.dataType as DataType;
+                  if (typeof value === 'object' && value !== null && 'kind' in value) {
+                    const kind = (value as { kind: string }).kind;
+                    if (['fraction', 'shape', 'car', 'food', 'animal', 'person'].includes(kind)) {
+                      nodeDataType = kind as DataType;
+                    } else {
+                      nodeDataType = stmt.dataType as DataType;
+                    }
+                  } else {
+                    nodeDataType = stmt.dataType as DataType;
+                  }
                   nodeValue = value;
                 } else {
                   nodeDataType = "text";
@@ -225,7 +269,13 @@ export class Compiler {
       if (node.type === "DataSource" && this.isStreamDeclaration(node.dataType, node.value)) {
         nodes.push(this.convertStreamDeclaration(node));
       } else if (!literalData.has(node.id)) {
-        nodes.push(node);
+        if (node.type === "DataSource" && typeof node.dataType === "string" && node.dataType.startsWith("set<")) {
+          const elementType = node.dataType.slice(4, -1);
+          const wrappedValue = this.wrapSetElements(node.value as unknown[], elementType);
+          nodes.push({ ...node, value: wrappedValue });
+        } else {
+          nodes.push(node);
+        }
       }
     }
 
@@ -254,6 +304,32 @@ export class Compiler {
     return { nodes, edges };
   }
 
+  private wrapSetElements(elements: unknown[], elementType: string): { kind: string; elements: unknown[] } {
+    const wrappedElements = elements.map(elem => {
+      if (typeof elem === 'object' && elem !== null && 'kind' in elem) {
+        return elem;
+      }
+      
+      switch (elementType) {
+        case 'integer':
+        case 'natural':
+          return { kind: elementType, value: elem as number };
+        case 'decimal':
+          return { kind: 'decimal', value: elem as number };
+        case 'fraction':
+          return elem;
+        case 'text':
+          return { kind: 'text', value: elem as string };
+        case 'boolean':
+          return { kind: 'boolean', value: elem as boolean };
+        default:
+          return elem;
+      }
+    });
+    
+    return { kind: 'set', elements: wrappedElements };
+  }
+
   private resolveLiteralInputs(inputs: string[]): string[] {
     return inputs;
   }
@@ -266,14 +342,25 @@ export class Compiler {
 
     const type = match[1];
     const valueJson = match[2];
-    const value = JSON.parse(`"${valueJson}"`);
+    const value = JSON.parse(atob(valueJson));
 
     let nodeDataType: DataType;
     let nodeValue: unknown;
 
     if (type === "number") {
-      nodeDataType = Number.isInteger(value) && value >= 0 ? "natural" : "integer";
-      nodeValue = value;
+      const numValue = value as number;
+      if (Number.isInteger(numValue)) {
+        if (numValue >= 0) {
+          nodeDataType = "natural";
+          nodeValue = { kind: "natural", value: numValue };
+        } else {
+          nodeDataType = "integer";
+          nodeValue = { kind: "integer", value: numValue };
+        }
+      } else {
+        nodeDataType = "decimal";
+        nodeValue = { kind: "decimal", value: numValue };
+      }
     } else if (type === "string") {
       nodeDataType = "text";
       nodeValue = { kind: "text", value };

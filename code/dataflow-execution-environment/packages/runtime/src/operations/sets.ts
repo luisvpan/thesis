@@ -57,10 +57,20 @@ export function SORT(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set] = inputs;
   const elements = (set.value as { kind: string; elements: unknown[] }).elements;
   return { kind: "set", elements: [...elements].sort((a, b) => {
-    if (typeof a === 'number' && typeof b === 'number') {
-      return a - b;
-    }
-    return 0;
+    const getNumericValue = (val: unknown): number => {
+      if (typeof val === 'number') return val;
+      if (typeof val === 'object' && val !== null && 'value' in val) {
+        return (val as { value: number }).value;
+      }
+      if (typeof val === 'object' && val !== null && 'numerator' in val && 'denominator' in val) {
+        const frac = val as { numerator: number; denominator: number };
+        return frac.numerator / frac.denominator;
+      }
+      return 0;
+    };
+    const aNum = getNumericValue(a);
+    const bNum = getNumericValue(b);
+    return aNum - bNum;
   })};
 }
 

@@ -1,13 +1,32 @@
 import type { Shape, Car, Food, Animal, Person, Text } from "@dataflow/shared/types";
 
+function deepEquals(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== 'object' || a === null || b === null) return false;
+
+  const objA = a as Record<string, unknown>;
+  const objB = b as Record<string, unknown>;
+
+  const keysA = Object.keys(objA);
+  const keysB = Object.keys(objB);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (const key of keysA) {
+    if (!keysB.includes(key)) return false;
+    if (!deepEquals(objA[key], objB[key])) return false;
+  }
+
+  return true;
+}
+
 export function FILTER(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set, value] = inputs;
   const elements = (set.value as { kind: string; elements: unknown[] }).elements;
-  const valueWrapper = value.value as { kind: string; value: unknown };
-  const filterValue = typeof valueWrapper.value === 'object' && valueWrapper.value !== null
-    ? (valueWrapper.value as { value: unknown }).value
-    : valueWrapper.value;
-  return { kind: "set", elements: elements.filter(item => item === filterValue) };
+  const filterValue = value.value;
+  
+  return { kind: "set", elements: elements.filter(item => deepEquals(item, filterValue)) };
 }
 
 export function FILTER_BY_SIZE(inputs: Array<{ id: string; value: unknown }>): unknown {
