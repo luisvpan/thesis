@@ -7,51 +7,18 @@ import { DagValidator } from "@dataflow/compiler";
 const startTime = Date.now();
 const validator = new DagValidator();
 
-export const app = new Elysia()
-  .onError(({ code, error, set }) => {
-    if (code === 'VALIDATION') {
-      set.status = 422;
-      return {
-        success: false,
-        errors: [{
-          code: 'VALIDATION_ERROR',
-          message: (error as any)?.message || 'Invalid request format',
-          path: (error as any)?.path
-        }]
-      };
-    }
-    
-    if (code === 'PARSE') {
-      set.status = 400;
-      return {
-        success: false,
-        error: 'Invalid JSON format'
-      };
-    }
-    
-    if (code === 'NOT_FOUND') {
-      set.status = 404;
-      return {
-        success: false,
-        error: 'Not found'
-      };
-    }
-    
-    set.status = 500;
-    return {
-      success: false,
-      error: 'Internal server error'
-    };
-  })
-  .get("/api/v1/health", () => {
+const healthRoutes = new Elysia({ prefix: '/api/v1' })
+  .get("/health", () => {
     const uptime = Math.floor((Date.now() - startTime) / 1000);
     return {
       status: "healthy",
       version: "1.0.0",
       uptime
     };
-  })
-  .post("/api/v1/compile", ({ body }) => {
+  });
+
+const compileRoutes = new Elysia({ prefix: '/api/v1' })
+  .post("/compile", ({ body }) => {
     const request = body as any;
     const program = request.program as DataflowProgram;
     const programId = program.metadata?.programId || "unknown";
@@ -75,8 +42,10 @@ export const app = new Elysia()
     };
   }, {
     body: t.Any()
-  })
-  .post("/api/v1/execute", ({ body }) => {
+  });
+
+const executeRoutes = new Elysia({ prefix: '/api/v1' })
+  .post("/execute", ({ body }) => {
     const request = body as any;
     const program = request.program as DataflowProgram;
     const options = request.options || {};
@@ -126,5 +95,45 @@ export const app = new Elysia()
   }, {
     body: t.Any()
   });
+
+export const app = new Elysia()
+  .onError(({ code, error, set }) => {
+    if (code === 'VALIDATION') {
+      set.status = 422;
+      return {
+        success: false,
+        errors: [{
+          code: 'VALIDATION_ERROR',
+          message: (error as any)?.message || 'Invalid request format',
+          path: (error as any)?.path
+        }]
+      };
+    }
+    
+    if (code === 'PARSE') {
+      set.status = 400;
+      return {
+        success: false,
+        error: 'Invalid JSON format'
+      };
+    }
+    
+    if (code === 'NOT_FOUND') {
+      set.status = 404;
+      return {
+        success: false,
+        error: 'Not found'
+      };
+    }
+    
+    set.status = 500;
+    return {
+      success: false,
+      error: 'Internal server error'
+    };
+  })
+  .use(healthRoutes)
+  .use(compileRoutes)
+  .use(executeRoutes);
 
 export type App = typeof app;
