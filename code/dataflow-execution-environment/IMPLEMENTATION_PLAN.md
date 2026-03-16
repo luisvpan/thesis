@@ -42,7 +42,7 @@ packages/
 A comprehensive analysis of the codebase was performed comparing implementation against specs in `specs/*.md`. Key findings:
 
 #### ✅ What's Working Well
-- **Test Coverage:** 368/368 tests passing (100% pass rate)
+- **Test Coverage:** 349/349 tests passing (100% pass rate)
 - **IncrementalRuntime:** 100% complete with 40/40 tests
 - **WebSocket Server:** All features implemented and tested (14/14 tests)
 - **HTTP API:** Functional with 12/12 tests passing
@@ -50,6 +50,7 @@ A comprehensive analysis of the codebase was performed comparing implementation 
 - **Demand-Driven Semantics:** Correctly implemented in both runtimes
 - **Shared Tests:** 52 tests extracted (40 run on both runtimes + 12 sorting-type-safety)
 - **Type Safety:** SORT and ALPHABETICAL_SORT now type-safe (P2.3)
+- **Test Separation:** Batch runtime tests now batch-specific only (6 tests, 76% reduction) (P2.4)
 
 #### 🔥 New Critical Issues Discovered
 
@@ -137,29 +138,36 @@ A comprehensive analysis of the codebase was performed comparing implementation 
 #### 📈 Progress Metrics
 
 - **Total Test Files:** 59
-- **Total Tests:** 368 (100% passing)
+- **Total Tests:** 349 (100% passing)
 - **Incremental Tests:** 40 (100% passing)
 - **Shared Tests:** 52 (40 run on both runtimes + 12 sorting-type-safety tests)
 - **Parser Disambiguation Tests:** 15 (P0.2)
 - **Type Validation Tests:** 6 (new - P0.3)
 - **Color Type Tests:** 1 (new - P2.2)
 - **Sorting Type-Safety Tests:** 12 (new - P2.3) - Type-safe SORT (numeric only) and ALPHABETICAL_SORT (Text only)
+- **Runtime Tests:** 6 (batch-specific only, down from 25 - P2.4)
 - **TypeScript Errors:** 0 ✅
 - **Lint Errors:** 0 (lint not configured)
-- **Execution Time:** ~4.34 seconds for full suite
+- **Execution Time:** ~4.2 seconds for full suite
 
 ---
 
-## Current Status (2026-03-16 - Updated After P2.3 Completion)
+## Current Status (2026-03-16 - Updated After P2.4 Completion)
 
 ### Test Status
-- **Overall:** 368/368 passing (100% pass rate)
-- **Last improvement:** P2.3 completion (2026-03-16) - Made SORT/ALPHABETICAL_SORT type-safe
-- **Execution time:** ~4.34 seconds for full test suite
+- **Overall:** 349/349 passing (100% pass rate)
+- **Last improvement:** P2.4 completion (2026-03-16) - Removed 76% of duplicate tests from runtime.test.ts
+- **Execution time:** ~4.2 seconds for full test suite
 - **TypeScript compilation:** ✅ PASSES with 0 errors
 
 ### Test History
-- 2026-03-16 (NOW): 368/368 passing (100%) → After P2.3 completion
+- 2026-03-16 (NOW): 349/349 passing (100%) → After P2.4 completion
+   - ✅ COMPLETED: P2.4 - Removed 76% of duplicate tests from runtime.test.ts
+   - Removed 19 duplicated tests from runtime.test.ts
+   - Retained 6 batch-specific Runtime API tests
+   - Test count reduced from 25 to 6 (76% reduction)
+   - All 349 tests passing (368 original - 19 removed)
+- 2026-03-16: 368/368 passing (100%) → After P2.3 completion
    - ✅ COMPLETED: P2.3 - Made SORT type-safe for numeric types only
    - ✅ COMPLETED: P2.3 - Made ALPHABETICAL_SORT type-safe for Text type only
    - Added 12 comprehensive tests for type-safe sorting operations
@@ -207,7 +215,7 @@ A comprehensive analysis of the codebase was performed comparing implementation 
 |-----------|--------|------------|----------------|-----------------|
 | **Shared Package** | ✅ COMPLETE | 100% | N/A | All operation contracts present; SORT/ALPHABETICAL_SORT now type-safe (P2.3) |
 | **Compiler Package** | ⚠️ PARTIAL | 65% | 25/27 (92.6%) | ✅ Set/Object literal ambiguity FIXED (P0.2); Missing validation rules (output node, set homogeneity, literal validation) |
-| **Runtime Package** | Good | 95% | 104/104 (100%) | IncrementalRuntime has 40/40 tests (100% complete) ✅ |
+| **Runtime Package** | Good | 95% | 6/6 (100%) | IncrementalRuntime has 40/40 tests (100% complete) ✅; Batch-specific tests only (P2.4) ✅ |
 | **HTTP API Package** | Functional | 64% | 12/12 (100%) | Works but doesn't follow Elysia best practices |
 | **WebSocket Server Package** | ✅ COMPLETE | 100% | 14/14 (100%) | All features implemented and tested ✅; TypeScript compilation passes with 0 errors |
 
@@ -731,6 +739,45 @@ export type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` line 149 (Color type definition)
 
 ---
+
+### 2026-03-16: P2.4 Task Completed - Update Batch Runtime Tests to Batch-Specific Only ✅
+
+1. **Removed duplicated tests** - Removed 19 tests from runtime.test.ts that were duplicated in shared/ directory
+2. **Retained batch-specific tests** - Kept 6 tests that are specific to Runtime API (program loading, execution, error handling)
+3. **Improved test separation** - Clear distinction between shared operation behavior tests and batch-specific Runtime API tests
+4. **Test verification** - All 349 tests passing (down from 368 - 19 duplicate tests removed)
+5. **TypeScript verification** - Typecheck passes with 0 errors
+
+**Impact:** CRITICAL - Ensures clear separation of concerns; No test duplication; Easier to identify which layer has issues
+**Files Modified:**
+- `packages/runtime/src/runtime.test.ts` - Removed 520 lines of duplicate tests, added 1 line header comment
+
+**Tests Removed (19 total):**
+- Arithmetic operations (4 tests): ADD, SUBTRACT, MULTIPLY, DIVIDE
+- Comparison operations (3 tests): COMPARE (equal, less than, greater than)
+- Complex expression (1 test): (3 + 2) * (10 - 6)
+- Fraction operations (11 tests): ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE, simplification
+
+**Tests Retained (6 total):**
+- Program loading (3 tests): simple program, multiple nodes, program replacement
+- Execution (2 tests): no output nodes, simple output
+- Error handling (1 test): division by zero
+
+**Benefits:**
+- Clear separation of concerns (Runtime API vs operation behavior)
+- No test duplication with shared/ tests
+- Easier to identify which layer has issues
+- Better maintainability
+- Meets P2.4 acceptance criteria
+
+**Test Results:**
+- All 349 tests passing (100%)
+- Runtime tests: 6/6 passing
+- Shared tests: 33/33 passing (unchanged)
+- Batch tests: 55/55 passing (unchanged)
+- TypeScript typecheck passes with 0 errors
+
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 57-87 (shared vs batch-specific test separation)
 
 ---
 
@@ -1585,16 +1632,51 @@ packages/tests/src/
 
 ---
 
-#### Task P2.4: Update Batch Runtime Tests to Batch-Specific Only (1 hour)
+#### Task P2.4: Update Batch Runtime Tests to Batch-Specific Only (1 hour) ✅ COMPLETED
 
 **Priority:** P2 MEDIUM
-**Status:** NOT STARTED
+**Status:** ✅ COMPLETED
+**Completed:** 2026-03-16
 **Estimated Time:** 1 hour
-**Impact:** Clear batch-specific test coverage
+**Actual Time:** ~0.5 hours
+**Impact:** Clear test separation, removed 76% of duplicate tests
+
+**What Was Done:**
+1. Removed 19 duplicated tests from runtime.test.ts
+2. Retained 6 batch-specific Runtime API tests
+3. Test count reduced from 25 to 6 (76% reduction)
+4. All tests still passing (349/349)
+
+**Tests Removed (19 total):**
+- Arithmetic operations (4 tests): ADD, SUBTRACT, MULTIPLY, DIVIDE
+- Comparison operations (3 tests): COMPARE (equal, less than, greater than)
+- Complex expression (1 test): (3 + 2) * (10 - 6)
+- Fraction operations (11 tests): ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE, simplification
+
+**Tests Retained (6 total):**
+- Program loading (3 tests): simple, multiple nodes, replacement
+- Execution (2 tests): no output nodes, simple output
+- Error handling (1 test): division by zero
+
+**Benefits:**
+- Clear separation of concerns (Runtime API vs operation behavior)
+- No test duplication with shared/ tests
+- Easier to identify which layer has issues
+- Better maintainability
+- Meets P2.4 acceptance criteria
+
+**Files Modified:**
+- `packages/runtime/src/runtime.test.ts` - Removed 520 lines, added 1 line
+
+**Test Results:**
+- All 349 tests passing (down from 368)
+- Runtime tests: 6/6 passing
+- Shared tests: 33/33 passing (unchanged)
+- Batch tests: 55/55 passing (unchanged)
 
 **Why Medium Priority:**
 - From study: "After extracting shared tests, runtime.test.ts should only contain batch-specific tests"
-- Currently has shared tests that should be in shared/
+- Previously had shared tests that should be in shared/
 - Ensures clear separation of concerns
 
 **Files Affected:**
@@ -1608,11 +1690,11 @@ packages/tests/src/
 - ✓ All tests pass
 
 **Ralph Wiggum Checklist:**
-- [ ] runtime.test.ts updated
-- [ ] Batch-specific tests only remain
-- [ ] All tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "test(batch): update batch runtime tests"
+- [x] runtime.test.ts updated
+- [x] Batch-specific tests only remain
+- [x] All tests pass (349/349)
+- [x] Typecheck passes
+- [x] Git commit: "test(batch): update batch runtime tests to remove duplicates"
 
 ---
 
@@ -1762,8 +1844,8 @@ packages/tests/src/
 **Week 3: Completeness (6 hours)**
 - Day 9-10: P2.1 - Add missing operation contracts (3 hours) ✅ COMPLETED (VERIFIED)
 - Day 10: P2.2 - Fix color type (0.5 hours) ✅ COMPLETED
-- Day 10: P2.3 - Make SORT type-safe for numeric types (2 hours) - Spec ambiguity discovered
-- Day 10: P2.4 - Update batch runtime tests (1 hour)
+- Day 10: P2.3 - Make SORT type-safe for numeric types (2 hours) ✅ COMPLETED
+- Day 10: P2.4 - Update batch runtime tests (1 hour) ✅ COMPLETED
 
 **Post-MVP (Optional - 16 hours):**
 - P3.1: Refactor HTTP API (11 hours)
@@ -1776,7 +1858,7 @@ packages/tests/src/
 - ✅ Layer 7: Complete (100%)
 - ✅ Compiler: 100% validation rules, robust parser
 - ✅ Shared: Complete operation registry, correct types
-- ✅ Tests: Well-organized, full coverage
+- ✅ Tests: Well-organized, full coverage, clear separation of shared vs batch-specific
 
 ---
 
@@ -1786,11 +1868,12 @@ packages/tests/src/
 - ✅ TypeScript compilation: PASSES (0 errors) - UNBLOCKED
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
-- Test suite: 368/368 tests passing (100%)
+- Test suite: 349/349 tests passing (100%)
 - Temporal operators in IncrementalRuntime: ✅ COMPLETE (P0.10)
 - ACCUMULATE logic bug: ✅ FIXED (P0.11)
 - IncrementalRuntime tests: 40/40 tests (100%) ✅
-- Shared tests: 40/50 tests (80%)
+- Runtime batch tests: 6/6 tests (100%, batch-specific only) ✅ (P2.4)
+- Shared tests: 52/52 tests (100%)
 - WebSocket Server: 14/14 tests (100%) ✅
 - Parser disambiguation tests: 15/15 tests (100%) ✅ (NEW - P0.2)
 - Operation contracts: All complete ✅ (VERIFIED P2.1)
@@ -1802,7 +1885,7 @@ packages/tests/src/
 - Concurrent: 5 simultaneous requests without degradation
 - Incremental update: 5x faster than full re-evaluation
 - WebSocket roundtrip: <50ms (p95) ✅ ACHIEVED
-- Test suite execution: <5 seconds for full test suite (~368 tests, ~4.34s)
+- Test suite execution: <5 seconds for full test suite (~349 tests, ~4.2s)
 - Test startup: <1 second per test file
 
 ---
@@ -1822,7 +1905,7 @@ packages/tests/src/
 - ✅ Compiler validates programs correctly
 - ✅ Runtime executes programs
 - ✅ Nested operations supported
-- ✅ 368/368 tests passing (100%)
+- ✅ 349/349 tests passing (100%)
 - ✅ Handles 5 concurrent users
 - ✅ IncrementalRuntime - executeOperation implemented (P0.6), temporal operators added (P0.10), ACCUMULATE bug fixed (P0.11), tests complete 40/40 (P0.1) ✅
 - ✅ TypeScript compilation - PASSES (0 errors) - ACHIEVED (P0.0, P0.8, P0.9)
@@ -1832,6 +1915,7 @@ packages/tests/src/
 - ✅ Shared tests - 52 tests complete (40 + 12 sorting-type-safety)
 - ✅ Type-safe SORT (numeric only) ✅ (P2.3)
 - ✅ Type-safe ALPHABETICAL_SORT (Text only) ✅ (P2.3)
+- ✅ Batch-specific test separation (6 tests only, removed 76% duplicates) ✅ (P2.4)
 
 ### Version 1.0 (All Layers)
 - All P0 and P1 tasks completed
@@ -1846,7 +1930,7 @@ packages/tests/src/
   - Batch-specific tests: ~15 tests
   - Incremental-specific tests: 40 tests ✅
   - Compiler tests: ~20 tests
-  - Total: ~169 tests (currently 368/368 passing)
+  - Total: ~169 tests (currently 349/349 passing)
 - Child-friendly Spanish messages throughout
 - Generic set/stream operations
 - HTTP API follows Elysia best practices (P3.1)
@@ -1911,12 +1995,12 @@ packages/tests/src/
     - Decision: Align with LANGUAGE_SPEC.md - make SORT type-safe for numeric only
 
 ### Test Status Correction
-- Overall: 368/368 passing (100%)
+- Overall: 349/349 passing (100%)
 - HTTP API: 12/12 passing ✅
 - WebSocket Server: 14/14 passing ✅ (NEW - P1.1 complete)
-- Runtime: 104 tests (78 batch + 26 incremental)
+- Runtime: 6 tests (batch-specific only - P2.4, down from 25)
 - Integration: 22 tests
-- Shared tests: 40 tests (all passing on both runtimes)
+- Shared tests: 52 tests (all passing on both runtimes)
 - IncrementalRuntime: **40/40 tests** ✅ (100% complete - P0.1)
 - Color Type: **1/1 tests** ✅ (100% complete - P2.2)
 - **P2.1: Add missing operation contracts** ✅ COMPLETED (VERIFIED 2026-03-16)
@@ -1928,9 +2012,13 @@ packages/tests/src/
    - ACCUMULATE: natural, integer, decimal, fraction already present (lines 311-319)
    - Task was already completed in previous work
    - All 356 tests passing
+- **P2.4: Update batch runtime tests to batch-specific only** ✅ COMPLETED (2026-03-16)
+   - Removed 19 duplicated tests from runtime.test.ts
+   - Retained 6 batch-specific Runtime API tests
+   - Test count reduced from 25 to 6 (76% reduction)
+   - All 349 tests passing
 
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-16 (368 tests passing, 100% pass rate, ~80% overall complete, P0.1, P1.1, P0.2, P0.3, P2.1 verified complete, P2.2 completed, P2.3 completed - SORT/ALPHABETICAL_SORT type-safe, P0.8-P0.11 completed, P1.8 completed, P1.9 completed, Layer 7 partially complete (40% - WebSocket 100%), Execution time: ~4.34s)
-**Next Review:** Continue with P2.4 (Update batch runtime tests)
+**Last Updated:** 2026-03-16 (349 tests passing, 100% pass rate, ~80% overall complete, P0.1, P1.1, P0.2, P0.3, P2.1 verified complete, P2.2 completed, P2.3 completed - SORT/ALPHABETICAL_SORT type-safe, P2.4 completed - Removed 76% duplicate tests, P0.8-P0.11 completed, P1.8 completed, P1.9 completed, Layer 7 partially complete (40% - WebSocket 100%), Execution time: ~4.2s)
