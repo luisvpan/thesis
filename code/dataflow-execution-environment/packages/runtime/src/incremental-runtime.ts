@@ -403,27 +403,6 @@ export class IncrementalRuntime {
       throw new Error(`Unknown operation: ${operation}`);
     }
 
-    const contract = signature.contracts.find(c => {
-      return c.inputTypes.every((inputType, i) => {
-        const input = inputs[i];
-        if (input === null || input === undefined) return false;
-
-        if (typeof inputType === 'string') {
-          return (input as any).kind === inputType;
-        }
-
-        if (typeof inputType === 'object') {
-          return (input as any).kind === (inputType as any).kind;
-        }
-
-        return false;
-      });
-    });
-
-    if (!contract) {
-      throw new Error(`No contract found for operation ${operation} with inputs ${inputs.map(i => (i as any).kind).join(', ')}`);
-    }
-
     const wrappedInputs = inputs.map((value, index) => ({ id: `input_${index}`, value }));
 
     switch (operation) {
