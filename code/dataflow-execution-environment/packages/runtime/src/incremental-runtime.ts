@@ -255,7 +255,7 @@ export class IncrementalRuntime {
         const sourceResult = this.evaluateNode(sourceNode.id, time);
         if (sourceResult.state.status === "completed") {
           this.cache.set(nodeId, new Map([[time, (sourceResult.state as any).value]]));
-          return { state: { status: "completed", value: sourceResult.value }, changedNodes: sourceResult.changedNodes };
+          return { state: { status: "completed", value: sourceResult.state.value }, changedNodes: sourceResult.changedNodes };
         } else if (sourceResult.state.status === "pending") {
           return sourceResult;
         } else {
@@ -310,7 +310,7 @@ export class IncrementalRuntime {
 
         const signature = OPERATION_REGISTRY[node.operation as any];
         const contract = signature?.contracts[0];
-        const evaluatedInputsArray = Array.from(evaluatedInputs.values()).map(v => v.value);
+        const evaluatedInputsArray = Array.from(evaluatedInputs.values()).map(v => v.state.status === 'completed' ? v.state.value : v.value);
 
         if (contract) {
           const result = this.executeOperation(node.operation, evaluatedInputsArray);

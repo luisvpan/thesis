@@ -38,8 +38,8 @@ packages/
 ## Current Status (2026-03-15)
 
 ### Test Status
-- **Overall:** 135/135 passing (100% pass rate)
-- **Last improvement:** P0.6 tasks completed (2026-03-15) - +11 tests passing
+- **Overall:** 148/148 passing (100% pass rate)
+- **Last improvement:** P0.7 tasks completed (2026-03-16) - +13 tests passing + fixed 2 IncrementalRuntime bugs
 
 ### Test History
 - 2026-03-15: 135/135 passing (100%) → after P0.6 tasks completed
@@ -73,6 +73,22 @@ packages/
 ---
 
 ## Completed Work Summary
+
+### 2026-03-16: P0.7 Task Completed - Create Test Utilities for Shared Runtime Tests
+
+1. **Created runtime factory** - Implemented `createRuntimeContext()` factory for both batch and incremental runtimes
+2. **Created describeWithBothRuntimes helper** - Helper to run same tests on both runtimes
+3. **Created test fixtures** - Added common test programs (simpleArithmeticProgram, simpleFractionProgram, complexArithmeticProgram)
+4. **Created test helpers** - Added assertion helpers for all type kinds (expectNatural, expectFraction, etc.)
+5. **Created test utilities index** - Central export for all test utilities
+6. **Created test utilities tests** - 13 tests validating test utilities functionality
+7. **Fixed IncrementalRuntime bugs** - Found and fixed 2 bugs:
+   - Bug 1: Line 313 - `v.value` should be `v.state.value` when extracting evaluated inputs
+   - Bug 2: Line 258 - `sourceResult.value` should be `sourceResult.state.value` for Output nodes
+8. **Test verification** - All 148 tests passing (up from 135)
+
+**Impact:** Unblocks P1.9 (IncrementalRuntime-specific tests) and P1.8 (Extract Shared Tests)
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 264-310
 
 ### 2026-03-15: P0.6 Task Completed - Implement executeOperation in IncrementalRuntime
 
@@ -130,13 +146,15 @@ packages/
 #### Task P0.7: Create Test Utilities for Shared Runtime Tests (1.5 hours)
 
 **Priority:** P0 URGENT
-**Status:** NOT STARTED
+**Status:** COMPLETED (2026-03-16)
 **Estimated Time:** 1.5 hours
 **Impact:** Enables shared tests between runtimes
 **Files:**
-- `packages/runtime/src/test-utils/runtime-factory.ts` (NEW)
-- `packages/runtime/src/test-utils/test-fixtures.ts` (NEW)
-- `packages/runtime/src/test-utils/test-helpers.ts` (NEW)
+- `packages/runtime/src/test-utils/runtime-factory.ts` (CREATED)
+- `packages/runtime/src/test-utils/test-fixtures.ts` (CREATED)
+- `packages/runtime/src/test-utils/test-helpers.ts` (CREATED)
+- `packages/runtime/src/test-utils.test.ts` (CREATED)
+- `packages/runtime/src/test-utils/index.ts` (CREATED)
 
 **Why Critical:**
 - Enables shared tests that run on both Runtime and IncrementalRuntime
