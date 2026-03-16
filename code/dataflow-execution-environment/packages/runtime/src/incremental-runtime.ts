@@ -33,6 +33,7 @@ import {
   SORT,
   ALPHABETICAL_SORT
 } from "./operations/sets.js";
+import { NEXT, FIRST, FBY, ACCUMULATE } from "./operations/temporal.js";
 
 export type NodeState =
   | { status: "completed"; value: any }
@@ -313,7 +314,7 @@ export class IncrementalRuntime {
         const evaluatedInputsArray = Array.from(evaluatedInputs.values()).map(v => v.state.status === 'completed' ? v.state.value : v.value);
 
         if (contract) {
-          const result = this.executeOperation(node.operation, evaluatedInputsArray);
+          const result = this.executeOperation(node.operation, evaluatedInputsArray, time, inputNodes, nodeId);
           this.cache.set(nodeId, new Map([[time, result]]));
           return { state: { status: "completed", value: result }, changedNodes: [] };
         } else {
@@ -396,7 +397,7 @@ export class IncrementalRuntime {
     return match ? match[2] : "unknown";
   }
 
-  private executeOperation(operation: string, inputs: unknown[]): unknown {
+  private executeOperation(operation: string, inputs: unknown[], time: number, inputNodeIds: string[], currentNodeId: string): unknown {
     const signature = OPERATION_REGISTRY[operation as any];
     if (!signature) {
       throw new Error(`Unknown operation: ${operation}`);
@@ -480,9 +481,152 @@ export class IncrementalRuntime {
         return SORT(wrappedInputs);
       case "ALPHABETICAL_SORT":
         return ALPHABETICAL_SORT(wrappedInputs);
+      case "NEXT":
+        return this.executeNEXT(inputs, time, inputNodeIds);
+      case "FIRST":
+        return this.executeFIRST(inputs, time, inputNodeIds);
+      case "FBY":
+        return this.executeFBY(inputs, time, inputNodeIds);
+      case "ACCUMULATE":
+        return this.executeACCUMULATE(inputs, time, inputNodeIds, currentNodeId);
       default:
         throw new Error(`Unknown operation: ${operation}`);
     }
+  }
+
+  private executeNEXT(inputs: unknown[], time: number, inputNodeIds: string[]): unknown {
+    const streamNodeId = inputNodeIds[0];
+    const result = this.evaluateNode(streamNodeId, time);
+    if (result.state.status !== 'completed') {
+      throw new Error(`NEXT: Failed to evaluate stream node ${streamNodeId}`);
+    }
+    return result.state.value;
+  }
+
+  private executeFIRST(inputs: unknown[], time: number, inputNodeIds: string[]): unknown {
+    const streamNodeId = inputNodeIds[0];
+    const result = this.evaluateNode(streamNodeId, 0);
+    if (result.state.status !== 'completed') {
+      throw new Error(`FIRST: Failed to evaluate stream node ${streamNodeId}`);
+    }
+    const streamValue = result.state.value as { kind: "stream"; elementType: string; firstValue: unknown };
+
+    if (typeof streamValue === 'object' && streamValue !== null && 'firstValue' in streamValue) {
+      const { firstValue, elementType } = streamValue;
+
+      switch (elementType) {
+        case "natural":
+          return { kind: "natural", value: firstValue as number };
+        case "integer":
+          return { kind: "integer", value: firstValue as number };
+        case "decimal":
+          return { kind: "decimal", value: firstValue as number };
+        case "fraction":
+          const frac = firstValue as { numerator: number; denominator: number };
+          return { kind: "fraction", numerator: frac.numerator, denominator: frac.denominator };
+        case "text":
+          return { kind: "text", value: firstValue as string };
+        case "boolean":
+          return { kind: "boolean", value: firstValue as boolean };
+        case "shape":
+          const shape = firstValue as { kind: string; color: string; sides: number };
+          return { kind: "shape", shape: shape.kind, color: shape.color, sides: shape.sides };
+        case "car":
+          const car = firstValue as { brand: string; color: string; speed: number };
+          return { kind: "car", brand: car.brand, color: car.color, speed: car.speed };
+        case "food":
+          const food = firstValue as { kind: string; color: string; calories: number };
+          return { kind: "food", type: food.kind, color: food.color, calories: food.calories };
+        case "animal":
+          const animal = firstValue as { species: string; color: string; legs: number };
+          return { kind: "animal", species: animal.species, color: animal.color, legs: animal.legs };
+        case "person":
+          const person = firstValue as { name: string; age: number; color: string };
+          return { kind: "person", name: person.name, age: person.age, hairColor: person.color };
+        default:
+          return firstValue;
+      }
+    }
+
+    return streamValue;
+  }
+
+  private executeFBY(inputs: unknown[], time: number, inputNodeIds: string[]): unknown {
+    const initialNodeId = inputNodeIds[0];
+    const streamNodeId = inputNodeIds[1];
+
+    if (time === 0) {
+      const result = this.evaluateNode(initialNodeId, time);
+      if (result.state.status !== 'completed') {
+        throw new Error(`FBY: Failed to evaluate initial node ${initialNodeId}`);
+      }
+      return result.state.value;
+    }
+
+    const result = this.evaluateNode(streamNodeId, time - 1);
+    if (result.state.status !== 'completed') {
+      throw new Error(`FBY: Failed to evaluate stream node ${streamNodeId} at time ${time - 1}`);
+    }
+    return result.state.value;
+  }
+
+  private executeACCUMULATE(inputs: unknown[], time: number, inputNodeIds: string[], currentNodeId: string): unknown {
+    const streamNodeId = inputNodeIds[0];
+    const initialNodeId = inputNodeIds[1];
+    const operationNodeId = inputNodeIds[2];
+
+    if (time === 0) {
+      const result = this.evaluateNode(initialNodeId, time);
+      if (result.state.status !== 'completed') {
+        throw new Error(`ACCUMULATE: Failed to evaluate initial node ${initialNodeId}`);
+      }
+      return result.state.value;
+    }
+
+    const previousResult = this.evaluateNode(currentNodeId, time - 1);
+    if (previousResult.state.status !== 'completed') {
+      throw new Error(`ACCUMULATE: Failed to evaluate previous accumulated value`);
+    }
+    const previousAccumulated = previousResult.state.value;
+
+    const streamResult = this.evaluateNode(streamNodeId, time - 1);
+    if (streamResult.state.status !== 'completed') {
+      throw new Error(`ACCUMULATE: Failed to evaluate stream node ${streamNodeId} at time ${time - 1}`);
+    }
+    const streamValue = streamResult.state.value;
+
+    const operationResult = this.evaluateNode(operationNodeId, time);
+    if (operationResult.state.status !== 'completed') {
+      throw new Error(`ACCUMULATE: Failed to evaluate operation node ${operationNodeId}`);
+    }
+    const operationValue = operationResult.state.value as { kind: "text"; value: string };
+
+    const operationName = operationValue.value;
+    const previousVal = (previousAccumulated as any).value ?? previousAccumulated;
+    const streamVal = (streamValue as any).value ?? streamValue;
+
+    if (operationName === "ADD") {
+      const kind = (previousAccumulated as any).kind;
+      return { kind, value: (previousVal as number) + (streamVal as number) };
+    }
+    if (operationName === "MULTIPLY") {
+      const kind = (previousAccumulated as any).kind;
+      return { kind, value: (previousVal as number) * (streamVal as number) };
+    }
+    if (operationName === "SUBTRACT") {
+      const kind = (previousAccumulated as any).kind;
+      return { kind, value: (previousVal as number) - (streamVal as number) };
+    }
+    if (operationName === "DIVIDE") {
+      const divisor = streamVal as number;
+      if (divisor === 0) {
+        throw new Error("ACCUMULATE: Division by zero");
+      }
+      const kind = (previousAccumulated as any).kind;
+      return { kind, value: (previousVal as number) / divisor };
+    }
+
+    throw new Error(`Unknown accumulation operation: ${operationName}`);
   }
 
   private invalidateDependentCache(nodeId: string): void {

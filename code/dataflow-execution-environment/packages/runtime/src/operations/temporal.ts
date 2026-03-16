@@ -1,14 +1,14 @@
 import type { DataflowGraph } from "../graph/dataflow-graph.js";
 import type { DemandDrivenEvaluator } from "../evaluator/demand-driven-evaluator.js";
 
-export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
+export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
   const [stream] = inputs;
 
   const streamId = stream.id;
   return evaluator.evaluate(streamId, time, graph);
 }
 
-export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
+export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
   const [stream] = inputs;
 
   const streamId = stream.id;
@@ -54,7 +54,7 @@ export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: numbe
   return streamValue;
 }
 
-export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
+export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
   const [initial, stream] = inputs;
 
   if (time === 0) {
@@ -66,7 +66,7 @@ export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number,
   return evaluator.evaluate(streamId, time - 1, graph);
 }
 
-export function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator): unknown {
+export function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
   const [stream, initial, operation] = inputs;
 
   if (time === 0) {
@@ -76,7 +76,7 @@ export function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: 
 
   const streamId = stream.id;
   const streamValue = evaluator.evaluate(streamId, time - 1, graph);
-  const previousAccumulated = evaluator.evaluate(streamId, time - 1, graph);
+  const previousAccumulated = evaluator.evaluate(currentNodeId, time - 1, graph);
 
   const operationName = (operation.value as { kind: "text"; value: string }).value;
 

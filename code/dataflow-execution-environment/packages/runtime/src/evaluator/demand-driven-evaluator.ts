@@ -55,7 +55,7 @@ export class DemandDrivenEvaluator {
       value = this.wrapDataSourceValue(node, time);
     } else if (node.type === "Transformation") {
       const inputNodes = graph.getInputs(nodeId);
-      value = this.evaluateOperation(node.operation, inputNodes, time, graph);
+      value = this.evaluateOperation(node.operation, inputNodes, time, graph, nodeId);
     } else if (node.type === "Output") {
       const inputNodes = graph.getInputs(nodeId);
       if (inputNodes.length === 0) {
@@ -142,16 +142,16 @@ export class DemandDrivenEvaluator {
     return match ? match[2] : "unknown";
   }
 
-  private evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph): unknown {
+  private evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, currentNodeId: string): unknown {
     switch (operation) {
       case "NEXT":
-        return NEXT(inputs, time, graph, this);
+        return NEXT(inputs, time, graph, this, currentNodeId);
       case "FIRST":
-        return FIRST(inputs, time, graph, this);
+        return FIRST(inputs, time, graph, this, currentNodeId);
       case "FBY":
-        return FBY(inputs, time, graph, this);
+        return FBY(inputs, time, graph, this, currentNodeId);
       case "ACCUMULATE":
-        return ACCUMULATE(inputs, time, graph, this);
+        return ACCUMULATE(inputs, time, graph, this, currentNodeId);
       case "ADD":
         return ADD(inputs.map(input => ({
           id: input.id,
