@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { ServerWebSocket } from "elysia";
+import type { ElysiaWS } from "elysia/ws";
 import { DagValidator } from "@dataflow/compiler";
 import { IncrementalRuntime } from "@dataflow/runtime";
 import type { DataflowProgram } from "@dataflow/shared/types";
@@ -42,7 +42,7 @@ const subscriptionManager = new SubscriptionManager();
 
 export const app = new Elysia()
   .ws("/live", {
-    open(ws: ServerWebSocket<ClientData>) {
+    open(ws: ElysiaWS<any, any>) {
       console.log("Client connected");
       ws.data = {
         subscribedNodes: new Set()
@@ -50,7 +50,7 @@ export const app = new Elysia()
       connectionManager.addConnection(ws);
     },
 
-    message(ws: ServerWebSocket<ClientData>, message: any) {
+    message(ws: ElysiaWS<any, any>, message: any) {
       let msg: WebSocketMessage;
 
       if (typeof message === "object") {
@@ -174,7 +174,7 @@ export const app = new Elysia()
       }
     },
 
-    close(ws: ServerWebSocket<ClientData>) {
+    close(ws: ElysiaWS<any, any>) {
       console.log("Client disconnected");
 
       for (const nodeId of ws.data?.subscribedNodes || []) {

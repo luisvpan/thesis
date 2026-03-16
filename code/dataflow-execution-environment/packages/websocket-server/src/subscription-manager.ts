@@ -1,10 +1,10 @@
-import type { ServerWebSocket } from "elysia";
+import type { ElysiaWS } from "elysia/ws";
 import type { NodeState } from "@dataflow/runtime";
 
 type SubscriptionCallback = (state: NodeState) => void;
 
 interface Subscription {
-  ws: ServerWebSocket;
+  ws: ElysiaWS<any, any>;
   callback: SubscriptionCallback;
 }
 
@@ -15,7 +15,7 @@ export class SubscriptionManager {
     this.subscriptions = new Map();
   }
 
-  subscribe(nodeId: string, ws: ServerWebSocket, callback: SubscriptionCallback): void {
+  subscribe(nodeId: string, ws: ElysiaWS<any, any>, callback: SubscriptionCallback): void {
     if (!this.subscriptions.has(nodeId)) {
       this.subscriptions.set(nodeId, new Set());
     }
@@ -23,7 +23,7 @@ export class SubscriptionManager {
     this.subscriptions.get(nodeId)!.add({ ws, callback });
   }
 
-  unsubscribe(nodeId: string, ws: ServerWebSocket): void {
+  unsubscribe(nodeId: string, ws: ElysiaWS<any, any>): void {
     const subs = this.subscriptions.get(nodeId);
     if (!subs) return;
 

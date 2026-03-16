@@ -1,17 +1,17 @@
-import type { ServerWebSocket } from "elysia";
+import type { ElysiaWS } from "elysia/ws";
 
 export class ConnectionManager {
-  private connections: Set<ServerWebSocket>;
+  private connections: Set<ElysiaWS<any, any>>;
 
   constructor() {
     this.connections = new Set();
   }
 
-  addConnection(ws: ServerWebSocket): void {
+  addConnection(ws: ElysiaWS<any, any>): void {
     this.connections.add(ws);
   }
 
-  removeConnection(ws: ServerWebSocket): void {
+  removeConnection(ws: ElysiaWS<any, any>): void {
     this.connections.delete(ws);
   }
 
@@ -19,7 +19,7 @@ export class ConnectionManager {
     return this.connections.size;
   }
 
-  getAllConnections(): ServerWebSocket[] {
+  getAllConnections(): ElysiaWS<any, any>[] {
     return Array.from(this.connections);
   }
 }
