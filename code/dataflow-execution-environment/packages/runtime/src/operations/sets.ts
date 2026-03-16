@@ -56,17 +56,27 @@ export function COMPLEMENT(inputs: Array<{ id: string; value: unknown }>): unkno
 export function SORT(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set] = inputs;
   const elements = (set.value as { kind: string; elements: unknown[] }).elements;
+  
   return { kind: "set", elements: [...elements].sort((a, b) => {
     const getNumericValue = (val: unknown): number => {
       if (typeof val === 'number') return val;
-      if (typeof val === 'object' && val !== null && 'value' in val) {
-        return (val as { value: number }).value;
+      if (typeof val === 'object' && val !== null) {
+        const obj = val as Record<string, unknown>;
+        if ('kind' in obj) {
+          const kind = obj.kind as string;
+          if (kind === 'natural' || kind === 'integer' || kind === 'decimal') {
+            return obj.value as number;
+          }
+          if (kind === 'fraction' && 'numerator' in obj && 'denominator' in obj) {
+            const frac = obj as { numerator: number; denominator: number };
+            return frac.numerator / frac.denominator;
+          }
+        }
       }
-      if (typeof val === 'object' && val !== null && 'numerator' in val && 'denominator' in val) {
-        const frac = val as { numerator: number; denominator: number };
-        return frac.numerator / frac.denominator;
-      }
-      return 0;
+      throw new Error(
+        '⚠️ ¡Ups! SORT solo funciona con números (natural, integer, decimal, fraction).\n' +
+        'Tu conjunto contiene otro tipo de valor. Por favor, usa solo números en SORT.'
+      );
     };
     const aNum = getNumericValue(a);
     const bNum = getNumericValue(b);
@@ -77,9 +87,23 @@ export function SORT(inputs: Array<{ id: string; value: unknown }>): unknown {
 export function ALPHABETICAL_SORT(inputs: Array<{ id: string; value: unknown }>): unknown {
   const [set] = inputs;
   const elements = (set.value as { kind: string; elements: unknown[] }).elements;
+  
+  const getTextValue = (val: unknown): string => {
+    if (typeof val === 'object' && val !== null) {
+      const obj = val as Record<string, unknown>;
+      if ('kind' in obj && obj.kind === 'text' && 'value' in obj) {
+        return obj.value as string;
+      }
+    }
+    throw new Error(
+      '⚠️ ¡Ups! ALPHABETICAL_SORT solo funciona con texto (text).\n' +
+      'Tu conjunto contiene otro tipo de valor. Por favor, usa solo texto en ALPHABETICAL_SORT.'
+    );
+  };
+  
   return { kind: "set", elements: [...elements].sort((a, b) => {
-    const strA = String(a);
-    const strB = String(b);
+    const strA = getTextValue(a);
+    const strB = getTextValue(b);
     return strA.localeCompare(strB);
   })};
 }

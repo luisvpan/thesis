@@ -177,24 +177,32 @@ export class DagValidator {
           const numericOps = ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE"];
           const hasNumericInput = inputTypes.some(t => ["natural", "integer", "decimal", "fraction"].includes(t));
           const hasTextInput = inputTypes.includes("text");
-
+ 
           let childMessage = `⚠️ ¡Ups! El bloque "${stmt.operation}" no funciona con estos tipos.`;
           let suggestion = `Verifica que los tipos de entrada sean compatibles con el bloque "${stmt.operation}".`;
           let example = `Usa tipos compatibles: [${signatures.contracts.map(c => c.inputTypes.join(", ")).join(" o ")}]`;
-
-          if (numericOps.includes(stmt.operation) && hasNumericInput && hasTextInput) {
+ 
+          if (stmt.operation === "SORT") {
+            const isNumeric = inputTypes.every(t => ["natural", "integer", "decimal", "fraction"].includes(t));
+            childMessage = `⚠️ ¡Ups! SORT solo funciona con números (natural, integer, decimal, fraction).\nTu conjunto contiene "${inputTypes.join(", ")}".`;
+            suggestion = `Conecta bloques de números al bloque SORT. Para ordenar palabras, usa ALPHABETICAL_SORT.`;
+            example = `[números 1, 5, 3] → SORT → [1, 3, 5] ✅`;
+          } else if (stmt.operation === "ALPHABETICAL_SORT") {
+            const isText = inputTypes.every(t => t === "text");
+            childMessage = `⚠️ ¡Ups! ALPHABETICAL_SORT solo funciona con texto (text).\nTu conjunto contiene "${inputTypes.join(", ")}".`;
+            suggestion = `Conecta bloques de texto al bloque ALPHABETICAL_SORT. Para ordenar números, usa SORT.`;
+            example = `[texto "z", "a", "m"] → ALPHABETICAL_SORT → ["a", "m", "z"] ✅`;
+          } else if (numericOps.includes(stmt.operation) && hasNumericInput && hasTextInput) {
             childMessage = `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita números, no palabras.`;
             suggestion = `Conecta bloques de números (natural, integer, decimal, fraction) al bloque "${stmt.operation}".`;
             example = `[número 5] + [número 3] ✅`;
-          }
-
-          if (stmt.operation.startsWith("FILTER_BY_") || stmt.operation.startsWith("COMPARE_BY_")) {
+          } else if (stmt.operation.startsWith("FILTER_BY_") || stmt.operation.startsWith("COMPARE_BY_")) {
             const property = stmt.operation.split("_BY_")[1].toLowerCase();
             childMessage = `⚠️ ¡Ups! El bloque "${stmt.operation}" necesita elementos con propiedad '${property}'.`;
             suggestion = `Usa un tipo que tenga propiedad '${property}'.`;
             example = `set<tipo con ${property}> → filtrados ✅`;
           }
-
+ 
           errors.push({
             code: "TYPE_ERROR",
             message: stmt.operation.startsWith("FILTER_BY_") || stmt.operation.startsWith("COMPARE_BY_") 
@@ -205,7 +213,7 @@ export class DagValidator {
             suggestion,
             example
           });
-
+ 
           errors.push({
             code: "TYPE_ERROR",
             message: `No matching signature for operation ${stmt.operation} with input types [${inputTypes.join(", ")}]`,
@@ -630,7 +638,7 @@ export class DagValidator {
     if (operation === "ADD") {
       const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal";
       const hasText = actualType === "text";
-
+ 
       if (!isNumeric && hasText) {
         error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita números, no palabras. "${actualType}" no es un número.`;
         error.suggestion = `Conecta bloques de números (natural, integer, decimal) al bloque "${operation}".`;
@@ -643,6 +651,30 @@ export class DagValidator {
         error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" recibió ${actualType} pero esperaba ${expectedTypeName}. Verifica tus conexiones.`;
         error.suggestion = `Revisa que "${inputId}" está conectado a un bloque de tipo ${expectedTypeName}.`;
         error.example = this.generateExample(operation, 2);
+      }
+    } else if (operation === "SORT") {
+      const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal" || actualType === "fraction";
+      
+      if (!isNumeric) {
+        error.childMessage = `⚠️ ¡Ups! SORT solo funciona con números (natural, integer, decimal, fraction).\nTu conjunto contiene "${actualType}".`;
+        error.suggestion = `Conecta bloques de números al bloque SORT. Para ordenar palabras, usa ALPHABETICAL_SORT.`;
+        error.example = `[números 1, 5, 3] → SORT → [1, 3, 5] ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque SORT recibió ${actualType} pero esperaba un número.`;
+        error.suggestion = `Revisa que "${inputId}" contiene solo números.`;
+        error.example = `[números] → SORT ✅`;
+      }
+    } else if (operation === "ALPHABETICAL_SORT") {
+      const isText = actualType === "text";
+      
+      if (!isText) {
+        error.childMessage = `⚠️ ¡Ups! ALPHABETICAL_SORT solo funciona con texto (text).\nTu conjunto contiene "${actualType}".`;
+        error.suggestion = `Conecta bloques de texto al bloque ALPHABETICAL_SORT. Para ordenar números, usa SORT.`;
+        error.example = `[texto "z", "a", "m"] → ALPHABETICAL_SORT → ["a", "m", "z"] ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque ALPHABETICAL_SORT recibió ${actualType} pero esperaba texto.`;
+        error.suggestion = `Revisa que "${inputId}" contiene solo texto.`;
+        error.example = `[texto] → ALPHABETICAL_SORT ✅`;
       }
     } else if (operation.startsWith("FILTER_BY_") || operation.startsWith("COMPARE_BY_")) {
       const property = operation.split("_BY_")[1].toLowerCase();
