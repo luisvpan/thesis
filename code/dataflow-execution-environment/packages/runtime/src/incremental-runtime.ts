@@ -145,17 +145,20 @@ export class IncrementalRuntime {
   evaluatePartial(timestep: number = 0): PartialEvaluation {
     const nodeStates: Map<string, NodeState> = new Map();
     const changedNodes: string[] = [];
-
+    
     const demandSources = this.findDemandSources();
     if (demandSources.length === 0) {
       return { nodeStates, changedNodes };
     }
-
+    
+    const evaluatedNodes: string[] = [];
+    
     for (const source of demandSources) {
       try {
         const result = this.evaluateNode(source.id, timestep);
         nodeStates.set(source.id, result.state);
-
+        evaluatedNodes.push(source.id);
+        
         if (result.state.status === "completed" && result.changedNodes) {
           changedNodes.push(...result.changedNodes);
         }
@@ -163,11 +166,9 @@ export class IncrementalRuntime {
         nodeStates.set(source.id, { status: "error", error: (e as Error).message });
       }
     }
-
-    if (changedNodes.length > 0) {
-      this.notifySubscribers(changedNodes);
-    }
-
+    
+    this.notifySubscribers(evaluatedNodes);
+    
     return { nodeStates, changedNodes };
   }
 
