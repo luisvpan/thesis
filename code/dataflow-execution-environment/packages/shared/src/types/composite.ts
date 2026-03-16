@@ -4,18 +4,35 @@ import type { Curriculum } from "./curriculum.js";
 export type DataType =
   | Primitive["kind"]
   | Curriculum["kind"]
-  | { kind: "set"; elementType: string | DataType }
-  | { kind: "stream"; elementType: string | DataType }
-  | "fraction";
+  | "set"
+  | "stream";
 
-export type SetType<T = DataType> = {
+export type TypeExpression = DataType | SetTypeExpression | StreamTypeExpression;
+
+export type SetTypeExpression = {
   kind: "set";
-  elementType: T;
-  elements: unknown[];
+  elementType: DataType;
 };
 
-export type StreamType<T = DataType> = {
+export type StreamTypeExpression = {
   kind: "stream";
-  elementType: T;
-  generator: Generator<T>;
+  elementType: DataType;
 };
+
+export type SetType = {
+  kind: "set";
+  elementType: DataType;
+  elements: DataValue[];
+};
+
+export type StreamType = {
+  kind: "stream";
+  elementType: DataType;
+  generator: Generator<DataValue>;
+};
+
+export type DataValue =
+  | Primitive
+  | Curriculum
+  | SetType
+  | StreamType;

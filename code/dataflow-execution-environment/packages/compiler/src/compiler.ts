@@ -183,8 +183,9 @@ export class Compiler {
                 let nodeValue: unknown;
 
                 if (type === "number") {
-                  nodeDataType = Number.isInteger(value) && value >= 0 ? "natural" : "integer";
-                  nodeValue = value;
+                  const numValue = value as number;
+                  nodeDataType = Number.isInteger(numValue) && numValue >= 0 ? "natural" : "integer";
+                  nodeValue = numValue;
                 } else if (type === "string") {
                   nodeDataType = "text";
                   nodeValue = { kind: "text", value };

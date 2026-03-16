@@ -1,4 +1,4 @@
-import type { DataType } from "../types/composite.js";
+import type { DataType, TypeExpression } from "../types/composite.js";
 
 export type Operation =
   | "ADD"
@@ -37,15 +37,15 @@ export type TypeConstraint = { kind: "hasProperty"; property: string };
 
 export type OperationSignature = {
   arity: number;
-  inputTypes: (DataType | TypeConstraint)[];
-  outputType: DataType | ((inputs: DataType[]) => DataType);
+  inputTypes: (TypeExpression | TypeConstraint)[];
+  outputType: TypeExpression | ((inputs: TypeExpression[]) => TypeExpression);
   category: string;
 };
 
 export type OperationContract = {
   arity: number;
-  inputTypes: (DataType | TypeConstraint)[];
-  outputType: DataType;
+  inputTypes: (TypeExpression | TypeConstraint)[];
+  outputType: TypeExpression;
   category: string;
 };
 
@@ -153,143 +153,143 @@ export const OPERATION_REGISTRY: Record<string, OperationSignatures> = {
 
   FILTER: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, "natural"], outputType: { kind: "set", elementType: "natural" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" }, "natural"], outputType: { kind: "set", elementType: "natural" }, category: "filtering" }
     ],
     category: "filtering"
   },
 
   FILTER_BY_SIZE: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" }, "text"], outputType: { kind: "set", elementType: "shape" }, category: "filtering" }
     ],
     category: "filtering"
   },
 
   FILTER_BY_COLOR: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, "text"], outputType: { kind: "set", elementType: "car" } as DataType, category: "filtering" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, "text"], outputType: { kind: "set", elementType: "food" } as DataType, category: "filtering" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, "text"], outputType: { kind: "set", elementType: "animal" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" }, "text"], outputType: { kind: "set", elementType: "shape" }, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" }, "text"], outputType: { kind: "set", elementType: "car" }, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" }, "text"], outputType: { kind: "set", elementType: "food" }, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" }, "text"], outputType: { kind: "set", elementType: "animal" }, category: "filtering" }
     ],
     category: "filtering"
   },
 
   FILTER_BY_TYPE: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, "text"], outputType: { kind: "set", elementType: "shape" } as DataType, category: "filtering" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, "text"], outputType: { kind: "set", elementType: "animal" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" }, "text"], outputType: { kind: "set", elementType: "shape" }, category: "filtering" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" }, "text"], outputType: { kind: "set", elementType: "animal" }, category: "filtering" }
     ],
     category: "filtering"
   },
 
   FILTER_BY_TASTE: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, "text"], outputType: { kind: "set", elementType: "food" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" }, "text"], outputType: { kind: "set", elementType: "food" }, category: "filtering" }
     ],
     category: "filtering"
   },
 
   FILTER_BY_AGE_GROUP: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"], outputType: { kind: "set", elementType: "person" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" }, "text"], outputType: { kind: "set", elementType: "person" }, category: "filtering" }
     ],
     category: "filtering"
   },
 
   FILTER_BY_GENDER: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, "text"], outputType: { kind: "set", elementType: "person" } as DataType, category: "filtering" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" }, "text"], outputType: { kind: "set", elementType: "person" }, category: "filtering" }
     ],
     category: "filtering"
   },
 
   UNION: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" }, { kind: "set", elementType: "natural" }], outputType: { kind: "set", elementType: "natural" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" }, { kind: "set", elementType: "shape" }], outputType: { kind: "set", elementType: "shape" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" }, { kind: "set", elementType: "car" }], outputType: { kind: "set", elementType: "car" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" }, { kind: "set", elementType: "food" }], outputType: { kind: "set", elementType: "food" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" }, { kind: "set", elementType: "animal" }], outputType: { kind: "set", elementType: "animal" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" }, { kind: "set", elementType: "person" }], outputType: { kind: "set", elementType: "person" }, category: "sets" }
     ],
     category: "sets"
   },
 
   INTERSECTION: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" }, { kind: "set", elementType: "natural" }], outputType: { kind: "set", elementType: "natural" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" }, { kind: "set", elementType: "shape" }], outputType: { kind: "set", elementType: "shape" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" }, { kind: "set", elementType: "car" }], outputType: { kind: "set", elementType: "car" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" }, { kind: "set", elementType: "food" }], outputType: { kind: "set", elementType: "food" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" }, { kind: "set", elementType: "animal" }], outputType: { kind: "set", elementType: "animal" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" }, { kind: "set", elementType: "person" }], outputType: { kind: "set", elementType: "person" }, category: "sets" }
     ],
     category: "sets"
   },
 
   DIFFERENCE: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" }, { kind: "set", elementType: "natural" }], outputType: { kind: "set", elementType: "natural" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" }, { kind: "set", elementType: "shape" }], outputType: { kind: "set", elementType: "shape" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" }, { kind: "set", elementType: "car" }], outputType: { kind: "set", elementType: "car" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" }, { kind: "set", elementType: "food" }], outputType: { kind: "set", elementType: "food" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" }, { kind: "set", elementType: "animal" }], outputType: { kind: "set", elementType: "animal" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" }, { kind: "set", elementType: "person" }], outputType: { kind: "set", elementType: "person" }, category: "sets" }
     ],
     category: "sets"
   },
 
   COMPLEMENT: {
     contracts: [
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" } as DataType, { kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" } as DataType, { kind: "set", elementType: "shape" } as DataType], outputType: { kind: "set", elementType: "shape" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" } as DataType, { kind: "set", elementType: "car" } as DataType], outputType: { kind: "set", elementType: "car" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" } as DataType, { kind: "set", elementType: "food" } as DataType], outputType: { kind: "set", elementType: "food" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" } as DataType, { kind: "set", elementType: "animal" } as DataType], outputType: { kind: "set", elementType: "animal" } as DataType, category: "sets" },
-      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" } as DataType, { kind: "set", elementType: "person" } as DataType], outputType: { kind: "set", elementType: "person" } as DataType, category: "sets" }
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" }, { kind: "set", elementType: "natural" }], outputType: { kind: "set", elementType: "natural" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "shape" }, { kind: "set", elementType: "shape" }], outputType: { kind: "set", elementType: "shape" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "car" }, { kind: "set", elementType: "car" }], outputType: { kind: "set", elementType: "car" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "food" }, { kind: "set", elementType: "food" }], outputType: { kind: "set", elementType: "food" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "animal" }, { kind: "set", elementType: "animal" }], outputType: { kind: "set", elementType: "animal" }, category: "sets" },
+      { arity: 2, inputTypes: [{ kind: "set", elementType: "person" }, { kind: "set", elementType: "person" }], outputType: { kind: "set", elementType: "person" }, category: "sets" }
     ],
     category: "sets"
   },
 
   NEXT: {
     contracts: [
-      { arity: 1, inputTypes: [{ kind: "stream", elementType: "natural" } as DataType], outputType: "natural", category: "temporal" }
+      { arity: 1, inputTypes: [{ kind: "stream", elementType: "natural" }], outputType: "natural", category: "temporal" }
     ],
     category: "temporal"
   },
 
   FIRST: {
     contracts: [
-      { arity: 1, inputTypes: [{ kind: "stream", elementType: "natural" } as DataType], outputType: "natural", category: "temporal" }
+      { arity: 1, inputTypes: [{ kind: "stream", elementType: "natural" }], outputType: "natural", category: "temporal" }
     ],
     category: "temporal"
   },
 
   FBY: {
     contracts: [
-      { arity: 2, inputTypes: ["natural", { kind: "stream", elementType: "natural" } as DataType], outputType: { kind: "stream", elementType: "natural" } as DataType, category: "temporal" }
+      { arity: 2, inputTypes: ["natural", { kind: "stream", elementType: "natural" }], outputType: { kind: "stream", elementType: "natural" }, category: "temporal" }
     ],
     category: "temporal"
   },
 
   ACCUMULATE: {
     contracts: [
-      { arity: 3, inputTypes: [{ kind: "stream", elementType: "natural" } as DataType, "natural", "natural"], outputType: { kind: "stream", elementType: "natural" } as DataType, category: "temporal" }
+      { arity: 3, inputTypes: [{ kind: "stream", elementType: "natural" }, "natural", "natural"], outputType: { kind: "stream", elementType: "natural" }, category: "temporal" }
     ],
     category: "temporal"
   },
 
   SORT: {
     contracts: [
-      { arity: 1, inputTypes: [{ kind: "set", elementType: "natural" } as DataType], outputType: { kind: "set", elementType: "natural" } as DataType, category: "ordering" }
+      { arity: 1, inputTypes: [{ kind: "set", elementType: "natural" }], outputType: { kind: "set", elementType: "natural" }, category: "ordering" }
     ],
     category: "ordering"
   },
 
   ALPHABETICAL_SORT: {
     contracts: [
-      { arity: 1, inputTypes: [{ kind: "set", elementType: "text" } as DataType], outputType: { kind: "set", elementType: "text" } as DataType, category: "ordering" }
+      { arity: 1, inputTypes: [{ kind: "set", elementType: "text" }], outputType: { kind: "set", elementType: "text" }, category: "ordering" }
     ],
     category: "ordering"
   },
@@ -320,7 +320,7 @@ export function getOperationSignatures(operation: string): OperationSignatures |
   return OPERATION_REGISTRY[operation as Operation];
 }
 
-export function resolveOperationSignature(operation: string, inputTypes: DataType[]): OperationContract | undefined {
+export function resolveOperationSignature(operation: string, inputTypes: TypeExpression[]): OperationContract | undefined {
   const op = OPERATION_REGISTRY[operation as Operation];
   if (!op) return undefined;
 

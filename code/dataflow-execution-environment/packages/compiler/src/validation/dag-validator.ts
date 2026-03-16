@@ -1,4 +1,4 @@
-import type { DataflowNode, DataflowEdge, DataType } from "@dataflow/shared/types";
+import type { DataflowNode, DataflowEdge, DataType, DataValue, TypeExpression } from "@dataflow/shared/types";
 import type { ValidationError, ValidationResult } from "@dataflow/shared/types";
 import type { Statement } from "../ast/ast-types.js";
 import { OPERATION_REGISTRY, TypeConstraint, resolveOperationSignature } from "@dataflow/shared/operations";
@@ -84,14 +84,32 @@ export class DagValidator {
     }
 
     const hasCycle = this.detectCycles(statements);
-    if (hasCycle) {
-      errors.push({
-        code: "CYCLE_DETECTED",
-        message: "Graph contains a cycle",
-        childMessage: "⚠️ ¡Ups! Hay un ciclo en el programa. Los bloques se conectan en círculo y no se puede calcular.",
-        suggestion: "Busca dónde un bloque apunta a sí mismo y desconecta una línea.",
-        example: "[A] → [B] → [C] ❌\n[A] → [B] ✅ (rompe el ciclo)"
-      });
+      if (hasCycle) {
+        errors.push({
+          code: "CYCLE_DETECTED",
+          message: "Graph contains a cycle",
+          childMessage: "⚠️ ¡Ups! Hay un ciclo en el programa. Los bloques se conectan en círculo y no se puede calcular.",
+          suggestion: "Busca dónde un bloque apunta a sí mismo y desconecta una línea.",
+          example: "[A] → [B] → [C] ❌\n[A] → [B] ✅ (rompe el ciclo)"
+        });
+      }
+
+    for (const stmt of statements) {
+      if (stmt.type === "TransformStatement" || stmt.type === "OutputStatement") {
+        const refs = stmt.type === "TransformStatement" ? stmt.inputs : [stmt.input];
+        for (const ref of refs) {
+          if (!defined.has(ref)) {
+            errors.push({
+              code: "UNDEFINED_IDENTIFIER",
+              message: `Undefined identifier: ${ref}`,
+              nodeId: stmt.id,
+              childMessage: `⚠️ ¡Ups! No encuentro el bloque "${ref}".`,
+              suggestion: "Asegúrate de que el bloque existe antes de conectarlo.",
+              example: "Crea el bloque primero, luego conéctalo."
+            });
+          }
+        }
+      }
     }
 
     for (const stmt of statements) {
@@ -107,22 +125,6 @@ export class DagValidator {
             example: `Usa un bloque conocido como "+", "-", "×", "÷"`
           });
           continue;
-        }
-
-        if (stmt.type === "TransformStatement" || stmt.type === "OutputStatement") {
-          const refs = stmt.type === "TransformStatement" ? stmt.inputs : [stmt.input];
-          for (const ref of refs) {
-            if (!defined.has(ref)) {
-              errors.push({
-                code: "UNDEFINED_IDENTIFIER",
-                message: `Undefined identifier: ${ref}`,
-                nodeId: stmt.id,
-                childMessage: `⚠️ ¡Ups! No encuentro el bloque "${ref}".`,
-                suggestion: "Asegúrate de que el bloque existe antes de conectarlo.",
-                example: "Crea el bloque primero, luego conéctalo."
-              });
-            }
-          }
         }
 
         const inputTypes = stmt.inputs.map(input => this.getInputType(input, typeTable));
@@ -141,7 +143,7 @@ export class DagValidator {
           continue;
         }
 
-        const inputDataTypes = inputTypes.map(t => this.stringToDataType(t)).filter((t): t is DataType => t !== null) as DataType[];
+        const inputDataTypes = inputTypes.map(t => this.stringToTypeExpression(t)).filter((t): t is TypeExpression => t !== null) as TypeExpression[];
 
         const contract = resolveOperationSignature(stmt.operation, inputDataTypes);
 
@@ -212,22 +214,6 @@ export class DagValidator {
               stmt.id
             );
             errors.push(errorDetails);
-          }
-        }
-      }
-
-      if (stmt.type === "TransformStatement" || stmt.type === "OutputStatement") {
-        const refs = stmt.type === "TransformStatement" ? stmt.inputs : [stmt.input];
-        for (const ref of refs) {
-          if (!defined.has(ref)) {
-            errors.push({
-              code: "UNDEFINED_IDENTIFIER",
-              message: `Undefined identifier: ${ref}`,
-              nodeId: stmt.id,
-              childMessage: `⚠️ ¡Ups! No encuentro el bloque "${ref}".`,
-              suggestion: "Asegúrate de que el bloque existe antes de conectarlo.",
-              example: "Crea el bloque primero, luego conéctalo."
-            });
           }
         }
       }
@@ -305,7 +291,25 @@ export class DagValidator {
     return `Conecta ${arity} bloques al bloque "${operation}" ✅`;
   }
 
-  private stringToDataType(typeStr: string): DataType | null {
+  private stringToTypeExpression(typeStr: string): TypeExpression | null {
+    if (!typeStr) return null;
+
+    const setMatch = typeStr.match(/^set<(.+)>$/);
+    if (setMatch) {
+      const elementType = setMatch[1] as DataType;
+      return { kind: "set", elementType };
+    }
+
+    const streamMatch = typeStr.match(/^stream<(.+)>$/);
+    if (streamMatch) {
+      const elementType = streamMatch[1] as DataType;
+      return { kind: "stream", elementType };
+    }
+
+    return typeStr as DataType;
+  }
+
+  private stringToDataType(typeStr: string): DataValue | null {
     if (!typeStr) return null;
 
     if (typeStr === "natural") {
@@ -344,14 +348,14 @@ export class DagValidator {
 
     const setMatch = typeStr.match(/^set<(.+)>$/);
     if (setMatch) {
-      const elementType = setMatch[1];
+      const elementType = setMatch[1] as DataType;
       return { kind: "set", elementType, elements: [] };
     }
 
     const streamMatch = typeStr.match(/^stream<(.+)>$/);
     if (streamMatch) {
-      const elementType = streamMatch[1];
-      return { kind: "stream", elementType, generator: (function*() {})() as Generator<unknown>, firstValue: undefined };
+      const elementType = streamMatch[1] as DataType;
+      return { kind: "stream", elementType, generator: (function*() {})() as Generator<DataValue> };
     }
 
     return null;
@@ -367,20 +371,20 @@ export class DagValidator {
 
   private isTypeCompatible(
     actualType: DataType | string,
-    expectedType: DataType | TypeConstraint,
+    expectedType: TypeExpression | TypeConstraint,
     operation: string,
     inputIndex: number
   ): boolean {
-    const actualKind = typeof actualType === "string" ? actualType : (actualType as DataType).kind;
-    const actualTypeStr = typeof actualType === "string" ? actualType : (actualType as DataType).kind;
-    const actualElementStr = typeof actualType === "string" ? this.extractElementType(actualType) : this.extractElementType(actualTypeStr);
+    const actualKind = typeof actualType === "string" ? actualType : actualType;
+    const actualTypeStr = typeof actualType === "string" ? actualType : actualType;
+    const actualElementStr = this.extractElementType(actualTypeStr);
 
     if (typeof expectedType === "string") {
       return actualType === expectedType;
     }
 
     if (expectedType.kind === "set" || expectedType.kind === "stream") {
-      const expectedElementStr = typeof expectedType.elementType === "string" ? expectedType.elementType : (expectedType.elementType as DataType).kind;
+      const expectedElementStr = typeof expectedType.elementType === "string" ? expectedType.elementType : expectedType.elementType;
 
       if (actualElementStr !== expectedElementStr) {
         return false;
@@ -404,7 +408,7 @@ export class DagValidator {
     return match[2];
   }
 
-  private validatePropertyConstraints(elementType: DataType | string, operation: string): boolean {
+  private validatePropertyConstraints(elementType: string, operation: string): boolean {
     const propertyConstraints: Record<string, string[]> = {
       "FILTER_BY_COLOR": ["color"],
       "FILTER_BY_SIZE": ["size"],
@@ -426,7 +430,7 @@ export class DagValidator {
     }
 
     for (const prop of requiredProperties) {
-      if (!this.typeHasProperty(typeof elementType === "string" ? elementType : elementType.kind, prop)) {
+      if (!this.typeHasProperty(elementType, prop)) {
         return false;
       }
     }
@@ -449,7 +453,7 @@ export class DagValidator {
 
   private generateTypeError(
     operation: string,
-    expectedType: DataType | TypeConstraint,
+    expectedType: TypeExpression | TypeConstraint,
     actualType: string,
     inputId: string,
     inputIndex: number,
