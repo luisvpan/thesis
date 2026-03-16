@@ -40,6 +40,7 @@ packages/
 ### Test Status
 - **Overall:** 214/214 passing (100% pass rate)
 - **Last improvement:** P1.9 task in progress (2026-03-16) - 26/40 IncrementalRuntime tests created
+- **Execution time:** ~5.06 seconds for full test suite
 
 ### Test History
 - 2026-03-16: 214/214 passing (100%) → after P1.9 task progress (8 graph updates tests + IncrementalRuntime fixes)
@@ -58,10 +59,10 @@ packages/
 
 | Component | Status | Completion | Test Pass Rate | Critical Issues |
 |-----------|--------|------------|----------------|-----------------|
-| **Shared Package** | Good | 95% | N/A | ~38 operations missing from spec |
-| **Compiler Package** | ⚠️ PARTIAL | 60% | 83.3% (10/12) | 🔥 CRITICAL: Set/Object literal ambiguity with fragile GATE logic; Missing validation rules (output node, set homogeneity, literal validation) |
-| **Runtime Package** | Good | 95% | 100% (104/104) | IncrementalRuntime has 26/40 tests |
-| **HTTP API Package** | Functional | 64% | 100% (12/12) | Works but doesn't follow Elysia best practices |
+| **Shared Package** | Good | 95% | N/A | 7+ missing operation contracts, Color type has extra values (8 vs 6) |
+| **Compiler Package** | ⚠️ PARTIAL | 60% | 10/12 (83.3%) | 🔥 CRITICAL: Set/Object literal ambiguity with fragile GATE logic; Missing validation rules (output node, set homogeneity, literal validation) |
+| **Runtime Package** | Good | 95% | 104/104 (100%) | IncrementalRuntime has 26/40 tests; missing test coverage for temporal, set, filtering, boolean, comparison operations |
+| **HTTP API Package** | Functional | 64% | 12/12 (100%) | Works but doesn't follow Elysia best practices |
 | **WebSocket Server Package** | ❌ NOT STARTED | 0% | N/A | 0% implemented - ready to start |
 
 ### Layer Progress
@@ -75,27 +76,6 @@ packages/
 | **Layer 5** | + Temporal operators (FBY, NEXT, FIRST, ACCUMULATE) | ✅ COMPLETE | 100% | None |
 | **Layer 6** | + Streams (continuous data) | ✅ COMPLETE | 100% | ✅ Generic streams ALREADY implemented |
 | **Layer 7** | + Integration interfaces | ⚠️ PARTIAL | 20% | WebSocket 0% implemented; IncrementalRuntime 26/40 tests; 40 shared tests extracted |
-
-### Recent Progress
-
-**Completed Today (2026-03-16):**
-- ✅ P1.8: Extract Shared Tests (3h) - Created packages/tests/src/shared/ directory with arithmetic.test.ts, fractions.test.ts, comparison.test.ts
-- ✅ P0.10: Add Temporal Operators to IncrementalRuntime (2h) - FBY, NEXT, FIRST, ACCUMULATE now work in IncrementalRuntime
-- ✅ P0.11: Fix ACCUMULATE Logic Bug (1h) - Fixed in both runtimes; now evaluates currentNodeId at time-1 for previous accumulated value
-- ⏳ P1.9: Create IncrementalRuntime-Specific Tests (IN PROGRESS) - 26/40 tests created (subscriptions, partial-evaluation, missing-inputs, graph-updates)
-
-**Impact:**
-- 40 new shared tests all pass (arithmetic, fractions, comparison)
-- 26 new IncrementalRuntime-specific tests all pass (subscriptions, partial-evaluation, missing-inputs, graph-updates)
-- Total tests: 214 (up from 206)
-- Fixed IncrementalRuntime contract validation to support mixed types
-- Fixed IncrementalRuntime graph updates: updateGraph now properly clears cache and invalidates transitive dependents
-- Fixed IncrementalRuntime buildDependencyGraph: now builds correct "what depends on what" relationships
-- Layer 5 (Temporal Operators) is now 100% complete
-- Temporal operators work correctly in both Batch Runtime and IncrementalRuntime
-- All 214 tests passing (100% pass rate)
-- TypeScript typecheck passes with 0 errors
-- No regressions introduced
 
 ---
 
@@ -343,604 +323,26 @@ private invalidateDependentCache(nodeId: string): void {
 
 ---
 
-### 2026-03-16: P0.7 Task Completed - Create Test Utilities for Shared Runtime Tests ✅
-
-1. **Created runtime factory** - Implemented `createRuntimeContext()` factory for both batch and incremental runtimes
-2. **Created describeWithBothRuntimes helper** - Helper to run same tests on both runtimes
-3. **Created test fixtures** - Added common test programs (simpleArithmeticProgram, simpleFractionProgram, complexArithmeticProgram)
-4. **Created test helpers** - Added assertion helpers for all type kinds (expectNatural, expectFraction, etc.)
-5. **Created test utilities index** - Central export for all test utilities
-6. **Created test utilities tests** - 13 tests validating test utilities functionality
-7. **Fixed IncrementalRuntime bugs** - Found and fixed 2 bugs:
-   - Bug 1: Line 313 - `v.value` should be `v.state.value` when extracting evaluated inputs
-   - Bug 2: Line 258 - `sourceResult.value` should be `sourceResult.state.value` for Output nodes
-8. **Test verification** - All 148 tests passing (up from 135)
-
-**Impact:** Unblocks shared tests and IncrementalRuntime-specific tests
-**Spec Reference:** `specs/TESTS_SPEC.md` lines 264-310
-
-### 2026-03-15: P0.6 Task Completed - Implement executeOperation in IncrementalRuntime ✅
-
-1. **Implemented executeOperation() method** - Added full dispatch to all operation functions
-2. **Added operation imports** - Imported all operation functions from numeric, boolean, comparison, filtering, sets
-3. **Contract validation** - Validates input types against OPERATION_REGISTRY before dispatch
-4. **Input wrapping** - Wraps inputs with dummy IDs for compatibility with operation functions
-5. **Test verification** - All 135 tests still passing (100%)
-6. **Build verification** - Runtime package builds successfully
-
-**Impact:** IncrementalRuntime can now evaluate operations
-**Spec Reference:** `specs/TESTS_SPEC.md` lines 233-260
-
-### ✅ Previously Completed (ALREADY DONE - NOT IN CURRENT PLAN AS COMPLETED)
-
-**Integer Operations (P1.1) - ALREADY DONE:**
-- ✅ ADD(Integer, Integer) → Integer
-- ✅ SUBTRACT(Integer, Integer) → Integer
-- ✅ MULTIPLY(Integer, Integer) → Integer
-- ✅ DIVIDE(Integer, Integer) → Decimal
-- ✅ COMPARE(Integer, Integer) → Boolean
-- **Status:** All Integer operations fully implemented in registry and runtime
-- **Files:** `packages/shared/src/operations/registry.ts`, `packages/runtime/src/operations/numeric.ts`
-
-**Decimal Operations (P1.2) - ALREADY DONE:**
-- ✅ ADD(Decimal, Decimal) → Decimal
-- ✅ SUBTRACT(Decimal, Decimal) → Decimal
-- ✅ MULTIPLY(Decimal, Decimal) → Decimal
-- ✅ DIVIDE(Decimal, Decimal) → Decimal
-- ✅ COMPARE(Decimal, Decimal) → Boolean
-- **Status:** All Decimal operations fully implemented in registry and runtime
-- **Files:** `packages/shared/src/operations/registry.ts`, `packages/runtime/src/operations/numeric.ts`
-
-**Curriculum Type Filtering (P1.3) - ALREADY DONE (Generic):**
-- ✅ FILTER_BY_COLOR - generic, works for ANY type with color property (Car, Food, Animal, Shape)
-- ✅ FILTER_BY_TASTE - generic, works for Food type
-- ✅ FILTER_BY_TYPE - generic, works for Animal type
-- **Status:** Fully implemented as generic operations (NOT type-specific)
-- **Files:** `packages/runtime/src/operations/filtering.ts`
-
-**Set/Stream Operations Generic (P1.4) - ALREADY DONE:**
-- ✅ Set<T> where T can be any DataType
-- ✅ Stream<T> where T can be any DataType
-- ✅ All set operations work with any element type (UNION, INTERSECTION, DIFFERENCE, COMPLEMENT, FILTER, SORT, ALPHABETICAL_SORT, CONTAINS, MAP, REDUCE)
-- ✅ All stream operations support any element type
-- **Status:** Fully generic implementation in runtime
-- **Files:** `packages/runtime/src/operations/sets.ts`, `packages/runtime/src/operations/temporal.ts`
-
----
-
 ## Active Tasks by Priority
 
-### 🔥 P0 URGENT (MVP Blockers - Blocking Compilation)
+### 🔥 P0 CRITICAL (MVP Blockers - Blocking Compilation or Layer 7)
 
-#### Task P0.8: Fix DataType Union Design Flaw Causing 19 Compilation Errors (3 hours)
+#### Task P0.1: Complete IncrementalRuntime-Specific Tests (4 hours)
 
-**Priority:** P0 URGENT
-**Status:** ✅ COMPLETED
-**Estimated Time:** 3 hours
-**Impact:** CRITICAL - TypeScript compilation now passes, unblocking all development
-**Files:**
-- `packages/shared/src/types/composite.ts` (fixed DataType union)
-- `packages/shared/src/types/index.ts` (updated exports)
-- Related files affected by compilation errors
-
-**Why Critical:**
-- 19 TypeScript compilation errors prevented the project from building
-- Current DataType union had fundamental design flaw
-- No development could proceed until this was fixed
-- Affects entire type system
-
-**Solution Implemented:**
-1. Separated type definitions into three distinct types:
-   - `TypeExpression`: For type expressions (e.g., "natural", "set<natural>")
-   - `DataType`: Union of runtime value types (e.g., NaturalValue, SetValue)
-   - `DataValue`: For AST literal values
-2. Made SetType and StreamType properly discriminated unions
-3. Fixed generic type parameters for SetType and StreamType
-4. Updated all dependent code to handle fixed types correctly
-
-**Changes Made:**
-```typescript
-// Fixed DataType union in composite.ts
-export type DataType =
-  | NaturalValue
-  | IntegerValue
-  | DecimalValue
-  | FractionValue
-  | BooleanValue
-  | StringValue
-  | ColorValue
-  | ShapeValue
-  | CarValue
-  | FoodValue
-  | AnimalValue
-  | PersonValue
-  | SetValue       // Properly discriminated with generic T
-  | StreamValue;   // Properly discriminated with generic T
-```
-
-**Dependencies:** None (blocked everything)
-
-**Acceptance Criteria:**
-- ✓ TypeScript compilation succeeds with 0 errors
-- ✓ All 19 compilation errors resolved
-- ✓ DataType union properly discriminated
-- ✓ SetType and StreamType properly integrated
-- ✓ Type inference works correctly across codebase
-- ✓ All existing tests still pass (148/148)
-
-**Required Tests:**
-- ✓ Test: TypeScript compilation succeeds
-- ✓ Test: SetType type inference works correctly
-- ✓ Test: StreamType type inference works correctly
-- ✓ Test: Operation type contracts resolve correctly
-- ✓ Test: All 148 existing tests still pass
-
-**Spec Reference:** TypeScript type system fundamentals
-
-**Ralph Wiggum Checklist:**
-- ✓ DataType union fixed
-- ✓ All 19 compilation errors resolved
-- ✓ TypeScript typecheck passes (0 errors)
-- ✓ All existing tests still pass
-- ✓ Git commit: "fix(types): resolve DataType union design flaw causing 19 compilation errors"
-
----
-
-#### Task P0.9: Fix SetType Generic Type (1 hour)
-
-**Priority:** P0 URGENT
-**Status:** ✅ COMPLETED (part of P0.8)
-**Estimated Time:** 1 hour
-**Impact:** Type safety for sets; part of P0.8 fix
-**Files:** `packages/shared/src/types/composite.ts`
-
-**Why Critical:**
-- SetType used unknown[] instead of T[]
-- Broke type safety for set operations
-- Should be generic Set<T> where T is element type
-
-**Changes Made:**
-```typescript
-// Fixed SetType with proper generic T[]
-export type SetValue<T extends DataType = DataType> = {
-  kind: "set";
-  elementType: TypeExpression;
-  elements: T[];  // FIXED - now uses generic T[]
-};
-
-// Also fixed StreamType
-export type StreamValue<T extends DataType = DataType> = {
-  kind: "stream";
-  elementType: TypeExpression;
-  values: T[];  // FIXED - now uses generic T[]
-};
-```
-
-**Dependencies:** P0.8 (Fix DataType Union) - COMPLETED
-
-**Acceptance Criteria:**
-- ✓ SetType uses generic T[] instead of unknown[]
-- ✓ Type safety maintained for set elements
-- ✓ TypeScript typecheck passes
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 315-320
-
-**Ralph Wiggum Checklist:**
-- ✓ SetType updated to use generic T[]
-- ✓ Type safety maintained
-- ✓ Typecheck passes
-- ✓ Git commit: "fix(types): resolve DataType union design flaw causing 19 compilation errors" (includes P0.9 fix)
-
----
-
-### 🔥 P0 URGENT (MVP Blockers - IncrementalRuntime Critical Bugs)
-
-#### Task P0.10: Add Missing Temporal Operators to IncrementalRuntime executeOperation() (2 hours)
-
-**Priority:** P0 URGENT
-**Status:** ✅ COMPLETED
-**Estimated Time:** 2 hours
-**Impact:** CRITICAL - IncrementalRuntime can now evaluate temporal operators
-**Files:**
-- `packages/runtime/src/incremental-runtime.ts` (executeOperation method)
-
-**Why Critical:**
-- IncrementalRuntime.executeOperation() was missing temporal operators
-- FBY, NEXT, FIRST, ACCUMULATE were not in executeOperation switch statement
-- Temporal programs would fail in incremental mode
-- WebSocket server (Layer 7) depends on IncrementalRuntime working
-
-**Solution Implemented:**
-1. Added imports for NEXT, FIRST, FBY, ACCUMULATE from temporal.js
-2. Modified executeOperation signature to accept time, inputNodeIds, and currentNodeId parameters
-3. Implemented executeNEXT, executeFIRST, executeFBY, executeACCUMULATE helper methods
-4. Added switch cases for all four temporal operators
-
-**Operations Added:**
-- FBY (followed-by) - ✅ Implemented
-- NEXT - ✅ Implemented
-- FIRST - ✅ Implemented
-- ACCUMULATE - ✅ Implemented
-
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation) - COMPLETED
-
-**Acceptance Criteria:**
-- ✓ All temporal operators present in executeOperation()
-- ✓ Temporal operations work correctly in IncrementalRuntime
-- ✓ All 148 tests still passing (100%)
-- ✓ Typecheck passes with 0 errors
-
-**Required Tests:**
-- ✓ Test: FBY operation works in IncrementalRuntime (existing temporal tests pass)
-- ✓ Test: NEXT operation works in IncrementalRuntime (existing temporal tests pass)
-- ✓ Test: FIRST operation works in IncrementalRuntime (existing temporal tests pass)
-- ✓ Test: ACCUMULATE operation works in IncrementalRuntime (existing temporal tests pass)
-- ✓ Test: Temporal operators produce same results in both runtimes (all tests pass)
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` temporal operators section
-
-**Ralph Wiggum Checklist:**
-- ✓ Temporal operators added to executeOperation()
-- ✓ All temporal operations work in IncrementalRuntime
-- ✓ Typecheck passes (0 errors)
-- ✓ All 148 tests pass
-- ✓ Git commit: "fix(incremental): add missing temporal operators to executeOperation()"
-
----
-
-#### Task P0.11: Fix ACCUMULATE Logic Bug in Both Runtimes (1 hour)
-
-**Priority:** P0 URGENT
-**Status:** ✅ COMPLETED
-**Estimated Time:** 1 hour
-**Impact:** ACCUMULATE now produces correct cumulative results
-**Files:**
-- `packages/runtime/src/operations/temporal.ts` (ACCUMULATE function)
-- `packages/runtime/src/runtime.ts` (evaluateOperation - passes currentNodeId)
-- `packages/runtime/src/incremental-runtime.ts` (executeACCUMULATE - uses currentNodeId)
-
-**Why Critical:**
-- ACCUMULATE was using streamValue twice instead of previous accumulator value
-- Bug existed in both Batch Runtime and IncrementalRuntime
-- Temporal operator produced incorrect cumulative results
-
-**Bug Fixed:**
-```typescript
-// BEFORE: WRONG - uses streamValue twice
-case "ACCUMULATE":
-  const streamValue = evaluate(inputs[0].id, time);
-  return {
-    kind: outputs[0].dataType,
-    value: operation(streamValue.value, streamValue.value) // WRONG
-  };
-
-// AFTER: CORRECT - evaluates currentNodeId at time-1 for previous value
-case "ACCUMULATE":
-  const streamValue = evaluate(inputs[0].id, time);
-  const previousValue = time > 0 ? evaluate(currentNodeId, time - 1) : initial;
-  return {
-    kind: outputs[0].dataType,
-    value: operation(previousValue.value, streamValue.value) // CORRECT
-  };
-```
-
-**Changes Made:**
-1. Fixed Batch Runtime: Modified evaluateOperation to pass currentNodeId to temporal operators
-2. Fixed temporal.ts: Updated all temporal operator signatures to accept currentNodeId parameter
-3. Fixed ACCUMULATE implementation: Now evaluates currentNodeId at time-1 to get previous accumulated value instead of evaluating stream node twice
-4. Fixed IncrementalRuntime: executeACCUMULATE uses currentNodeId to evaluate itself at time-1
-
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation) - COMPLETED
-
-**Acceptance Criteria:**
-- ✓ ACCUMULATE uses correct accumulator and stream values
-- ✓ ACCUMULATE produces correct cumulative results
-- ✓ ACCUMULATE works correctly in both runtimes
-- ✓ Typecheck passes with 0 errors
-
-**Required Tests:**
-- ✓ Test: ACCUMULATE sums correctly over time (0,1,3,6,10,... for 0,1,2,3,4,...)
-- ✓ Test: ACCUMULATE with multiplication works (1,2,4,8,16,...)
-- ✓ Test: ACCUMULATE initial value works correctly
-- ✓ Test: ACCUMULATE produces same results in both runtimes
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` temporal operators section
-
-**Ralph Wiggum Checklist:**
-- ✓ ACCUMULATE bug fixed in both runtimes
-- ✓ ACCUMULATE produces correct cumulative results
-- ✓ Typecheck passes (0 errors)
-- ✓ All 148 tests pass
-- ✓ Git commit: "fix(runtime): fix ACCUMULATE logic bug (uses streamValue twice)"
-
----
-
-### 🎯 P1 HIGH (MVP Features - Not Blocking Compilation)
-
-#### Task P1.5: Fix Set/Object Literal Ambiguity (3 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 3 hours
-**Impact:** Parser robustness for curriculum types
-**Files:**
-- `packages/compiler/src/parser/dataflow-parser.ts` (grammar GATE logic)
-- `packages/compiler/src/ast/ast-builder.ts` (literal handling)
-- `packages/compiler/src/compiler.ts` (literal node creation)
-
-**Why Important:**
-- Both Set and Object literals use {} syntax
-- Parser uses fragile GATE that may fail
-- Object literals cause parsing errors
-- Affects curriculum types (Shape, Car, Food, Animal)
-
-**Current Issue:**
-```typescript
-// Both parse to same starting tokens
-setLiteral: '{' value+ '}'
-objectLiteral: '{' identifier ':' literal+ '}'
-```
-
-**Proposed Solution:**
-- Use lookahead or proper GATE with context
-- Update grammar to clearly distinguish between the two
-- Improve error messages for ambiguous cases
-
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
-
-**Acceptance Criteria:**
-- ✓ Set literals parse correctly: `{ "red", "blue", "green" }`
-- ✓ Object literals parse correctly: `{ color: "red", size: "small" }`
-- ✓ Parser disambiguates correctly
-- ✓ No fragile GATE logic
-- ✓ Clear error messages for ambiguous cases
-- ✓ Compiler generates correct nodes for both types
-
-**Required Tests:**
-- [ ] Test: Set literal parses correctly
-- [ ] Test: Object literal parses correctly
-- [ ] Test: Set vs Object disambiguation works
-- [ ] Test: Malformed set literal produces clear error
-- [ ] Test: Malformed object literal produces clear error
-- [ ] Test: Literal nodes created correctly
-
-**Layer:** Cross-layer (Compiler + Runtime)
-
-**Spec Reference:** `specs/GRAMMAR_SPEC.md` (Literal grammar)
-
-**Ralph Wiggum Checklist:**
-- [ ] Set/Object ambiguity resolved
-- [ ] Set literals parse correctly
-- [ ] Object literals parse correctly
-- [ ] Parser tests pass
-- [ ] Integration tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "fix(parser): resolve set/object literal ambiguity"
-
----
-
-#### Task P1.6: Implement Missing Compiler Validation (3 hours)
-
-**Priority:** P1 HIGH
-**Status:** NOT STARTED
-**Estimated Time:** 3 hours
-**Impact:** Better quality error messages
-**Files:** `packages/compiler/src/validation/dag-validator.ts`
-
-**Why Important:**
-- Improves quality of error messages for young learners
-- Catches more errors at compile time (better UX)
-- Programs without output nodes should fail fast
-- Set homogeneity prevents runtime type errors
-
-**Missing Validation:**
-1. Set homogeneity validation (all elements in set must be same type)
-2. Output node requirement (programs must have at least one output node)
-3. Literal type validation (literals match declared type)
-4. Stream source validation (generator/sensor exists)
-
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
-
-**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 431-440):**
-- ✓ Set operations verify all elements are same type
-- ✓ Programs without output nodes produce error
-- ✓ Type safety rules enforced at compile time
-- ✓ Child-friendly Spanish error messages
-- ✓ Literal values match declared types
-- ✓ Stream sources are valid
-
-**Required Tests:**
-- [ ] Test: Set homogeneity validation - mixed types in set error
-- [ ] Test: Set homogeneity validation - same types in set succeed
-- [ ] Test: Output node requirement - program with no outputs fails
-- [ ] Test: Output node requirement - program with outputs succeeds
-- [ ] Test: Literal type validation - mismatch produces error
-- [ ] Test: Stream source validation - invalid generator produces error
-- [ ] Test: Validation errors include child-friendly Spanish messages
-
-**Layer:** Cross-layer (validation quality)
-
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` validation section
-
-**Ralph Wiggum Checklist:**
-- [ ] Missing validation rules implemented
-- [ ] Validation tests pass
-- [ ] Typecheck passes
-- [ ] Git commit: "feat(compiler): add missing compiler validation rules"
-
----
-
-### 🎯 P1 HIGH (Testing Critical Gaps)
-
-#### Task P1.8: Extract Shared Tests (3 hours)
-
-**Priority:** P1 HIGH
-**Status:** ✅ FULLY COMPLETED
-**Estimated Time:** 3 hours
-**Impact:** Reduces duplication, ensures both runtimes tested
-**Files:**
-- `packages/runtime/src/runtime.test.ts` (extract operation tests)
-- `packages/tests/src/shared/arithmetic.test.ts` (NEW)
-- `packages/tests/src/shared/fractions.test.ts` (NEW)
-- `packages/tests/src/shared/sets.test.ts` (NEW)
-- `packages/tests/src/shared/temporal.test.ts` (NEW)
-- `packages/tests/src/shared/curriculum.test.ts` (NEW)
-
-**Why Important:**
-- Reduces test duplication between runtimes
-- Ensures both runtimes produce identical results
-- Foundation for comprehensive test coverage
-- ~50 tests should run on both runtimes
-- Currently NO shared tests exist
-
-**Tests Extracted to Shared:**
-Created 3 new shared test files with 40 tests total:
-1. ✅ `packages/tests/src/shared/arithmetic.test.ts` - 14 tests (ADD, SUBTRACT, MULTIPLY, DIVIDE)
-2. ✅ `packages/tests/src/shared/fractions.test.ts` - 11 tests (Fraction ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE)
-3. ✅ `packages/tests/src/shared/comparison.test.ts` - 15 tests (COMPARE for Natural, Integer, Decimal, Fraction)
-
-**Implementation:**
-```typescript
-// packages/tests/src/shared/arithmetic.test.ts
-import { describe, it, expect } from 'bun:test';
-import { describeWithBothRuntimes, createRuntimeContext } from '../../../runtime/src/test-utils/runtime-factory';
-import type { DataflowProgram } from '@dataflow/shared/types';
-
-describeWithBothRuntimes('Arithmetic Operations - ADD', (context) => {
-  it('should execute ADD operation', () => {
-    const program: DataflowProgram = {
-      metadata: { programId: 'test' },
-      graph: {
-        nodes: [
-          { id: 'a', type: 'DataSource', dataType: 'natural', value: 3 },
-          { id: 'b', type: 'DataSource', dataType: 'natural', value: 2 },
-          { id: 'add', type: 'Transformation', dataType: 'natural', operation: 'ADD', inputs: ['a', 'b'] },
-          { id: 'result', type: 'Output', dataType: 'natural', input: 'add' }
-        ],
-        edges: [
-          { from: 'a', to: 'add' },
-          { from: 'b', to: 'add' },
-          { from: 'add', to: 'result' }
-        ]
-      }
-    };
-
-    context.loadProgram(program);
-    const result = context.getOutput('result');
-    expect(result).toEqual({ kind: 'natural', value: 5 });
-  });
-});
-
-// More tests...
-```
-
-**Dependencies:** P0.7 (Test Utilities - ✅ COMPLETED), P0.8 (Fix DataType Union - ✅ COMPLETED)
-
-**Acceptance Criteria (from specs/TESTS_SPEC.md):**
-- ✓ 40 shared tests created in shared/ directory (arithmetic, fractions, comparison)
-- ✓ All shared tests use describeWithBothRuntimes
-- ✓ All shared tests pass on both runtimes
-- ✓ IncrementalRuntime contract validation fixed to support mixed types
-- ✓ Total test count: 206 (up from 188, up from 148)
-- ✓ 100% pass rate maintained (206/206)
-
-**Required Tests:**
-- ✓ Test: All arithmetic operations work on both runtimes (14 tests)
-- ✓ Test: All fraction operations work on both runtimes (11 tests)
-- ✓ Test: All comparison operations work on both runtimes (15 tests)
-- [ ] Test: All set operations work on both runtimes
-- [ ] Test: All temporal operators work on both runtimes
-- [ ] Test: All curriculum types work on both runtimes
-- [ ] Test: Demand-driven semantics work on both runtimes
-
-**Spec Reference:** `specs/TESTS_SPEC.md` lines 312-410
-
-**Layer:** Cross-layer (testing)
-
-**Ralph Wiggum Checklist:**
-- ✓ 40 operation tests extracted to shared/ (arithmetic, fractions, comparison)
-- ✓ All shared tests use describeWithBothRuntimes
-- ✓ All shared tests pass on both runtimes (206/206 total)
-- ✓ IncrementalRuntime contract validation fixed
-- ✓ TypeScript typecheck passes (0 errors)
-- ✓ Git commit: "test(shared): extract shared runtime tests (arithmetic, fractions, comparison)"
-
----
-
-#### Task P1.9: Create IncrementalRuntime-Specific Tests (4 hours)
-
-**Priority:** P1 HIGH
-**Status:** ⏳ IN PROGRESS - 26/40 tests created
+**Priority:** P0 CRITICAL
+**Status:** ⏳ IN PROGRESS - 26/40 tests created, 14 remaining
 **Estimated Time:** 4 hours
-**Impact:** Critical for incremental functionality verification
-**Files:**
-- `packages/tests/src/incremental/partial-evaluation.test.ts` (NEW - 7 tests ✅ ALL PASSING)
-- `packages/tests/src/incremental/subscriptions.test.ts` (NEW - 5 tests ✅ ALL PASSING)
-- `packages/tests/src/incremental/graph-updates.test.ts` (NEW - 8 tests ✅ ALL PASSING)
-- `packages/tests/src/incremental/incremental-recompute.test.ts` (NEW - NOT STARTED)
-- `packages/tests/src/incremental/missing-inputs.test.ts` (NEW - 6 tests ✅ ALL PASSING)
-- `packages/tests/src/incremental/notifications.test.ts` (NEW - NOT STARTED)
-- `packages/tests/src/incremental/cache-invalidation.test.ts` (NEW - NOT STARTED)
+**Impact:** CRITICAL - Verifies incremental functionality; unblocks Layer 7 completion
 
-**Why Important:**
-- IncrementalRuntime currently has 26/40 tests
-- Critical for verifying unique incremental features
-- Essential for Layer 7 (WebSocket Server)
-- ~40 tests needed for comprehensive coverage
+**Why Critical:**
+- IncrementalRuntime has 26/40 tests (65% complete)
+- WebSocket Server depends on verified IncrementalRuntime
+- Missing tests: incremental-recompute (6), notifications (5), cache-invalidation (3)
+- Cannot declare Layer 7 complete without full incremental test coverage
 
-**Test Categories:**
+**Missing Tests by Category:**
 
-**A. Subscription System Tests (~5 tests):** ✅ COMPLETED (5/5)
-```typescript
-describe('IncrementalRuntime - Subscriptions', () => {
-  it('should register subscription to a node');
-  it('should unregister subscription from a node');
-  it('should notify subscribers on value changes');
-  it('should handle multiple subscribers to same node');
-  it('should clean up when no subscribers remain');
-});
-```
-
-**B. Partial Evaluation Tests (~7 tests):** ✅ COMPLETED (7/7)
-```typescript
-describe('IncrementalRuntime - Partial Evaluation', () => {
-  it('should return empty result with no demand sources');
-  it('should evaluate subscribed nodes');
-  it('should evaluate output nodes');
-  it('should evaluate both outputs and subscriptions');
-  it('should return completed state for successfully evaluated nodes');
-  it('should return pending state for nodes with missing inputs');
-  it('should return error state for evaluation errors');
-});
-```
-
-**C. Missing Input Handling Tests (~6 tests):** ✅ COMPLETED (6/6)
-```typescript
-describe('IncrementalRuntime - Missing Inputs', () => {
-  it('should detect missing input port');
-  it('should create MissingInput with correct port number');
-  it('should provide child-friendly error messages');
-  it('should cascade pending states through dependencies');
-  it('should differentiate between missing inputs and evaluation errors');
-  it('should report multiple missing inputs');
-});
-```
-
-**D. Graph Updates Tests (~8 tests):** ✅ COMPLETED (8/8)
-```typescript
-describe('IncrementalRuntime - Graph Updates', () => {
-  it('should add nodes to graph');
-  it('should remove nodes from graph');
-  it('should update node values');
-  it('should trigger only affected node re-evaluation');
-  it('should maintain cache for unchanged nodes');
-  it('should handle multiple node updates');
-  it('should update dependency graph correctly');
-  it('should handle updates during evaluation');
-});
-```
-
-**E. Incremental Recompute Tests (~6 tests):** ⏳ NOT STARTED (0/6)
+**A. Incremental Recompute Tests (6 tests):**
 ```typescript
 describe('IncrementalRuntime - Incremental Recompute', () => {
   it('should re-evaluate only changed nodes');
@@ -952,7 +354,7 @@ describe('IncrementalRuntime - Incremental Recompute', () => {
 });
 ```
 
-**F. Notification Tests (~5 tests):** ⏳ NOT STARTED (0/5)
+**B. Notification Tests (5 tests):**
 ```typescript
 describe('IncrementalRuntime - Notifications', () => {
   it('should push node_state_changed events');
@@ -963,107 +365,745 @@ describe('IncrementalRuntime - Notifications', () => {
 });
 ```
 
-**G. Cache Invalidation Tests (~4 tests):** ⏳ NOT STARTED (0/4)
+**C. Cache Invalidation Tests (3 tests):**
 ```typescript
 describe('IncrementalRuntime - Cache Invalidation', () => {
   it('should invalidate dependent nodes on change');
   it('should preserve cache for unaffected nodes');
   it('should clear cache on program reload');
-  it('should handle multiple levels of dependencies');
 });
 ```
 
-**Dependencies:** P0.7 (Test Utilities - ✅ COMPLETED), P0.8 (Fix DataType Union - blocks compilation), P0.10 (Add Temporal Operators to IncrementalRuntime)
+**Files Affected:**
+- `packages/tests/src/incremental/incremental-recompute.test.ts` (NEW)
+- `packages/tests/src/incremental/notifications.test.ts` (NEW)
+- `packages/tests/src/incremental/cache-invalidation.test.ts` (NEW)
+- `packages/runtime/src/incremental-runtime.ts` (may need bug fixes)
 
-**Acceptance Criteria (from specs/TESTS_SPEC.md):**
-- ✓ 4/7 test categories implemented (subscriptions, partial-evaluation, missing-inputs, graph-updates)
-- ✓ 26/40 tests created for IncrementalRuntime
-- ✓ All unique incremental features tested (4/7 categories)
-- ✓ All incremental tests pass (26/26)
-- ✓ Test coverage for incremental-specific features (26/40 tests)
+**Dependencies:** None (blocks Layer 7)
+
+**Acceptance Criteria (from specs/TESTS_SPEC.md lines 264-321):**
+- ✓ All 14 remaining tests implemented
+- ✓ All incremental tests pass (40/40 total)
+- ✓ Test coverage for incremental-specific features (100%)
+- ✓ Subscriptions work correctly
+- ✓ Partial evaluation handles missing inputs gracefully
+- ✓ Graph updates trigger correct re-evaluation
+- ✓ Cache invalidation works for transitive dependents
+- ✓ Notifications push to subscribers on state changes
 
 **Required Tests:**
-- ✓ Test: All 5 subscription tests pass (✅ COMPLETE)
-- ✓ Test: All 7 partial evaluation tests pass (✅ COMPLETE)
-- ✓ Test: All 6 missing input tests pass (✅ COMPLETE)
-- ✓ Test: All 8 graph update tests pass (✅ COMPLETE)
-- [ ] Test: All 6 incremental recompute tests pass (⏳ NOT STARTED)
-- [ ] Test: All 5 notification tests pass (⏳ NOT STARTED)
-- [ ] Test: All 4 cache invalidation tests pass (⏳ NOT STARTED)
+- ✓ Test: Incremental recompute - re-evaluate only changed nodes
+- ✓ Test: Incremental recompute - re-evaluate only dependent nodes
+- ✓ Test: Incremental recompute - preserve cache for unchanged nodes
+- ✓ Test: Incremental recompute - handle circular dependencies
+- ✓ Test: Incremental recompute - performance improvement over full re-evaluation
+- ✓ Test: Incremental recompute - handle cache invalidation correctly
+- ✓ Test: Notifications - push node_state_changed events
+- ✓ Test: Notifications - include correct node data
+- ✓ Test: Notifications - include timestamp
+- ✓ Test: Notifications - batch notifications for efficiency
+- ✓ Test: Notifications - handle multiple changes in single evaluation
+- ✓ Test: Cache invalidation - invalidate dependent nodes on change
+- ✓ Test: Cache invalidation - preserve cache for unaffected nodes
+- ✓ Test: Cache invalidation - clear cache on program reload
 
-**Spec Reference:** `specs/TESTS_SPEC.md` lines 412-570
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 264-321, `specs/DEMAND_DRIVEN_INCREMENTAL.md`
 
 **Layer:** Layer 7 (Integration)
 
 **Ralph Wiggum Checklist:**
-- ✓ 4/7 test categories implemented (subscriptions, partial-evaluation, missing-inputs, graph-updates)
-- ✓ 26/40 tests created (4/7 categories)
-- ✓ All incremental tests pass (26/26)
-- ✓ TypeScript typecheck passes (0 errors)
-- ⏳ Git commit: pending completion of all 7 test categories
+- [ ] All 14 remaining incremental tests created
+- [ ] All 40 incremental tests pass
+- [ ] TypeScript typecheck passes (0 errors)
+- [ ] Bun test: 228/228 passing (214 + 14 new)
+- [ ] Git commit: "test(incremental): complete incremental runtime tests (40/40)"
 
 ---
 
-### 🔧 P2 MEDIUM (Quality & Improvements)
+#### Task P0.2: Fix Set/Object Literal Ambiguity in Parser (3 hours)
 
-#### Task P2.1: Add Missing Operations to Registry (~4 hours)
+**Priority:** P0 CRITICAL
+**Status:** NOT STARTED
+**Estimated Time:** 3 hours
+**Impact:** Parser robustness for curriculum types; prevents parsing failures
+
+**Why Critical:**
+- Both Set and Object literals use {} syntax
+- Parser uses fragile GATE that may fail with LA(2)
+- Object literals can cause parsing errors
+- Affects curriculum types (Shape, Car, Food, Animal)
+- Could block valid programs from being parsed
+
+**Current Issue:**
+```typescript
+// Both parse to same starting tokens
+setLiteral: '{' value+ '}'
+objectLiteral: '{' identifier ':' literal+ '}'
+```
+
+**Current Fragile Code (from study report):**
+```typescript
+// Uses LA(2) which may fail
+GATE(OR2(setLiteral, objectLiteral))
+```
+
+**Proposed Solution:**
+1. Use proper lookahead: LA(1) check for identifier after '{'
+2. Update grammar to clearly distinguish between the two
+3. Add better error messages for ambiguous cases
+4. Test edge cases: empty sets, empty objects, nested structures
+
+**Implementation:**
+```typescript
+// Better: Check for identifier after '{'
+objectLiteral: '{' identifier ':' literal+ '}'
+setLiteral: '{' NOT(identifier) literal+ '}'
+
+// Or use separate tokens
+setLiteral: '{' (literal+ | epsilon) '}'
+objectLiteral: '{' identifier ':' literal+ '}'
+```
+
+**Files Affected:**
+- `packages/compiler/src/parser/dataflow-parser.ts` (grammar GATE logic)
+- `packages/compiler/src/ast/ast-builder.ts` (literal handling)
+- `packages/compiler/src/compiler.ts` (literal node creation)
+
+**Dependencies:** None
+
+**Acceptance Criteria (from specs/GRAMMAR_SPEC.md):**
+- ✓ Set literals parse correctly: `{ "red", "blue", "green" }`
+- ✓ Object literals parse correctly: `{ color: "red", size: "small" }`
+- ✓ Parser disambiguates correctly using proper lookahead
+- ✓ No fragile GATE logic
+- ✓ Clear error messages for ambiguous cases
+- ✓ Compiler generates correct nodes for both types
+- ✓ Edge cases handled: empty sets, nested structures
+
+**Required Tests:**
+- [ ] Test: Set literal parses correctly
+- [ ] Test: Object literal parses correctly
+- [ ] Test: Set vs Object disambiguation works (edge cases)
+- [ ] Test: Empty set literal parses correctly
+- [ ] Test: Empty object literal parses correctly
+- [ ] Test: Nested set/object literals parse correctly
+- [ ] Test: Malformed set literal produces clear error
+- [ ] Test: Malformed object literal produces clear error
+- [ ] Test: Literal nodes created correctly
+- [ ] Test: Curriculum type literals (Shape, Car, etc.) parse correctly
+
+**Spec Reference:** `specs/GRAMMAR_SPEC.md` (Literal grammar section)
+
+**Layer:** Cross-layer (Compiler + Runtime)
+
+**Ralph Wiggum Checklist:**
+- [ ] Set/Object ambiguity resolved
+- [ ] Set literals parse correctly
+- [ ] Object literals parse correctly
+- [ ] Parser tests pass (all existing + new tests)
+- [ ] Integration tests pass (curriculum types work)
+- [ ] Typecheck passes
+- [ ] Git commit: "fix(parser): resolve set/object literal ambiguity"
+
+---
+
+#### Task P0.3: Implement Missing Compiler Validation Rules (3 hours)
+
+**Priority:** P0 CRITICAL
+**Status:** NOT STARTED
+**Estimated Time:** 3 hours
+**Impact:** Better quality error messages for young learners; catches more errors at compile time
+
+**Why Critical:**
+- Improves quality of error messages for children aged 6-9
+- Catches errors at compile time (better UX than runtime errors)
+- Study shows 7/12 validation rules implemented (58%)
+- Missing validations could lead to confusing runtime errors
+
+**Missing Validation Rules (from study report):**
+1. **Output node requirement** - Programs must have at least one output node
+2. **Set homogeneity validation** - All elements in set must be same type
+3. **Literal type validation** - Literals must match declared type
+4. **Stream type consistency** - Stream elements must match declared element type
+
+**Current Implementation (7/12 rules):**
+From study report:
+- ✅ Duplicate identifiers
+- ✅ Cycle detection
+- ✅ Undefined references
+- ✅ Unknown operations
+- ✅ Arity validation (correct number of inputs)
+- ✅ Type compatibility validation (inputs match operation types)
+- ✅ Property requirements (e.g., 'color' for FILTER_BY_COLOR)
+- ❌ Output node requirement (MISSING)
+- ❌ Set homogeneity (MISSING)
+- ❌ Literal type validation (MISSING)
+- ❌ Stream source validation (MISSING)
+- ❌ Stream type consistency (MISSING)
+
+**Implementation Plan:**
+
+**1. Output Node Requirement:**
+```typescript
+// packages/compiler/src/validation/dag-validator.ts
+
+validateOutputNodeRequirement(graph: DataflowGraph): ValidationError[] {
+  const outputNodes = graph.nodes.filter(n => n.type === "Output");
+
+  if (outputNodes.length === 0) {
+    return [{
+      code: "NO_OUTPUT_NODES",
+      message: "Program has no output nodes",
+      childMessage: "⚠️ ¡Ups! Tu programa no tiene bloques de salida.",
+      suggestion: "Agrega un bloque de salida para ver el resultado.",
+      example: "[5] → [+] → [3] → [📤 Salida] ✅"
+    }];
+  }
+
+  return [];
+}
+```
+
+**2. Set Homogeneity Validation:**
+```typescript
+validateSetHomogeneity(node: DataSourceNode): ValidationError[] {
+  if (!node.dataType || !node.dataType.startsWith("set<")) {
+    return [];
+  }
+
+  const elements = node.value as unknown[];
+  if (elements.length === 0) {
+    return [];
+  }
+
+  // Infer type of first element
+  const firstType = inferType(elements[0]);
+
+  // Check all elements match first type
+  const heterogeneous = elements.some((elem, index) => {
+    if (index === 0) return false;
+    const elementType = inferType(elem);
+    return elementType !== firstType;
+  });
+
+  if (heterogeneous) {
+    return [{
+      code: "SET_HETEROGENEITY_ERROR",
+      message: "All elements in set must have same type",
+      childMessage: "⚠️ ¡Ups! Un conjunto solo puede tener elementos del mismo tipo.",
+      suggestion: "Asegúrate de que todos sean formas, o todos sean números, etc.",
+      example: "conjunto_formas = {forma roja, forma azul} ✅"
+    }];
+  }
+
+  return [];
+}
+```
+
+**3. Literal Type Validation:**
+```typescript
+validateLiteralType(node: DataSourceNode): ValidationError[] {
+  if (!node.value || !node.dataType) {
+    return [];
+  }
+
+  const valueType = inferType(node.value);
+
+  if (valueType !== node.dataType) {
+    return [{
+      code: "LITERAL_TYPE_MISMATCH",
+      message: `Literal value ${node.value} does not match declared type ${node.dataType}`,
+      childMessage: "⚠️ ¡Ups! El valor no coincide con el tipo.",
+      suggestion: `Cambia el valor o usa el bloque de tipo correcto.`,
+      example: `Para "natural", usa números como: 5, 10, 100`
+    }];
+  }
+
+  return [];
+}
+```
+
+**4. Stream Type Consistency:**
+```typescript
+validateStreamTypeConsistency(node: TransformationNode): ValidationError[] {
+  // Check temporal operators work with streams
+  if (["NEXT", "FIRST", "FBY", "ACCUMULATE"].includes(node.operation)) {
+    const streamInput = node.inputs[0];
+
+    if (!streamInput.dataType || streamInput.dataType.kind !== "stream") {
+      return [{
+        code: "TYPE_ERROR",
+        message: `${node.operation} requires stream input`,
+        childMessage: `⚠️ ¡Ups! El bloque ${node.operation} necesita un flujo de datos.`,
+        suggestion: "Usa un bloque de flujo como entrada."
+      }];
+    }
+  }
+
+  return [];
+}
+```
+
+**Files Affected:**
+- `packages/compiler/src/validation/dag-validator.ts` (add validation methods)
+- `packages/compiler/src/validation/index.ts` (export new validations)
+- `packages/compiler/src/compiler.ts` (call new validations)
+
+**Dependencies:** P0.2 (Fix Set/Object ambiguity - need literals working first)
+
+**Acceptance Criteria (from specs/LANGUAGE_SPEC.md lines 431-440):**
+- ✓ Set operations verify all elements are same type
+- ✓ Programs without output nodes produce error
+- ✓ Type safety rules enforced at compile time
+- ✓ Child-friendly Spanish error messages
+- ✓ Literal values match declared types
+- ✓ Stream sources are valid
+- ✓ Stream types are consistent
+
+**Required Tests:**
+- [ ] Test: Set homogeneity validation - mixed types in set error
+- [ ] Test: Set homogeneity validation - same types in set succeed
+- [ ] Test: Output node requirement - program with no outputs fails
+- [ ] Test: Output node requirement - program with outputs succeeds
+- [ ] Test: Literal type validation - mismatch produces error
+- [ ] Test: Literal type validation - match succeeds
+- [ ] Test: Stream source validation - invalid generator produces error
+- [ ] Test: Stream type consistency - mismatch produces error
+- [ ] Test: Validation errors include child-friendly Spanish messages
+
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` lines 431-440, `specs/GRAMMAR_SPEC.md` validation section
+
+**Layer:** Cross-layer (validation quality)
+
+**Ralph Wiggum Checklist:**
+- [ ] Missing validation rules implemented (4 new rules)
+- [ ] Validation tests pass
+- [ ] Typecheck passes
+- [ ] Child-friendly Spanish messages for all errors
+- [ ] Git commit: "feat(compiler): add missing compiler validation rules"
+
+---
+
+### 🎯 P1 HIGH (Layer 7 Completion - MVP Features)
+
+#### Task P1.1: Implement WebSocket Server (12 hours)
+
+**Priority:** P1 HIGH
+**Status:** NOT STARTED (0% complete)
+**Estimated Time:** 12 hours
+**Impact:** Live IDE feedback; completes Layer 7
+
+**Why High Priority:**
+- WebSocket Server is 0% complete (from study report)
+- Essential for live construction mode in IDE
+- Required for Layer 7 completion
+- HTTP API is 64% complete and functional (12/12 tests passing)
+- All infrastructure ready (IncrementalRuntime, subscriptions, notifications)
+
+**Required Features (from specs/INTEGRATION_SPEC.md lines 192-362):**
+
+**WebSocket Connection:**
+```typescript
+// ws://localhost:3000/live
+```
+
+**Client → Server Messages:**
+1. `validate_program` - Validate program (partial or complete)
+2. `evaluate_incremental` - Evaluate partial program
+3. `subscribe_node` - Subscribe to node state changes
+4. `unsubscribe_node` - Unsubscribe from node state changes
+
+**Server → Client Messages:**
+1. `validation_result` - Validation errors/warnings
+2. `evaluation_result` - Node states (completed/pending/error)
+3. `node_state_changed` - Push notification on state change
+4. `error` - Error responses
+
+**Implementation Structure:**
+```typescript
+// packages/websocket-server/src/
+├── server.ts              // Elysia + WebSocket plugin
+├── handlers/
+│   ├── validate.ts       // validate_program handler
+│   ├── evaluate.ts       // evaluate_incremental handler
+│   └── subscribe.ts      // subscribe/unsubscribe handlers
+├── connection-manager.ts  // Track active connections
+└── subscription-manager.ts // Track node subscriptions
+```
+
+**Example Implementation:**
+```typescript
+// packages/websocket-server/src/server.ts
+import { Elysia } from 'elysia';
+import { IncrementalRuntime } from '@dataflow/runtime';
+
+const runtime = new IncrementalRuntime();
+const connections = new Map<WebSocket, Set<string>>();
+
+const app = new Elysia()
+  .ws('/live', {
+    open(ws) {
+      console.log('Client connected');
+      connections.set(ws, new Set());
+    },
+
+    message(ws, message) {
+      const msg = JSON.parse(message);
+
+      if (msg.type === 'validate_program') {
+        const result = validateProgram(msg.program);
+        ws.send(JSON.stringify({
+          type: 'validation_result',
+          messageId: msg.messageId,
+          errors: result.errors,
+          warnings: result.warnings
+        }));
+      }
+
+      if (msg.type === 'evaluate_incremental') {
+        runtime.loadProgram(msg.program);
+        const evaluation = runtime.evaluatePartial(0);
+        ws.send(JSON.stringify({
+          type: 'evaluation_result',
+          messageId: msg.messageId,
+          nodeStates: Object.fromEntries(evaluation.nodeStates),
+          changedNodes: evaluation.changedNodes
+        }));
+      }
+
+      if (msg.type === 'subscribe_node') {
+        runtime.subscribe(msg.nodeId, (state) => {
+          ws.send(JSON.stringify({
+            type: 'node_state_changed',
+            nodeId: msg.nodeId,
+            state
+          }));
+        });
+        connections.get(ws)?.add(msg.nodeId);
+      }
+
+      if (msg.type === 'unsubscribe_node') {
+        // Unsubscribe logic
+        connections.get(ws)?.delete(msg.nodeId);
+      }
+    },
+
+    close(ws) {
+      console.log('Client disconnected');
+      // Clean up subscriptions
+      const subs = connections.get(ws);
+      if (subs) {
+        subs.forEach(nodeId => runtime.unsubscribe(nodeId));
+      }
+      connections.delete(ws);
+    }
+  })
+  .listen(3000);
+```
+
+**Files Affected:**
+- `packages/websocket-server/src/server.ts` (NEW)
+- `packages/websocket-server/src/handlers/validate.ts` (NEW)
+- `packages/websocket-server/src/handlers/evaluate.ts` (NEW)
+- `packages/websocket-server/src/handlers/subscribe.ts` (NEW)
+- `packages/websocket-server/src/connection-manager.ts` (NEW)
+- `packages/websocket-server/src/subscription-manager.ts` (NEW)
+- `packages/websocket-server/package.json` (NEW)
+
+**Dependencies:**
+- P0.1 (IncrementalRuntime tests complete) - ✅ DEPENDS ON THIS
+- P0.2 (Set/Object ambiguity fixed) - Should have literals working
+- P0.3 (Compiler validation complete) - Better error messages
+
+**Acceptance Criteria (from specs/INTEGRATION_SPEC.md lines 200-361):**
+- ✓ Client connects via ws://localhost:3000/live
+- ✓ Server validates messages and responds with messageId
+- ✓ Server handles validate_program requests
+- ✓ Server handles evaluate_incremental requests
+- ✓ Server handles subscribe_node requests
+- ✓ Server handles unsubscribe_node requests
+- ✓ Server pushes node_state_changed when subscribed
+- ✓ Multiple clients can connect simultaneously (5 concurrent)
+- ✓ Connection is resilient (reconnects on disconnect)
+- ✓ Error messages include child-friendly Spanish text for ages 6-9
+- ✓ Valid program → validation_result with empty errors
+- ✓ Partial program → evaluation_result with mixed statuses
+- ✓ Subscribe to node → receive state changes on updates
+- ✓ Malformed message → error response
+
+**Performance Requirements:**
+- ✓ Message roundtrip <50ms (p95)
+- ✓ Handles 5 concurrent WebSocket connections
+- ✓ No memory leaks on client disconnect
+
+**Required Tests:**
+- [ ] Test: Client connects to ws://localhost:3000/live
+- [ ] Test: validate_program message returns validation_result
+- [ ] Test: evaluate_incremental returns node states
+- [ ] Test: subscribe_node receives node_state_changed on updates
+- [ ] Test: unsubscribe_node stops receiving updates
+- [ ] Test: Multiple clients connect simultaneously (5 concurrent)
+- [ ] Test: Client disconnect and reconnect
+- [ ] Test: Malformed message returns error response
+- [ ] Test: Error messages are child-friendly Spanish
+- [ ] Benchmark: Message roundtrip <50ms (p95)
+- [ ] Benchmark: No memory leaks (100 connect/disconnect cycles)
+
+**Spec Reference:** `specs/INTEGRATION_SPEC.md` lines 192-362
+
+**Layer:** Layer 7 (Integration)
+
+**Ralph Wiggum Checklist:**
+- [ ] WebSocket server implemented
+- [ ] WebSocket tests pass
+- [ ] Typecheck passes
+- [ ] Multiple concurrent clients work (5)
+- [ ] Message roundtrip <50ms (p95)
+- [ ] No memory leaks
+- [ ] Layer 7 declared 100% complete
+- [ ] Git commit: "feat(websocket): implement WebSocket server"
+
+---
+
+#### Task P1.2: Reorganize Test Structure (3 hours)
+
+**Priority:** P1 HIGH
+**Status:** NOT STARTED
+**Estimated Time:** 3 hours
+**Impact:** Better test organization, clearer separation of concerns
+
+**Why High Priority:**
+- From study report: "Batch tests scattered, needs batch/ directory"
+- "Compiler tests in wrong location"
+- Current structure mixes shared and specific tests
+- Difficult to identify which runtime has issues
+- Better organization improves maintainability
+
+**Current Structure (from test files):**
+```
+packages/tests/src/
+├── end-to-end/         # Mixed batch + shared
+├── integration/        # Mixed batch + shared
+├── curriculum/         # Mixed batch + shared
+├── sets/               # Mixed batch + shared
+├── temporal/           # Mixed batch + shared
+├── demand-driven/      # Shared
+├── errors/             # Shared
+├── performance/        # Batch-specific
+├── types/              # Compiler tests (wrong location)
+├── shared/             # Shared tests ✅ (arithmetic, fractions, comparison)
+└── incremental/        # Incremental-specific ✅
+```
+
+**Target Structure (from specs/TESTS_SPEC.md lines 57-87):**
+```
+packages/tests/src/
+├── shared/                      # Tests for BOTH runtimes
+│   ├── arithmetic.test.ts      # ✅ DONE
+│   ├── fractions.test.ts        # ✅ DONE
+│   ├── comparison.test.ts       # ✅ DONE
+│   ├── sets.test.ts             # NEW (from sets/)
+│   ├── temporal.test.ts         # NEW (from temporal/)
+│   ├── curriculum.test.ts       # NEW (from curriculum/)
+│   ├── demand-driven.test.ts    # NEW (from demand-driven/)
+│   └── errors-runtime.test.ts  # NEW (from errors/)
+│
+├── batch/                       # Batch Runtime specific tests
+│   ├── execution.test.ts        # NEW (from performance/execution.test.ts)
+│   ├── full-program.test.ts    # NEW (from end-to-end/)
+│   └── compilation.test.ts     # NEW (from performance/compilation.test.ts)
+│
+├── incremental/                # ✅ IncrementalRuntime specific tests (26/40)
+│   ├── partial-evaluation.test.ts ✅
+│   ├── subscriptions.test.ts     ✅
+│   ├── graph-updates.test.ts    ✅
+│   ├── missing-inputs.test.ts   ✅
+│   ├── incremental-recompute.test.ts ⏳ (P0.1)
+│   ├── notifications.test.ts     ⏳ (P0.1)
+│   └── cache-invalidation.test.ts   ⏳ (P0.1)
+│
+└── compiler/                    # Compiler tests (MOVED from types/)
+    ├── validation.test.ts       # NEW (from types/validation.test.ts)
+    ├── type-checking.test.ts    # NEW (from types/)
+    └── cycle-detection.test.ts  # NEW (from errors/cycles.test.ts)
+```
+
+**Files to Reorganize:**
+
+**Move to shared/:**
+- `packages/tests/src/sets/union.test.ts` → `shared/sets.test.ts`
+- `packages/tests/src/sets/filter-sort.test.ts` → `shared/sets.test.ts`
+- `packages/tests/src/temporal/fby.test.ts` → `shared/temporal.test.ts`
+- `packages/tests/src/temporal/streams.test.ts` → `shared/temporal.test.ts`
+- `packages/tests/src/curriculum/shapes.test.ts` → `shared/curriculum.test.ts`
+- `packages/tests/src/curriculum/comparison.test.ts` → `shared/curriculum.test.ts`
+- `packages/tests/src/demand-driven/unreferenced.test.ts` → `shared/demand-driven.test.ts`
+- `packages/tests/src/demand-driven/no-outputs.test.ts` → `shared/demand-driven.test.ts`
+- `packages/tests/src/errors/division-zero.test.ts` → `shared/errors-runtime.test.ts`
+- `packages/tests/src/end-to-end/arithmetic.test.ts` → `shared/arithmetic.test.ts` (merge)
+- `packages/tests/src/integration/fractions.test.ts` → `shared/fractions.test.ts` (merge)
+
+**Move to batch/:**
+- `packages/tests/src/end-to-end/nested-operations.test.ts` → `batch/full-program.test.ts`
+- `packages/tests/src/end-to-end/inline-nested-operations.test.ts` → `batch/full-program.test.ts` (merge)
+- `packages/tests/src/end-to-end/types.test.ts` → `batch/execution.test.ts`
+- `packages/tests/src/performance/execution.test.ts` → `batch/execution.test.ts` (merge)
+- `packages/tests/src/performance/compilation.test.ts` → `batch/compilation.test.ts`
+
+**Move to compiler/:**
+- `packages/tests/src/types/validation.test.ts` → `compiler/validation.test.ts`
+- `packages/tests/src/types/properties.test.ts` → `compiler/type-checking.test.ts`
+- `packages/tests/src/errors/cycles.test.ts` → `compiler/cycle-detection.test.ts`
+- `packages/tests/src/end-to-end/types.test.ts` → `compiler/type-checking.test.ts` (merge)
+
+**Files Affected:**
+- 20+ test files (move/reorganize)
+- Test imports (update paths)
+
+**Dependencies:** None
+
+**Acceptance Criteria (from specs/TESTS_SPEC.md lines 312-570):**
+- ✓ All existing integration tests moved to appropriate directories
+- ✓ Tests reorganized by scope (shared, batch, incremental, compiler)
+- ✓ All tests still pass after reorganization (228/228)
+- ✓ TypeScript typecheck passes
+- ✓ Clear separation of shared vs specific tests
+- ✓ No test files lost or duplicated
+
+**Required Tests:**
+- [ ] Test: All tests moved to new structure
+- [ ] Test: All tests still pass (228/228)
+- [ ] Test: TypeScript typecheck passes
+- [ ] Test: Clear separation of shared vs specific tests
+- [ ] Test: No test duplication
+
+**Spec Reference:** `specs/TESTS_SPEC.md` lines 57-87, 312-570
+
+**Layer:** Cross-layer (testing organization)
+
+**Ralph Wiggum Checklist:**
+- [ ] All integration tests reorganized (20+ files)
+- [ ] Clear separation of shared vs specific tests
+- [ ] All tests pass after reorganization (228/228)
+- [ ] TypeScript typecheck passes
+- [ ] No test files lost
+- [ ] No test duplication
+- [ ] Git commit: "test(reorg): reorganize integration tests by runtime type"
+
+---
+
+### 🔧 P2 MEDIUM (Completeness & Quality - Post-MVP Features)
+
+#### Task P2.1: Add Missing Operation Contracts to Registry (3 hours)
 
 **Priority:** P2 MEDIUM
 **Status:** NOT STARTED
-**Estimated Time:** 4 hours
+**Estimated Time:** 3 hours
 **Impact:** Completes operation registry per spec
-**Files:** `packages/shared/src/operations/registry.ts`
 
-**Why Important:**
-- ~38 operations missing from spec
-- COMPARE for text/boolean types missing
-- SORT for integer/decimal/fraction types missing
-- Temporal operations for non-Natural types missing
-- ACCUMULATE parameter type issue exists
+**Why Medium Priority:**
+- Study reports 7+ missing operation contracts
+- Looking at registry, I found:
+  - ✅ COMPARE has Natural, Integer, Decimal, Fraction
+  - ❌ COMPARE missing for Text, Boolean
+  - ✅ FILTER has Natural
+  - ❌ FILTER missing for Integer, Decimal, Fraction
+  - ✅ SORT has Natural
+  - ❌ SORT missing for Integer, Decimal, Fraction
+- Temporal operations only for Natural (need all types)
+- Core operations work, but spec not complete
 
-**Missing Operations by Category:**
+**Missing Contracts by Category:**
 
-1. **Text/Boolean Comparisons:**
-   - COMPARE(String, String) → Boolean
-   - COMPARE(Boolean, Boolean) → Boolean
+**1. COMPARE for Text/Boolean:**
+```typescript
+COMPARE: {
+  contracts: [
+    // ... existing contracts ...
+    { arity: 2, inputTypes: ["text", "text"], outputType: "boolean", category: "comparison" },
+    { arity: 2, inputTypes: ["boolean", "boolean"], outputType: "boolean", category: "comparison" }
+  ]
+}
+```
 
-2. **SORT for Numeric Types:**
-   - SORT(Integer[]) → Integer[]
-   - SORT(Decimal[]) → Decimal[]
-   - SORT(Fraction[]) → Fraction[]
+**2. FILTER for Numeric Types:**
+```typescript
+FILTER: {
+  contracts: [
+    { arity: 2, inputTypes: [{ kind: "set", elementType: "natural" }, "natural"], outputType: { kind: "set", elementType: "natural" }, category: "filtering" },
+    { arity: 2, inputTypes: [{ kind: "set", elementType: "integer" }, "integer"], outputType: { kind: "set", elementType: "integer" }, category: "filtering" },
+    { arity: 2, inputTypes: [{ kind: "set", elementType: "decimal" }, "decimal"], outputType: { kind: "set", elementType: "decimal" }, category: "filtering" },
+    { arity: 2, inputTypes: [{ kind: "set", elementType: "fraction" }, "fraction"], outputType: { kind: "set", elementType: "fraction" }, category: "filtering" }
+  ]
+}
+```
 
-3. **Temporal Operations for Non-Natural:**
-   - FBY, NEXT, FIRST, ACCUMULATE for Integer, Decimal, Fraction, Boolean, String, Shape, Car, Food, Animal, Person
+**3. SORT for Numeric Types:**
+```typescript
+SORT: {
+  contracts: [
+    { arity: 1, inputTypes: [{ kind: "set", elementType: "natural" }], outputType: { kind: "set", elementType: "natural" }, category: "ordering" },
+    { arity: 1, inputTypes: [{ kind: "set", elementType: "integer" }], outputType: { kind: "set", elementType: "integer" }, category: "ordering" },
+    { arity: 1, inputTypes: [{ kind: "set", elementType: "decimal" }], outputType: { kind: "set", elementType: "decimal" }, category: "ordering" },
+    { arity: 1, inputTypes: [{ kind: "set", elementType: "fraction" }], outputType: { kind: "set", elementType: "fraction" }, category: "ordering" }
+  ]
+}
+```
 
-4. **ACCUMULATE Parameter Fix:**
-   - Currently: ACCUMULATE(stream: Stream<T>, initial: T, operation: (T, T) → T)
-   - May need parameter type validation
+**4. Temporal Operations for All Types:**
+```typescript
+NEXT: {
+  contracts: [
+    { arity: 1, inputTypes: [{ kind: "stream", elementType: "natural" }], outputType: "natural", category: "temporal" },
+    { arity: 1, inputTypes: [{ kind: "stream", elementType: "integer" }], outputType: "integer", category: "temporal" },
+    { arity: 1, inputTypes: [{ kind: "stream", elementType: "decimal" }], outputType: "decimal", category: "temporal" },
+    { arity: 1, inputTypes: [{ kind: "stream", elementType: "fraction" }], outputType: "fraction", category: "temporal" },
+    { arity: 1, inputTypes: [{ kind: "stream", elementType: "boolean" }], outputType: "boolean", category: "temporal" },
+    { arity: 1, inputTypes: [{ kind: "stream", elementType: "text" }], outputType: "text", category: "temporal" }
+    // ... more types
+  ]
+}
+// Same for FIRST, FBY, ACCUMULATE
+```
 
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+**Files Affected:**
+- `packages/shared/src/operations/registry.ts` (add contracts)
+- `packages/runtime/src/operations/sets.ts` (implement SORT for all types)
+- `packages/runtime/src/operations/temporal.ts` (implement temporal for all types)
+
+**Dependencies:** P0.3 (Compiler validation - needs correct contracts)
 
 **Acceptance Criteria:**
 - ✓ COMPARE operations added for text/boolean types
+- ✓ FILTER operations added for integer/decimal/fraction types
 - ✓ SORT operations added for integer/decimal/fraction types
 - ✓ Temporal operations work for all types (not just Natural)
-- ✓ ACCUMULATE parameter type validated correctly
 - ✓ All operations in spec present in registry
 - ✓ Typecheck passes
 
 **Required Tests:**
 - [ ] Test: COMPARE works with string inputs
 - [ ] Test: COMPARE works with boolean inputs
+- [ ] Test: FILTER works with integer arrays
+- [ ] Test: FILTER works with decimal arrays
+- [ ] Test: FILTER works with fraction arrays
 - [ ] Test: SORT works with integer arrays
 - [ ] Test: SORT works with decimal arrays
 - [ ] Test: SORT works with fraction arrays
 - [ ] Test: Temporal operators work with non-Natural types
+- [ ] Test: All operations have registry entries
 
-**Spec Reference:** `specs/LANGUAGE_SPEC.md` operations section
+**Spec Reference:** `specs/LANGUAGE_SPEC.md` operations section (lines 40-109, 279-325)
+
+**Layer:** Cross-layer (shared + runtime)
 
 **Ralph Wiggum Checklist:**
 - [ ] Missing operations added to registry
 - [ ] All operations in spec present
 - [ ] Typecheck passes
-- [ ] Git commit: "feat(operations): add missing operations to registry"
+- [ ] New operation tests pass
+- [ ] Git commit: "feat(operations): add missing operation contracts (COMPARE, FILTER, SORT, temporal)"
 
 ---
 
@@ -1073,31 +1113,42 @@ describe('IncrementalRuntime - Cache Invalidation', () => {
 **Status:** NOT STARTED
 **Estimated Time:** 0.5 hours
 **Impact:** Spec compliance
-**Files:** `packages/shared/src/types/primitives.ts`
 
-**Why Important:**
-- Color type has extra values (white, black) not in spec
-- Spec defines only 6 colors: "red", "blue", "yellow", "green", "orange", "purple"
-- Mismatch could cause validation errors
+**Why Medium Priority:**
+- Study report: "Color type: 8 colors instead of 6 (has white, black extra)"
+- Spec defines only 6 colors (line 149 of LANGUAGE_SPEC.md)
+- Mismatch could cause validation errors or confusion
+- Quick fix
 
 **Current Code:**
 ```typescript
+// packages/shared/src/types/primitives.ts
 type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple" | "white" | "black";
 ```
 
-**Should Be:**
+**Should Be (from spec):**
 ```typescript
+// packages/shared/src/types/primitives.ts
 type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 ```
 
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+**Files Affected:**
+- `packages/shared/src/types/primitives.ts` (remove white, black)
 
-**Acceptance Criteria:**
+**Dependencies:** None
+
+**Acceptance Criteria (from specs/LANGUAGE_SPEC.md line 149):**
 - ✓ Color type matches spec (6 colors only)
 - ✓ Typecheck passes
 - ✓ No white/black values
 
+**Required Tests:**
+- [ ] Test: Color type has only 6 colors
+- [ ] Test: White/black colors not accepted
+
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` line 149
+
+**Layer:** Layer 3 (Curriculum types)
 
 **Ralph Wiggum Checklist:**
 - [ ] Color type matches spec exactly
@@ -1107,30 +1158,32 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 
 ---
 
-#### Task P2.3: Improve SORT/ALPHABETICAL_SORT Operations (2 hours)
+#### Task P2.3: Improve SORT/ALPHABETICAL_SORT Type Safety (2 hours)
 
 **Priority:** P2 MEDIUM
 **Status:** NOT STARTED
 **Estimated Time:** 2 hours
-**Impact:** Improves functionality
-**Files:** `packages/runtime/src/operations/sets.ts`
+**Impact:** Improves functionality and type safety
 
-**Why Important:**
-- SORT operations have limitations that affect functionality
-- SORT only works with numbers (not generic)
+**Why Medium Priority:**
+- Study report: "SORT operations have limitations"
+- SORT only works with numbers (not fully generic)
 - ALPHABETICAL_SORT converts everything to string (loses type safety)
-- These limitations reduce curriculum flexibility
+- Not blocking, but could cause issues
 
-**Current Limitations:**
+**Current Limitations (from study):**
 - SORT: Only sorts numbers
 - ALPHABETICAL_SORT: Converts all elements to strings (loses type info)
 
 **Proposed Improvements:**
 - Make SORT generic: SORT<T>(set: Set<T>) → Set<T> where T is Comparable
-- Make ALPHABETICAL_SORT type-safe: ALPHABETICAL_SORT<T>(set: Set<T>) → Set<T> where T is String
+- Make ALPHABETICAL_SORT type-safe: ALPHABETICAL_SORT<T>(set: Set<Text>) → Set<Text>
 - Add type constraints to ensure comparability
 
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P1.4 (Set/Stream Generic - ✅ ALREADY DONE)
+**Files Affected:**
+- `packages/runtime/src/operations/sets.ts` (improve SORT, ALPHABETICAL_SORT)
+
+**Dependencies:** P2.1 (Add missing contracts - need SORT contracts first)
 
 **Acceptance Criteria (from specs/LANGUAGE_SPEC.md):**
 - ✓ SORT operation works with any comparable type (not just numbers)
@@ -1139,14 +1192,16 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 
 **Required Tests:**
 - [ ] Test: SORT with numbers works (existing behavior)
-- [ ] Test: SORT with strings works alphabetically
+- [ ] Test: SORT with integers works
+- [ ] Test: SORT with decimals works
+- [ ] Test: SORT with fractions works
 - [ ] Test: ALPHABETICAL_SORT preserves string type
 - [ ] Test: Type errors raised for non-comparable types in SORT
 - [ ] Test: All existing set operation tests still pass
 
-**Layer:** Layer 4 (Sets)
-
 **Spec Reference:** `specs/LANGUAGE_SPEC.md` sorting operations section
+
+**Layer:** Layer 4 (Sets)
 
 **Ralph Wiggum Checklist:**
 - [ ] SORT operation improved to work with comparable types
@@ -1157,136 +1212,27 @@ type Color = "red" | "blue" | "yellow" | "green" | "orange" | "purple";
 
 ---
 
-#### Task P2.4: Reorganize Integration Tests (5 hours)
+#### Task P2.4: Update Batch Runtime Tests to Batch-Specific Only (1 hour)
 
 **Priority:** P2 MEDIUM
 **Status:** NOT STARTED
-**Estimated Time:** 5 hours
-**Impact:** Better test organization, clearer separation of concerns
-**Files:**
-- All test files in `packages/tests/src/*` (reorganize structure)
+**Estimated Time:** 1 hour
+**Impact:** Clear batch-specific test coverage
 
-**Why Important:**
-- Current structure mixes shared and specific tests
-- No clear separation between batch and incremental tests
-- Difficult to identify which runtime has issues
-- Better organization improves maintainability
-
-**Files to Reorganize:**
-Move existing integration tests from `packages/tests/src/*` to new structure:
-
-```typescript
-// Current structure:
-packages/tests/src/
-├── end-to-end/
-│   ├── arithmetic.test.ts
-│   ├── nested-operations.test.ts
-│   ├── inline-nested-operations.test.ts
-│   └── types.test.ts
-├── integration/
-│   └── fractions.test.ts
-├── curriculum/
-│   ├── shapes.test.ts
-│   └── comparison.test.ts
-├── sets/
-│   ├── union.test.ts
-│   └── filter-sort.test.ts
-├── temporal/
-│   ├── fby.test.ts
-│   └── streams.test.ts
-├── demand-driven/
-│   ├── unreferenced.test.ts
-│   └── no-outputs.test.ts
-├── errors/
-│   ├── division-zero.test.ts
-│   └── cycles.test.ts
-├── performance/
-│   ├── compilation.test.ts
-│   └── execution.test.ts
-├── types/
-│   ├── properties.test.ts
-│   └── validation.test.ts
-└── test-inline-nested.test.ts
-
-// Target structure:
-packages/tests/src/
-├── shared/
-│   ├── arithmetic.test.ts      (from end-to-end/arithmetic.test.ts)
-│   ├── fractions.test.ts        (from integration/fractions.test.ts)
-│   ├── sets.test.ts             (from sets/union.test.ts, sets/filter-sort.test.ts)
-│   ├── temporal.test.ts         (from temporal/fby.test.ts, temporal/streams.test.ts)
-│   ├── curriculum.test.ts       (from curriculum/shapes.test.ts, curriculum/comparison.test.ts)
-│   ├── demand-driven.test.ts    (from demand-driven/unreferenced.test.ts, demand-driven/no-outputs.test.ts)
-│   └── errors-runtime.test.ts  (from errors/division-zero.test.ts)
-│
-├── batch/
-│   ├── execution.test.ts        (from performance/execution.test.ts)
-│   └── full-program.test.ts    (from end-to-end/nested-operations.test.ts)
-│
-├── compiler/
-│   ├── type-validation.test.ts  (from types/validation.test.ts)
-│   ├── cycle-detection.test.ts  (from errors/cycles.test.ts)
-│   ├── performance.test.ts      (from performance/compilation.test.ts)
-│   └── ast-structure.test.ts    (from end-to-end/types.test.ts)
-│
-└── incremental/                 (empty - tests in Task P1.9)
-    ├── partial-evaluation.test.ts
-    ├── subscriptions.test.ts
-    ├── graph-updates.test.ts
-    ├── incremental-recompute.test.ts
-    ├── missing-inputs.test.ts
-    ├── notifications.test.ts
-    └── cache-invalidation.test.ts
-```
-
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P1.8 (extract shared tests), P1.9 (incremental tests)
-
-**Acceptance Criteria (from specs/TESTS_SPEC.md):**
-- ✓ All existing integration tests moved to appropriate directories
-- ✓ Tests reorganized by scope (shared, batch, incremental, compiler)
-- ✓ All tests still pass after reorganization
-- ✓ TypeScript typecheck passes
-- ✓ No test files lost or duplicated
-
-**Required Tests:**
-- [ ] Test: All tests moved to new structure
-- [ ] Test: All tests still pass
-- [ ] Test: TypeScript typecheck passes
-- [ ] Test: Clear separation of shared vs specific tests
-
-**Spec Reference:** `specs/TESTS_SPEC.md` lines 572-650
-
-**Layer:** Cross-layer (testing organization)
-
-**Ralph Wiggum Checklist:**
-- [ ] All integration tests reorganized
-- [ ] Clear separation of shared vs specific tests
-- [ ] All tests pass after reorganization
-- [ ] TypeScript typecheck passes
-- [ ] Git commit: "test(reorg): reorganize integration tests by runtime type"
-
----
-
-#### Task P2.5: Update Batch Runtime Tests (2 hours)
-
-**Priority:** P2 MEDIUM
-**Status:** NOT STARTED
-**Estimated Time:** 2 hours
-**Impact:** Clear batch-specific tests
-**Files:** `packages/runtime/src/runtime.test.ts`
-
-**Why Important:**
-- After extracting shared tests (P1.8), runtime.test.ts should only contain batch-specific tests
+**Why Medium Priority:**
+- From study: "After extracting shared tests, runtime.test.ts should only contain batch-specific tests"
+- Currently has shared tests that should be in shared/
 - Ensures clear separation of concerns
-- Makes test maintenance easier
 
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P1.8 (extract shared tests)
+**Files Affected:**
+- `packages/runtime/src/runtime.test.ts` (remove shared tests)
+
+**Dependencies:** P1.2 (Reorganize test structure - shared tests extracted first)
 
 **Acceptance Criteria:**
 - ✓ runtime.test.ts contains only batch-specific tests
 - ✓ All shared tests extracted to shared/ directory
 - ✓ All tests pass
-- ✓ TypeScript typecheck passes
 
 **Ralph Wiggum Checklist:**
 - [ ] runtime.test.ts updated
@@ -1297,21 +1243,22 @@ packages/tests/src/
 
 ---
 
-### 🌟 P3 LOW (Post-MVP)
+### 🌟 P3 LOW (Post-MVP / Nice-to-have - Code Quality & Performance)
 
-#### Task P1.7: Refactor HTTP API to Follow Elysia Best Practices (11 hours)
+#### Task P3.1: Refactor HTTP API to Follow Elysia Best Practices (11 hours)
 
-**Priority:** P3 LOW (demoted from P1 - not blocking MVP)
+**Priority:** P3 LOW (Code Quality)
 **Status:** NOT STARTED
 **Estimated Time:** 11 hours
 **Impact:** Code quality and maintainability
-**Files:**
-- `packages/http-api/src/server.ts` (use Elysia plugins, add error middleware)
-- `packages/http-api/src/routes.ts` (use Elysia.t for schema validation)
-- `packages/http-api/src/index.ts` (add Eden Treaty for end-to-end type safety)
 
-**Why Important:**
-- Current implementation works but doesn't follow Elysia best practices
+**Why Low Priority:**
+- HTTP API is 64% complete and functional (12/12 tests passing)
+- Works, but doesn't follow Elysia best practices
+- Not blocking any features
+- Code quality improvement only
+
+**What's Missing:**
 - Missing Elysia.t validation (runtime + compile-time type safety)
 - Missing error handling middleware
 - Missing plugin pattern for route organization
@@ -1319,7 +1266,11 @@ packages/tests/src/
 - Uses manual type assertions instead of schema validation
 - Returns 200 OK for validation errors (should be 422)
 
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+**Files Affected:**
+- `packages/http-api/src/server.ts`
+- `packages/http-api/src/routes.ts`
+
+**Dependencies:** None
 
 **Acceptance Criteria (from specs/ELYSIA_LLMS.md):**
 - ✓ Use Elysia.t for request/response schema validation
@@ -1341,9 +1292,9 @@ packages/tests/src/
 - [ ] Typecheck passes with no errors
 - [ ] Code follows Elysia best practices from specs/ELYSIA_LLMS.md
 
-**Layer:** Layer 7 (Integration)
-
 **Spec Reference:** `specs/ELYSIA_LLMS.md` (Best Practices, Validation, Error Handling, Plugin Pattern, Eden Treaty)
+
+**Layer:** Layer 7 (Integration)
 
 **Ralph Wiggum Checklist:**
 - [ ] HTTP API refactored to follow Elysia best practices
@@ -1358,76 +1309,27 @@ packages/tests/src/
 
 ---
 
-#### Task P3.1: Implement WebSocket Server (12 hours)
-
-**Priority:** P3 LOW (demoted from P3 - not blocking MVP)
-**Status:** NOT STARTED
-**Estimated Time:** 12 hours
-**Impact:** IDE live feedback
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation), P0.10 (Add Temporal Operators to IncrementalRuntime), P1.9 (IncrementalRuntime tests)
-
-**Acceptance Criteria (from specs/INTEGRATION_SPEC.md lines 200-361):**
-- ✓ Client connects via ws://localhost:3000/live
-- ✓ Server validates messages and responds with messageId
-- ✓ Server handles validate_program requests
-- ✓ Server handles evaluate_incremental requests
-- ✓ Server handles subscribe_node requests
-- ✓ Server handles unsubscribe_node requests
-- ✓ Server pushes node_state_changed when subscribed
-- ✓ Multiple clients can connect simultaneously
-- ✓ Connection is resilient (reconnects on disconnect)
-- ✓ Error messages include child-friendly Spanish text for ages 6-9
-- ✓ Valid program → validation_result with empty errors
-- ✓ Partial program → evaluation_result with mixed statuses
-- ✓ Subscribe to node → receive state changes on updates
-- ✓ Malformed message → error response
-- ✓ Message roundtrip <50ms (p95)
-- ✓ Handles 5 concurrent WebSocket connections
-- ✓ No memory leaks on client disconnect
-
-**Required Tests:**
-- [ ] Test: Client connects to ws://localhost:3000/live
-- [ ] Test: validate_program message returns validation_result
-- [ ] Test: evaluate_incremental returns node states
-- [ ] Test: subscribe_node receives node_state_changed on updates
-- [ ] Test: unsubscribe_node stops receiving updates
-- [ ] Test: Multiple clients connect simultaneously
-- [ ] Test: Client disconnect and reconnect
-- [ ] Test: Malformed message returns error response
-- [ ] Test: Error messages are child-friendly Spanish
-- [ ] Test: 5 concurrent WebSocket connections handled correctly
-- [ ] Benchmark: Message roundtrip <50ms (p95)
-- [ ] Benchmark: No memory leaks on client disconnect (100 connect/disconnect cycles)
-
-**Layer:** Layer 7 (Integration)
-
-**Spec Reference:** `specs/INTEGRATION_SPEC.md` lines 200-361
-
-**Ralph Wiggum Checklist:**
-- [ ] WebSocket server implemented
-- [ ] WebSocket tests pass
-- [ ] Typecheck passes
-- [ ] Multiple concurrent clients work
-- [ ] Git commit: "feat(websocket): implement WebSocket server"
-
----
-
 #### Task P3.2: Complete Execution Trace Implementation (2 hours)
 
 **Priority:** P3 LOW
 **Status:** NOT STARTED
 **Estimated Time:** 2 hours
 **Impact:** Debugging support
-**Files:** `packages/runtime/src/runtime.ts`
 
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+**Why Low Priority:**
+- Execution trace partially implemented
+- Not blocking any features
+- Debugging support only
+
+**Files Affected:**
+- `packages/runtime/src/runtime.ts`
+
+**Dependencies:** None
 
 **Acceptance Criteria:**
 - ✓ executionOrder array populated with node evaluation order
 - ✓ nodeEvaluations map populated with evaluation results
 - ✓ Execution trace available via API
-
-**Layer:** Cross-layer (debugging support)
 
 **Ralph Wiggum Checklist:**
 - [ ] Execution trace fully implemented
@@ -1444,9 +1346,16 @@ packages/tests/src/
 **Status:** NOT STARTED
 **Estimated Time:** 3 hours
 **Impact:** Performance
-**Files:** `packages/runtime/src/evaluator/demand-driven-evaluator.ts`
 
-**Dependencies:** P0.8 (Fix DataType Union - blocks compilation)
+**Why Low Priority:**
+- Performance optimization
+- Not blocking any features
+- Demand-driven semantics already work
+
+**Files Affected:**
+- `packages/runtime/src/evaluator/demand-driven-evaluator.ts`
+
+**Dependencies:** None
 
 **Acceptance Criteria:**
 - ✓ Independent evaluations happen in parallel
@@ -1463,118 +1372,37 @@ packages/tests/src/
 
 ---
 
-## MVP Definition & Progress
+## Summary & Timeline
 
-### MVP Requirements (from PROJECT_GOALS.md)
+### Next 30 Hours Focus
 
-To achieve MVP, complete the following:
+**Week 1: Layer 7 Completion (15 hours)**
+- Day 1-2: P0.1 - Complete IncrementalRuntime tests (4 hours)
+- Day 3-5: P1.1 - Implement WebSocket Server (12 hours - spread over 3 days)
 
-**Core Language (Layers 1-6):**
-- ✅ Natural numbers, arithmetic operations (ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE)
-- ✅ Fraction operations - COMPLETE
-- ✅ Integer operations - ✅ ALREADY DONE (not missing)
-- ✅ Decimal operations - ✅ ALREADY DONE (not missing)
-- ✅ Curriculum types (Shape, Car, Food, Animal, Person)
-- ✅ Curriculum type filters - ✅ ALREADY DONE (generic)
-- ✅ Set operations (UNION, INTERSECTION, DIFFERENCE, COMPLEMENT)
-- ✅ Temporal operators - COMPLETE (demand-driven correct, added to IncrementalRuntime.executeOperation(), ACCUMULATE bug fixed)
-- ✅ Filter operations (FILTER, FILTER_BY_SIZE, FILTER_BY_COLOR for Shape)
-- ✅ Set/Stream operations generic - ✅ ALREADY DONE (not missing)
-- ✅ Nested operations - IMPLEMENTED
+**Week 2: Core Stability (9 hours)**
+- Day 6: P0.2 - Fix Set/Object literal ambiguity (3 hours)
+- Day 7: P0.3 - Implement missing compiler validation (3 hours)
+- Day 8: P1.2 - Reorganize test structure (3 hours)
 
-**Compiler:**
-- ✅ Validates programs, catches errors at compile-time
-- ✅ Stream type resolution - FIXED
-- ✅ Type compatibility validation - FIXED
-- ⚠️ Set homogeneity validation - MISSING (P1.6)
-- ⚠️ Output node requirement - MISSING (P1.6)
-- ⚠️ Literal type validation - MISSING (P1.6)
-- ⚠️ Stream source validation - MISSING (P1.6)
-- 🔥 CRITICAL: Set/Object literal ambiguity - ISSUE (P1.5)
-- ✅ Nested operations - IMPLEMENTED
+**Week 3: Completeness (6 hours)**
+- Day 9-10: P2.1 - Add missing operation contracts (3 hours)
+- Day 10: P2.2 - Fix color type (0.5 hours)
+- Day 10: P2.3 - Improve SORT type safety (2 hours)
+- Day 10: P2.4 - Update batch runtime tests (1 hour)
 
-**Runtime:**
-- ✅ Executes programs correctly (simple cases)
-- ✅ Integer/Decimal operations - ✅ FULLY IMPLEMENTED
-- ✅ 31/31 operations in registry (plus ~38 missing operations)
-- ✅ Generic set/stream operations - ✅ FULLY IMPLEMENTED
-- ✅ Temporal operators in IncrementalRuntime - COMPLETE (P0.10)
-- ✅ ACCUMULATE logic bug - FIXED (P0.11)
-- ✅ Handles 5 concurrent users without degradation
+**Post-MVP (Optional - 16 hours):**
+- P3.1: Refactor HTTP API (11 hours)
+- P3.2: Complete execution trace (2 hours)
+- P3.3: Add parallelism (3 hours)
 
-**Integration (Layer 7):**
-- ✅ HTTP API for batch mode (12/12 tests passing)
-- ✅ IncrementalRuntime - executeOperation() implemented, temporal operators added (P0.10), ACCUMULATE bug fixed (P0.11)
-- 🔥 CRITICAL: IncrementalRuntime tests - 18/40 tests (45%) - IN PROGRESS (P1.9)
-- ✅ CRITICAL: Shared tests - 40/50 tests (80%) - COMPLETED (P1.8)
-- ✅ TypeScript compilation - PASSES (0 errors) - COMPLETED (P0.8, P0.9)
-- ⚠️ HTTP API Elysia best practices - MISSING (P1.7) - not blocking MVP
-- ❌ WebSocket Server - 0% implemented (P3.1) - not blocking MVP
+### Total Estimated Time: 30 hours (MVP) + 16 hours (Post-MVP)
 
-**MVP Completion Tasks:**
-
-### ✅ Previously Completed (2026-03-16)
-
-1. ✅ Test Utilities (P0.7) - Fully implemented with 13 tests passing
-2. ✅ executeOperation in IncrementalRuntime (P0.6) - Fully implemented
-3. ✅ Integer Operations (P1.1) - ALREADY DONE - all operations implemented
-4. ✅ Decimal Operations (P1.2) - ALREADY DONE - all operations implemented
-5. ✅ Curriculum Type Filtering (P1.3) - ALREADY DONE - generic implementation
-6. ✅ Set/Stream Operations Generic (P1.4) - ALREADY DONE - fully generic
-7. ✅ Fixed 2 IncrementalRuntime bugs (2026-03-16)
-8. ✅ Fix DataType Union Design Flaw (P0.8) - COMPLETED - 19 compilation errors resolved, typecheck passes
-9. ✅ Fix SetType Generic Type (P0.9) - COMPLETED (part of P0.8) - proper generic T[] elements
-10. ✅ Add Temporal Operators to IncrementalRuntime (P0.10) - COMPLETED - FBY, NEXT, FIRST, ACCUMULATE implemented
-11. ✅ Fix ACCUMULATE Logic Bug in Both Runtimes (P0.11) - COMPLETED - Now evaluates currentNodeId at time-1
-
-### ⏳ High Priority (Next Tasks)
-
-12. ⏳ P1.5: Fix Set/Object Literal Ambiguity (3h) - HIGH - parser robustness
-11. 🔥 P0.11: Fix ACCUMULATE Logic Bug (1h) - HIGH - bug in both runtimes
-
-### ⏳ High Priority (After Blockers)
-
-12. ⏳ P1.5: Fix Set/Object Literal Ambiguity (3h) - HIGH - parser robustness
-13. ⏳ P1.6: Implement Missing Compiler Validation (3h) - HIGH - better error messages
-14. ✅ P1.8: Extract Shared Tests (3h) - HIGH - 40/50 shared tests
-15. ⏳ P1.9: Create IncrementalRuntime Tests (4h) - HIGH - 18/40 incremental tests
-
-### 🔧 Medium Priority (After High Priority)
-
-16. ⏳ P2.1: Add Missing Operations to Registry (4h) - ~38 operations missing
-17. ⏳ P2.2: Fix Color Type Extra Values (0.5h) - spec compliance
-18. ⏳ P2.3: Improve SORT/ALPHABETICAL_SORT (2h) - type safety
-19. ⏳ P2.4: Reorganize Integration Tests (5h) - test organization
-20. ⏳ P2.5: Update Batch Runtime Tests (2h) - clear batch-specific tests
-
-### 🌟 Low Priority (Post-MVP)
-
-21. ⏳ P1.7: Refactor HTTP API (11h) - OPTIONAL - code quality, not blocking
-22. ⏳ P3.1: Implement WebSocket Server (12h) - OPTIONAL - Layer 7, not blocking MVP
-23. ⏳ P3.2: Complete Execution Trace (2h) - debugging support
-24. ⏳ P3.3: Add Parallelism (3h) - performance
-
-**Total MVP Time:** ~21.5 hours (P0.8, P0.9, P0.10, P0.11 completed; P1.5, P1.6, P1.8, P1.9 remaining)
-**Total with Medium Priority:** ~35 hours (+ P2.1-P2.5)
-**Total Complete Implementation:** ~51 hours (+ P1.7, P3.1-P3.3)
-
-**Expected Test Coverage After Reorganization:**
-- Shared tests: ~50 tests (run on both runtimes) - Currently 40/50 (80%)
-- Batch-specific tests: ~15 tests
-- Incremental-specific tests: ~40 tests (up from 0) - Currently 18/40 (45%)
-- Compiler tests: ~20 tests
-- Test utilities: 13 tests - ✅ COMPLETE
-- HTTP API tests: 12 tests - ✅ COMPLETE
-- **Total: ~150 tests** (currently 206/206 passing)
-
----
-
-## Next Immediate Actions
-
-1. [ ] P1.5: Fix Set/Object Literal Ambiguity (3 hours) - HIGH
-2. [ ] P1.6: Implement Missing Compiler Validation (3 hours) - HIGH
-3. ✅ P1.8: Extract Shared Tests (3 hours) - HIGH - COMPLETED (40/50 tests)
-4. ⏳ P1.9: Create IncrementalRuntime-Specific Tests (4 hours) - HIGH - IN PROGRESS (18/40 tests)
+### After 30 Hours:
+- ✅ Layer 7: Complete (100%)
+- ✅ Compiler: 100% validation rules, robust parser
+- ✅ Shared: Complete operation registry, correct types
+- ✅ Tests: Well-organized, full coverage
 
 ---
 
@@ -1584,20 +1412,20 @@ To achieve MVP, complete the following:
 - ✅ TypeScript compilation: PASSES (0 errors) - UNBLOCKED
 - Compilation: ~50ms for <50 nodes (on par with target)
 - Execution: ~2ms for simple programs (exceeds target)
-- Test suite: 206/206 tests passing (100%)
+- Test suite: 214/214 tests passing (100%)
 - Temporal operators in IncrementalRuntime: ✅ COMPLETE (P0.10)
 - ACCUMULATE logic bug: ✅ FIXED (P0.11)
-- IncrementalRuntime tests: 18/40 tests (45%)
+- IncrementalRuntime tests: 26/40 tests (65%)
 - Shared tests: 40/50 tests (80%)
 
 ### Targets
-- TypeScript compilation: ✅ 0 errors (CRITICAL for MVP)
+- TypeScript compilation: ✅ 0 errors (CRITICAL for MVP) - ACHIEVED
 - Compilation: <100ms for programs with <100 nodes (p95)
 - Execution: <50ms for programs with <100 nodes (p95)
 - Concurrent: 5 simultaneous requests without degradation
 - Incremental update: 5x faster than full re-evaluation
 - WebSocket roundtrip: <50ms (p95)
-- Test suite execution: <5 seconds for full test suite (~150 tests)
+- Test suite execution: <5 seconds for full test suite (~228 tests)
 - Test startup: <1 second per test file
 
 ---
@@ -1605,7 +1433,7 @@ To achieve MVP, complete the following:
 ## Success Metrics
 
 ### MVP (Layers 1-6 + Basic Integration)
-- ✅ All 31/31 operations implemented in registry (plus ~38 missing)
+- ✅ All 31/31 operations implemented in registry (plus ~7 missing)
 - ✅ Fraction ops COMPLETE
 - ✅ Integer ops COMPLETE (was marked missing - ALREADY DONE)
 - ✅ Decimal ops COMPLETE (was marked missing - ALREADY DONE)
@@ -1617,14 +1445,15 @@ To achieve MVP, complete the following:
 - ✅ Compiler validates programs correctly
 - ✅ Runtime executes programs
 - ✅ Nested operations supported
-- ✅ 206/206 tests passing (100%)
+- ✅ 214/214 tests passing (100%)
 - ✅ Handles 5 concurrent users
 - ✅ IncrementalRuntime - executeOperation implemented (P0.6), temporal operators added (P0.10), ACCUMULATE bug fixed (P0.11)
-- ✅ TypeScript compilation - PASSES (0 errors) - COMPLETED (P0.8, P0.9)
-- ⏳ IncrementalRuntime tests - 18/40 tests (45%) - HIGH PRIORITY (P1.9)
-- ✅ Shared tests - 40/50 tests (80%) - COMPLETED (P1.8)
-- ⏳ Complete compiler validation - MISSING (P1.6)
-- ⏳ Set/Object literal ambiguity - ISSUE (P1.5)
+- ✅ TypeScript compilation - PASSES (0 errors) - ACHIEVED (P0.8, P0.9)
+- ⏳ IncrementalRuntime tests - 26/40 tests (65%) - HIGH PRIORITY (P0.1)
+- ⏳ Complete compiler validation - MISSING (P0.3)
+- ⏳ Set/Object literal ambiguity - ISSUE (P0.2)
+- ⏳ WebSocket Server - 0% implemented - PRIORITY (P1.1)
+- ⏳ Shared tests - 40/50 tests (80%) - IN PROGRESS (P1.2)
 
 ### Version 1.0 (All Layers)
 - All P0 and P1 tasks completed
@@ -1640,7 +1469,7 @@ To achieve MVP, complete the following:
   - Total: ~150 tests
 - Child-friendly Spanish messages throughout
 - Generic set/stream operations
-- HTTP API follows Elysia best practices
+- HTTP API follows Elysia best practices (P3.1)
 - Temporal operators preserve demand-driven semantics
 - Nested operations supported
 - Clear test organization (shared vs specific)
@@ -1668,32 +1497,39 @@ To achieve MVP, complete the following:
 ## Appendix: Key Insights from Analysis
 
 ### Already Completed (Marked as Missing in Current Plan)
-1. **Integer Operations (P1.1)** - ALREADY DONE: ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE all implemented
-2. **Decimal Operations (P1.2)** - ALREADY DONE: All arithmetic operations implemented
-3. **Curriculum Type Filtering (P1.3)** - ALREADY DONE: Generic FILTER_BY_COLOR, FILTER_BY_TASTE, FILTER_BY_TYPE implemented
-4. **Set/Stream Operations Generic (P1.4)** - ALREADY DONE: All set/stream operations are generic
-5. **Test Utilities (P0.7)** - COMPLETED: 13 tests passing
+1. **Integer Operations** - ALREADY DONE: ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPARE all implemented
+2. **Decimal Operations** - ALREADY DONE: All arithmetic operations implemented
+3. **Curriculum Type Filtering** - ALREADY DONE: Generic FILTER_BY_COLOR, FILTER_BY_TASTE, FILTER_BY_TYPE implemented
+4. **Set/Stream Operations Generic** - ALREADY DONE: All set/stream operations are generic
+5. **Test Utilities** - COMPLETED: 13 tests passing
+6. **Fixed 2 IncrementalRuntime bugs** - 2026-03-16 (graph updates, dependency graph direction)
+7. **Fix DataType Union Design Flaw** - COMPLETED - 19 compilation errors resolved, typecheck passes
+8. **Fix SetType Generic Type** - COMPLETED - proper generic T[] elements
+9. **Add Temporal Operators to IncrementalRuntime** - COMPLETED - FBY, NEXT, FIRST, ACCUMULATE implemented
+10. **Fix ACCUMULATE Logic Bug in Both Runtimes** - COMPLETED - Now evaluates currentNodeId at time-1
+11. **Extract Shared Tests** - COMPLETED - 40 tests in shared/ directory
 
 ### New Critical Issues Found
-1. ~~**🔥 CRITICAL: DataType union design flaw** - 19 TypeScript compilation errors blocking all development~~ ✅ RESOLVED (P0.8, P0.9)
-2. ~~**🔥 CRITICAL: IncrementalRuntime missing temporal operators** - executeOperation() missing FBY, NEXT, FIRST, ACCUMULATE~~ ✅ RESOLVED (P0.10)
-3. ~~**🔥 HIGH: ACCUMULATE logic bug** - Uses streamValue twice in both runtimes~~ ✅ RESOLVED (P0.11)
-4. **🔥 HIGH: IncrementalRuntime has 0 tests** - Critical for Layer 7
-5. **🔥 HIGH: No shared tests exist** - 0/50 shared tests
-6. **🔥 HIGH: Set/Object literal ambiguity** - Fragile GATE logic in parser
-7. **🔥 HIGH: Compiler missing validation rules** - Output node, set homogeneity, literal validation
-8. **🔥 MEDIUM: ~38 operations missing from registry** - COMPARE for text/boolean, SORT for numeric types, temporal for non-Natural
-9. **🔥 MEDIUM: WebSocket Server is 0% implemented** - Was in P3, still not started
+1. ~~🔥 CRITICAL: DataType union design flaw~~ ✅ RESOLVED (P0.8, P0.9)
+2. ~~🔥 CRITICAL: IncrementalRuntime missing temporal operators~~ ✅ RESOLVED (P0.10)
+3. ~~🔥 CRITICAL: ACCUMULATE logic bug~~ ✅ RESOLVED (P0.11)
+4. **🔥 CRITICAL: IncrementalRuntime tests incomplete** - 26/40 tests, 14 missing
+5. **🔥 CRITICAL: Set/Object literal ambiguity** - Fragile GATE logic in parser
+6. **🔥 CRITICAL: Compiler missing validation rules** - Output node, set homogeneity, literal validation
+7. **🔥 MEDIUM: ~7 operations missing from registry** - COMPARE for text/boolean, SORT for numeric types, temporal for non-Natural
+8. **🔥 MEDIUM: WebSocket Server is 0% implemented** - Was in P3, now P1.1 (Layer 7 blocker)
+9. **🔥 MEDIUM: Color type has extra values** - 8 vs 6 colors in spec
 
 ### Test Status Correction
-- Overall: 206/206 passing (100%) - P1.9 task in progress (18/40 tests created)
+- Overall: 214/214 passing (100%)
 - HTTP API: 12/12 passing ✅
-- Runtime: 96 tests (78 batch + 18 incremental)
+- Runtime: 104 tests (78 batch + 26 incremental)
 - Integration: 22 tests
-- IncrementalRuntime: **18/40 tests** - P1.9 task in progress (subscriptions, partial-evaluation, missing-inputs)
+- Shared tests: 40 tests (all passing on both runtimes)
+- IncrementalRuntime: **26/40 tests** - P0.1 task in progress (14 tests remaining)
 
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-16 (206 tests passing, 100% pass rate, ~72% overall complete, P0.7-P0.11 completed, P1.8 completed, P1.9 in progress, Layer 5 now 100% complete)
-**Next Review:** After completing P1.9 task (18/40 tests created)
+**Last Updated:** 2026-03-16 (214 tests passing, 100% pass rate, ~72% overall complete, P0.8-P0.11 completed, P1.8 completed, P1.9 in progress (26/40 tests), Layer 7 partially complete (20%))
+**Next Review:** After completing P0.1 (14 remaining incremental tests)
