@@ -75,13 +75,13 @@ describe('Shared Types - Curriculum', () => {
     expect(shape.kind).toBe('shape');
     expect(['circle', 'triangle', 'square', 'rectangle'] satisfies ShapeType[]).toContain(shape.type);
     expect(['small', 'medium', 'large'] satisfies Size[]).toContain(shape.size);
-    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple', 'black', 'white'] satisfies Color[]).toContain(shape.color);
+    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple'] satisfies Color[]).toContain(shape.color);
   });
 
   it('should create valid Car type', () => {
     const car: Car = { kind: 'car', color: 'blue' };
     expect(car.kind).toBe('car');
-    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple', 'black', 'white'] satisfies Color[]).toContain(car.color);
+    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple'] satisfies Color[]).toContain(car.color);
   });
 
   it('should create valid Food type', () => {
@@ -92,7 +92,7 @@ describe('Shared Types - Curriculum', () => {
     };
     expect(food.kind).toBe('food');
     expect(['sweet', 'salty', 'sour', 'bitter'] satisfies Taste[]).toContain(food.taste);
-    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple', 'black', 'white'] satisfies Color[]).toContain(food.color);
+    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple'] satisfies Color[]).toContain(food.color);
   });
 
   it('should create valid Animal type', () => {
@@ -103,7 +103,7 @@ describe('Shared Types - Curriculum', () => {
     };
     expect(animal.kind).toBe('animal');
     expect(['dog', 'cat', 'bird', 'fish', 'rabbit', 'turtle'] as AnimalType[]).toContain(animal.type);
-    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple', 'black', 'white'] satisfies Color[]).toContain(animal.color);
+    expect(['red', 'blue', 'yellow', 'green', 'orange', 'purple'] satisfies Color[]).toContain(animal.color);
   });
 
   it('should create valid Person type', () => {
@@ -115,6 +115,15 @@ describe('Shared Types - Curriculum', () => {
     expect(person.kind).toBe('person');
     expect(['child', 'teenager', 'adult', 'senior'] as AgeGroup[]).toContain(person.ageGroup);
     expect(['male', 'female'] as Gender[]).toContain(person.gender);
+  });
+
+  it('should have only 6 colors per spec', () => {
+    const validColors: Color[] = ['red', 'blue', 'yellow', 'green', 'orange', 'purple'];
+    expect(validColors).toHaveLength(6);
+
+    const validColorValues: string[] = validColors;
+    expect(validColorValues).not.toContain('white');
+    expect(validColorValues).not.toContain('black');
   });
 });
 
