@@ -109,12 +109,14 @@ export class IncrementalRuntime {
   updateGraph(delta: GraphDelta): UpdateResult {
     const changedNodes: string[] = [];
     const errors: string[] = [];
+    let needsDepGraphRebuild = false;
 
     for (const node of delta.addedNodes || []) {
       this.graph.set(node.id, node);
+      this.cache.delete(node.id);
       this.invalidateDependentCache(node.id);
       changedNodes.push(node.id);
-      this.buildDependencyGraph();
+      needsDepGraphRebuild = true;
     }
 
     for (const nodeId of delta.removedNodes || []) {
@@ -122,14 +124,21 @@ export class IncrementalRuntime {
       this.cache.delete(nodeId);
       this.subscriptions.delete(nodeId);
       changedNodes.push(nodeId);
+      needsDepGraphRebuild = true;
     }
 
     for (const edge of delta.addedEdges || []) {
       this.edges.set(edge.id, edge);
+      needsDepGraphRebuild = true;
     }
 
     for (const edge of delta.removedEdges || []) {
       this.edges.delete(edge.id);
+      needsDepGraphRebuild = true;
+    }
+
+    if (needsDepGraphRebuild) {
+      this.buildDependencyGraph();
     }
 
     if (changedNodes.length > 0) {
@@ -612,12 +621,22 @@ export class IncrementalRuntime {
   private invalidateDependentCache(nodeId: string): void {
     const dependents = this.nodeDependencies.get(nodeId) || new Set();
     const toInvalidate: string[] = [];
+    const visited = new Set<string>();
 
-    for (const depId of dependents) {
-      if (this.cache.has(depId)) {
-        toInvalidate.push(depId);
+    const traverse = (id: string) => {
+      if (visited.has(id)) return;
+      visited.add(id);
+
+      const deps = this.nodeDependencies.get(id) || new Set();
+      for (const depId of deps) {
+        if (this.cache.has(depId)) {
+          toInvalidate.push(depId);
+        }
+        traverse(depId);
       }
-    }
+    };
+
+    traverse(nodeId);
 
     for (const id of toInvalidate) {
       this.cache.delete(id);
@@ -652,12 +671,12 @@ export class IncrementalRuntime {
     this.nodeDependencies.clear();
 
     for (const edge of this.edges.values()) {
-      if (!this.nodeDependencies.has(edge.to)) {
-        this.nodeDependencies.set(edge.to, new Set());
+      if (!this.nodeDependencies.has(edge.from)) {
+        this.nodeDependencies.set(edge.from, new Set());
       }
-      const existingDeps = this.nodeDependencies.get(edge.to) || new Set();
-      existingDeps.add(edge.from);
-      this.nodeDependencies.set(edge.to, existingDeps);
+      const existingDeps = this.nodeDependencies.get(edge.from) || new Set();
+      existingDeps.add(edge.to);
+      this.nodeDependencies.set(edge.from, existingDeps);
     }
   }
 
