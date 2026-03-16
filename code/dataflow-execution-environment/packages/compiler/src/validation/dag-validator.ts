@@ -95,6 +95,14 @@ export class DagValidator {
       }
 
     for (const stmt of statements) {
+      if (stmt.type === "SourceStatement") {
+        const setHomogeneityErrors = this.validateSetHomogeneity(stmt);
+        errors.push(...setHomogeneityErrors);
+
+        const literalTypeErrors = this.validateLiteralType(stmt);
+        errors.push(...literalTypeErrors);
+      }
+
       if (stmt.type === "TransformStatement" || stmt.type === "OutputStatement") {
         const refs = stmt.type === "TransformStatement" ? stmt.inputs : [stmt.input];
         for (const ref of refs) {
@@ -224,6 +232,139 @@ export class DagValidator {
       errors,
       warnings: []
     };
+  }
+
+  validateSetHomogeneity(stmt: Statement): ValidationError[] {
+    if (stmt.type !== "SourceStatement") {
+      return [];
+    }
+
+    const dataType = stmt.dataType as string;
+    if (!dataType.startsWith("set<")) {
+      return [];
+    }
+
+    const value = stmt.value as unknown[];
+    if (!Array.isArray(value) || value.length === 0) {
+      return [];
+    }
+
+    const setMatch = dataType.match(/^set<(.+)>$/);
+    if (!setMatch) {
+      return [];
+    }
+
+    const declaredElementType = setMatch[1];
+
+    for (const element of value) {
+      const elementType = this.inferType(element);
+
+      if (elementType && elementType !== declaredElementType) {
+        return [{
+          code: "SET_HETEROGENEITY_ERROR",
+          message: "All elements in set must have same type",
+          nodeId: stmt.id,
+          childMessage: "⚠️ ¡Ups! Un conjunto solo puede tener elementos del mismo tipo.",
+          suggestion: `Asegúrate de que todos los elementos sean de tipo ${declaredElementType}.`,
+          example: `set<${declaredElementType}> = {elemento 1, elemento 2} ✅`
+        }];
+      }
+    }
+
+    return [];
+  }
+
+  validateLiteralType(stmt: Statement): ValidationError[] {
+    if (stmt.type !== "SourceStatement") {
+      return [];
+    }
+
+    if (!stmt.value) {
+      return [];
+    }
+
+    const declaredType = stmt.dataType as string;
+
+    const setMatch = declaredType.match(/^set<(.+)>$/);
+    if (setMatch) {
+      const elementType = setMatch[1];
+      const valueArray = stmt.value as unknown[];
+
+      if (Array.isArray(valueArray)) {
+        for (let i = 0; i < valueArray.length; i++) {
+          const elementValue = valueArray[i];
+          const valueType = this.inferType(elementValue);
+
+          if (valueType && valueType !== elementType) {
+            return [{
+              code: "LITERAL_TYPE_MISMATCH",
+              message: `Set element at index ${i} has type ${valueType}, but set expects ${elementType}`,
+              nodeId: stmt.id,
+              childMessage: `⚠️ ¡Ups! El elemento en posición ${i} no coincide con el tipo ${elementType}.`,
+              suggestion: `Cambia el elemento o usa el bloque de tipo correcto.`,
+              example: `Para "set<${elementType}>", usa elementos de tipo ${elementType}`
+            }];
+          }
+        }
+      }
+      return [];
+    }
+
+    const valueType = this.inferType(stmt.value);
+    if (valueType && valueType !== declaredType) {
+      return [{
+        code: "LITERAL_TYPE_MISMATCH",
+        message: `Literal value ${JSON.stringify(stmt.value)} has type ${valueType}, but declared type is ${declaredType}`,
+        nodeId: stmt.id,
+        childMessage: "⚠️ ¡Ups! El valor no coincide con el tipo.",
+        suggestion: `Cambia el valor o usa el bloque de tipo correcto.`,
+        example: `Para "${declaredType}", usa un valor de tipo ${declaredType}`
+      }];
+    }
+
+    return [];
+  }
+
+  private inferType(value: unknown): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    if (typeof value === "number") {
+      if (Number.isInteger(value) && value >= 0) {
+        return "natural";
+      } else if (Number.isInteger(value)) {
+        return "integer";
+      } else {
+        return "decimal";
+      }
+    }
+
+    if (typeof value === "string") {
+      return "text";
+    }
+
+    if (typeof value === "boolean") {
+      return "boolean";
+    }
+
+    if (typeof value === "object") {
+      if (!value) {
+        return null;
+      }
+
+      if ("kind" in value) {
+        const kind = (value as any).kind;
+        if (["natural", "integer", "decimal", "fraction", "text", "boolean"].includes(kind)) {
+          return kind;
+        }
+        if (["shape", "car", "food", "animal", "person"].includes(kind)) {
+          return kind;
+        }
+      }
+    }
+
+    return null;
   }
 
   private detectCycles(statements: Statement[]): boolean {

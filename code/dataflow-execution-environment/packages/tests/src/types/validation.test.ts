@@ -109,4 +109,94 @@ describe("Integration Tests - Type Validation", () => {
       expect(typeError?.example).toBeDefined();
     });
   });
+
+  describe("Test 2.3: Set Homogeneity Validation", () => {
+    it("should reject set with mixed types", () => {
+      const compiler = new Compiler();
+
+      const source = `
+        source mixed: set<natural> = {1, "hello", 3};
+        output result: set<natural> = mixed;
+      `;
+
+      const compileResult = compiler.compile(source);
+      expect(compileResult.success).toBe(false);
+
+      const homogeneityError = compileResult.errors.find((e) => e.code === "SET_HETEROGENEITY_ERROR");
+      expect(homogeneityError).toBeDefined();
+      expect(homogeneityError?.childMessage).toContain("mismo tipo");
+      expect(homogeneityError?.suggestion).toBeDefined();
+      expect(homogeneityError?.example).toBeDefined();
+    });
+
+    it("should accept set with same types", () => {
+      const compiler = new Compiler();
+
+      const source = `
+        source numbers: set<natural> = {1, 2, 3};
+        output result: set<natural> = numbers;
+      `;
+
+      const compileResult = compiler.compile(source);
+      expect(compileResult.success).toBe(true);
+    });
+
+    it("should accept empty set", () => {
+      const compiler = new Compiler();
+
+      const source = `
+        source empty: set<natural> = {};
+        output result: set<natural> = empty;
+      `;
+
+      const compileResult = compiler.compile(source);
+      expect(compileResult.success).toBe(true);
+    });
+  });
+
+  describe("Test 2.5: Literal Type Validation", () => {
+    it("should reject literal value that doesn't match declared type", () => {
+      const compiler = new Compiler();
+
+      const source = `
+        source textNum: natural = "hello";
+        output result: natural = textNum;
+      `;
+
+      const compileResult = compiler.compile(source);
+      expect(compileResult.success).toBe(false);
+
+      const literalTypeError = compileResult.errors.find((e) => e.code === "LITERAL_TYPE_MISMATCH");
+      expect(literalTypeError).toBeDefined();
+      expect(literalTypeError?.childMessage).toContain("no coincide");
+      expect(literalTypeError?.suggestion).toBeDefined();
+    });
+
+    it("should accept literal value that matches declared type", () => {
+      const compiler = new Compiler();
+
+      const source = `
+        source num: natural = 5;
+        output result: natural = num;
+      `;
+
+      const compileResult = compiler.compile(source);
+      expect(compileResult.success).toBe(true);
+    });
+
+    it("should reject set element type mismatch", () => {
+      const compiler = new Compiler();
+
+      const source = `
+        source strings: set<natural> = {"a", "b", "c"};
+        output result: set<natural> = strings;
+      `;
+
+      const compileResult = compiler.compile(source);
+      expect(compileResult.success).toBe(false);
+
+      const literalTypeError = compileResult.errors.find((e) => e.code === "LITERAL_TYPE_MISMATCH");
+      expect(literalTypeError).toBeDefined();
+    });
+  });
 });
