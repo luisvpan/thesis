@@ -26,6 +26,12 @@ export class Runtime {
     for (const edge of program.graph.edges) {
       this.graph.addEdge(edge);
     }
+
+    this.evaluator.clearCache();
+  }
+
+  getExecutionTrace(): { executionOrder: string[]; nodeEvaluations: Record<string, { value: unknown; timestep: number }> } {
+    return this.evaluator.getExecutionTrace();
   }
 
   execute(time: number = 0): unknown[] {

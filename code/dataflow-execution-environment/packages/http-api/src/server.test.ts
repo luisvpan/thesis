@@ -267,10 +267,98 @@ describe("Integration Tests - HTTP API", () => {
         }));
 
       const data = await response.json();
-      
+
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.trace).toBeUndefined();
+    });
+
+    it("should return correct execution trace format", async () => {
+      const validProgram = {
+        program: {
+          metadata: { programId: "test_prog_008" },
+          graph: {
+            nodes: [
+              { id: "a", type: "DataSource", dataType: "natural", value: 3 },
+              { id: "b", type: "DataSource", dataType: "natural", value: 2 },
+              { id: "sum", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["a", "b"] },
+              { id: "result", type: "Output", dataType: "natural", input: "sum" }
+            ],
+            edges: [
+              { id: "edge_0", from: "a", to: "sum", toPort: 0 },
+              { id: "edge_1", from: "b", to: "sum", toPort: 1 },
+              { id: "edge_2", from: "sum", to: "result" }
+            ]
+          }
+        },
+        options: {
+          includeTrace: true
+        }
+      };
+
+      const response = await app
+        .handle(new Request("http://localhost/api/v1/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(validProgram)
+        }));
+
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.trace).toBeDefined();
+      expect(Array.isArray(data.trace.executionOrder)).toBe(true);
+      expect(data.trace.executionOrder.length).toBeGreaterThan(0);
+      expect(typeof data.trace.nodeEvaluations).toBe("object");
+      expect(data.trace.nodeEvaluations.a).toBeDefined();
+      expect(data.trace.cacheHits).toBeDefined();
+      expect(data.trace.cacheMisses).toBeDefined();
+      expect(data.trace.totalTime).toBeDefined();
+    });
+
+    it("should return correct execution trace format", async () => {
+      const validProgram = {
+        program: {
+          metadata: { programId: "test_prog_009" },
+          graph: {
+            nodes: [
+              { id: "a", type: "DataSource", dataType: "natural", value: 3 },
+              { id: "b", type: "DataSource", dataType: "natural", value: 2 },
+              { id: "sum", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["a", "b"] },
+              { id: "result", type: "Output", dataType: "natural", input: "sum" }
+            ],
+            edges: [
+              { id: "edge_0", from: "a", to: "sum", toPort: 0 },
+              { id: "edge_1", from: "b", to: "sum", toPort: 1 },
+              { id: "edge_2", from: "sum", to: "result" }
+            ]
+          }
+        },
+        options: {
+          includeTrace: true
+        }
+      };
+
+      const response = await app
+        .handle(new Request("http://localhost/api/v1/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(validProgram)
+        }));
+
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.trace).toBeDefined();
+      expect(Array.isArray(data.trace.executionOrder)).toBe(true);
+      expect(data.trace.executionOrder.length).toBeGreaterThan(0);
+      expect(typeof data.trace.nodeEvaluations).toBe("object");
+      expect(data.trace.nodeEvaluations.a).toBeDefined();
+      expect(data.trace.cacheHits).toBeDefined();
+      expect(data.trace.cacheMisses).toBeDefined();
+      expect(data.trace.totalTime).toBeDefined();
     });
 
     it("should return validation errors for invalid program", async () => {

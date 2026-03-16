@@ -90,19 +90,18 @@ export const app = new Elysia()
     
     const runtime = new Runtime();
     runtime.loadProgram(request.program);
-    
+
     const startTime = performance.now();
     const outputs = runtime.execute(0);
     const totalTime = (performance.now() - startTime).toFixed(2) + "ms";
-    
+
     const executionTrace: ExecutionTrace | undefined = includeTrace ? {
-      executionOrder: [],
-      nodeEvaluations: {},
+      ...runtime.getExecutionTrace(),
       cacheHits: 0,
       cacheMisses: 0,
       totalTime
     } : undefined;
-    
+
     if (includeTrace) {
       const evaluator = runtime.getEvaluator();
       const stats = evaluator.getCacheStats();

@@ -39,6 +39,8 @@ export class DemandDrivenEvaluator {
   private cache = new Map<string, Map<number, unknown>>();
   private cacheHits = 0;
   private cacheMisses = 0;
+  private executionOrder: string[] = [];
+  private nodeEvaluations = new Map<string, { value: unknown; timestep: number }>();
 
   evaluate(nodeId: string, time: number, graph: DataflowGraph): unknown {
     if (this.cache.has(nodeId) && this.cache.get(nodeId)!.has(time)) {
@@ -68,6 +70,9 @@ export class DemandDrivenEvaluator {
       this.cache.set(nodeId, new Map());
     }
     this.cache.get(nodeId)!.set(time, value);
+
+    this.executionOrder.push(nodeId);
+    this.nodeEvaluations.set(nodeId, { value, timestep: time });
 
     return value;
   }
@@ -312,5 +317,14 @@ export class DemandDrivenEvaluator {
     this.cache.clear();
     this.cacheHits = 0;
     this.cacheMisses = 0;
+    this.executionOrder = [];
+    this.nodeEvaluations.clear();
+  }
+
+  getExecutionTrace(): { executionOrder: string[]; nodeEvaluations: Record<string, { value: unknown; timestep: number }> } {
+    return {
+      executionOrder: [...this.executionOrder],
+      nodeEvaluations: Object.fromEntries(this.nodeEvaluations)
+    };
   }
 }
