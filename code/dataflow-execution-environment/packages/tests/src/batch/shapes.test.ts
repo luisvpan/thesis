@@ -56,13 +56,14 @@ describe("Integration Tests - Curriculum Types", () => {
       runtime.loadProgram(compileResult.program!);
       runtime.execute();
 
-      // Verify original set unchanged - source value is array before evaluation
+      // Verify original set unchanged - source value is a wrapped set object
       const graph = runtime.getGraph();
       const sourceNode = graph.getNode("shapes");
       expect(sourceNode).toBeDefined();
       if (sourceNode && sourceNode.type === "DataSource") {
-        const originalShapes = sourceNode.value as unknown[];
-        expect(originalShapes).toHaveLength(2);
+        const originalShapes = sourceNode.value as { kind: string; elements: unknown[] };
+        expect(originalShapes.kind).toBe("set");
+        expect(originalShapes.elements).toHaveLength(2);
       }
     });
   });
