@@ -8,6 +8,36 @@ export const BUILTIN_GENERATORS: Record<string, GeneratorFactory> = {
     while (true) {
       yield i++;
     }
+  },
+
+  range: function* () {
+    for (let i = 0; i < 10; i++) {
+      yield i;
+    }
+    while (true) {
+      yield 9;
+    }
+  },
+
+  constant: function* () {
+    while (true) {
+      yield 0;
+    }
+  },
+
+  repeat: function* () {
+    while (true) {
+      yield 1;
+    }
+  },
+
+  cycle: function* () {
+    const items = [0, 1];
+    let index = 0;
+    while (true) {
+      yield items[index];
+      index = (index + 1) % items.length;
+    }
   }
 };
 
