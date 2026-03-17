@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-17 (P2.1 Eden Treaty export completed, ~84% overall complete)
+**Last Updated:** 2026-03-17 (P2.2 Spanish messages completed, ~85% overall complete)
 
 ---
 
@@ -49,7 +49,7 @@ A comprehensive analysis was performed using 6 parallel subagents, each analyzin
 
 ### Analysis Summary
 
-#### Overall Completion: ~82%
+#### Overall Completion: ~85%
 
 | Component | Status | Completion | Critical Issues |
 |-----------|--------|------------|-------------------|
@@ -127,10 +127,10 @@ All P0 critical bugs have been fixed:
 - **File:** `packages/http-api/src/index.ts`
 - **Estimated Fix Time:** 1 hour
 
-**P2.2 - Incomplete Child-Friendly Spanish Messages**
-- **Impact:** Not all error messages have Spanish text for ages 6-9
-- **Files:** Multiple validation files
-- **Estimated Fix Time:** 4-6 hours
+**P2.2 - Complete Child-Friendly Spanish Messages** ✅ COMPLETED (2026-03-17)
+- **Impact:** All error messages now have Spanish text for ages 6-9
+- **Files:** `packages/compiler/src/validation/dag-validator.ts`
+- **Estimated Fix Time:** 4-6 hours (COMPLETED - 14 new Spanish message cases added)
 
 **P2.3 - Test Coverage Gaps**
 - **Impact:** Missing tests for boolean operations (0%), advanced set ops (50%), temporal ops (25%)
@@ -694,15 +694,68 @@ const api = treaty<App>('localhost:3000')
 #### Task P2.2: Complete Child-Friendly Spanish Messages (4-6 hours)
 
 **Priority:** P2 MEDIUM
-**Status:** ⚠️ NOT STARTED
+**Status:** ✅ COMPLETED (2026-03-17)
 **Impact:** Not all error messages have Spanish text for ages 6-9
 
-**Missing Messages:**
-- COMPARE_BY_* operations (TYPE, TASTE, AGE_GROUP, GENDER)
-- FILTER, FILTER_BY_TYPE, FILTER_BY_TASTE, FILTER_BY_AGE_GROUP, FILTER_BY_GENDER
-- INTERSECTION, DIFFERENCE, COMPLEMENT, ALPHABETICAL_SORT
-- NEXT, FIRST, ACCUMULATE
-- AND, OR, NOT
+**Missing Messages - RESOLVED:**
+- ✅ SUBTRACT, MULTIPLY, DIVIDE (arithmetic operations)
+- ✅ UNION, INTERSECTION, DIFFERENCE, COMPLEMENT (set operations)
+- ✅ AND, OR, NOT (boolean operations)
+- ✅ NEXT, FIRST, ACCUMULATE, FBY (temporal operations)
+
+**Implementation:**
+
+Added child-friendly Spanish messages for all missing operations in `packages/compiler/src/validation/dag-validator.ts`:
+
+1. **Arithmetic Operations:**
+   - SUBTRACT: "⚠️ ¡Ups! El bloque SUBTRACT necesita números..."
+   - MULTIPLY: "⚠️ ¡Ups! El bloque MULTIPLY necesita números..."
+   - DIVIDE: "⚠️ ¡Ups! El bloque DIVIDE necesita números..."
+
+2. **Set Operations:**
+   - UNION: "⚠️ ¡Ups! UNION solo funciona con conjuntos..."
+   - INTERSECTION: "⚠️ ¡Ups! INTERSECTION solo funciona con conjuntos..."
+   - DIFFERENCE: "⚠️ ¡Ups! DIFFERENCE solo funciona con conjuntos..."
+   - COMPLEMENT: "⚠️ ¡Ups! COMPLEMENT solo funciona con conjuntos..."
+
+3. **Boolean Operations:**
+   - AND: "⚠️ ¡Ups! El bloque AND solo funciona con valores verdadero/falso..."
+   - OR: "⚠️ ¡Ups! El bloque OR solo funciona con valores verdadero/falso..."
+   - NOT: "⚠️ ¡Ups! El bloque NOT solo funciona con valores verdadero/falso..."
+
+4. **Temporal Operations:**
+   - NEXT: "⚠️ ¡Ups! NEXT solo funciona con flujos..."
+   - FIRST: "⚠️ ¡Ups! FIRST solo funciona con flujos..."
+   - ACCUMULATE: "⚠️ ¡Ups! ACCUMULATE solo funciona con flujos..."
+   - FBY: "⚠️ ¡Ups! FBY necesita un valor inicial y un flujo..."
+
+**Note:** COMPARE_BY_*, FILTER_BY_, SORT, and ALPHABETICAL_SORT already had Spanish messages.
+
+**Files Affected:**
+- `packages/compiler/src/validation/dag-validator.ts` (added 14 new operation-specific Spanish message cases)
+
+**Dependencies:** None
+
+**Acceptance Criteria:**
+- ✅ All missing Spanish messages added
+- ✅ Messages are child-friendly (ages 6-9)
+- ✅ All 380 tests passing
+- ✅ Typecheck passes (0 errors)
+
+**Tests:**
+- All existing tests still pass (380/380)
+- No regressions introduced
+- Spanish messages consistent with existing style
+
+**Spec Reference:** `specs/INTEGRATION_SPEC.md`, `specs/LANGUAGE_SPEC.md`
+
+**Layer:** Layer 2 (Compiler - Validation)
+
+**Ralph Wiggum Checklist:**
+- [x] All missing Spanish messages added
+- [x] All tests pass (380/380)
+- [x] Typecheck passes (0 errors)
+- [ ] Git commit: "feat(compiler): complete child-friendly Spanish messages"
 
 **Required Changes:**
 
@@ -1130,7 +1183,7 @@ case "ADD":
 - **P3 LOW tasks:** 8-10 hours
 
 **Total Estimated:** **78-89 hours** for production-ready system
-**Current Progress:** 38-44 hours completed (~50%)
+**Current Progress:** 43-51 hours completed (~55%)
 
 ### ✅ After P0 Tasks (COMPLETED - 2026-03-16):
 - ✅ Push notifications working
@@ -1375,8 +1428,8 @@ All P0 critical bugs have been fixed:
 
 ### MEDIUM PRIORITY - Complete After P1:
 
-1. **P2.1: Add Eden Treaty Export (1 hour)** - End-to-end type safety
-2. **P2.2: Complete Spanish Messages (4-6 hours)** - Full child-friendly coverage
+1. **P2.1: Add Eden Treaty Export (1 hour)** - ✅ COMPLETED - End-to-end type safety
+2. **P2.2: Complete Spanish Messages (4-6 hours)** - ✅ COMPLETED - Full child-friendly coverage
 3. **P2.3: Add Missing Test Coverage (18-24 hours)** - Achieve >80% coverage
 4. **P2.4: Add Security Measures (3-4 hours)** - Rate limiting, timeouts
 
@@ -1448,10 +1501,10 @@ All P0 critical bugs have been fixed (2026-03-16):
   - No functionality lost - all validation errors still being caught
 
 **TOTAL TIME ESTIMATE:** 78-89 hours for production-ready system
-**CURRENT PROGRESS:** 39-45 hours completed (~51%)
+**CURRENT PROGRESS:** 43-51 hours completed (~55%)
 
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-17 (P2.1 Eden Treaty export completed, ~84% overall complete)
+**Last Updated:** 2026-03-17 (P2.2 Spanish messages completed, ~85% overall complete)
 **Next Review:** After P2 tasks completion (70-79 hours)
