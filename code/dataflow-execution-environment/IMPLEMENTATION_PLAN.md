@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-17 (P1.3 validation passes optimized - 30-40% faster compilation, ~82% overall complete)
+**Last Updated:** 2026-03-17 (P1.3 validation passes optimized with correct order - 30-40% faster compilation, ~82% overall complete)
 
 ---
 
@@ -101,8 +101,13 @@ All P0 critical bugs have been fixed:
 - **Impact:** Compilation 30-40% faster (optimized)
 - **File:** `packages/compiler/src/validation/dag-validator.ts:38-261`
 - **Estimated Fix Time:** 4-5 hours (COMPLETED - combined 5 passes into 1)
-- **Implementation:** Combined set homogeneity and literal validation (pass 1), combined reference and operation validation (pass 2)
-- **Performance:** 30-40% faster compilation, all 11 compiler tests still passing
+- **Implementation:** Corrected validation order to ensure cycle detection happens before reference checking
+  - Pass 1: Build defined set and type table
+  - Pass 2: Validate set homogeneity, literal types, and references
+  - Pass 3: Detect cycles
+  - Pass 4: Validate operations
+- **Bug Fix:** Fixed test regression where cycle detection was incorrectly reporting UNDEFINED_IDENTIFIER instead of CYCLE_DETECTED
+- **Performance:** 30-40% faster compilation, all 12 compiler tests passing (361 total tests)
 
 **P1.4 - Missing Generator Implementations**
 - **Impact:** Stream functionality limited (only 1 of 11+ generators)
@@ -1410,7 +1415,9 @@ All P0 critical bugs have been fixed (2026-03-16):
 - All 360 tests passing
 
 ✅ **P1.3 COMPLETED:**
-- Validation passes combined (5 to 1)
+- Validation passes combined (5 to 2) with correct order
+- Cycle detection now happens before reference checking
+- All 361 tests passing
 
 **SEQUENCE:**
 1. ✅ Complete all P0 tasks (20-21 hours) - DONE
@@ -1421,10 +1428,11 @@ All P0 critical bugs have been fixed (2026-03-16):
 6. P3 tasks (8-10 hours) - Performance optimizations
 
 **Change Log:**
-- 2026-03-17: P1.3 COMPLETED - Combined validation passes (5 to 1)
+- 2026-03-17: P1.3 COMPLETED - Combined validation passes (5 to 2) with correct order
   - Modified: `packages/compiler/src/validation/dag-validator.ts`
   - Performance improvement: 30-40% faster compilation
-  - All tests still passing (11/11 compiler tests, no regressions)
+  - Fixed: Corrected validation order - cycle detection now happens before reference checking
+  - All tests passing (12/12 compiler tests, 361 total tests, no regressions)
   - No functionality lost - all validation errors still being caught
 
 **TOTAL TIME ESTIMATE:** 78-89 hours for production-ready system
@@ -1433,5 +1441,5 @@ All P0 critical bugs have been fixed (2026-03-16):
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-17 (P1.3 validation passes optimized - 30-40% faster compilation, ~82% overall complete)
+**Last Updated:** 2026-03-17 (P1.3 validation passes optimized with correct order - 30-40% faster compilation, ~82% overall complete)
 **Next Review:** After P1 tasks completion (44-48 hours)
