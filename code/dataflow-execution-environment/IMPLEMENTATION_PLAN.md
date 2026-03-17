@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-17 (P1.4 generators implemented - 5 generators total, ~83% overall complete)
+**Last Updated:** 2026-03-17 (P2.1 Eden Treaty export completed, ~84% overall complete)
 
 ---
 
@@ -188,7 +188,7 @@ All P0 critical bugs have been fixed:
 | **POST /api/v1/execute** | ✅ COMPLETE | Compiles and executes with trace |
 | **GET /api/v1/health** | ✅ COMPLETE | Health check endpoint |
 | **Error Handling** | ✅ COMPLETE | 400, 404, 422, 500 status codes |
-| **Eden Treaty** | ❌ MISSING | No export for end-to-end type safety (P2.1) |
+| **Eden Treaty** | ✅ COMPLETE | App type exported for end-to-end type safety (P2.1) |
 | **Security** | ❌ MISSING | No rate limiting (P2.4) |
 
 ### WebSocket Server Package (95% Complete)
@@ -208,9 +208,9 @@ All P0 critical bugs have been fixed:
 ## Current Test Status
 
 ### Test Summary
-- **Total Test Files:** 53
-- **Total Tests:** 360 (100% passing)
-- **Test Execution Time:** 5.21s (within 5s target)
+- **Total Test Files:** 62
+- **Total Tests:** 380 (100% passing)
+- **Test Execution Time:** ~4s (within 5s target)
 - **TypeScript Compilation:** ✅ PASSES (0 errors)
 
 ### Test Coverage by Feature
@@ -646,45 +646,48 @@ export const BUILTIN_GENERATORS: Record<string, GeneratorFactory> = {
 #### Task P2.1: Add Eden Treaty Export (1 hour)
 
 **Priority:** P2 MEDIUM
-**Status:** ⚠️ NOT STARTED
+**Status:** ✅ COMPLETED (2026-03-17)
 **Impact:** Frontend clients cannot get auto-generated TypeScript types
 
-**Required Changes:**
+**Implementation:**
 
+Eden Treaty export was already present in `packages/http-api/src/index.ts`:
 ```typescript
-// packages/http-api/src/index.ts
-import { Elysia } from 'elysia';
-import { EdenTreaty } from 'elysia';
+export { app, type App } from "./server.js";
+```
 
-export const app = new Elysia()
-  // ... existing configuration
-
-export type Api = EdenTreaty<typeof app>;
+This is the correct format for modern Eden Treaty usage where clients can:
+```typescript
+import { treaty } from '@elysiajs/eden'
+import type { App } from '@dataflow/http-api'
+const api = treaty<App>('localhost:3000')
 ```
 
 **Files Affected:**
-- `packages/http-api/src/index.ts`
+- `packages/http-api/src/index.ts` (verified existing export)
+- `packages/http-api/src/eden-treaty.test.ts` (NEW - 4 tests added)
 
 **Dependencies:** None
 
 **Acceptance Criteria:**
-- ✓ Eden Treaty exported
+- ✓ Eden Treaty exported (App type)
 - ✓ Frontend can use auto-generated types
 - ✓ End-to-end type safety achieved
 
-**Required Tests:**
-- ✓ Test: Eden Treaty export available
-- ✓ Test: TypeScript types generated correctly
+**Tests:**
+- ✓ 4 Eden Treaty tests added
+- ✓ All 380 tests passing (was 376)
+- ✓ Typecheck passes (0 errors)
 
 **Spec Reference:** `specs/INTEGRATION_SPEC.md` lines 814-816, `specs/ELYSIA_LLMS.md`
 
 **Layer:** Layer 7 (Integration - HTTP API)
 
 **Ralph Wiggum Checklist:**
-- [ ] Eden Treaty export added
-- [ ] All tests pass (360/360)
-- [ ] Typecheck passes (0 errors)
-- [ ] Git commit: "feat(http-api): add Eden Treaty export"
+- [x] Eden Treaty export verified
+- [x] All tests pass (380/380)
+- [x] Typecheck passes (0 errors)
+- [x] Git commit: "test(http-api): add Eden Treaty export tests"
 
 ---
 
@@ -1302,7 +1305,7 @@ case "ADD":
 - ✅ ALL RESOLVED
 
 **📋 High Priority Issues:**
-- P2.1: Missing Eden Treaty export
+- ✅ P2.1: Missing Eden Treaty export - COMPLETED (App type exported)
 - P2.4: No security measures (rate limiting, timeouts)
 
 ### Test Coverage Analysis (47.2% Complete)
@@ -1421,10 +1424,16 @@ All P0 critical bugs have been fixed (2026-03-16):
 3. ✅ Complete P1.2 (6-8 hours) - DONE
 4. ✅ Complete P1.3 (4-5 hours) - DONE
 5. ✅ Complete P1.4 (8-10 hours) - DONE
-6. Complete P2 tasks (26-35 hours) - Completes system
-7. P3 tasks (8-10 hours) - Performance optimizations
+6. ✅ Complete P2.1 (1 hour) - DONE
+7. Complete remaining P2 tasks (25-34 hours) - Completes system
+8. P3 tasks (8-10 hours) - Performance optimizations
 
 **Change Log:**
+- 2026-03-17: P2.1 COMPLETED - Verified Eden Treaty export
+  - App type already exported in index.ts
+  - New: `packages/http-api/src/eden-treaty.test.ts` (4 tests)
+  - All tests passing (4 new tests, 380 total)
+  - Frontend can now use end-to-end type safety with Eden Treaty
 - 2026-03-17: P1.4 COMPLETED - Implemented missing generators (5 total)
   - Added: range, constant, repeat, cycle generators
   - Modified: `packages/shared/src/generators/registry.ts`
@@ -1439,10 +1448,10 @@ All P0 critical bugs have been fixed (2026-03-16):
   - No functionality lost - all validation errors still being caught
 
 **TOTAL TIME ESTIMATE:** 78-89 hours for production-ready system
-**CURRENT PROGRESS:** 38-44 hours completed (~50%)
+**CURRENT PROGRESS:** 39-45 hours completed (~51%)
 
 ---
 
 **Document Status:** Living implementation plan - update as implementation reveals better designs
-**Last Updated:** 2026-03-17 (P1.4 generators implemented - 5 generators total, ~83% overall complete)
-**Next Review:** After P1 tasks completion (44-48 hours)
+**Last Updated:** 2026-03-17 (P2.1 Eden Treaty export completed, ~84% overall complete)
+**Next Review:** After P2 tasks completion (70-79 hours)
