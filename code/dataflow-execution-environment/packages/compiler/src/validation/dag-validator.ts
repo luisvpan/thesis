@@ -647,7 +647,7 @@ export class DagValidator {
     if (operation === "ADD") {
       const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal";
       const hasText = actualType === "text";
- 
+  
       if (!isNumeric && hasText) {
         error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita números, no palabras. "${actualType}" no es un número.`;
         error.suggestion = `Conecta bloques de números (natural, integer, decimal) al bloque "${operation}".`;
@@ -660,6 +660,183 @@ export class DagValidator {
         error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" recibió ${actualType} pero esperaba ${expectedTypeName}. Verifica tus conexiones.`;
         error.suggestion = `Revisa que "${inputId}" está conectado a un bloque de tipo ${expectedTypeName}.`;
         error.example = this.generateExample(operation, 2);
+      }
+    } else if (operation === "SUBTRACT") {
+      const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal";
+      const hasText = actualType === "text";
+  
+      if (!isNumeric && hasText) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita números, no palabras. "${actualType}" no es un número.`;
+        error.suggestion = `Conecta bloques de números (natural, integer, decimal) al bloque "${operation}".`;
+        error.example = `[número 5] - [número 3] ✅`;
+      } else if (!isNumeric) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita ${expectedTypeName}, recibiste "${actualType}".`;
+        error.suggestion = `Conecta un bloque de tipo ${expectedTypeName}.`;
+        error.example = `[${expectedTypeName} 5] - [${expectedTypeName} 3] ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" recibió ${actualType} pero esperaba ${expectedTypeName}. Verifica tus conexiones.`;
+        error.suggestion = `Revisa que "${inputId}" está conectado a un bloque de tipo ${expectedTypeName}.`;
+        error.example = this.generateExample(operation, 2);
+      }
+    } else if (operation === "MULTIPLY") {
+      const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal";
+      const hasText = actualType === "text";
+  
+      if (!isNumeric && hasText) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita números, no palabras. "${actualType}" no es un número.`;
+        error.suggestion = `Conecta bloques de números (natural, integer, decimal) al bloque "${operation}".`;
+        error.example = `[número 5] × [número 3] ✅`;
+      } else if (!isNumeric) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita ${expectedTypeName}, recibiste "${actualType}".`;
+        error.suggestion = `Conecta un bloque de tipo ${expectedTypeName}.`;
+        error.example = `[${expectedTypeName} 5] × [${expectedTypeName} 3] ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" recibió ${actualType} pero esperaba ${expectedTypeName}. Verifica tus conexiones.`;
+        error.suggestion = `Revisa que "${inputId}" está conectado a un bloque de tipo ${expectedTypeName}.`;
+        error.example = this.generateExample(operation, 2);
+      }
+    } else if (operation === "DIVIDE") {
+      const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal";
+      const hasText = actualType === "text";
+  
+      if (!isNumeric && hasText) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita números, no palabras. "${actualType}" no es un número.`;
+        error.suggestion = `Conecta bloques de números (natural, integer, decimal) al bloque "${operation}".`;
+        error.example = `[número 6] ÷ [número 2] ✅`;
+      } else if (!isNumeric) {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" necesita ${expectedTypeName}, recibiste "${actualType}".`;
+        error.suggestion = `Conecta un bloque de tipo ${expectedTypeName}.`;
+        error.example = `[${expectedTypeName} 6] ÷ [${expectedTypeName} 2] ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque "${operation}" recibió ${actualType} pero esperaba ${expectedTypeName}. Verifica tus conexiones.`;
+        error.suggestion = `Revisa que "${inputId}" está conectado a un bloque de tipo ${expectedTypeName}.`;
+        error.example = this.generateExample(operation, 2);
+      }
+    } else if (operation === "UNION") {
+      const isSet = actualType.startsWith("set<");
+      
+      if (!isSet) {
+        error.childMessage = `⚠️ ¡Ups! UNION solo funciona con conjuntos (set<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo conjunto al bloque UNION.`;
+        error.example = `[conjunto A] ∪ [conjunto B] → unión ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque UNION necesita dos conjuntos del mismo tipo.`;
+        error.suggestion = `Asegúrate de que ambos conjuntos tengan el mismo tipo de elemento.`;
+        error.example = `set<número> {1, 2, 3} ∪ set<número> {4, 5} → {1, 2, 3, 4, 5} ✅`;
+      }
+    } else if (operation === "INTERSECTION") {
+      const isSet = actualType.startsWith("set<");
+      
+      if (!isSet) {
+        error.childMessage = `⚠️ ¡Ups! INTERSECTION solo funciona con conjuntos (set<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo conjunto al bloque INTERSECTION.`;
+        error.example = `[conjunto A] ∩ [conjunto B] → intersección ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque INTERSECTION necesita dos conjuntos del mismo tipo.`;
+        error.suggestion = `Asegúrate de que ambos conjuntos tengan el mismo tipo de elemento.`;
+        error.example = `set<número> {1, 2, 3} ∩ set<número> {2, 3, 4} → {2, 3} ✅`;
+      }
+    } else if (operation === "DIFFERENCE") {
+      const isSet = actualType.startsWith("set<");
+      
+      if (!isSet) {
+        error.childMessage = `⚠️ ¡Ups! DIFFERENCE solo funciona con conjuntos (set<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo conjunto al bloque DIFFERENCE.`;
+        error.example = `[conjunto A] \\ [conjunto B] → diferencia ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque DIFFERENCE necesita dos conjuntos del mismo tipo.`;
+        error.suggestion = `Asegúrate de que ambos conjuntos tengan el mismo tipo de elemento.`;
+        error.example = `set<número> {1, 2, 3} \\ {2, 3, 4} → {1} ✅`;
+      }
+    } else if (operation === "COMPLEMENT") {
+      const isSet = actualType.startsWith("set<");
+      
+      if (!isSet) {
+        error.childMessage = `⚠️ ¡Ups! COMPLEMENT solo funciona con conjuntos (set<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo conjunto al bloque COMPLEMENT.`;
+        error.example = `[conjunto] → COMPLEMENT → complemento ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque COMPLEMENT necesita un conjunto del tipo correcto.`;
+        error.suggestion = `Asegúrate de que el tipo sea correcto.`;
+        error.example = `set<número> {1, 2, 3} → COMPLEMENT → todos los demás ✅`;
+      }
+    } else if (operation === "AND") {
+      if (actualType !== "boolean") {
+        error.childMessage = `⚠️ ¡Ups! El bloque AND solo funciona con valores verdadero/falso (boolean).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo boolean al bloque AND.`;
+        error.example = `[verdadero] ∧ [verdadero] → verdadero ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque AND recibió ${actualType} pero esperaba boolean.`;
+        error.suggestion = `Revisa que "${inputId}" es de tipo boolean.`;
+        error.example = `[verdadero] ∧ [falso] → falso ✅`;
+      }
+    } else if (operation === "OR") {
+      if (actualType !== "boolean") {
+        error.childMessage = `⚠️ ¡Ups! El bloque OR solo funciona con valores verdadero/falso (boolean).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo boolean al bloque OR.`;
+        error.example = `[verdadero] ∨ [falso] → verdadero ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque OR recibió ${actualType} pero esperaba boolean.`;
+        error.suggestion = `Revisa que "${inputId}" es de tipo boolean.`;
+        error.example = `[verdadero] ∨ [falso] → verdadero ✅`;
+      }
+    } else if (operation === "NOT") {
+      if (actualType !== "boolean") {
+        error.childMessage = `⚠️ ¡Ups! El bloque NOT solo funciona con valores verdadero/falso (boolean).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta un bloque de tipo boolean al bloque NOT.`;
+        error.example = `¬ [verdadero] → falso ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque NOT recibió ${actualType} pero esperaba boolean.`;
+        error.suggestion = `Revisa que "${inputId}" es de tipo boolean.`;
+        error.example = `¬ [falso] → verdadero ✅`;
+      }
+    } else if (operation === "NEXT") {
+      const isStream = actualType.startsWith("stream<");
+      
+      if (!isStream) {
+        error.childMessage = `⚠️ ¡Ups! NEXT solo funciona con flujos (stream<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo flujo al bloque NEXT.`;
+        error.example = `stream<número> → NEXT → siguiente valor ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque NEXT recibió ${actualType} pero esperaba un flujo.`;
+        error.suggestion = `Revisa que "${inputId}" es de tipo flujo.`;
+        error.example = `stream<número> → NEXT ✅`;
+      }
+    } else if (operation === "FIRST") {
+      const isStream = actualType.startsWith("stream<");
+      
+      if (!isStream) {
+        error.childMessage = `⚠️ ¡Ups! FIRST solo funciona con flujos (stream<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo flujo al bloque FIRST.`;
+        error.example = `stream<número> → FIRST → primer valor ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque FIRST recibió ${actualType} pero esperaba un flujo.`;
+        error.suggestion = `Revisa que "${inputId}" es de tipo flujo.`;
+        error.example = `stream<número> → FIRST ✅`;
+      }
+    } else if (operation === "ACCUMULATE") {
+      const isStream = actualType.startsWith("stream<");
+      
+      if (!isStream) {
+        error.childMessage = `⚠️ ¡Ups! ACCUMULATE solo funciona con flujos (stream<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta bloques de tipo flujo al bloque ACCUMULATE.`;
+        error.example = `stream<número> → ACCUMULATE → acumulado ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque ACCUMULATE recibió ${actualType} pero esperaba un flujo.`;
+        error.suggestion = `Revisa que "${inputId}" es de tipo flujo.`;
+        error.example = `stream<número> → ACCUMULATE ✅`;
+      }
+    } else if (operation === "FBY") {
+      const isStream = actualType.startsWith("stream<");
+      
+      if (!isStream) {
+        error.childMessage = `⚠️ ¡Ups! FBY necesita un valor inicial y un flujo (stream<...>).\nTu tipo es "${actualType}".`;
+        error.suggestion = `Conecta primero un valor, luego un bloque de tipo flujo al bloque FBY.`;
+        error.example = `[valor inicial] → FBY [flujo] → nuevo flujo ✅`;
+      } else {
+        error.childMessage = `⚠️ ¡Ups! El bloque FBY necesita tipos correctos. Verifica los argumentos.`;
+        error.suggestion = `El primer argumento debe ser un valor, el segundo debe ser un flujo.`;
+        error.example = `stream<número> → FBY ✅`;
       }
     } else if (operation === "SORT") {
       const isNumeric = actualType === "natural" || actualType === "integer" || actualType === "decimal" || actualType === "fraction";
