@@ -104,6 +104,28 @@ export class DagValidator {
 
       if (stmt.type === "SourceStatement") {
         typeTable.set(stmt.id, stmt.dataType);
+
+        const setHomogeneityErrors = this.validateSetHomogeneity(stmt);
+        errors.push(...setHomogeneityErrors);
+
+        const literalTypeErrors = this.validateLiteralType(stmt);
+        errors.push(...literalTypeErrors);
+      }
+
+      if (stmt.type === "TransformStatement" || stmt.type === "OutputStatement") {
+        const refs = stmt.type === "TransformStatement" ? stmt.inputs : [stmt.input];
+        for (const ref of refs) {
+          if (!defined.has(ref)) {
+            errors.push({
+              code: "UNDEFINED_IDENTIFIER",
+              message: `Undefined identifier: ${ref}`,
+              nodeId: stmt.id,
+              childMessage: `⚠️ ¡Ups! No encuentro el bloque "${ref}".`,
+              suggestion: "Asegúrate de que el bloque existe antes de conectarlo.",
+              example: "Crea el bloque primero, luego conéctalo."
+            });
+          }
+        }
       }
     }
 
