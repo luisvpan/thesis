@@ -87,6 +87,7 @@ export class IncrementalRuntime {
   private cache: LRUCache<string, Map<number, unknown>>;
   private subscriptions: Map<string, Set<StateCallback>>;
   private nodeDependencies: Map<string, Set<string>>;
+  private reverseDependencies: Map<string, Set<string>>;
 
   constructor() {
     this.graph = new Map();
@@ -94,6 +95,7 @@ export class IncrementalRuntime {
     this.cache = new LRUCache<string, Map<number, unknown>>(500);
     this.subscriptions = new Map();
     this.nodeDependencies = new Map();
+    this.reverseDependencies = new Map();
   }
 
   loadProgram(program: DataflowProgram): void {
@@ -111,12 +113,13 @@ export class IncrementalRuntime {
     const changedNodes: string[] = [];
     const errors: string[] = [];
     let needsDepGraphRebuild = false;
+    const nodesToInvalidate: Set<string> = new Set();
 
     for (const node of delta.addedNodes || []) {
       this.graph.set(node.id, node);
       this.cache.delete(node.id);
-      this.invalidateDependentCache(node.id);
       changedNodes.push(node.id);
+      nodesToInvalidate.add(node.id);
       needsDepGraphRebuild = true;
     }
 
@@ -125,21 +128,28 @@ export class IncrementalRuntime {
       this.cache.delete(nodeId);
       this.subscriptions.delete(nodeId);
       changedNodes.push(nodeId);
+      nodesToInvalidate.add(nodeId);
       needsDepGraphRebuild = true;
     }
 
     for (const edge of delta.addedEdges || []) {
       this.edges.set(edge.id, edge);
+      nodesToInvalidate.add(edge.to);
       needsDepGraphRebuild = true;
     }
 
     for (const edge of delta.removedEdges || []) {
       this.edges.delete(edge.id);
+      nodesToInvalidate.add(edge.to);
       needsDepGraphRebuild = true;
     }
 
     if (needsDepGraphRebuild) {
       this.buildDependencyGraph();
+    }
+
+    for (const nodeId of nodesToInvalidate) {
+      this.invalidateDependentCache(nodeId);
     }
 
     if (changedNodes.length > 0) {
@@ -662,28 +672,90 @@ export class IncrementalRuntime {
   }
 
   private invalidateDependentCache(nodeId: string): void {
+    const topoOrder = this.getTopologicalOrder();
+    const nodeIndex = topoOrder.indexOf(nodeId);
+
+    if (nodeIndex === -1) {
+      return;
+    }
+
     const toInvalidate: string[] = [];
-    const visited = new Set<string>();
 
-    const traverse = (id: string) => {
-      if (visited.has(id)) return;
-      visited.add(id);
-
-      if (this.cache.has(id)) {
+    for (let i = nodeIndex + 1; i < topoOrder.length; i++) {
+      const id = topoOrder[i];
+      if (this.isDependentOn(id, nodeId) && this.cache.has(id)) {
         toInvalidate.push(id);
       }
-
-      const deps = this.nodeDependencies.get(id) || new Set();
-      for (const depId of deps) {
-        traverse(depId);
-      }
-    };
-
-    traverse(nodeId);
+    }
 
     for (const id of toInvalidate) {
       this.cache.delete(id);
     }
+  }
+
+  private getTopologicalOrder(): string[] {
+    const inDegree = new Map<string, number>();
+    const adjList = new Map<string, string[]>();
+
+    for (const nodeId of this.graph.keys()) {
+      inDegree.set(nodeId, 0);
+      adjList.set(nodeId, []);
+    }
+
+    for (const edge of this.edges.values()) {
+      const deps = adjList.get(edge.from) || [];
+      deps.push(edge.to);
+      adjList.set(edge.from, deps);
+
+      inDegree.set(edge.to, (inDegree.get(edge.to) || 0) + 1);
+    }
+
+    const queue: string[] = [];
+    for (const [nodeId, degree] of inDegree.entries()) {
+      if (degree === 0) {
+        queue.push(nodeId);
+      }
+    }
+
+    const topoOrder: string[] = [];
+    while (queue.length > 0) {
+      const nodeId = queue.shift()!;
+      topoOrder.push(nodeId);
+
+      const neighbors = adjList.get(nodeId) || [];
+      for (const neighbor of neighbors) {
+        inDegree.set(neighbor, inDegree.get(neighbor)! - 1);
+        if (inDegree.get(neighbor)! === 0) {
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    return topoOrder;
+  }
+
+  private isDependentOn(nodeId: string, changedNodeId: string): boolean {
+    const visited = new Set<string>();
+    const stack: string[] = [nodeId];
+
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      if (current === changedNodeId) {
+        return true;
+      }
+
+      const deps = this.reverseDependencies.get(current) || new Set();
+      for (const depId of deps) {
+        if (!visited.has(depId)) {
+          stack.push(depId);
+        }
+      }
+    }
+
+    return false;
   }
 
   private notifySubscribers(changedNodes: string[]): void {
@@ -712,6 +784,7 @@ export class IncrementalRuntime {
 
   private buildDependencyGraph(): void {
     this.nodeDependencies.clear();
+    this.reverseDependencies.clear();
 
     for (const edge of this.edges.values()) {
       if (!this.nodeDependencies.has(edge.from)) {
@@ -720,6 +793,13 @@ export class IncrementalRuntime {
       const existingDeps = this.nodeDependencies.get(edge.from) || new Set();
       existingDeps.add(edge.to);
       this.nodeDependencies.set(edge.from, existingDeps);
+
+      if (!this.reverseDependencies.has(edge.to)) {
+        this.reverseDependencies.set(edge.to, new Set());
+      }
+      const existingReverseDeps = this.reverseDependencies.get(edge.to) || new Set();
+      existingReverseDeps.add(edge.from);
+      this.reverseDependencies.set(edge.to, existingReverseDeps);
     }
   }
 
