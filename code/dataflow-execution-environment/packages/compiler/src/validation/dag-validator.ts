@@ -46,7 +46,7 @@ export class DagValidator {
     const defined = new Set<string>();
     const typeTable = new Map<string, string>();
 
-      for (const stmt of statements) {
+    for (const stmt of statements) {
       if (defined.has(stmt.id)) {
         errors.push({
           code: "DUPLICATE_IDENTIFIER",
@@ -61,7 +61,7 @@ export class DagValidator {
 
       if (stmt.type === "TransformStatement") {
         typeTable.set(stmt.id, stmt.dataType);
-        
+
         for (const input of stmt.inputs) {
           if (input.startsWith("literal_")) {
             defined.add(input);
@@ -101,7 +101,9 @@ export class DagValidator {
           }
         }
       }
+    }
 
+    for (const stmt of statements) {
       if (stmt.type === "SourceStatement") {
         typeTable.set(stmt.id, stmt.dataType);
 
@@ -130,40 +132,14 @@ export class DagValidator {
     }
 
     const hasCycle = this.detectCycles(statements);
-      if (hasCycle) {
-        errors.push({
-          code: "CYCLE_DETECTED",
-          message: "Graph contains a cycle",
-          childMessage: "⚠️ ¡Ups! Hay un ciclo en el programa. Los bloques se conectan en círculo y no se puede calcular.",
-          suggestion: "Busca dónde un bloque apunta a sí mismo y desconecta una línea.",
-          example: "[A] → [B] → [C] ❌\n[A] → [B] ✅ (rompe el ciclo)"
-        });
-      }
-
-    for (const stmt of statements) {
-      if (stmt.type === "SourceStatement") {
-        const setHomogeneityErrors = this.validateSetHomogeneity(stmt);
-        errors.push(...setHomogeneityErrors);
-
-        const literalTypeErrors = this.validateLiteralType(stmt);
-        errors.push(...literalTypeErrors);
-      }
-
-      if (stmt.type === "TransformStatement" || stmt.type === "OutputStatement") {
-        const refs = stmt.type === "TransformStatement" ? stmt.inputs : [stmt.input];
-        for (const ref of refs) {
-          if (!defined.has(ref)) {
-            errors.push({
-              code: "UNDEFINED_IDENTIFIER",
-              message: `Undefined identifier: ${ref}`,
-              nodeId: stmt.id,
-              childMessage: `⚠️ ¡Ups! No encuentro el bloque "${ref}".`,
-              suggestion: "Asegúrate de que el bloque existe antes de conectarlo.",
-              example: "Crea el bloque primero, luego conéctalo."
-            });
-          }
-        }
-      }
+    if (hasCycle) {
+      errors.push({
+        code: "CYCLE_DETECTED",
+        message: "Graph contains a cycle",
+        childMessage: "⚠️ ¡Ups! Hay un ciclo en el programa. Los bloques se conectan en círculo y no se puede calcular.",
+        suggestion: "Busca dónde un bloque apunta a sí mismo y desconecta una línea.",
+        example: "[A] → [B] → [C] ❌\n[A] → [B] ✅ (rompe el ciclo)"
+      });
     }
 
     for (const stmt of statements) {
