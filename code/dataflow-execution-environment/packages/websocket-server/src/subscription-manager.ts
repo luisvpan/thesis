@@ -39,6 +39,19 @@ export class SubscriptionManager {
     }
   }
 
+  removeAllForConnection(ws: ElysiaWS<any, any>): void {
+    for (const [nodeId, subs] of this.subscriptions.entries()) {
+      for (const sub of subs) {
+        if (sub.ws === ws) {
+          subs.delete(sub);
+        }
+      }
+      if (subs.size === 0) {
+        this.subscriptions.delete(nodeId);
+      }
+    }
+  }
+
   notify(nodeId: string, state: NodeState): void {
     const subs = this.subscriptions.get(nodeId);
     if (!subs) return;

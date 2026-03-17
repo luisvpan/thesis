@@ -34,6 +34,7 @@ import {
   ALPHABETICAL_SORT
 } from "./operations/sets.js";
 import { NEXT, FIRST, FBY, ACCUMULATE } from "./operations/temporal.js";
+import { LRUCache } from "./utils/lru-cache.js";
 
 export type NodeState =
   | { status: "completed"; value: any }
@@ -83,14 +84,14 @@ type StateCallback = (state: NodeState) => void;
 export class IncrementalRuntime {
   private graph: Map<string, DataflowNode>;
   private edges: Map<string, DataflowEdge>;
-  private cache: Map<string, Map<number, unknown>>;
+  private cache: LRUCache<string, Map<number, unknown>>;
   private subscriptions: Map<string, Set<StateCallback>>;
   private nodeDependencies: Map<string, Set<string>>;
 
   constructor() {
     this.graph = new Map();
     this.edges = new Map();
-    this.cache = new Map();
+    this.cache = new LRUCache<string, Map<number, unknown>>(500);
     this.subscriptions = new Map();
     this.nodeDependencies = new Map();
   }
@@ -247,7 +248,12 @@ export class IncrementalRuntime {
       if (node.type === "DataSource") {
         const value = node.value;
         const wrappedValue = this.wrapDataSourceValue(node, time);
-        this.cache.set(nodeId, new Map([[time, wrappedValue]]));
+        const existingCache = this.cache.get(nodeId);
+        if (existingCache) {
+          existingCache.set(time, wrappedValue);
+        } else {
+          this.cache.set(nodeId, new Map([[time, wrappedValue]]));
+        }
         return { state: { status: "completed", value: wrappedValue }, changedNodes: [] };
       }
 
@@ -265,7 +271,12 @@ export class IncrementalRuntime {
 
         const sourceResult = this.evaluateNode(sourceNode.id, time);
         if (sourceResult.state.status === "completed") {
-          this.cache.set(nodeId, new Map([[time, (sourceResult.state as any).value]]));
+          const existingCache = this.cache.get(nodeId);
+          if (existingCache) {
+            existingCache.set(time, (sourceResult.state as any).value);
+          } else {
+            this.cache.set(nodeId, new Map([[time, (sourceResult.state as any).value]]));
+          }
           return { state: { status: "completed", value: sourceResult.state.value }, changedNodes: sourceResult.changedNodes };
         } else if (sourceResult.state.status === "pending") {
           return sourceResult;
@@ -325,7 +336,12 @@ export class IncrementalRuntime {
 
         if (contract) {
           const result = this.executeOperation(node.operation, evaluatedInputsArray, time, inputNodes, nodeId);
-          this.cache.set(nodeId, new Map([[time, result]]));
+          const existingCache = this.cache.get(nodeId);
+          if (existingCache) {
+            existingCache.set(time, result);
+          } else {
+            this.cache.set(nodeId, new Map([[time, result]]));
+          }
           return { state: { status: "completed", value: result }, changedNodes: [] };
         } else {
           throw new Error(`Unknown operation: ${node.operation}`);

@@ -34,18 +34,20 @@ import {
 } from "../operations/sets.js";
 import { NEXT, FIRST, FBY, ACCUMULATE } from "../operations/temporal.js";
 import type { Natural, Integer, Decimal, Fraction } from "@dataflow/shared/types";
+import { LRUCache } from "../utils/lru-cache.js";
 
 export class DemandDrivenEvaluator {
-  private cache = new Map<string, Map<number, unknown>>();
+  private cache = new LRUCache<string, Map<number, unknown>>(1000);
   private cacheHits = 0;
   private cacheMisses = 0;
   private executionOrder: string[] = [];
   private nodeEvaluations = new Map<string, { value: unknown; timestep: number }>();
 
   evaluate(nodeId: string, time: number, graph: DataflowGraph): unknown {
-    if (this.cache.has(nodeId) && this.cache.get(nodeId)!.has(time)) {
+    const nodeCache = this.cache.get(nodeId);
+    if (nodeCache && nodeCache.has(time)) {
       this.cacheHits++;
-      return this.cache.get(nodeId)!.get(time);
+      return nodeCache.get(time);
     }
     this.cacheMisses++;
 
@@ -66,10 +68,14 @@ export class DemandDrivenEvaluator {
       value = this.evaluate(inputNodes[0].id, time, graph);
     }
 
-    if (!this.cache.has(nodeId)) {
-      this.cache.set(nodeId, new Map());
+    const existingCache = this.cache.get(nodeId);
+    if (existingCache) {
+      existingCache.set(time, value);
+    } else {
+      const nodeCache = new Map<number, unknown>();
+      nodeCache.set(time, value);
+      this.cache.set(nodeId, nodeCache);
     }
-    this.cache.get(nodeId)!.set(time, value);
 
     this.executionOrder.push(nodeId);
     this.nodeEvaluations.set(nodeId, { value, timestep: time });
