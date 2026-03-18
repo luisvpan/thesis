@@ -3,9 +3,15 @@ import { Compiler } from "@dataflow/compiler";
 import { Runtime } from "@dataflow/runtime";
 import type { DataflowProgram, ValidationResult } from "@dataflow/shared/types";
 import { DagValidator } from "@dataflow/compiler";
+import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
 
 const startTime = Date.now();
 const validator = new DagValidator();
+
+const rateLimiter = createRateLimiter({
+  windowMs: 60000,
+  maxRequests: 100
+});
 
 const healthRoutes = new Elysia({ prefix: '/api/v1' })
   .get("/health", () => {
@@ -18,6 +24,14 @@ const healthRoutes = new Elysia({ prefix: '/api/v1' })
   });
 
 const compileRoutes = new Elysia({ prefix: '/api/v1' })
+  .onBeforeHandle(({ request }) => {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const check = rateLimiter.check(ip);
+    
+    if (!check.allowed) {
+      throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
+    }
+  })
   .post("/compile", ({ body }) => {
     const request = body as any;
     const program = request.program as DataflowProgram;
@@ -45,7 +59,15 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
   });
 
 const executeRoutes = new Elysia({ prefix: '/api/v1' })
-  .post("/execute", ({ body }) => {
+  .onBeforeHandle(({ request }) => {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const check = rateLimiter.check(ip);
+    
+    if (!check.allowed) {
+      throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
+    }
+  })
+  .post("/execute", async ({ body }) => {
     const request = body as any;
     const program = request.program as DataflowProgram;
     const options = request.options || {};
@@ -68,11 +90,22 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
     
     const runtime = new Runtime();
     runtime.loadProgram(program);
-
+ 
     const execStartTime = performance.now();
-    const outputs = runtime.execute(0);
+    const TIMEOUT_MS = 5000;
+    
+    const executionPromise = new Promise((resolve) => {
+      const outputs = runtime.execute(0);
+      resolve(outputs);
+    });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Execution timeout')), TIMEOUT_MS);
+    });
+    
+    const outputs = await Promise.race([executionPromise, timeoutPromise]) as unknown[];
     const totalTime = (performance.now() - execStartTime).toFixed(2) + "ms";
-
+ 
     const executionTrace: any = includeTrace ? {
       ...runtime.getExecutionTrace(),
       cacheHits: 0,
@@ -123,6 +156,24 @@ export const app = new Elysia()
       return {
         success: false,
         error: 'Not found'
+      };
+    }
+    
+    if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
+      set.status = 429;
+      return {
+        success: false,
+        error: 'Too many requests',
+        message: error.message
+      };
+    }
+    
+    if (error instanceof Error && error.message.includes('Execution timeout')) {
+      set.status = 408;
+      return {
+        success: false,
+        error: 'Request timeout',
+        message: 'Execution took too long'
       };
     }
     

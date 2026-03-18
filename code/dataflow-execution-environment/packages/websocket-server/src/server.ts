@@ -4,6 +4,7 @@ import { DagValidator } from "@dataflow/compiler";
 import { IncrementalRuntime } from "@dataflow/runtime";
 import type { DataflowProgram } from "@dataflow/shared/types";
 import { ConnectionManager } from "./connection-manager";
+import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
 
 interface WebSocketMessage {
   type: string;
@@ -39,17 +40,37 @@ const validator = new DagValidator();
 const connectionManager = new ConnectionManager();
 const incrementalRuntime = new IncrementalRuntime();
 
+const messageRateLimiter = createRateLimiter({
+  windowMs: 60000,
+  maxRequests: 300
+});
+
 export const app = new Elysia()
   .ws("/live", {
     open(ws: ElysiaWS<any, any>) {
+      const currentConnections = connectionManager.getConnectionCount();
+      const MAX_CONNECTIONS = 100;
+      
+      if (currentConnections >= MAX_CONNECTIONS) {
+        console.log("Connection rejected: too many connections");
+        const errorResponse = JSON.stringify({
+          type: "error",
+          code: "CONNECTION_LIMIT_EXCEEDED",
+          message: "Too many connections"
+        });
+        ws.send(errorResponse);
+        ws.close();
+        return;
+      }
+      
       console.log("Client connected");
       ws.data = {
         subscribedNodes: new Set()
       };
       connectionManager.addConnection(ws);
     },
-
-    message(ws: ElysiaWS<any, any>, message: any) {
+ 
+    message: async (ws: ElysiaWS<any, any>, message: any) => {
       let msg: WebSocketMessage;
 
       if (typeof message === "object") {
@@ -74,6 +95,21 @@ export const app = new Elysia()
         }
       }
 
+      const ip = ws.data.remoteAddress || 'unknown';
+      const rateCheck = messageRateLimiter.check(ip);
+      
+      if (!rateCheck.allowed) {
+        const errorResponse = JSON.stringify({
+          type: "error",
+          messageId: msg.messageId,
+          code: "RATE_LIMIT_EXCEEDED",
+          message: `Rate limit exceeded. Try again after ${Math.ceil((rateCheck.resetTime - Date.now()) / 1000)}s`
+        });
+        console.log("Sending rate limit error:", errorResponse);
+        ws.send(errorResponse);
+        return;
+      }
+
       try {
         switch (msg.type) {
           case "validate_program": {
@@ -93,9 +129,19 @@ export const app = new Elysia()
           case "evaluate_incremental": {
             const evalMsg = msg as EvaluateIncrementalMessage;
             incrementalRuntime.loadProgram(evalMsg.program);
-
-            const evaluation = incrementalRuntime.evaluatePartial(0);
-
+ 
+            const TIMEOUT_MS = 5000;
+            const evaluationPromise = new Promise((resolve) => {
+              const evaluation = incrementalRuntime.evaluatePartial(0);
+              resolve(evaluation);
+            });
+            
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Evaluation timeout')), TIMEOUT_MS);
+            });
+            
+            const evaluation = await Promise.race([evaluationPromise, timeoutPromise]) as any;
+ 
             const response = JSON.stringify({
               type: "evaluation_result",
               messageId: evalMsg.messageId,
@@ -161,11 +207,19 @@ export const app = new Elysia()
             ws.send(response);
         }
       } catch (error) {
+        let errorCode = "MESSAGE_ERROR";
+        let errorMessage = error instanceof Error ? error.message : "Unknown error";
+        
+        if (error instanceof Error && error.message.includes('Evaluation timeout')) {
+          errorCode = "EVALUATION_TIMEOUT";
+          errorMessage = "Evaluation took too long";
+        }
+        
         const errorResponse = JSON.stringify({
           type: "error",
           messageId: undefined,
-          code: "MESSAGE_ERROR",
-          message: error instanceof Error ? error.message : "Unknown error"
+          code: errorCode,
+          message: errorMessage
         });
         console.log("Sending error:", errorResponse);
         ws.send(errorResponse);
