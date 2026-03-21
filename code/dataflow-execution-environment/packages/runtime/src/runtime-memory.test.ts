@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { Runtime } from "../runtime";
+import { Runtime } from "./runtime";
 import type { DataflowProgram } from "@dataflow/shared/types";
 
 describe("Runtime Memory Management", () => {
@@ -23,7 +23,7 @@ describe("Runtime Memory Management", () => {
 
   it("should clear cache when limit is exceeded", () => {
     const runtime = new Runtime();
-    
+
     const program: DataflowProgram = {
       metadata: { programId: "test-clear" },
       graph: {
@@ -42,10 +42,10 @@ describe("Runtime Memory Management", () => {
     };
 
     runtime.loadProgram(program);
-    
+
     const result1 = runtime.execute();
     const stats1 = runtime.getCacheStats();
-    
+
     const result2 = runtime.execute();
     const stats2 = runtime.getCacheStats();
 
