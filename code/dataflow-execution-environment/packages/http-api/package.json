@@ -2,6 +2,7 @@
   "name": "@dataflow/http-api",
   "version": "0.0.1",
   "type": "module",
+  "main": "./src/main.ts",
   "exports": {
     "./server": "./src/server.ts",
     ".": "./src/index.ts"
@@ -12,7 +13,9 @@
     "elysia": "^1.1.0"
   },
   "scripts": {
-    "build": "bun build src/server.ts --outdir=dist --target=bun",
+    "dev": "bun --watch src/main.ts",
+    "build": "bun build src/main.ts --outdir=dist --target=bun",
+    "start": "NODE_ENV=production bun src/main.ts",
     "test": "bun test"
   }
 }

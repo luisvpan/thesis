@@ -1,0 +1,11 @@
+[project]
+name = "thesis-vision-bridge"
+version = "0.1.0"
+description = "YOLO → Elysia: detección de cámara y envío al API"
+requires-python = ">=3.12"
+dependencies = [
+  "ultralytics>=8.3.0",
+  "opencv-python>=4.11.0.86",
+  "pyyaml>=6.0.0",
+  "requests>=2.32.0",
+]
