@@ -43,7 +43,7 @@ export class DemandDrivenEvaluator {
   private executionOrder: string[] = [];
   private nodeEvaluations = new Map<string, { value: unknown; timestep: number }>();
 
-  evaluate(nodeId: string, time: number, graph: DataflowGraph): unknown {
+  async evaluate(nodeId: string, time: number, graph: DataflowGraph): Promise<unknown> {
     const nodeCache = this.cache.get(nodeId);
     if (nodeCache && nodeCache.has(time)) {
       this.cacheHits++;
@@ -59,13 +59,13 @@ export class DemandDrivenEvaluator {
       value = this.wrapDataSourceValue(node, time);
     } else if (node.type === "Transformation") {
       const inputNodes = graph.getInputs(nodeId);
-      value = this.evaluateOperation(node.operation, inputNodes, time, graph, nodeId);
+      value = await this.evaluateOperation(node.operation, inputNodes, time, graph, nodeId);
     } else if (node.type === "Output") {
       const inputNodes = graph.getInputs(nodeId);
       if (inputNodes.length === 0) {
         throw new Error(`Output node ${nodeId} has no input`);
       }
-      value = this.evaluate(inputNodes[0].id, time, graph);
+      value = await this.evaluate(inputNodes[0].id, time, graph);
     }
 
     const existingCache = this.cache.get(nodeId);
@@ -157,155 +157,155 @@ export class DemandDrivenEvaluator {
     return match ? match[2] : "unknown";
   }
 
-  private evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, currentNodeId: string): unknown {
+  private async evaluateOperation(operation: string, inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, currentNodeId: string): Promise<unknown> {
     switch (operation) {
       case "NEXT":
-        return NEXT(inputs, time, graph, this, currentNodeId);
+        return await NEXT(inputs, time, graph, this, currentNodeId);
       case "FIRST":
-        return FIRST(inputs, time, graph, this, currentNodeId);
+        return await FIRST(inputs, time, graph, this, currentNodeId);
       case "FBY":
-        return FBY(inputs, time, graph, this, currentNodeId);
+        return await FBY(inputs, time, graph, this, currentNodeId);
       case "ACCUMULATE":
-        return ACCUMULATE(inputs, time, graph, this, currentNodeId);
+        return await ACCUMULATE(inputs, time, graph, this, currentNodeId);
       case "ADD":
-        return ADD(inputs.map(input => ({
+        return ADD(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "SUBTRACT":
-        return SUBTRACT(inputs.map(input => ({
+        return SUBTRACT(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "MULTIPLY":
-        return MULTIPLY(inputs.map(input => ({
+        return MULTIPLY(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "DIVIDE":
-        return DIVIDE(inputs.map(input => ({
+        return DIVIDE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "COMPARE":
-        return COMPARE(inputs.map(input => ({
+        return COMPARE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
 
       case "AND":
-        return AND(inputs.map(input => ({
+        return AND(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "OR":
-        return OR(inputs.map(input => ({
+        return OR(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "NOT":
-        return NOT(inputs.map(input => ({
+        return NOT(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
 
       case "COMPARE_BY_SIZE":
-        return COMPARE_BY_SIZE(inputs.map(input => ({
+        return COMPARE_BY_SIZE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "COMPARE_BY_COLOR":
-        return COMPARE_BY_COLOR(inputs.map(input => ({
+        return COMPARE_BY_COLOR(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "COMPARE_BY_TYPE":
-        return COMPARE_BY_TYPE(inputs.map(input => ({
+        return COMPARE_BY_TYPE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "COMPARE_BY_TASTE":
-        return COMPARE_BY_TASTE(inputs.map(input => ({
+        return COMPARE_BY_TASTE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "COMPARE_BY_AGE_GROUP":
-        return COMPARE_BY_AGE_GROUP(inputs.map(input => ({
+        return COMPARE_BY_AGE_GROUP(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "COMPARE_BY_GENDER":
-        return COMPARE_BY_GENDER(inputs.map(input => ({
+        return COMPARE_BY_GENDER(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
 
       case "FILTER":
-        return FILTER(inputs.map(input => ({
+        return FILTER(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "FILTER_BY_SIZE":
-        return FILTER_BY_SIZE(inputs.map(input => ({
+        return FILTER_BY_SIZE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "FILTER_BY_COLOR":
-        return FILTER_BY_COLOR(inputs.map(input => ({
+        return FILTER_BY_COLOR(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "FILTER_BY_TYPE":
-        return FILTER_BY_TYPE(inputs.map(input => ({
+        return FILTER_BY_TYPE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "FILTER_BY_TASTE":
-        return FILTER_BY_TASTE(inputs.map(input => ({
+        return FILTER_BY_TASTE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "FILTER_BY_AGE_GROUP":
-        return FILTER_BY_AGE_GROUP(inputs.map(input => ({
+        return FILTER_BY_AGE_GROUP(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "FILTER_BY_GENDER":
-        return FILTER_BY_GENDER(inputs.map(input => ({
+        return FILTER_BY_GENDER(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
 
       case "UNION":
-        return UNION(inputs.map(input => ({
+        return UNION(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "INTERSECTION":
-        return INTERSECTION(inputs.map(input => ({
+        return INTERSECTION(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "DIFFERENCE":
-        return DIFFERENCE(inputs.map(input => ({
+        return DIFFERENCE(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "COMPLEMENT":
-        return COMPLEMENT(inputs.map(input => ({
+        return COMPLEMENT(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "SORT":
-        return SORT(inputs.map(input => ({
+        return SORT(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
       case "ALPHABETICAL_SORT":
-        return ALPHABETICAL_SORT(inputs.map(input => ({
+        return ALPHABETICAL_SORT(await Promise.all(inputs.map(async input => ({
           id: input.id,
-          value: this.evaluate(input.id, time, graph)
-        })));
+          value: await this.evaluate(input.id, time, graph)
+        }))));
 
       default:
         throw new Error(`Unknown operation: ${operation}`);

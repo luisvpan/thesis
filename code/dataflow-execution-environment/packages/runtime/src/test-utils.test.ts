@@ -20,48 +20,48 @@ describe('Test Utilities - Runtime Factory', () => {
     expect(context.getOutput).toBeInstanceOf(Function);
   });
 
-  it('should execute batch runtime context', () => {
+  it('should execute batch runtime context', async () => {
     const context = createRuntimeContext('batch');
     context.loadProgram(simpleArithmeticProgram);
-
-    const result = context.execute();
+ 
+    const result = await context.execute();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(1);
     expectNatural(result[0], 5);
   });
 
-  it('should execute incremental runtime context', () => {
+  it('should execute incremental runtime context', async () => {
     const context = createRuntimeContext('incremental');
     context.loadProgram(simpleArithmeticProgram);
-
-    const result = context.execute();
+ 
+    const result = await context.execute();
     expect(result).toHaveProperty('nodeStates');
     expect(result).toHaveProperty('changedNodes');
     expect(result.nodeStates instanceof Map).toBe(true);
     expect(Array.isArray(result.changedNodes)).toBe(true);
   });
 
-  it('should get output from batch runtime context', () => {
+  it('should get output from batch runtime context', async () => {
     const context = createRuntimeContext('batch');
     context.loadProgram(simpleArithmeticProgram);
-
-    const result = context.getOutput('result');
+ 
+    const result = await context.getOutput('result');
     expectNatural(result, 5);
   });
 
-  it('should get output from incremental runtime context', () => {
+  it('should get output from incremental runtime context', async () => {
     const context = createRuntimeContext('incremental');
     context.loadProgram(simpleArithmeticProgram);
-
-    const result = context.getOutput('result');
+ 
+    const result = await context.getOutput('result');
     expectNatural(result, 5);
   });
 });
 
-describeWithBothRuntimes('Test Utilities - describeWithBothRuntimes', (context) => {
-  it('should run tests on both runtimes', () => {
+describeWithBothRuntimes('Test Utilities - describeWithBothRuntimes', async (context) => {
+  it('should run tests on both runtimes', async () => {
     context.loadProgram(simpleArithmeticProgram);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectNatural(result, 5);
   });
 });

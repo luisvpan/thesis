@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)", () => {
 
-  it("should compile ADD with fraction inputs via overload", () => {
+  it("should compile ADD with fraction inputs via overload", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -22,14 +22,14 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "fraction", numerator: 5, denominator: 4 });
     }
   });
 
-  it("should compile SUBTRACT with fraction inputs via overload", () => {
+  it("should compile SUBTRACT with fraction inputs via overload", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -47,14 +47,14 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "fraction", numerator: -1, denominator: 4 });
     }
   });
 
-  it("should compile MULTIPLY with fraction inputs via overload", () => {
+  it("should compile MULTIPLY with fraction inputs via overload", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -72,14 +72,14 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "fraction", numerator: 2, denominator: 5 });
     }
   });
 
-  it("should compile DIVIDE with fraction inputs via overload", () => {
+  it("should compile DIVIDE with fraction inputs via overload", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -97,14 +97,14 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "fraction", numerator: 2, denominator: 3 });
     }
   });
 
-  it("should compile COMPARE with fraction inputs via overload", () => {
+  it("should compile COMPARE with fraction inputs via overload", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -122,7 +122,7 @@ describe("Integration Tests - Fraction Operations (P0.2 - Overloading Support)",
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "boolean", value: false });

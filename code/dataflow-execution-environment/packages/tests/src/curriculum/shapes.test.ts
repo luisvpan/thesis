@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Curriculum Types", () => {
   describe("Test 3.1: Filter Red Shapes", () => {
-    it("should compile and execute shape filtering program", () => {
+    it("should compile and execute shape filtering program", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -27,7 +27,7 @@ describe("Integration Tests - Curriculum Types", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -35,7 +35,7 @@ describe("Integration Tests - Curriculum Types", () => {
       expect(result.elements).toHaveLength(2); // 2 red shapes
     });
 
-    it("should preserve immutability of sets", () => {
+    it("should preserve immutability of sets", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -54,7 +54,7 @@ describe("Integration Tests - Curriculum Types", () => {
 
       const compileResult = compiler.compile(source);
       runtime.loadProgram(compileResult.program!);
-      runtime.execute();
+      await runtime.execute();
 
       // Verify original set unchanged - source value is a wrapped set object
       const graph = runtime.getGraph();

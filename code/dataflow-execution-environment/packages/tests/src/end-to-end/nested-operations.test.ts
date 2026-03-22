@@ -3,7 +3,7 @@ import { Compiler } from "@dataflow/compiler";
 import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Nested Operations", () => {
-  it("should parse and execute ADD(ADD(a, b), c)", () => {
+  it("should parse and execute ADD(ADD(a, b), c)", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -24,12 +24,12 @@ describe("Integration Tests - Nested Operations", () => {
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
       expect(outputs).toEqual([{ kind: "natural", value: 6 }]);
     }
   });
 
-  it("should parse and execute MULTIPLY(ADD(a, b), ADD(c, d))", () => {
+  it("should parse and execute MULTIPLY(ADD(a, b), ADD(c, d))", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -52,12 +52,12 @@ describe("Integration Tests - Nested Operations", () => {
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
       expect(outputs).toEqual([{ kind: "natural", value: 80 }]);
     }
   });
 
-  it("should parse deeply nested expressions (3+ levels)", () => {
+  it("should parse deeply nested expressions (3+ levels)", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -80,7 +80,7 @@ describe("Integration Tests - Nested Operations", () => {
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
       expect(outputs).toEqual([{ kind: "natural", value: 10 }]);
     }
   });
@@ -104,7 +104,7 @@ describe("Integration Tests - Nested Operations", () => {
     expect(compileResult.errors[0].code).toBe("TYPE_ERROR");
   });
 
-  it("should handle nested operations with set operations", () => {
+  it("should handle nested operations with set operations", async () => {
     const compiler = new Compiler();
     const runtime = new Runtime();
 
@@ -123,7 +123,7 @@ describe("Integration Tests - Nested Operations", () => {
 
     if (compileResult.success && compileResult.program) {
       runtime.loadProgram(compileResult.program);
-      const outputs = runtime.execute(0);
+      const outputs = await runtime.execute(0);
       expect(outputs[0]).toMatchObject({ kind: "set" });
       const setOutput = outputs[0] as { kind: string; elements: unknown[] };
       expect(setOutput.elements.length).toBe(6);

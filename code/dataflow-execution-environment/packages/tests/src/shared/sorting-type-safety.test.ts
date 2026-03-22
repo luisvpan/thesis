@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Type Safety - Sorting Operations", () => {
   describe("SORT with Numeric Types", () => {
-    it("should sort Natural numbers", () => {
+    it("should sort Natural numbers", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -20,7 +20,7 @@ describe("Type Safety - Sorting Operations", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -36,7 +36,7 @@ describe("Type Safety - Sorting Operations", () => {
       ]);
     });
 
-    it("should sort Integer numbers", () => {
+    it("should sort Integer numbers", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -52,7 +52,7 @@ describe("Type Safety - Sorting Operations", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -67,7 +67,7 @@ describe("Type Safety - Sorting Operations", () => {
       ]);
     });
 
-    it("should sort Decimal numbers", () => {
+    it("should sort Decimal numbers", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -83,7 +83,7 @@ describe("Type Safety - Sorting Operations", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -97,7 +97,7 @@ describe("Type Safety - Sorting Operations", () => {
       ]);
     });
 
-    it("should sort Fractions", () => {
+    it("should sort Fractions", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -113,7 +113,7 @@ describe("Type Safety - Sorting Operations", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -193,7 +193,7 @@ describe("Type Safety - Sorting Operations", () => {
   });
 
   describe("ALPHABETICAL_SORT with Text Type", () => {
-    it("should sort text alphabetically", () => {
+    it("should sort text alphabetically", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -209,7 +209,7 @@ describe("Type Safety - Sorting Operations", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -223,7 +223,7 @@ describe("Type Safety - Sorting Operations", () => {
       ]);
     });
 
-    it("should handle case-sensitive alphabetical sort", () => {
+    it("should handle case-sensitive alphabetical sort", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -239,7 +239,7 @@ describe("Type Safety - Sorting Operations", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };

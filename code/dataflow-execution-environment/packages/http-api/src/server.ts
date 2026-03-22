@@ -172,26 +172,10 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
       const execStartTime = performance.now();
       const TIMEOUT_MS = 5000;
 
-      let timeoutTriggered = false;
-      const executionPromise = new Promise((resolve, reject) => {
-        setImmediate(() => {
-          if (timeoutTriggered) {
-            reject(new Error('Execution timeout'));
-            return;
-          }
-
-          try {
-            const outputs = runtime.execute(0);
-            resolve(outputs);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
+      const executionPromise = runtime.execute(0);
 
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
-          timeoutTriggered = true;
           reject(new Error('Execution timeout'));
         }, TIMEOUT_MS);
       });

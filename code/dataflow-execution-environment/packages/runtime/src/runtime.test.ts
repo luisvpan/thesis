@@ -43,7 +43,7 @@ describe('Runtime - Program Loading', () => {
     expect(() => runtime.loadProgram(program)).not.toThrow();
   });
 
-  it('should replace previous program when loading new one', () => {
+  it('should replace previous program when loading new one', async () => {
     const runtime = new Runtime();
 
     const program1: DataflowProgram = {
@@ -69,15 +69,15 @@ describe('Runtime - Program Loading', () => {
     runtime.loadProgram(program1);
     runtime.loadProgram(program2);
 
-    const outputs = runtime.execute();
+    const outputs = await runtime.execute();
     expect(outputs).toHaveLength(0);
   });
 });
 
 describe('Runtime - Execution', () => {
-  it('should return empty array for program with no output nodes', () => {
+  it('should return empty array for program with no output nodes', async () => {
     const runtime = new Runtime();
-
+ 
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -89,14 +89,14 @@ describe('Runtime - Execution', () => {
     };
 
     runtime.loadProgram(program);
-    const outputs = runtime.execute();
-
+    const outputs = await runtime.execute();
+ 
     expect(outputs).toEqual([]);
   });
 
-  it('should execute simple output node', () => {
+  it('should execute simple output node', async () => {
     const runtime = new Runtime();
-
+ 
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -111,15 +111,15 @@ describe('Runtime - Execution', () => {
     };
 
     runtime.loadProgram(program);
-    const outputs = runtime.execute();
-
+    const outputs = await runtime.execute();
+ 
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ kind: 'natural', value: 5 });
   });
 
-  it('should handle error from operation', () => {
+  it('should handle error from operation', async () => {
     const runtime = new Runtime();
-
+ 
     const program: DataflowProgram = {
       metadata: { programId: 'prog_001' },
       graph: {
@@ -138,7 +138,7 @@ describe('Runtime - Execution', () => {
     };
 
     runtime.loadProgram(program);
-
-    expect(() => runtime.execute()).toThrow('Division by zero');
+ 
+    await expect(runtime.execute()).rejects.toThrow('Division by zero');
   });
 });

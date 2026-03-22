@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Errors", () => {
   describe("Test 6.1: Division by Zero", () => {
-    it("should handle division by zero gracefully", () => {
+    it("should handle division by zero gracefully", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -21,7 +21,7 @@ describe("Integration Tests - Errors", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      expect(() => runtime.execute()).toThrow("Division by zero");
+      await expect(runtime.execute()).rejects.toThrow("Division by zero");
     });
   });
 });

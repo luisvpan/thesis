@@ -27,7 +27,7 @@ function generateProgramForExecution(nodeCount: number): string {
 
 describe("Integration Tests - Performance", () => {
   describe("Test 7.2: Execution Performance", () => {
-    it("should execute 50-node program in under 50ms", () => {
+    it("should execute 50-node program in under 50ms", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
       
@@ -39,14 +39,14 @@ describe("Integration Tests - Performance", () => {
       runtime.loadProgram(compileResult.program!);
       
       const start = performance.now();
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
       const time = performance.now() - start;
       
       expect(outputs).toHaveLength(1);
       expect(time).toBeLessThan(50);
     });
 
-    it("should have ~30% cache hit rate for repeated evaluations", () => {
+    it("should have ~30% cache hit rate for repeated evaluations", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
       
@@ -59,10 +59,10 @@ describe("Integration Tests - Performance", () => {
       
       const evaluator = runtime.getEvaluator();
       
-      const outputs1 = runtime.execute();
+      const outputs1 = await runtime.execute();
       const stats1 = evaluator.getCacheStats();
       
-      const outputs2 = runtime.execute();
+      const outputs2 = await runtime.execute();
       const stats2 = evaluator.getCacheStats();
       
       expect(outputs1).toEqual(outputs2);
@@ -73,7 +73,7 @@ describe("Integration Tests - Performance", () => {
       expect(hitRate).toBeGreaterThanOrEqual(0.2);
     });
 
-    it("should verify demand-driven semantics", () => {
+    it("should verify demand-driven semantics", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
       
@@ -93,7 +93,7 @@ describe("Integration Tests - Performance", () => {
       
       const evaluator = runtime.getEvaluator();
       
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
       const stats = evaluator.getCacheStats();
       
       expect(outputs).toHaveLength(1);
@@ -104,7 +104,7 @@ describe("Integration Tests - Performance", () => {
       expect(stats.hits + stats.misses).toBeLessThanOrEqual(allNodes.length);
     });
 
-    it("should execute 50-node program 5 times faster than full re-evaluation", () => {
+    it("should execute 50-node program 5 times faster than full re-evaluation", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
       
@@ -120,7 +120,7 @@ describe("Integration Tests - Performance", () => {
         runtime.loadProgram(compileResult.program!);
         
         const start = performance.now();
-        runtime.execute();
+        await runtime.execute();
         const time = performance.now() - start;
         timesWithoutCache.push(time);
       }
@@ -129,7 +129,7 @@ describe("Integration Tests - Performance", () => {
       
       for (let i = 0; i < 5; i++) {
         const start = performance.now();
-        runtime.execute();
+        await runtime.execute();
         const time = performance.now() - start;
         timesWithCache.push(time);
       }

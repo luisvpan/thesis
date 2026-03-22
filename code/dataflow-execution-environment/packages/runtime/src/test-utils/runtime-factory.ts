@@ -8,31 +8,31 @@ export type RuntimeInstance = Runtime | IncrementalRuntime;
 export interface RuntimeTestContext {
   runtime: RuntimeInstance;
   loadProgram: (program: DataflowProgram) => void;
-  execute: (time?: number) => unknown[] | { nodeStates: Map<string, any>; changedNodes: string[] };
-  getOutput: (nodeId: string, time?: number) => any;
+  execute: (time?: number) => Promise<unknown[] | { nodeStates: Map<string, any>; changedNodes: string[] }>;
+  getOutput: (nodeId: string, time?: number) => Promise<any>;
 }
 
 export function createRuntimeContext(runtimeType: 'batch' | 'incremental'): RuntimeTestContext {
   const runtime = runtimeType === 'batch' ? new Runtime() : new IncrementalRuntime();
-
+ 
   return {
     runtime,
     loadProgram: (program: DataflowProgram) => {
       runtime.loadProgram(program);
     },
-    execute: (time?: number) => {
+    execute: async (time?: number) => {
       if (runtimeType === 'batch') {
-        return (runtime as Runtime).execute(time);
+        return await (runtime as Runtime).execute(time);
       } else {
-        return (runtime as IncrementalRuntime).evaluatePartial(time || 0);
+        return await (runtime as IncrementalRuntime).evaluatePartial(time || 0);
       }
     },
-    getOutput: (nodeId: string, time?: number) => {
+    getOutput: async (nodeId: string, time?: number) => {
       if (runtimeType === 'batch') {
-        const outputs = (runtime as Runtime).execute(time);
+        const outputs = await (runtime as Runtime).execute(time);
         return outputs[0];
       } else {
-        const evalResult = (runtime as IncrementalRuntime).evaluatePartial(time || 0);
+        const evalResult = await (runtime as IncrementalRuntime).evaluatePartial(time || 0);
         const state = evalResult.nodeStates.get(nodeId);
         return state && state.status === 'completed' ? state.value : null;
       }

@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Sets", () => {
   describe("Test 4.1: Union of Shape Sets", () => {
-    it("should merge sets and remove duplicates", () => {
+    it("should merge sets and remove duplicates", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -21,7 +21,7 @@ describe("Integration Tests - Sets", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: number[] };
@@ -29,7 +29,7 @@ describe("Integration Tests - Sets", () => {
       expect(result.elements).toHaveLength(6);
     });
 
-    it("should remove duplicates when present", () => {
+    it("should remove duplicates when present", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -46,7 +46,7 @@ describe("Integration Tests - Sets", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: number[] };

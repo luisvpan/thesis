@@ -1,18 +1,18 @@
 import type { DataflowGraph } from "../graph/dataflow-graph.js";
 import type { DemandDrivenEvaluator } from "../evaluator/demand-driven-evaluator.js";
 
-export function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
+export async function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): Promise<unknown> {
   const [stream] = inputs;
 
   const streamId = stream.id;
-  return evaluator.evaluate(streamId, time, graph);
+  return await evaluator.evaluate(streamId, time, graph);
 }
 
-export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
+export async function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): Promise<unknown> {
   const [stream] = inputs;
 
   const streamId = stream.id;
-  const streamValue = evaluator.evaluate(streamId, 0, graph) as { kind: "stream"; elementType: string; firstValue: unknown };
+  const streamValue = await evaluator.evaluate(streamId, 0, graph) as { kind: "stream"; elementType: string; firstValue: unknown };
 
   if (typeof streamValue === 'object' && streamValue !== null && 'firstValue' in streamValue) {
     const { firstValue, elementType } = streamValue;
@@ -54,29 +54,29 @@ export function FIRST(inputs: Array<{ id: string; value: unknown }>, time: numbe
   return streamValue;
 }
 
-export function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
+export async function FBY(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): Promise<unknown> {
   const [initial, stream] = inputs;
 
   if (time === 0) {
     const initialId = initial.id;
-    return evaluator.evaluate(initialId, time, graph);
+    return await evaluator.evaluate(initialId, time, graph);
   }
 
   const streamId = stream.id;
-  return evaluator.evaluate(streamId, time - 1, graph);
+  return await evaluator.evaluate(streamId, time - 1, graph);
 }
 
-export function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): unknown {
+export async function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): Promise<unknown> {
   const [stream, initial, operation] = inputs;
 
   if (time === 0) {
     const initialId = initial.id;
-    return evaluator.evaluate(initialId, time, graph);
+    return await evaluator.evaluate(initialId, time, graph);
   }
 
   const streamId = stream.id;
-  const streamValue = evaluator.evaluate(streamId, time - 1, graph);
-  const previousAccumulated = evaluator.evaluate(currentNodeId, time - 1, graph);
+  const streamValue = await evaluator.evaluate(streamId, time - 1, graph);
+  const previousAccumulated = await evaluator.evaluate(currentNodeId, time - 1, graph);
 
   const operationName = (operation.value as { kind: "text"; value: string }).value;
 

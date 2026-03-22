@@ -34,11 +34,11 @@ export class Runtime {
     return this.evaluator.getExecutionTrace();
   }
 
-  execute(time: number = 0): unknown[] {
+  async execute(time: number = 0): Promise<unknown[]> {
     const outputs: unknown[] = [];
 
     for (const node of this.graph.getOutputNodes()) {
-      const value = this.evaluator.evaluate(node.id, time, this.graph);
+      const value = await this.evaluator.evaluate(node.id, time, this.graph);
       outputs.push(value);
     }
 

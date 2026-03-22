@@ -4,7 +4,7 @@ import { expectBoolean, expectNatural } from '../../../runtime/src/test-utils';
 import type { DataflowProgram } from '@dataflow/shared/types';
 
 describeWithBothRuntimes('Comparison Operations - COMPARE', (context) => {
-  it('should execute COMPARE operation with equal values', () => {
+  it('should execute COMPARE operation with equal values', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-compare-equal' },
       graph: {
@@ -23,11 +23,11 @@ describeWithBothRuntimes('Comparison Operations - COMPARE', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectBoolean(result, true);
   });
 
-  it('should execute COMPARE operation with less than', () => {
+  it('should execute COMPARE operation with less than', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-compare-less' },
       graph: {
@@ -46,11 +46,11 @@ describeWithBothRuntimes('Comparison Operations - COMPARE', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectBoolean(result, false);
   });
 
-  it('should execute COMPARE operation with greater than', () => {
+  it('should execute COMPARE operation with greater than', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-compare-greater' },
       graph: {
@@ -69,13 +69,13 @@ describeWithBothRuntimes('Comparison Operations - COMPARE', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectBoolean(result, false);
   });
 });
 
 describeWithBothRuntimes('Complex Expressions', (context) => {
-  it('should execute complex expression (3 + 2) * (10 - 6) = 20', () => {
+  it('should execute complex expression (3 + 2) * (10 - 6) = 20', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-complex' },
       graph: {
@@ -102,7 +102,7 @@ describeWithBothRuntimes('Complex Expressions', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectNatural(result, 20);
   });
 });

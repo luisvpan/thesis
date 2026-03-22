@@ -4,7 +4,7 @@ import { Runtime } from '@dataflow/runtime';
 
 describe('Extended Operation Contracts', () => {
   describe('COMPARE with Text and Boolean', () => {
-    it('should compare Text values - equal', () => {
+    it('should compare Text values - equal', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -21,13 +21,13 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: 'boolean', value: true });
     });
 
-    it('should compare Text values - not equal', () => {
+    it('should compare Text values - not equal', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -44,13 +44,13 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: 'boolean', value: false });
     });
 
-    it('should compare Boolean values - equal true', () => {
+    it('should compare Boolean values - equal true', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -67,13 +67,13 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: 'boolean', value: true });
     });
 
-    it('should compare Boolean values - equal false', () => {
+    it('should compare Boolean values - equal false', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -90,13 +90,13 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: 'boolean', value: true });
     });
 
-    it('should compare Boolean values - not equal', () => {
+    it('should compare Boolean values - not equal', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -113,7 +113,7 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: 'boolean', value: false });
@@ -121,7 +121,7 @@ describe('Extended Operation Contracts', () => {
   });
 
   describe('FILTER with Integer, Decimal, Fraction', () => {
-    it('should filter Integer set', () => {
+    it('should filter Integer set', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -140,7 +140,7 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -149,7 +149,7 @@ describe('Extended Operation Contracts', () => {
       expect(result.elements[0]).toEqual({ kind: 'integer', value: -3 });
     });
 
-    it('should filter Decimal set', () => {
+    it('should filter Decimal set', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -168,7 +168,7 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -177,7 +177,7 @@ describe('Extended Operation Contracts', () => {
       expect(result.elements[0]).toEqual({ kind: 'decimal', value: 3.5 });
     });
 
-    it('should filter Fraction set', () => {
+    it('should filter Fraction set', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -196,7 +196,7 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -207,7 +207,7 @@ describe('Extended Operation Contracts', () => {
   });
 
   describe('SORT with Integer, Decimal, Fraction', () => {
-    it('should sort Integer set', () => {
+    it('should sort Integer set', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -223,7 +223,7 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -238,7 +238,7 @@ describe('Extended Operation Contracts', () => {
       ]);
     });
 
-    it('should sort Decimal set', () => {
+    it('should sort Decimal set', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -254,7 +254,7 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -268,7 +268,7 @@ describe('Extended Operation Contracts', () => {
       ]);
     });
 
-    it('should sort Fraction set', () => {
+    it('should sort Fraction set', async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -284,7 +284,7 @@ describe('Extended Operation Contracts', () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };

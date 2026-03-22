@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Sets", () => {
   describe("Test 4.2: Filter and Sort Combined", () => {
-    it("should sort a set", () => {
+    it("should sort a set", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -20,7 +20,7 @@ describe("Integration Tests - Sets", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -36,7 +36,7 @@ describe("Integration Tests - Sets", () => {
       ]);
     });
 
-    it("should maintain order through chain", () => {
+    it("should maintain order through chain", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -52,7 +52,7 @@ describe("Integration Tests - Sets", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };

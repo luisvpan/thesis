@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Demand-Driven", () => {
   describe("Test 8.1: No Output Nodes", () => {
-    it("should evaluate nothing when no output nodes", () => {
+    it("should evaluate nothing when no output nodes", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -18,7 +18,7 @@ describe("Integration Tests - Demand-Driven", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(0); // Nothing evaluated
 

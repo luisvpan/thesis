@@ -4,7 +4,7 @@ import { expectNatural, expectInteger, expectDecimal } from '../../../runtime/sr
 import type { DataflowProgram } from '@dataflow/shared/types';
 
 describeWithBothRuntimes('Arithmetic Operations - ADD', (context) => {
-  it('should execute ADD operation', () => {
+  it('should execute ADD operation', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-add' },
       graph: {
@@ -23,13 +23,13 @@ describeWithBothRuntimes('Arithmetic Operations - ADD', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectNatural(result, 5);
   });
 });
 
 describeWithBothRuntimes('Arithmetic Operations - SUBTRACT', (context) => {
-  it('should execute SUBTRACT operation', () => {
+  it('should execute SUBTRACT operation', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-subtract' },
       graph: {
@@ -48,13 +48,13 @@ describeWithBothRuntimes('Arithmetic Operations - SUBTRACT', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectInteger(result, 7);
   });
 });
 
 describeWithBothRuntimes('Arithmetic Operations - MULTIPLY', (context) => {
-  it('should execute MULTIPLY operation', () => {
+  it('should execute MULTIPLY operation', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-multiply' },
       graph: {
@@ -73,13 +73,13 @@ describeWithBothRuntimes('Arithmetic Operations - MULTIPLY', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectNatural(result, 12);
   });
 });
 
 describeWithBothRuntimes('Arithmetic Operations - DIVIDE', (context) => {
-  it('should execute DIVIDE operation', () => {
+  it('should execute DIVIDE operation', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-divide' },
       graph: {
@@ -98,11 +98,11 @@ describeWithBothRuntimes('Arithmetic Operations - DIVIDE', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectDecimal(result, 2.5);
   });
 
-  it('should handle division by zero error', () => {
+  it('should handle division by zero error', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-divide-by-zero' },
       graph: {
@@ -121,12 +121,13 @@ describeWithBothRuntimes('Arithmetic Operations - DIVIDE', (context) => {
     };
 
     context.loadProgram(program);
-    
+
     if (context.runtime.constructor.name === 'Runtime') {
-      expect(() => context.execute()).toThrow('Division by zero');
+      await expect(context.execute()).rejects.toThrow('Division by zero');
     } else {
-      const result = context.execute() as { nodeStates: Map<string, any>; changedNodes: string[] };
-      const errorState = result.nodeStates.get('result');
+      const result = await context.execute();
+      const nodeStates = (result as { nodeStates: Map<string, any>; changedNodes: string[] }).nodeStates;
+      const errorState = nodeStates.get('result');
       expect(errorState?.status).toBe('error');
       expect(errorState?.error).toContain('Division by zero');
     }

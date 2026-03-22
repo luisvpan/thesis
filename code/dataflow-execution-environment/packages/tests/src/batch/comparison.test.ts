@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Curriculum Types", () => {
   describe("Test 3.2: Compare Shapes by Size", () => {
-    it("should compare shapes and return Boolean", () => {
+    it("should compare shapes and return Boolean", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -21,13 +21,13 @@ describe("Integration Tests - Curriculum Types", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "boolean", value: false }); // small ≠ large
     });
 
-    it("should perform value-based comparison (not reference)", () => {
+    it("should perform value-based comparison (not reference)", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -42,7 +42,7 @@ describe("Integration Tests - Curriculum Types", () => {
 
       const compileResult = compiler.compile(source);
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "boolean", value: true }); // both small

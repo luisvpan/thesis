@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - End-to-End Arithmetic", () => {
   describe("Test 1.1: Simple Addition", () => {
-    it("should compile and execute simple addition program", () => {
+    it("should compile and execute simple addition program", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -23,14 +23,14 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
 
       // Execute
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       // Verify
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "natural", value: 5 });
     });
 
-    it("should complete in under 10ms", () => {
+    it("should complete in under 10ms", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -52,7 +52,7 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
       // Measure execution time
       runtime.loadProgram(compileResult.program!);
       const executeStart = performance.now();
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
       const executeTime = performance.now() - executeStart;
 
       expect(outputs).toHaveLength(1);
@@ -61,7 +61,7 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
   });
 
   describe("Test 1.2: Complex Arithmetic Expression", () => {
-    it("should compile and execute multi-node arithmetic program", () => {
+    it("should compile and execute multi-node arithmetic program", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -84,7 +84,7 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
 
       // Execute
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       // Verify final result
       expect(outputs).toHaveLength(1);
@@ -97,7 +97,7 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
       expect(stats.misses).toBeGreaterThanOrEqual(7); // a, b, c, d, sum, sum2, product
     });
 
-    it("should preserve demand-driven evaluation order", () => {
+    it("should preserve demand-driven evaluation order", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -116,7 +116,7 @@ describe("Integration Tests - End-to-End Arithmetic", () => {
 
       const compileResult = compiler.compile(source);
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
 

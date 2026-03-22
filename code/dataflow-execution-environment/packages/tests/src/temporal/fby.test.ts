@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Temporal", () => {
   describe("Test 5.1: FBY Counter", () => {
-    it("should return initial value at time 0", () => {
+    it("should return initial value at time 0", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -22,12 +22,12 @@ describe("Integration Tests - Temporal", () => {
 
       runtime.loadProgram(compileResult.program!);
 
-      const output = runtime.execute(0);
+      const output = await runtime.execute(0);
       expect(output).toHaveLength(1);
       expect(output[0]).toEqual({ kind: "natural", value: 0 });
     });
 
-    it("should use demand-driven semantics for FBY", () => {
+    it("should use demand-driven semantics for FBY", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -50,7 +50,7 @@ describe("Integration Tests - Temporal", () => {
       expect(initialStats.hits).toBe(0);
       expect(initialStats.misses).toBe(0);
 
-      runtime.execute(0);
+      await runtime.execute(0);
 
       const stats = evaluator.getCacheStats();
       expect(stats.misses).toBeGreaterThan(0);

@@ -4,7 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 
 describe("Integration Tests - Curriculum Types Extended", () => {
   describe("Test 3.3: Filter Cars by Color", () => {
-    it("should filter cars by color", () => {
+    it("should filter cars by color", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -27,7 +27,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -35,7 +35,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(result.elements).toHaveLength(2); // 2 red cars
     });
 
-    it("should compare cars by color", () => {
+    it("should compare cars by color", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -52,7 +52,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "boolean", value: false }); // red ≠ blue
@@ -60,7 +60,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
   });
 
   describe("Test 3.4: Filter Foods by Color and Taste", () => {
-    it("should filter foods by color", () => {
+    it("should filter foods by color", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -83,7 +83,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -91,7 +91,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(result.elements).toHaveLength(2); // 2 red foods
     });
 
-    it("should compare foods by color", () => {
+    it("should compare foods by color", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -108,7 +108,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "boolean", value: false }); // red ≠ blue
@@ -116,7 +116,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
   });
 
   describe("Test 3.5: Filter Animals by Color and Type", () => {
-    it("should filter animals by color", () => {
+    it("should filter animals by color", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -139,7 +139,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -147,7 +147,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(result.elements).toHaveLength(2); // 2 red animals
     });
 
-    it("should filter animals by type", () => {
+    it("should filter animals by type", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -170,7 +170,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -178,7 +178,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(result.elements).toHaveLength(2); // 2 dogs
     });
 
-    it("should compare animals by color", () => {
+    it("should compare animals by color", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -195,13 +195,13 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "boolean", value: false }); // red ≠ blue
     });
 
-    it("should compare animals by type", () => {
+    it("should compare animals by type", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -218,7 +218,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       expect(outputs[0]).toEqual({ kind: "boolean", value: false }); // dog ≠ cat
@@ -226,7 +226,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
   });
 
   describe("Test 3.6: Set Operations on Curriculum Types", () => {
-    it("should perform UNION on car sets", () => {
+    it("should perform UNION on car sets", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -250,7 +250,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -258,7 +258,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(result.elements).toHaveLength(3); // red, blue, green (red deduplicated)
     });
 
-    it("should perform INTERSECTION on food sets", () => {
+    it("should perform INTERSECTION on food sets", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -282,7 +282,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };
@@ -290,7 +290,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(result.elements).toHaveLength(1); // only the common food
     });
 
-    it("should perform DIFFERENCE on animal sets", () => {
+    it("should perform DIFFERENCE on animal sets", async () => {
       const compiler = new Compiler();
       const runtime = new Runtime();
 
@@ -313,7 +313,7 @@ describe("Integration Tests - Curriculum Types Extended", () => {
       expect(compileResult.success).toBe(true);
 
       runtime.loadProgram(compileResult.program!);
-      const outputs = runtime.execute();
+      const outputs = await runtime.execute();
 
       expect(outputs).toHaveLength(1);
       const result = outputs[0] as { kind: string; elements: unknown[] };

@@ -4,7 +4,7 @@ import { expectFraction, expectBoolean } from '../../../runtime/src/test-utils';
 import type { DataflowProgram } from '@dataflow/shared/types';
 
 describeWithBothRuntimes('Fraction Operations - ADD', (context) => {
-  it('should execute ADD operation with fractions', () => {
+  it('should execute ADD operation with fractions', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-add' },
       graph: {
@@ -23,11 +23,11 @@ describeWithBothRuntimes('Fraction Operations - ADD', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectFraction(result, { numerator: 3, denominator: 4 });
   });
 
-  it('should ADD fractions that simplify to whole number', () => {
+  it('should ADD fractions that simplify to whole number', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-add-whole' },
       graph: {
@@ -46,13 +46,13 @@ describeWithBothRuntimes('Fraction Operations - ADD', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectFraction(result, { numerator: 1, denominator: 1 });
   });
 });
 
 describeWithBothRuntimes('Fraction Operations - SUBTRACT', (context) => {
-  it('should execute SUBTRACT operation with fractions', () => {
+  it('should execute SUBTRACT operation with fractions', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-subtract' },
       graph: {
@@ -71,13 +71,13 @@ describeWithBothRuntimes('Fraction Operations - SUBTRACT', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectFraction(result, { numerator: 1, denominator: 2 });
   });
 });
 
 describeWithBothRuntimes('Fraction Operations - MULTIPLY', (context) => {
-  it('should execute MULTIPLY operation with fractions', () => {
+  it('should execute MULTIPLY operation with fractions', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-multiply' },
       graph: {
@@ -96,13 +96,13 @@ describeWithBothRuntimes('Fraction Operations - MULTIPLY', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectFraction(result, { numerator: 1, denominator: 3 });
   });
 });
 
 describeWithBothRuntimes('Fraction Operations - DIVIDE', (context) => {
-  it('should execute DIVIDE operation with fractions', () => {
+  it('should execute DIVIDE operation with fractions', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-divide' },
       graph: {
@@ -121,11 +121,11 @@ describeWithBothRuntimes('Fraction Operations - DIVIDE', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectFraction(result, { numerator: 2, denominator: 1 });
   });
 
-  it('should error on division by zero in DIVIDE', () => {
+  it('should error on division by zero in DIVIDE', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-divide-by-zero' },
       graph: {
@@ -144,11 +144,11 @@ describeWithBothRuntimes('Fraction Operations - DIVIDE', (context) => {
     };
 
     context.loadProgram(program);
-    
+
     if (context.runtime.constructor.name === 'Runtime') {
-      expect(() => context.execute()).toThrow('DIVIDE: Division by zero');
+      await expect(context.execute()).rejects.toThrow('DIVIDE: Division by zero');
     } else {
-      const result = context.execute() as { nodeStates: Map<string, any>; changedNodes: string[] };
+      const result = await context.execute() as { nodeStates: Map<string, any>; changedNodes: string[] };
       const errorState = result.nodeStates.get('result');
       expect(errorState?.status).toBe('error');
       expect(errorState?.error).toContain('Division by zero');
@@ -157,7 +157,7 @@ describeWithBothRuntimes('Fraction Operations - DIVIDE', (context) => {
 });
 
 describeWithBothRuntimes('Fraction Operations - COMPARE', (context) => {
-  it('should execute COMPARE operation with equal fractions', () => {
+  it('should execute COMPARE operation with equal fractions', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-compare-equal' },
       graph: {
@@ -176,11 +176,11 @@ describeWithBothRuntimes('Fraction Operations - COMPARE', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectBoolean(result, true);
   });
 
-  it('should execute COMPARE operation with different fractions', () => {
+  it('should execute COMPARE operation with different fractions', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-compare-different' },
       graph: {
@@ -199,13 +199,13 @@ describeWithBothRuntimes('Fraction Operations - COMPARE', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectBoolean(result, false);
   });
 });
 
 describeWithBothRuntimes('Fraction Operations - Edge Cases', (context) => {
-  it('should simplify fractions automatically', () => {
+  it('should simplify fractions automatically', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-simplify' },
       graph: {
@@ -224,11 +224,11 @@ describeWithBothRuntimes('Fraction Operations - Edge Cases', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectFraction(result, { numerator: 1, denominator: 1 });
   });
 
-  it('should handle negative fractions', () => {
+  it('should handle negative fractions', async () => {
     const program: DataflowProgram = {
       metadata: { programId: 'test-fraction-negative' },
       graph: {
@@ -247,17 +247,17 @@ describeWithBothRuntimes('Fraction Operations - Edge Cases', (context) => {
     };
 
     context.loadProgram(program);
-    const result = context.getOutput('result');
+    const result = await context.getOutput('result');
     expectFraction(result, { numerator: -1, denominator: 4 });
   });
 
-  it('should error on zero denominator in fraction inputs', () => {
+  it('should error on zero denominator in fraction inputs', async () => {
     const program: DataflowProgram = {
-      metadata: { programId: 'test-fraction-zero-denominator' },
+      metadata: { programId: 'test-fraction-zero' },
       graph: {
         nodes: [
-          { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 2 } },
-          { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 0 } },
+          { id: 'a', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 1, denominator: 0 } },
+          { id: 'b', type: 'DataSource', dataType: 'fraction', value: { kind: 'fraction', numerator: 2, denominator: 1 } },
           { id: 'add', type: 'Transformation', dataType: 'fraction', operation: 'ADD', inputs: ['a', 'b'] },
           { id: 'result', type: 'Output', dataType: 'fraction', input: 'add' }
         ],
@@ -268,13 +268,13 @@ describeWithBothRuntimes('Fraction Operations - Edge Cases', (context) => {
         ]
       }
     };
-
+ 
     context.loadProgram(program);
     
     if (context.runtime.constructor.name === 'Runtime') {
-      expect(() => context.execute()).toThrow('ADD: Denominator cannot be zero');
+      await expect(context.execute()).rejects.toThrow('ADD: Denominator cannot be zero');
     } else {
-      const result = context.execute() as { nodeStates: Map<string, any>; changedNodes: string[] };
+      const result = await context.execute() as { nodeStates: Map<string, any>; changedNodes: string[] };
       const errorState = result.nodeStates.get('result');
       expect(errorState?.status).toBe('error');
       expect(errorState?.error).toContain('Denominator cannot be zero');
