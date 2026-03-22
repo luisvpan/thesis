@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-22 (All P0 and P1 tasks complete - All 387 tests passing - P2 issues #2, #3, #4 resolved - 100% ready)
+**Last Updated:** 2026-03-22 (All P0 and P1 tasks complete - All 387 tests passing - P2 issues #2, #3, #4 resolved - P2.4 completed - P2.5 added for Elysia best practices - 93% ready)
 
 ---
 
@@ -82,6 +82,7 @@ All P2 medium priority tasks have been completed:
 - **P2.2:** Child-friendly Spanish messages complete ✅
 - **P2.3:** Test coverage verified (387/387 tests passing) ✅
 - **P2.4:** Security measures implemented (rate limiting, timeouts, resource limits) ✅
+- **P2.5:** Elysia best practices violations fixed (TypeBox schemas, declarative validation) ⚠️ PENDING
 
 **Test Status:** All 387 tests passing (100% pass rate)
 
@@ -1295,8 +1296,8 @@ describeWithBothRuntimes('Advanced Curriculum Operations', (context) => {
 #### Task P2.4: Add Security Measures (3-4 hours)
 
 **Priority:** P2 MEDIUM
-**Status:** ⚠️ NOT STARTED
-**Impact:** No rate limiting, resource limits, or timeouts
+**Status:** ✅ COMPLETED (2026-03-18)
+**Impact:** Rate limiting, resource limits, and timeouts now implemented
 
 **Required Changes:**
 
@@ -1390,12 +1391,397 @@ app.ws('/live', {
 **Layer:** Layer 7 (Integration)
 
 **Ralph Wiggum Checklist:**
-- [ ] Rate limiting implemented
-- [ ] Resource limits implemented
-- [ ] Evaluation timeout implemented
+- [x] Rate limiting implemented
+- [x] Resource limits implemented
+- [x] Evaluation timeout implemented
 - [x] All tests pass (385/385)
+- [x] Typecheck passes (0 errors)
+- [x] Git commit: "feat(integration): add security measures"
+
+---
+
+#### Task P2.5: Fix Elysia Best Practices Violations (6-8 hours)
+
+**Priority:** P2 MEDIUM
+**Status:** ⚠️ NOT STARTED
+**Impact:** HTTP API and WebSocket Server don't follow Elysia best practices (manual validation, no TypeBox schemas)
+
+**Problem:**
+Both packages use manual validation and type casting instead of Elysia's declarative schema validation:
+- HTTP API uses `body: t.Any()` and manual `as any` casting
+- WebSocket Server uses manual JSON parsing and type assertions
+- No TypeBox schema definitions for request/response types
+- Missing reference models for reusability and OpenAPI schema generation
+
+**Required Changes:**
+
+**1. Create centralized schema files:**
+
+Create `packages/http-api/src/schemas.ts` with TypeBox schemas:
+```typescript
+import { Elysia, t } from "elysia";
+
+export const DataValueSchema = t.Union([
+  t.Object({ kind: t.Literal("natural"), value: t.Number() }),
+  t.Object({ kind: t.Literal("text"), value: t.String() }),
+  t.Object({ kind: t.Literal("boolean"), value: t.Boolean() })
+]);
+
+export const DataSourceNodeSchema = t.Object({
+  id: t.String(),
+  type: t.Literal("DataSource"),
+  dataType: t.Union([t.Literal("natural"), t.Literal("text"), t.Literal("boolean")]),
+  value: t.Unknown(),
+  metadata: t.Optional(t.Object({
+    label: t.Optional(t.String()),
+    blockId: t.Optional(t.String()),
+    position: t.Optional(t.Array(t.Number())),
+    isLiteral: t.Optional(t.Boolean())
+  }))
+});
+
+export const TransformationNodeSchema = t.Object({
+  id: t.String(),
+  type: t.Literal("Transformation"),
+  dataType: t.Union([t.Literal("natural"), t.Literal("text"), t.Literal("boolean")]),
+  operation: t.String(),
+  inputs: t.Array(t.String()),
+  metadata: t.Optional(t.Object({
+    label: t.Optional(t.String()),
+    blockId: t.Optional(t.String()),
+    position: t.Optional(t.Array(t.Number())),
+    isLiteral: t.Optional(t.Boolean())
+  }))
+});
+
+export const OutputNodeSchema = t.Object({
+  id: t.String(),
+  type: t.Literal("Output"),
+  dataType: t.Union([t.Literal("natural"), t.Literal("text"), t.Literal("boolean")]),
+  input: t.String(),
+  metadata: t.Optional(t.Object({
+    label: t.Optional(t.String()),
+    blockId: t.Optional(t.String()),
+    position: t.Optional(t.Array(t.Number())),
+    isLiteral: t.Optional(t.Boolean())
+  }))
+});
+
+export const DataflowNodeSchema = t.Union([
+  DataSourceNodeSchema,
+  TransformationNodeSchema,
+  OutputNodeSchema
+]);
+
+export const DataflowEdgeSchema = t.Object({
+  id: t.String(),
+  from: t.String(),
+  to: t.String(),
+  toPort: t.Optional(t.Number())
+});
+
+export const DataflowProgramSchema = t.Object({
+  metadata: t.Object({
+    programId: t.String(),
+    activityId: t.Optional(t.String()),
+    level: t.Optional(t.Number())
+  }),
+  graph: t.Object({
+    nodes: t.Array(DataflowNodeSchema),
+    edges: t.Array(DataflowEdgeSchema)
+  })
+});
+
+export const ValidationErrorSchema = t.Object({
+  code: t.String(),
+  message: t.String(),
+  childMessage: t.Optional(t.String()),
+  nodeId: t.Optional(t.String()),
+  suggestion: t.Optional(t.String()),
+  example: t.Optional(t.String())
+});
+
+export const ValidationResultSchema = t.Object({
+  success: t.Boolean(),
+  errors: t.Array(ValidationErrorSchema),
+  warnings: t.Array(ValidationErrorSchema)
+});
+
+export const CompileRequestSchema = t.Object({
+  program: DataflowProgramSchema
+});
+
+export const CompileResponseSchema = t.Object({
+  success: t.Boolean(),
+  programId: t.String(),
+  errors: t.Array(ValidationErrorSchema),
+  warnings: t.Array(ValidationErrorSchema)
+});
+
+export const ExecuteOptionsSchema = t.Object({
+  maxTimesteps: t.Optional(t.Number()),
+  includeTrace: t.Optional(t.Boolean()),
+  traceLevel: t.Optional(t.Union([
+    t.Literal("minimal"),
+    t.Literal("medium"),
+    t.Literal("detailed")
+  ]))
+});
+
+export const ExecuteRequestSchema = t.Object({
+  program: DataflowProgramSchema,
+  options: t.Optional(ExecuteOptionsSchema)
+});
+
+export const ExecuteResponseSchema = t.Object({
+  success: t.Boolean(),
+  programId: t.String(),
+  outputs: t.Array(DataValueSchema),
+  trace: t.Optional(t.Object({
+    executionOrder: t.Array(t.String()),
+    nodeEvaluations: t.Record(t.String(), t.Unknown()),
+    cacheHits: t.Number(),
+    cacheMisses: t.Number(),
+    totalTime: t.String()
+  }))
+});
+
+export const HealthResponseSchema = t.Object({
+  status: t.Literal("healthy"),
+  version: t.String(),
+  uptime: t.Number()
+});
+
+// Reference models export for reusability
+export const Models = {
+  DataValue: DataValueSchema,
+  DataSourceNode: DataSourceNodeSchema,
+  TransformationNode: TransformationNodeSchema,
+  OutputNode: OutputNodeSchema,
+  DataflowNode: DataflowNodeSchema,
+  DataflowEdge: DataflowEdgeSchema,
+  DataflowProgram: DataflowProgramSchema,
+  ValidationError: ValidationErrorSchema,
+  ValidationResult: ValidationResultSchema,
+  CompileRequest: CompileRequestSchema,
+  CompileResponse: CompileResponseSchema,
+  ExecuteOptions: ExecuteOptionsSchema,
+  ExecuteRequest: ExecuteRequestSchema,
+  ExecuteResponse: ExecuteResponseSchema,
+  HealthResponse: HealthResponseSchema
+};
+```
+
+Create `packages/websocket-server/src/schemas.ts` with TypeBox schemas:
+```typescript
+import { t } from "elysia";
+import {
+  DataflowProgramSchema,
+  ValidationErrorSchema
+} from "@dataflow/http-api/schemas";
+
+export const BaseMessageSchema = t.Object({
+  type: t.String(),
+  messageId: t.Optional(t.String())
+});
+
+export const ValidateProgramMessageSchema = t.Intersect([
+  BaseMessageSchema,
+  t.Object({
+    type: t.Literal("validate_program"),
+    program: DataflowProgramSchema
+  })
+]);
+
+export const EvaluateIncrementalMessageSchema = t.Intersect([
+  BaseMessageSchema,
+  t.Object({
+    type: t.Literal("evaluate_incremental"),
+    program: DataflowProgramSchema
+  })
+]);
+
+export const SubscribeNodeMessageSchema = t.Intersect([
+  BaseMessageSchema,
+  t.Object({
+    type: t.Literal("subscribe_node"),
+    nodeId: t.String()
+  })
+]);
+
+export const UnsubscribeNodeMessageSchema = t.Intersect([
+  BaseMessageSchema,
+  t.Object({
+    type: t.Literal("unsubscribe_node"),
+    nodeId: t.String()
+  })
+]);
+
+export const IncomingMessageSchema = t.Union([
+  ValidateProgramMessageSchema,
+  EvaluateIncrementalMessageSchema,
+  SubscribeNodeMessageSchema,
+  UnsubscribeNodeMessageSchema
+]);
+
+export const ValidationResultMessageSchema = t.Object({
+  type: t.Literal("validation_result"),
+  messageId: t.String(),
+  errors: t.Array(ValidationErrorSchema),
+  warnings: t.Array(ValidationErrorSchema)
+});
+
+export const EvaluationResultMessageSchema = t.Object({
+  type: t.Literal("evaluation_result"),
+  messageId: t.String(),
+  nodeStates: t.Record(t.String(), t.Unknown()),
+  changedNodes: t.Array(t.String())
+});
+
+export const NodeStateChangedMessageSchema = t.Object({
+  type: t.Literal("node_state_changed"),
+  messageId: t.String(),
+  nodeId: t.String(),
+  state: t.Optional(t.Unknown())
+});
+
+export const ErrorMessageSchema = t.Object({
+  type: t.Literal("error"),
+  messageId: t.Optional(t.String()),
+  code: t.Union([
+    t.Literal("CONNECTION_LIMIT_EXCEEDED"),
+    t.Literal("MESSAGE_PARSE_ERROR"),
+    t.Literal("RATE_LIMIT_EXCEEDED"),
+    t.Literal("RUNTIME_NOT_FOUND"),
+    t.Literal("INVALID_MESSAGE"),
+    t.Literal("EVALUATION_TIMEOUT"),
+    t.Literal("MESSAGE_ERROR")
+  ]),
+  message: t.String()
+});
+
+export const OutgoingMessageSchema = t.Union([
+  ValidationResultMessageSchema,
+  EvaluationResultMessageSchema,
+  NodeStateChangedMessageSchema,
+  ErrorMessageSchema
+]);
+
+// Reference models export for reusability
+export const Models = {
+  BaseMessage: BaseMessageSchema,
+  ValidateProgramMessage: ValidateProgramMessageSchema,
+  EvaluateIncrementalMessage: EvaluateIncrementalMessageSchema,
+  SubscribeNodeMessage: SubscribeNodeMessageSchema,
+  UnsubscribeNodeMessage: UnsubscribeNodeMessageSchema,
+  IncomingMessage: IncomingMessageSchema,
+  ValidationResultMessage: ValidationResultMessageSchema,
+  EvaluationResultMessage: EvaluationResultMessageSchema,
+  NodeStateChangedMessage: NodeStateChangedMessageSchema,
+  ErrorMessage: ErrorMessageSchema,
+  OutgoingMessage: OutgoingMessageSchema
+};
+```
+
+**2. Update HTTP API server.ts (packages/http-api/src/server.ts):**
+
+Replace Line 119: `body: t.Any()` with:
+```typescript
+body: CompileRequestSchema,
+response: CompileResponseSchema
+```
+
+Replace Line 225: `body: t.Any()` with:
+```typescript
+body: ExecuteRequestSchema,
+response: ExecuteResponseSchema
+```
+
+Add schema imports:
+```typescript
+import {
+  CompileRequestSchema,
+  CompileResponseSchema,
+  ExecuteRequestSchema,
+  ExecuteResponseSchema,
+  HealthResponseSchema
+} from "./schemas";
+```
+
+Remove manual type casting in handlers (Lines 88-89, 136-138):
+```typescript
+// BEFORE
+const request = body as any;
+const program = request.program as DataflowProgram;
+const options = request.options || {};
+
+// AFTER
+const { program, options = {} } = body;
+```
+
+Add response schema to health endpoint (after Line 75):
+```typescript
+}, {
+  response: HealthResponseSchema
+});
+```
+
+**3. Update WebSocket Server server.ts (packages/websocket-server/src/server.ts):**
+
+Replace interface definitions (Lines 25-49) with schema imports:
+```typescript
+import {
+  ValidateProgramMessageSchema,
+  EvaluateIncrementalMessageSchema,
+  SubscribeNodeMessageSchema,
+  UnsubscribeNodeMessageSchema
+} from "./schemas";
+```
+
+Update message handler to use proper typing (Lines 138-294):
+- Keep manual JSON parsing (WebSocket limitation)
+- Use TypeBox schemas for type safety where possible
+- Replace type assertions with proper type guards
+
+**Files Affected:**
+- `packages/http-api/src/schemas.ts` (NEW)
+- `packages/websocket-server/src/schemas.ts` (NEW)
+- `packages/http-api/src/server.ts` (modified)
+- `packages/websocket-server/src/server.ts` (modified)
+
+**Dependencies:** None (uses existing Elysia and TypeBox)
+
+**Acceptance Criteria:**
+- ✓ TypeBox schemas created for all request/response types
+- ✓ HTTP API uses declarative validation (no `t.Any()`)
+- ✓ Manual type casting removed (`as any`, `as DataflowProgram`)
+- ✓ WebSocket messages have proper type definitions
+- ✓ Reference models exported for reusability
+- ✓ All existing tests still pass (387/387)
+
+**Required Tests:**
+- ✓ Test: Invalid request bodies return 422 with proper error
+- ✓ Test: Schema validation errors are clear and helpful
+- ✓ Test: All HTTP API tests still pass
+- ✓ Test: All WebSocket tests still pass
+- ✓ Test: Type inference works correctly in TypeScript
+
+**Spec Reference:** `specs/ELYSIA_LLMS.md` - Best Practices section
+
+**Layer:** Layer 7 (Integration - HTTP API & WebSocket Server)
+
+**Estimated Time:** 6-8 hours
+
+**Ralph Wiggum Checklist:**
+- [ ] TypeBox schemas created in packages/http-api/src/schemas.ts
+- [ ] TypeBox schemas created in packages/websocket-server/src/schemas.ts
+- [ ] HTTP API replaced t.Any() with proper schemas
+- [ ] Manual type casting removed from handlers
+- [ ] WebSocket messages properly typed with schemas
+- [ ] Reference models exported for reusability
+- [ ] All 387 tests passing (no regressions)
 - [ ] Typecheck passes (0 errors)
-- [ ] Git commit: "feat(integration): add security measures"
+- [ ] Git commit: "refactor(apis): implement Elysia best practices with TypeBox schemas"
 
 ---
 
@@ -1511,11 +1897,14 @@ case "ADD":
 
 - **✅ P0 CRITICAL tasks:** 20-21 hours (COMPLETED)
 - **✅ P1 HIGH tasks:** 24-27 hours (COMPLETED)
-- **✅ P2 MEDIUM tasks:** 26-31 hours (COMPLETED)
+- **⚠️ P2 MEDIUM tasks:** 26-31 hours (7/8 tasks complete, 1 pending)
+  - ✅ P2.1-P2.4 COMPLETED: 26-31 hours
+  - ⚠️ P2.5 PENDING: 6-8 hours
 - **P3 LOW tasks:** 8-10 hours (optional / nice-to-have)
 
-**Total Estimated:** **78-89 hours** for production-ready system
-**Current Progress:** 78-89 hours completed (~100% - all P0, P1, and P2 complete)
+**Total Estimated:** **84-97 hours** for production-ready system
+**Current Progress:** 78-89 hours completed (~93% - all P0, P1, and 7/8 P2 tasks complete)
+**Remaining:** 6-8 hours (P2.5 - Elysia best practices)
 
 ### ✅ After P0 Tasks (COMPLETED - 2026-03-16):
 - ✅ Push notifications working
@@ -1534,11 +1923,12 @@ case "ADD":
 - ✅ Input validation complete (max 1000 nodes, 10 levels, 5 concurrent)
 - ✅ System is production-ready with all P0 and P1 tasks complete
 
-### After P2 Tasks (70-79 hours total):
+### After P2 Tasks (76-87 hours total):
 - ✅ Eden Treaty export (P2.1)
 - ✅ Spanish messages complete (P2.2)
 - ✅ Test coverage verified (P2.3) - 387/387 tests passing
 - ✅ Security measures implemented (P2.4)
+- ⚠️ Elysia best practices fixed (P2.5) - TypeBox schemas, declarative validation
 - ✅ Issue #2: HTTP API - Missing programId in Execute Success Response
 - ✅ Issue #3: WebSocket Server - No messageId Generation
 - ✅ Issue #4: WebSocket Server - No messageId in Push Notifications
@@ -1613,7 +2003,7 @@ case "ADD":
   - ✅ P1.3 COMPLETED (validation passes combined - 30-40% faster)
   - ✅ P1.4 COMPLETED (all 5 generators implemented)
   - ✅ P1.5 COMPLETED (input validation complete)
-- ✅ All P2 tasks COMPLETED (7/7 tasks complete)
+- ⚠️ All P2 tasks MOSTLY COMPLETED (7/8 tasks complete, 1 pending)
   - ✅ Issue #2 COMPLETED (HTTP API - programId in Execute Success Response)
   - ✅ Issue #3 COMPLETED (WebSocket Server - messageId Generation)
   - ✅ Issue #4 COMPLETED (WebSocket Server - messageId in Push Notifications)
@@ -1621,12 +2011,13 @@ case "ADD":
   - ✅ P2.2 COMPLETED (child-friendly Spanish messages complete)
   - ✅ P2.3 COMPLETED (test coverage verified - 387/387 tests passing)
   - ✅ P2.4 COMPLETED (security measures implemented)
+  - ⚠️ P2.5 PENDING (Elysia best practices - TypeBox schemas, declarative validation)
 - WebSocket server for live feedback
 - IncrementalRuntime for partial evaluation (all bugs fixed)
 - Complete test coverage (387/387 tests passing - 100%)
 - Child-friendly Spanish messages throughout
 - Generic set/stream operations
-- HTTP API follows Elysia best practices with input validation
+- ⚠️ HTTP API follows Elysia best practices with input validation (P2.5 pending)
 - Temporal operators preserve demand-driven semantics
 - Nested operations supported
 - Clear test organization
