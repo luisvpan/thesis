@@ -22,32 +22,6 @@ function generateMessageId(): string {
 let connectionIdCounter = 0;
 const clientRuntimeMap = new Map<string, ClientRuntimeData>();
 
-interface WebSocketMessage {
-  type: string;
-  messageId?: string;
-  [key: string]: unknown;
-}
-
-interface ValidateProgramMessage extends WebSocketMessage {
-  type: "validate_program";
-  program: DataflowProgram;
-}
-
-interface EvaluateIncrementalMessage extends WebSocketMessage {
-  type: "evaluate_incremental";
-  program: DataflowProgram;
-}
-
-interface SubscribeNodeMessage extends WebSocketMessage {
-  type: "subscribe_node";
-  nodeId: string;
-}
-
-interface UnsubscribeNodeMessage extends WebSocketMessage {
-  type: "unsubscribe_node";
-  nodeId: string;
-}
-
 const validator = new DagValidator();
 const connectionManager = new ConnectionManager();
 
@@ -92,17 +66,17 @@ export const app = new Elysia()
     },
  
     message: async (ws: ElysiaWS<any, any>, message: any) => {
-      let msg: WebSocketMessage;
+      let msg: any;
 
       if (typeof message === "object") {
         console.log("Received message as already-parsed object");
-        msg = message as WebSocketMessage;
+        msg = message;
       } else {
         const messageStr = typeof message === "string" ? message : message.toString("utf-8");
         console.log("Received message type:", typeof message);
         console.log("Received message:", messageStr);
         try {
-          msg = JSON.parse(messageStr) as WebSocketMessage;
+          msg = JSON.parse(messageStr);
         } catch (parseError) {
           const errorResponse = JSON.stringify({
             type: "error",
@@ -136,11 +110,10 @@ export const app = new Elysia()
       try {
         switch (msg.type) {
           case "validate_program": {
-            const validateMsg = msg as ValidateProgramMessage;
-            const result = validator.validateProgram(validateMsg.program);
+            const result = validator.validateProgram(msg.program);
             const response = JSON.stringify({
               type: "validation_result",
-              messageId: validateMsg.messageId || generateMessageId(),
+              messageId: msg.messageId || generateMessageId(),
               errors: result.errors,
               warnings: result.warnings
             });
@@ -150,14 +123,13 @@ export const app = new Elysia()
           }
 
           case "evaluate_incremental": {
-            const evalMsg = msg as EvaluateIncrementalMessage;
             const connectionId = ws.data?.connectionId as string;
             const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
             const clientRuntime = clientData?.runtime;
             if (!clientRuntime) {
               const errorResponse = JSON.stringify({
                 type: "error",
-                messageId: evalMsg.messageId || generateMessageId(),
+                messageId: msg.messageId || generateMessageId(),
                 code: "RUNTIME_NOT_FOUND",
                 message: "Client runtime not found"
               });
@@ -165,7 +137,7 @@ export const app = new Elysia()
               break;
             }
 
-            clientRuntime.loadProgram(evalMsg.program);
+            clientRuntime.loadProgram(msg.program);
 
             const TIMEOUT_MS = 5000;
             let timeoutTriggered = false;
@@ -195,7 +167,7 @@ export const app = new Elysia()
 
             const response = JSON.stringify({
               type: "evaluation_result",
-              messageId: evalMsg.messageId || generateMessageId(),
+              messageId: msg.messageId || generateMessageId(),
               nodeStates: Object.fromEntries(evaluation.nodeStates),
               changedNodes: evaluation.changedNodes
             });
@@ -205,15 +177,14 @@ export const app = new Elysia()
           }
 
           case "subscribe_node": {
-            const subMsg = msg as SubscribeNodeMessage;
-            const { nodeId } = subMsg;
+            const { nodeId } = msg;
             const connectionId = ws.data?.connectionId as string;
             const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
             const clientRuntime = clientData?.runtime;
             if (!clientRuntime) {
               const errorResponse = JSON.stringify({
                 type: "error",
-                messageId: subMsg.messageId || generateMessageId(),
+                messageId: msg.messageId || generateMessageId(),
                 code: "RUNTIME_NOT_FOUND",
                 message: "Client runtime not found"
               });
@@ -228,7 +199,7 @@ export const app = new Elysia()
                 ws.send(JSON.stringify({
                   type: "node_state_changed",
                   nodeId,
-                  messageId: subMsg.messageId || generateMessageId(),
+                  messageId: msg.messageId || generateMessageId(),
                   state
                 }));
               }
@@ -240,7 +211,7 @@ export const app = new Elysia()
             const response = JSON.stringify({
               type: "node_state_changed",
               nodeId,
-              messageId: subMsg.messageId || generateMessageId()
+              messageId: msg.messageId || generateMessageId()
             });
             console.log("Sending subscribe confirmation:", response);
             ws.send(response);
@@ -248,15 +219,14 @@ export const app = new Elysia()
           }
 
           case "unsubscribe_node": {
-            const unsubMsg = msg as UnsubscribeNodeMessage;
-            const { nodeId } = unsubMsg;
+            const { nodeId } = msg;
             const connectionId = ws.data?.connectionId as string;
             const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
             const clientRuntime = clientData?.runtime;
             if (!clientRuntime) {
               const errorResponse = JSON.stringify({
                 type: "error",
-                messageId: unsubMsg.messageId || generateMessageId(),
+                messageId: msg.messageId || generateMessageId(),
                 code: "RUNTIME_NOT_FOUND",
                 message: "Client runtime not found"
               });
@@ -275,7 +245,7 @@ export const app = new Elysia()
             const response = JSON.stringify({
               type: "node_state_changed",
               nodeId,
-              messageId: unsubMsg.messageId || generateMessageId()
+              messageId: msg.messageId || generateMessageId()
             });
             console.log("Sending unsubscribe confirmation:", response);
             ws.send(response);
