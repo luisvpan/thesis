@@ -1520,3 +1520,357 @@ All P0 critical bugs have been fixed (2026-03-16):
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Last Updated:** 2026-03-17 (P2.2 Spanish messages completed, ~85% overall complete)
 **Next Review:** After P2 tasks completion (70-79 hours)
+
+## CRITICAL FINDINGS - 2026-03-18 (COMPREHENSIVE CODEBASE AUDIT)
+
+### ⚠️ STATUS CORRECTION REQUIRED
+
+**Previous Claim:** ~100% Production-Ready
+**Actual Status:** ~75% Complete with CRITICAL BUGS
+
+### 🚨 CRITICAL BUGS FOUND (Must Fix Immediately)
+
+#### Bug #1: HTTP API - Non-functional Timeout (SECURITY VULNERABILITY)
+- **File:** packages/http-api/src/server.ts lines 97-100
+- **Issue:** Timeout wraps synchronous runtime.execute() in Promise - timeout never triggers
+- **Impact:** Malicious programs can cause DoS by creating infinite loops
+- **Priority:** P0 CRITICAL
+- **Estimated Fix:** 2-3 hours (use Bun Worker API)
+- **Spec Violation:** INTEGRATION_SPEC.md line 725 requires 5-second timeout
+
+#### Bug #2: WebSocket Server - Singleton Runtime Race Condition
+- **File:** packages/websocket-server/src/server.ts line 41
+- **Issue:** Single IncrementalRuntime instance shared across all clients
+- **Impact:** Client A's evaluation affects Client B's state - concurrent evaluations interfere
+- **Priority:** P0 CRITICAL
+- **Estimated Fix:** 2-3 hours (create runtime instance per client)
+- **Spec Violation:** INTEGRATION_SPEC.md requires handling multiple concurrent clients
+
+#### Bug #3: WebSocket Server - Broken Rate Limiting
+- **File:** packages/websocket-server/src/server.ts line 98
+- **Issue:** ws.data.remoteAddress never set, all IPs are 'unknown'
+- **Impact:** Rate limiting completely disabled - no protection against spam/DoS
+- **Priority:** P0 CRITICAL
+- **Estimated Fix:** 1 hour (fix IP extraction from Elysia ws object)
+- **Spec Violation:** INTEGRATION_SPEC.md requires rate limiting per IP
+
+#### Bug #4: WebSocket Server - Unsubscribe Callback Mismatch
+- **File:** packages/websocket-server/src/server.ts line 187
+- **Issue:** Empty callback passed to unsubscribe(), reference never matches subscribe callback
+- **Impact:** Unsubscribe never works, subscriptions persist forever causing memory leak
+- **Priority:** P1 HIGH
+- **Estimated Fix:** 1 hour (store and pass correct callback reference)
+
+### 🔴 HIGH PRIORITY ISSUES
+
+#### Issue #1: HTTP API - Missing Input Validation Limits
+- **Spec Requirements (INTEGRATION_SPEC.md lines 721-724):**
+  - Max 1000 nodes per program
+  - Max 10 levels nesting depth
+  - Max 100MB memory per evaluation
+  - Max 5 concurrent evaluations
+- **Current Implementation:** None of these limits enforced
+- **Priority:** P1 HIGH
+- **Estimated Fix:** 3-4 hours (add validation to HTTP endpoints)
+- **Spec Violation:** INTEGRATION_SPEC.md Section 7 - Resource Limits
+
+#### Issue #2: HTTP API - Missing programId in Execute Success Response
+- **File:** packages/http-api/src/server.ts lines 123-127
+- **Issue:** Success response doesn't include programId field
+- **Impact:** Inconsistent with /compile endpoint, harder to track executions
+- **Priority:** P2 MEDIUM
+- **Estimated Fix:** 15 minutes (add programId field)
+
+#### Issue #3: WebSocket Server - No messageId Generation
+- **Spec:** "Message without messageId → generate one server-side"
+- **Current:** messageId remains undefined if not provided by client
+- **Impact:** Clients can't correlate responses with requests
+- **Priority:** P2 MEDIUM
+- **Estimated Fix:** 30 minutes (generate UUID for missing messageId)
+
+#### Issue #4: WebSocket Server - No messageId in Push Notifications
+- **File:** packages/websocket-server/src/server.ts lines 162-169
+- **Issue:** node_state_changed push notifications don't include messageId
+- **Spec Violation:** INTEGRATION_SPEC.md requires messageId in all server messages
+- **Impact:** Clients can't match push notifications to subscriptions
+- **Priority:** P2 MEDIUM
+- **Estimated Fix:** 15 minutes (add messageId field)
+
+#### Issue #5: WebSocket Server - Missing Security Features
+- **Missing Features:**
+  - No authentication/authorization
+  - No message size limits
+  - No program size validation (max 1000 nodes)
+- **Impact:** Security vulnerabilities, potential DoS attacks
+- **Priority:** P1 HIGH
+- **Estimated Fix:** 4-6 hours (add auth middleware, size limits, validation)
+
+### 📊 CORRECTED COMPLETION STATUS
+
+| Component | Previous Claim | Actual Status | Gap |
+|-----------|----------------|----------------|------|
+| **Shared Package** | 95% | 85% | Missing nested types, parameterized generators |
+| **Compiler Package** | 95% | 95% | No critical bugs, test coverage gaps |
+| **Runtime Package** | 90% | UNKNOWN | Analysis incomplete (needs manual review) |
+| **HTTP API Package** | 100% | 75% | Critical timeout bug, missing input validation |
+| **WebSocket Server Package** | 90% | 60% | 3 critical bugs, missing security features |
+| **Test Coverage** | 47% | 55% | ~385 tests, but missing critical test categories |
+
+**Overall Completion: ~75%** (NOT production-ready due to critical bugs)
+
+---
+
+## PRIORITIZED TASK LIST FOR PRODUCTION READINESS
+
+### 🚨 P0 CRITICAL (Fix Immediately - 8-10 hours)
+
+1. **Fix HTTP API Timeout Bug** (2-3 hours)
+   - Replace synchronous execution with async (Bun Worker API)
+   - Ensure 5-second timeout actually triggers
+   - Test with malicious programs
+   - **Spec:** INTEGRATION_SPEC.md line 725
+
+2. **Fix WebSocket Singleton Runtime** (2-3 hours)
+   - Create IncrementalRuntime instance per client connection
+   - Ensure client isolation
+   - Test concurrent evaluations
+   - **Spec:** INTEGRATION_SPEC.md concurrent clients requirement
+
+3. **Fix WebSocket Rate Limiting** (1 hour)
+   - Fix IP address extraction from Elysia ws object
+   - Verify rate limiting works per IP
+   - Test rate limit scenarios
+   - **Spec:** INTEGRATION_SPEC.md rate limiting requirement
+
+4. **Fix WebSocket Unsubscribe Bug** (1 hour)
+   - Store callback references when subscribing
+   - Pass correct callback to unsubscribe
+   - Verify subscriptions are actually removed
+   - **Test:** Verify notifications stop after unsubscribe
+
+### 🔧 P1 HIGH (Fix Before Production - 7-10 hours)
+
+5. **Add Input Validation to HTTP API** (3-4 hours)
+   - Enforce max 1000 nodes
+   - Enforce max 10 levels depth
+   - Enforce max 100MB memory (track during execution)
+   - Enforce max 5 concurrent evaluations
+   - **Spec:** INTEGRATION_SPEC.md Section 7.3
+
+6. **Add Security to WebSocket Server** (4-6 hours)
+   - Implement authentication/authorization (API keys or JWT)
+   - Add message size limits (max 1MB)
+   - Add program size validation (max 1000 nodes)
+   - Add message validation middleware
+   - **Spec:** INTEGRATION_SPEC.md security requirements
+
+7. **Complete Runtime Package Analysis** (1 hour)
+   - Manual review of demand-driven-evaluator.ts
+   - Manual review of incremental-runtime.ts
+   - Verify temporal operations (NEXT, ACCUMULATE)
+   - Verify cache implementation
+
+### 🔨 P2 MEDIUM (Complete for Full Spec Compliance - 2-3 hours)
+
+8. **Add programId to Execute Response** (15 minutes)
+   - Include programId in success response
+   - Match /compile endpoint behavior
+   - **Spec:** INTEGRATION_SPEC.md response format
+
+9. **Generate Missing MessageIds** (30 minutes)
+   - Generate UUID for messages without messageId
+   - Apply to both HTTP and WebSocket
+   - **Spec:** INTEGRATION_SPEC.md messageId requirement
+
+10. **Add messageId to Push Notifications** (15 minutes)
+    - Include messageId in node_state_changed
+    - Match subscription messageId
+    - **Spec:** INTEGRATION_SPEC.md push notification format
+
+### 📚 P3 LOW (Improve Quality - 8-12 hours)
+
+11. **Expand Test Coverage** (4-6 hours)
+    - Add tests for NEXT and ACCUMULATE temporal operators
+    - Add tests for INTERSECTION, DIFFERENCE, COMPLEMENT
+    - Add tests for SORT operations
+    - Add tests for Boolean operations (AND, OR, NOT)
+    - Add tests for all error scenarios
+    - **Target:** Increase coverage from 55% to 80%
+
+12. **Add WebSocket Missing Tests** (1-2 hours)
+    - Test push notifications actually sent
+    - Test rate limiting behavior
+    - Test connection limit (100 max)
+    - Test timeout behavior
+    - Test multi-client isolation
+
+13. **Add HTTP API Missing Tests** (1-2 hours)
+    - Test rate limiting (429 responses)
+    - Test timeout scenarios (after fixing timeout)
+    - Test concurrent request handling
+    - Test large programs (>1000 nodes)
+
+### 🔧 TYPE SYSTEM FIXES (Optional - 4-6 hours)
+
+14. **Fix Nested Type Representation** (2-3 hours)
+    - Update DataType to support recursive types
+    - Enable Set<Set<Natural>> and Stream<Set<Shape>>
+    - Align with operation registry type contracts
+    - **Impact:** Enables advanced type expressions
+
+15. **Add Missing Node Types** (2-3 hours)
+    - Define StreamNode type
+    - Define AccumulatorNode type
+    - Add to DataflowNode union
+    - **Impact:** Enables temporal program representation in JSON
+
+---
+
+## REVISED TIMELINE
+
+### Phase 1: Critical Bugs (8-10 hours) - MUST COMPLETE
+- Days 1-2: Fix P0 bugs #1, #2, #3, #4
+- **Outcome:** System no longer has security vulnerabilities, WebSocket functional
+- **Risk:** HIGH - Production blocked by critical bugs
+
+### Phase 2: Production Readiness (7-10 hours) - SHOULD COMPLETE
+- Days 2-3: Fix P1 bugs #5, #6, #7
+- **Outcome:** System meets all security and validation requirements
+- **Risk:** MEDIUM - Production possible but security gaps
+
+### Phase 3: Spec Compliance (2-3 hours) - NICE TO HAVE
+- Day 3-4: Fix P2 bugs #8, #9, #10
+- **Outcome:** Fully compliant with INTEGRATION_SPEC.md
+- **Risk:** LOW - Production ready with minor spec deviations
+
+### Phase 4: Quality Improvements (8-12 hours) - FUTURE
+- Days 4-6: Expand test coverage, add missing tests, fix type system
+- **Outcome:** Comprehensive test suite (80%+ coverage)
+- **Risk:** NONE - Nice-to-have improvements
+
+---
+
+## UPDATED SUCCESS METRICS
+
+### Before Critical Bugs (Current State - March 18, 2026)
+- ✅ 385 tests passing (100% pass rate)
+- ✅ All 31 operations implemented
+- ✅ Parser 100% complete
+- ✅ Validator 100% complete
+- ✅ Child-friendly Spanish messages complete
+- ❌ **HTTP API timeout non-functional (DoS vulnerability)**
+- ❌ **WebSocket singleton runtime (race condition)**
+- ❌ **WebSocket rate limiting broken (disabled)**
+- ❌ **WebSocket unsubscribe broken (memory leak)**
+- ❌ **Missing input validation (DoS vulnerability)**
+
+### After Phase 1 (Critical Bugs Fixed) - 16-20 hours
+- ✅ All P0 bugs fixed
+- ✅ Security vulnerabilities addressed
+- ✅ WebSocket functional for multiple clients
+- ✅ Rate limiting working
+- ⚠️ Missing input validation limits
+- ⚠️ Test coverage 55%
+
+### After Phase 2 (Production Ready) - 23-30 hours
+- ✅ All P0 and P1 bugs fixed
+- ✅ Input validation complete
+- ✅ Security measures implemented
+- ✅ System meets all INTEGRATION_SPEC.md security requirements
+- ⚠️ Minor spec deviations (messageId generation)
+- ⚠️ Test coverage 55%
+
+### After Phase 3 (Fully Compliant) - 25-33 hours
+- ✅ All P0, P1, P2 bugs fixed
+- ✅ Fully compliant with INTEGRATION_SPEC.md
+- ✅ HTTP and WebSocket APIs match spec exactly
+- ⚠️ Test coverage 55%
+
+### After Phase 4 (Quality Complete) - 33-45 hours
+- ✅ All bugs fixed
+- ✅ Fully compliant with specs
+- ✅ Test coverage 80%+
+- ✅ Type system supports nested types
+- ✅ **PRODUCTION READY**
+
+---
+
+## EVIDENCE SUMMARY
+
+### Critical Bugs Evidence:
+
+**Bug #1 - HTTP Timeout:**
+- Source: HTTP API analysis subagent
+- File: packages/http-api/src/server.ts:97-100
+- Evidence: runtime.execute(0) is synchronous, Promise wrap doesn't make it async
+- Impact: DoS vulnerability, spec violation
+
+**Bug #2 - WebSocket Singleton:**
+- Source: WebSocket analysis subagent
+- File: packages/websocket-server/src/server.ts:41
+- Evidence: Single new IncrementalRuntime() for all clients
+- Impact: Race condition, client interference
+
+**Bug #3 - WebSocket Rate Limiting:**
+- Source: WebSocket analysis subagent
+- File: packages/websocket-server/src/server.ts:98
+- Evidence: ws.data.remoteAddress never set, always 'unknown'
+- Impact: Rate limiting disabled, security vulnerability
+
+**Bug #4 - WebSocket Unsubscribe:**
+- Source: WebSocket analysis subagent
+- File: packages/websocket-server/src/server.ts:187
+- Evidence: Empty callback () => {} passed to unsubscribe
+- Impact: Memory leak, notifications persist forever
+
+### Missing Input Validation Evidence:
+- Source: HTTP API analysis subagent
+- Spec Reference: INTEGRATION_SPEC.md lines 721-724
+- Evidence: No validation code in HTTP endpoints
+- Impact: DoS vulnerability, spec violation
+
+### Test Coverage Evidence:
+- Source: Test coverage analysis subagent
+- Total Tests: ~385
+- Coverage: 55%
+- Missing: NEXT, ACCUMULATE, INTERSECTION, DIFFERENCE, COMPLEMENT, SORT, Boolean operations
+
+---
+
+## RECOMMENDATIONS
+
+### Immediate Actions (Must Do Before Any Production Use):
+
+1. **STOP - DO NOT DEPLOY** until P0 bugs are fixed
+   - HTTP timeout vulnerability is a security risk
+   - WebSocket singleton runtime causes data corruption
+   - WebSocket rate limiting is completely broken
+
+2. **Prioritize P0 bugs above all other work**
+   - Fix critical security bugs first
+   - Ensure WebSocket works correctly for multiple clients
+   - Test thoroughly after each fix
+
+3. **Update IMPLEMENTATION_PLAN.md** after each bug fix
+   - Mark completed tasks
+   - Add evidence of fixes
+   - Update completion status
+
+### Short-term Actions (After P0 Complete):
+
+4. **Implement input validation limits** (P1)
+5. **Add security features to WebSocket** (P1)
+6. **Complete runtime analysis** (P1)
+7. **Expand test coverage for critical features** (P3)
+
+### Long-term Actions:
+
+8. **Fix type system to support nested types** (P3)
+9. **Add missing node types** (P3)
+10. **Achieve 80%+ test coverage** (P3)
+
+---
+
+**Document Status:** Living implementation plan - updated with comprehensive audit findings
+**Last Updated:** 2026-03-18 (Critical bugs discovered, corrected status to ~75%)
+**Next Review:** After Phase 1 completion (P0 critical bugs fixed)
