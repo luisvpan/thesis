@@ -5,13 +5,110 @@ import type { DataflowProgram, ValidationResult } from "@dataflow/shared/types";
 import { DagValidator } from "@dataflow/compiler";
 import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
 
+function calculateMaxDepth(program: DataflowProgram): number {
+  if (!program?.graph?.nodes || program.graph.nodes.length === 0) {
+    return 0;
+  }
+
+  const nodeIds = new Set<string>(program.graph.nodes.map(n => n.id));
+  const edges = program.graph.edges || [];
+
+  function getDepth(nodeId: string, visited: Set<string>): number {
+    if (visited.has(nodeId)) {
+      return 0;
+    }
+    visited.add(nodeId);
+
+    const node = program.graph!.nodes.find(n => n.id === nodeId);
+    if (!node) {
+      return 0;
+    }
+
+    let maxChildDepth = 0;
+    if (node.type === "DataSource" || node.type === "Output") {
+      return 0;
+    }
+
+    if (node.inputs) {
+      for (const inputId of node.inputs) {
+        if (typeof inputId === "string") {
+          const childDepth = getDepth(inputId, new Set(visited));
+          maxChildDepth = Math.max(maxChildDepth, childDepth);
+        }
+      }
+    }
+
+    return 1 + maxChildDepth;
+  }
+
+  let maxDepth = 0;
+  for (const nodeId of nodeIds) {
+    const depth = getDepth(nodeId, new Set());
+    maxDepth = Math.max(maxDepth, depth);
+  }
+
+  return maxDepth;
+}
+
 const startTime = Date.now();
 const validator = new DagValidator();
+
+const MAX_NODES = 1000;
+const MAX_DEPTH = 10;
+const MAX_MEMORY_MB = 100;
+const MAX_CONCURRENT_EXECUTIONS = 5;
+
+let activeExecutions = 0;
 
 const rateLimiter = createRateLimiter({
   windowMs: 60000,
   maxRequests: 100
 });
+
+function calculateMaxDepth(program: DataflowProgram): number {
+  if (!program?.graph?.nodes || program.graph.nodes.length === 0) {
+    return 0;
+  }
+
+  const nodeIds = new Set<string>(program.graph.nodes.map(n => n.id));
+  const edges = program.graph.edges || [];
+
+  function getDepth(nodeId: string, visited: Set<string>): number {
+    if (visited.has(nodeId)) {
+      return 0;
+    }
+    visited.add(nodeId);
+
+    const node = program.graph!.nodes.find(n => n.id === nodeId);
+    if (!node) {
+      return 0;
+    }
+
+    let maxChildDepth = 0;
+    if (node.type === "DataSource" || node.type === "Output") {
+      return 0;
+    }
+
+    if (node.inputs) {
+      for (const inputId of node.inputs) {
+        if (typeof inputId === "string") {
+          const childDepth = getDepth(inputId, new Set(visited));
+          maxChildDepth = Math.max(maxChildDepth, childDepth);
+        }
+      }
+    }
+
+    return 1 + maxChildDepth;
+  }
+
+  let maxDepth = 0;
+  for (const nodeId of nodeIds) {
+    const depth = getDepth(nodeId, new Set());
+    maxDepth = Math.max(maxDepth, depth);
+  }
+
+  return maxDepth;
+}
 
 const healthRoutes = new Elysia({ prefix: '/api/v1' })
   .get("/health", () => {
@@ -36,6 +133,15 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
     const request = body as any;
     const program = request.program as DataflowProgram;
     const programId = program.metadata?.programId || "unknown";
+
+    if (program.graph?.nodes?.length > MAX_NODES) {
+      throw new Error(`Program too large: ${program.graph.nodes.length} nodes exceeds maximum of ${MAX_NODES}`);
+    }
+
+    const depth = calculateMaxDepth(program);
+    if (depth > MAX_DEPTH) {
+      throw new Error(`Program too deep: depth ${depth} exceeds maximum of ${MAX_DEPTH} levels`);
+    }
     
     const validationResult = validator.validateProgram(program);
     
@@ -66,6 +172,10 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
     if (!check.allowed) {
       throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
     }
+
+    if (activeExecutions >= MAX_CONCURRENT_EXECUTIONS) {
+      throw new Error(`Too many concurrent executions: maximum of ${MAX_CONCURRENT_EXECUTIONS} reached`);
+    }
   })
   .post("/execute", async ({ body }) => {
     const request = body as any;
@@ -77,6 +187,15 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
     
     const programId = program.metadata?.programId || "unknown";
     
+    if (program.graph?.nodes?.length > MAX_NODES) {
+      throw new Error(`Program too large: ${program.graph.nodes.length} nodes exceeds maximum of ${MAX_NODES}`);
+    }
+
+    const depth = calculateMaxDepth(program);
+    if (depth > MAX_DEPTH) {
+      throw new Error(`Program too deep: depth ${depth} exceeds maximum of ${MAX_DEPTH} levels`);
+    }
+    
     const validationResult = validator.validateProgram(program);
     
     if (!validationResult.success) {
@@ -87,59 +206,65 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
         warnings: validationResult.warnings
       };
     }
-    
-    const runtime = new Runtime();
-    runtime.loadProgram(program);
 
-    const execStartTime = performance.now();
-    const TIMEOUT_MS = 5000;
-    
-    let timeoutTriggered = false;
-    const executionPromise = new Promise((resolve, reject) => {
-      setImmediate(() => {
-        if (timeoutTriggered) {
-          reject(new Error('Execution timeout'));
-          return;
-        }
-        
-        try {
-          const outputs = runtime.execute(0);
-          resolve(outputs);
-        } catch (error) {
-          reject(error);
-        }
+    activeExecutions++;
+
+    try {
+      const runtime = new Runtime();
+      runtime.loadProgram(program);
+
+      const execStartTime = performance.now();
+      const TIMEOUT_MS = 5000;
+      
+      let timeoutTriggered = false;
+      const executionPromise = new Promise((resolve, reject) => {
+        setImmediate(() => {
+          if (timeoutTriggered) {
+            reject(new Error('Execution timeout'));
+            return;
+          }
+          
+          try {
+            const outputs = runtime.execute(0);
+            resolve(outputs);
+          } catch (error) {
+            reject(error);
+          }
+        });
       });
-    });
-    
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        timeoutTriggered = true;
-        reject(new Error('Execution timeout'));
-      }, TIMEOUT_MS);
-    });
-    
-    const outputs = await Promise.race([executionPromise, timeoutPromise]) as unknown[];
-    const totalTime = (performance.now() - execStartTime).toFixed(2) + "ms";
- 
-    const executionTrace: any = includeTrace ? {
-      ...runtime.getExecutionTrace(),
-      cacheHits: 0,
-      cacheMisses: 0,
-      totalTime
-    } : undefined;
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          timeoutTriggered = true;
+          reject(new Error('Execution timeout'));
+        }, TIMEOUT_MS);
+      });
+      
+      const outputs = await Promise.race([executionPromise, timeoutPromise]) as unknown[];
+      const totalTime = (performance.now() - execStartTime).toFixed(2) + "ms";
+  
+      const executionTrace: any = includeTrace ? {
+        ...runtime.getExecutionTrace(),
+        cacheHits: 0,
+        cacheMisses: 0,
+        totalTime
+      } : undefined;
 
-    if (includeTrace) {
-      const evaluator = runtime.getEvaluator();
-      const stats = evaluator.getCacheStats();
-      executionTrace!.cacheHits = stats.hits;
-      executionTrace!.cacheMisses = stats.misses;
+      if (includeTrace) {
+        const evaluator = runtime.getEvaluator();
+        const stats = evaluator.getCacheStats();
+        executionTrace!.cacheHits = stats.hits;
+        executionTrace!.cacheMisses = stats.misses;
+      }
+      
+      return {
+        success: true,
+        outputs,
+        trace: executionTrace
+      };
+    } finally {
+      activeExecutions--;
     }
-    
-    return {
-      success: true,
-      outputs,
-      trace: executionTrace
-    };
   }, {
     body: t.Any()
   });
@@ -179,6 +304,24 @@ export const app = new Elysia()
       return {
         success: false,
         error: 'Too many requests',
+        message: error.message
+      };
+    }
+    
+    if (error instanceof Error && (error.message.includes('Program too large') || error.message.includes('Program too deep'))) {
+      set.status = 413;
+      return {
+        success: false,
+        error: 'Payload too large',
+        message: error.message
+      };
+    }
+
+    if (error instanceof Error && error.message.includes('Too many concurrent executions')) {
+      set.status = 429;
+      return {
+        success: false,
+        error: 'Too many concurrent requests',
         message: error.message
       };
     }

@@ -529,12 +529,92 @@ describe("Integration Tests - HTTP API", () => {
           body: JSON.stringify(program)
         }));
       const time = performance.now() - start;
-      
+
       const data = await response.json();
-      
+
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(time).toBeLessThan(50);
+    });
+  });
+
+  describe("Test 7.6: HTTP API - Input Validation", () => {
+    it("should reject program with too many nodes", async () => {
+      const largeProgram = {
+        program: {
+          metadata: { programId: "test_large_prog" },
+          graph: {
+            nodes: Array.from({ length: 1001 }, (_, i) => ({
+              id: `node_${i}`,
+              type: "DataSource",
+              dataType: "natural",
+              value: 0
+            })),
+            edges: []
+          }
+        }
+      };
+
+      const response = await app
+        .handle(new Request("http://localhost/api/v1/compile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(largeProgram)
+        }));
+
+      expect(response.status).toBe(413);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Payload too large");
+    });
+
+    it("should reject program with too deep nesting", async () => {
+      const deepProgram = {
+        program: {
+          metadata: { programId: "test_deep_prog" },
+          graph: {
+            nodes: [
+              { id: "n1", type: "DataSource", dataType: "natural", value: 1 },
+              { id: "n2", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n1"] },
+              { id: "n3", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n2"] },
+              { id: "n4", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n3"] },
+              { id: "n5", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n4"] },
+              { id: "n6", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n5"] },
+              { id: "n7", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n6"] },
+              { id: "n8", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n7"] },
+              { id: "n9", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n8"] },
+              { id: "n10", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n9"] },
+              { id: "n11", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n10"] },
+              { id: "n12", type: "Transformation", dataType: "natural", operation: "ADD", inputs: ["n11"] }
+            ],
+            edges: [
+              { id: "e1", from: "n1", to: "n2", toPort: 0 },
+              { id: "e2", from: "n2", to: "n3", toPort: 0 },
+              { id: "e3", from: "n3", to: "n4", toPort: 0 },
+              { id: "e4", from: "n4", to: "n5", toPort: 0 },
+              { id: "e5", from: "n5", to: "n6", toPort: 0 },
+              { id: "e6", from: "n6", to: "n7", toPort: 0 },
+              { id: "e7", from: "n7", to: "n8", toPort: 0 },
+              { id: "e8", from: "n8", to: "n9", toPort: 0 },
+              { id: "e9", from: "n9", to: "n10", toPort: 0 },
+              { id: "e10", from: "n10", to: "n11", toPort: 0 },
+              { id: "e11", from: "n11", to: "n12", toPort: 0 }
+            ]
+          }
+        }
+      };
+
+      const response = await app
+        .handle(new Request("http://localhost/api/v1/compile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(deepProgram)
+        }));
+
+      expect(response.status).toBe(413);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Payload too large");
     });
   });
 });
