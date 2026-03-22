@@ -359,6 +359,7 @@ describe("Integration Tests - HTTP API", () => {
       expect(data.trace.cacheHits).toBeDefined();
       expect(data.trace.cacheMisses).toBeDefined();
       expect(data.trace.totalTime).toBeDefined();
+      expect(data.programId).toBe("test_prog_009");
     });
 
     it("should return validation errors for invalid program", async () => {

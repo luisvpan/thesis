@@ -65,51 +65,6 @@ const rateLimiter = createRateLimiter({
   maxRequests: 100
 });
 
-function calculateMaxDepth(program: DataflowProgram): number {
-  if (!program?.graph?.nodes || program.graph.nodes.length === 0) {
-    return 0;
-  }
-
-  const nodeIds = new Set<string>(program.graph.nodes.map(n => n.id));
-  const edges = program.graph.edges || [];
-
-  function getDepth(nodeId: string, visited: Set<string>): number {
-    if (visited.has(nodeId)) {
-      return 0;
-    }
-    visited.add(nodeId);
-
-    const node = program.graph!.nodes.find(n => n.id === nodeId);
-    if (!node) {
-      return 0;
-    }
-
-    let maxChildDepth = 0;
-    if (node.type === "DataSource" || node.type === "Output") {
-      return 0;
-    }
-
-    if (node.inputs) {
-      for (const inputId of node.inputs) {
-        if (typeof inputId === "string") {
-          const childDepth = getDepth(inputId, new Set(visited));
-          maxChildDepth = Math.max(maxChildDepth, childDepth);
-        }
-      }
-    }
-
-    return 1 + maxChildDepth;
-  }
-
-  let maxDepth = 0;
-  for (const nodeId of nodeIds) {
-    const depth = getDepth(nodeId, new Set());
-    maxDepth = Math.max(maxDepth, depth);
-  }
-
-  return maxDepth;
-}
-
 const healthRoutes = new Elysia({ prefix: '/api/v1' })
   .get("/health", () => {
     const uptime = Math.floor((Date.now() - startTime) / 1000);
@@ -259,6 +214,7 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
       
       return {
         success: true,
+        programId,
         outputs,
         trace: executionTrace
       };
