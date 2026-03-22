@@ -4,6 +4,10 @@ import { Runtime } from "@dataflow/runtime";
 import type { DataflowProgram, ValidationResult } from "@dataflow/shared/types";
 import { DagValidator } from "@dataflow/compiler";
 import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
+import {
+  CompileRequestSchema,
+  ExecuteRequestSchema
+} from "./schemas";
 
 function calculateMaxDepth(program: DataflowProgram): number {
   if (!program?.graph?.nodes || program.graph.nodes.length === 0) {
@@ -69,7 +73,7 @@ const healthRoutes = new Elysia({ prefix: '/api/v1' })
   .get("/health", () => {
     const uptime = Math.floor((Date.now() - startTime) / 1000);
     return {
-      status: "healthy",
+      status: "healthy" as const,
       version: "1.0.0",
       uptime
     };
@@ -79,14 +83,13 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
   .onBeforeHandle(({ request }) => {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const check = rateLimiter.check(ip);
-    
+
     if (!check.allowed) {
       throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
     }
   })
   .post("/compile", ({ body }) => {
-    const request = body as any;
-    const program = request.program as DataflowProgram;
+    const { program } = body;
     const programId = program.metadata?.programId || "unknown";
 
     if (program.graph?.nodes?.length > MAX_NODES) {
@@ -97,9 +100,9 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
     if (depth > MAX_DEPTH) {
       throw new Error(`Program too deep: depth ${depth} exceeds maximum of ${MAX_DEPTH} levels`);
     }
-    
+
     const validationResult = validator.validateProgram(program);
-    
+
     if (!validationResult.success) {
       return {
         success: false,
@@ -108,7 +111,7 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
         warnings: validationResult.warnings
       };
     }
-    
+
     return {
       success: true,
       programId,
@@ -116,14 +119,14 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
       warnings: validationResult.warnings
     };
   }, {
-    body: t.Any()
+    body: CompileRequestSchema
   });
 
 const executeRoutes = new Elysia({ prefix: '/api/v1' })
   .onBeforeHandle(({ request }) => {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const check = rateLimiter.check(ip);
-    
+
     if (!check.allowed) {
       throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
     }
@@ -133,15 +136,13 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
     }
   })
   .post("/execute", async ({ body }) => {
-    const request = body as any;
-    const program = request.program as DataflowProgram;
-    const options = request.options || {};
+    const { program, options = {} } = body;
     const maxTimesteps = options.maxTimesteps || 100;
     const includeTrace = options.includeTrace || false;
     const traceLevel = options.traceLevel || "medium";
-    
+
     const programId = program.metadata?.programId || "unknown";
-    
+
     if (program.graph?.nodes?.length > MAX_NODES) {
       throw new Error(`Program too large: ${program.graph.nodes.length} nodes exceeds maximum of ${MAX_NODES}`);
     }
@@ -150,9 +151,9 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
     if (depth > MAX_DEPTH) {
       throw new Error(`Program too deep: depth ${depth} exceeds maximum of ${MAX_DEPTH} levels`);
     }
-    
+
     const validationResult = validator.validateProgram(program);
-    
+
     if (!validationResult.success) {
       return {
         success: false,
@@ -170,7 +171,7 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
 
       const execStartTime = performance.now();
       const TIMEOUT_MS = 5000;
-      
+
       let timeoutTriggered = false;
       const executionPromise = new Promise((resolve, reject) => {
         setImmediate(() => {
@@ -178,7 +179,7 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
             reject(new Error('Execution timeout'));
             return;
           }
-          
+
           try {
             const outputs = runtime.execute(0);
             resolve(outputs);
@@ -187,17 +188,17 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
           }
         });
       });
-      
+
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
           timeoutTriggered = true;
           reject(new Error('Execution timeout'));
         }, TIMEOUT_MS);
       });
-      
+
       const outputs = await Promise.race([executionPromise, timeoutPromise]) as unknown[];
       const totalTime = (performance.now() - execStartTime).toFixed(2) + "ms";
-  
+
       const executionTrace: any = includeTrace ? {
         ...runtime.getExecutionTrace(),
         cacheHits: 0,
@@ -211,7 +212,7 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
         executionTrace!.cacheHits = stats.hits;
         executionTrace!.cacheMisses = stats.misses;
       }
-      
+
       return {
         success: true,
         programId,
@@ -222,7 +223,7 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
       activeExecutions--;
     }
   }, {
-    body: t.Any()
+    body: ExecuteRequestSchema
   });
 
 export const app = new Elysia()

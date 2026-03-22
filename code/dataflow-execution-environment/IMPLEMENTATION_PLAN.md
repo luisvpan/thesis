@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-22 (All P0 and P1 tasks complete - All 387 tests passing - P2 issues #2, #3, #4 resolved - P2.4 completed - P2.5 added for Elysia best practices - 93% ready)
+**Last Updated:** 2026-03-22 (All P0 and P1 tasks complete - All 387 tests passing - P2 issues #2, #3, #4 resolved - P2.4 completed - P2.5 HTTP API TypeBox schemas complete - 95% ready)
 
 ---
 
@@ -82,7 +82,7 @@ All P2 medium priority tasks have been completed:
 - **P2.2:** Child-friendly Spanish messages complete ✅
 - **P2.3:** Test coverage verified (387/387 tests passing) ✅
 - **P2.4:** Security measures implemented (rate limiting, timeouts, resource limits) ✅
-- **P2.5:** Elysia best practices violations fixed (TypeBox schemas, declarative validation) ⚠️ PENDING
+- **P2.5:** Elysia best practices violations fixed - HTTP API ✅ COMPLETED (2026-03-22), WebSocket Server ⚠️ PENDING
 
 **Test Status:** All 387 tests passing (100% pass rate)
 
@@ -1403,21 +1403,28 @@ app.ws('/live', {
 #### Task P2.5: Fix Elysia Best Practices Violations (6-8 hours)
 
 **Priority:** P2 MEDIUM
-**Status:** ⚠️ NOT STARTED
-**Impact:** HTTP API and WebSocket Server don't follow Elysia best practices (manual validation, no TypeBox schemas)
+**Status:** ⚠️ PARTIALLY COMPLETED (2026-03-22)
+**Impact:** HTTP API now follows Elysia best practices (TypeBox schemas implemented), WebSocket Server still pending
 
 **Problem:**
-Both packages use manual validation and type casting instead of Elysia's declarative schema validation:
-- HTTP API uses `body: t.Any()` and manual `as any` casting
-- WebSocket Server uses manual JSON parsing and type assertions
-- No TypeBox schema definitions for request/response types
-- Missing reference models for reusability and OpenAPI schema generation
+WebSocket Server uses manual validation and type casting instead of Elysia's declarative schema validation:
+- ✅ HTTP API - COMPLETED (2026-03-22): TypeBox schemas implemented in packages/http-api/src/schemas.ts
+- ⚠️ WebSocket Server - NOT STARTED: Uses manual JSON parsing and type assertions
+- ⚠️ No TypeBox schema definitions for WebSocket request/response types
+- ⚠️ Missing reference models for reusability and OpenAPI schema generation
 
 **Required Changes:**
 
-**1. Create centralized schema files:**
+**✅ HTTP API - COMPLETED (2026-03-22):**
+- Created packages/http-api/src/schemas.ts with TypeBox schemas
+- Updated packages/http-api/src/server.ts to use declarative validation
+- Replaced t.Any() with proper schema types
+- Removed manual type casting (as any, as DataflowProgram)
+- Exported reference models for reusability
 
-Create `packages/http-api/src/schemas.ts` with TypeBox schemas:
+**2. Create WebSocket Server schema files:**
+
+Create `packages/websocket-server/src/schemas.ts` with TypeBox schemas:
 ```typescript
 import { Elysia, t } from "elysia";
 
@@ -1683,49 +1690,6 @@ export const Models = {
 };
 ```
 
-**2. Update HTTP API server.ts (packages/http-api/src/server.ts):**
-
-Replace Line 119: `body: t.Any()` with:
-```typescript
-body: CompileRequestSchema,
-response: CompileResponseSchema
-```
-
-Replace Line 225: `body: t.Any()` with:
-```typescript
-body: ExecuteRequestSchema,
-response: ExecuteResponseSchema
-```
-
-Add schema imports:
-```typescript
-import {
-  CompileRequestSchema,
-  CompileResponseSchema,
-  ExecuteRequestSchema,
-  ExecuteResponseSchema,
-  HealthResponseSchema
-} from "./schemas";
-```
-
-Remove manual type casting in handlers (Lines 88-89, 136-138):
-```typescript
-// BEFORE
-const request = body as any;
-const program = request.program as DataflowProgram;
-const options = request.options || {};
-
-// AFTER
-const { program, options = {} } = body;
-```
-
-Add response schema to health endpoint (after Line 75):
-```typescript
-}, {
-  response: HealthResponseSchema
-});
-```
-
 **3. Update WebSocket Server server.ts (packages/websocket-server/src/server.ts):**
 
 Replace interface definitions (Lines 25-49) with schema imports:
@@ -1744,44 +1708,47 @@ Update message handler to use proper typing (Lines 138-294):
 - Replace type assertions with proper type guards
 
 **Files Affected:**
-- `packages/http-api/src/schemas.ts` (NEW)
-- `packages/websocket-server/src/schemas.ts` (NEW)
-- `packages/http-api/src/server.ts` (modified)
-- `packages/websocket-server/src/server.ts` (modified)
+- `packages/http-api/src/schemas.ts` ✅ COMPLETED (2026-03-22)
+- `packages/http-api/src/server.ts` ✅ COMPLETED (2026-03-22)
+- `packages/websocket-server/src/schemas.ts` ⚠️ PENDING
+- `packages/websocket-server/src/server.ts` ⚠️ PENDING
 
 **Dependencies:** None (uses existing Elysia and TypeBox)
 
 **Acceptance Criteria:**
-- ✓ TypeBox schemas created for all request/response types
-- ✓ HTTP API uses declarative validation (no `t.Any()`)
-- ✓ Manual type casting removed (`as any`, `as DataflowProgram`)
-- ✓ WebSocket messages have proper type definitions
-- ✓ Reference models exported for reusability
-- ✓ All existing tests still pass (387/387)
+- ✅ TypeBox schemas created for HTTP API (2026-03-22)
+- ✅ HTTP API uses declarative validation (no `t.Any()`) (2026-03-22)
+- ✅ Manual type casting removed from HTTP API (`as any`, `as DataflowProgram`) (2026-03-22)
+- ✅ Reference models exported for HTTP API (2026-03-22)
+- ⚠️ WebSocket messages need proper type definitions
+- ⚠️ WebSocket needs reference models for reusability
+- ⚠️ All existing tests still pass (387/387)
 
 **Required Tests:**
-- ✓ Test: Invalid request bodies return 422 with proper error
-- ✓ Test: Schema validation errors are clear and helpful
-- ✓ Test: All HTTP API tests still pass
-- ✓ Test: All WebSocket tests still pass
-- ✓ Test: Type inference works correctly in TypeScript
+- ✅ Test: Invalid request bodies return 422 with proper error (HTTP API)
+- ✅ Test: Schema validation errors are clear and helpful (HTTP API)
+- ✅ Test: All HTTP API tests still pass (2026-03-22)
+- ⚠️ Test: All WebSocket tests still pass
+- ✅ Test: Type inference works correctly in TypeScript (HTTP API)
+- ⚠️ Test: WebSocket messages properly validated
 
 **Spec Reference:** `specs/ELYSIA_LLMS.md` - Best Practices section
 
 **Layer:** Layer 7 (Integration - HTTP API & WebSocket Server)
 
-**Estimated Time:** 6-8 hours
+**Estimated Time:** 3-4 hours remaining (WebSocket Server only)
 
 **Ralph Wiggum Checklist:**
-- [ ] TypeBox schemas created in packages/http-api/src/schemas.ts
+- [x] TypeBox schemas created in packages/http-api/src/schemas.ts (2026-03-22)
+- [x] HTTP API replaced t.Any() with proper schemas (2026-03-22)
+- [x] Manual type casting removed from HTTP API handlers (2026-03-22)
+- [x] Reference models exported for HTTP API reusability (2026-03-22)
 - [ ] TypeBox schemas created in packages/websocket-server/src/schemas.ts
-- [ ] HTTP API replaced t.Any() with proper schemas
-- [ ] Manual type casting removed from handlers
 - [ ] WebSocket messages properly typed with schemas
-- [ ] Reference models exported for reusability
-- [ ] All 387 tests passing (no regressions)
-- [ ] Typecheck passes (0 errors)
-- [ ] Git commit: "refactor(apis): implement Elysia best practices with TypeBox schemas"
+- [ ] WebSocket reference models exported for reusability
+- [x] All 387 tests passing (no regressions) (2026-03-22)
+- [x] Typecheck passes (0 errors) (2026-03-22)
+- [x] Git commit: "refactor(http-api): implement Elysia best practices with TypeBox schemas" (2026-03-22)
 
 ---
 
@@ -1897,14 +1864,14 @@ case "ADD":
 
 - **✅ P0 CRITICAL tasks:** 20-21 hours (COMPLETED)
 - **✅ P1 HIGH tasks:** 24-27 hours (COMPLETED)
-- **⚠️ P2 MEDIUM tasks:** 26-31 hours (7/8 tasks complete, 1 pending)
+- **⚠️ P2 MEDIUM tasks:** 26-31 hours (7/8 tasks complete, 1 partially complete)
   - ✅ P2.1-P2.4 COMPLETED: 26-31 hours
-  - ⚠️ P2.5 PENDING: 6-8 hours
+  - ⚠️ P2.5 PARTIALLY COMPLETED: 3-4 hours remaining (WebSocket Server only)
 - **P3 LOW tasks:** 8-10 hours (optional / nice-to-have)
 
 **Total Estimated:** **84-97 hours** for production-ready system
-**Current Progress:** 78-89 hours completed (~93% - all P0, P1, and 7/8 P2 tasks complete)
-**Remaining:** 6-8 hours (P2.5 - Elysia best practices)
+**Current Progress:** 81-86 hours completed (~95% - all P0, P1, and 7.5/8 P2 tasks complete)
+**Remaining:** 3-4 hours (P2.5 WebSocket Server - Elysia best practices)
 
 ### ✅ After P0 Tasks (COMPLETED - 2026-03-16):
 - ✅ Push notifications working
@@ -1928,7 +1895,7 @@ case "ADD":
 - ✅ Spanish messages complete (P2.2)
 - ✅ Test coverage verified (P2.3) - 387/387 tests passing
 - ✅ Security measures implemented (P2.4)
-- ⚠️ Elysia best practices fixed (P2.5) - TypeBox schemas, declarative validation
+   - ⚠️ Elysia best practices fixed (P2.5) - HTTP API TypeBox schemas complete, WebSocket Server pending
 - ✅ Issue #2: HTTP API - Missing programId in Execute Success Response
 - ✅ Issue #3: WebSocket Server - No messageId Generation
 - ✅ Issue #4: WebSocket Server - No messageId in Push Notifications
@@ -2011,13 +1978,13 @@ case "ADD":
   - ✅ P2.2 COMPLETED (child-friendly Spanish messages complete)
   - ✅ P2.3 COMPLETED (test coverage verified - 387/387 tests passing)
   - ✅ P2.4 COMPLETED (security measures implemented)
-  - ⚠️ P2.5 PENDING (Elysia best practices - TypeBox schemas, declarative validation)
+   - ⚠️ P2.5 PARTIALLY COMPLETED (Elysia best practices - HTTP API TypeBox schemas complete, WebSocket Server pending)
 - WebSocket server for live feedback
 - IncrementalRuntime for partial evaluation (all bugs fixed)
 - Complete test coverage (387/387 tests passing - 100%)
 - Child-friendly Spanish messages throughout
 - Generic set/stream operations
-- ⚠️ HTTP API follows Elysia best practices with input validation (P2.5 pending)
+- ✅ HTTP API follows Elysia best practices with TypeBox schemas (P2.5 HTTP API complete, WebSocket pending)
 - Temporal operators preserve demand-driven semantics
 - Nested operations supported
 - Clear test organization
