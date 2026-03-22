@@ -74,6 +74,150 @@ describeWithBothRuntimes('Comparison Operations - COMPARE', (context) => {
   });
 });
 
+describeWithBothRuntimes('Comparison Operations - COMPARE_BY_SIZE', (context) => {
+  it('should compare shapes by size - equal', async () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test-compare-size-equal' },
+      graph: {
+        nodes: [
+          { id: 'shape1', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'circle', size: 'small', color: 'red' } },
+          { id: 'shape2', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'square', size: 'small', color: 'blue' } },
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_BY_SIZE', inputs: ['shape1', 'shape2'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+        ],
+        edges: [
+          { id: 'e1', from: 'shape1', to: 'cmp', toPort: 0 },
+          { id: 'e2', from: 'shape2', to: 'cmp', toPort: 1 },
+          { id: 'e3', from: 'cmp', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = await context.getOutput('result');
+    expectBoolean(result, true);
+  });
+
+  it('should compare shapes by size - not equal', async () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test-compare-size-not-equal' },
+      graph: {
+        nodes: [
+          { id: 'shape1', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'circle', size: 'small', color: 'red' } },
+          { id: 'shape2', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'square', size: 'large', color: 'blue' } },
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_BY_SIZE', inputs: ['shape1', 'shape2'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+        ],
+        edges: [
+          { id: 'e1', from: 'shape1', to: 'cmp', toPort: 0 },
+          { id: 'e2', from: 'shape2', to: 'cmp', toPort: 1 },
+          { id: 'e3', from: 'cmp', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = await context.getOutput('result');
+    expectBoolean(result, false);
+  });
+});
+
+describeWithBothRuntimes('Comparison Operations - COMPARE_BY_TYPE', (context) => {
+  it('should compare shapes by type - equal', async () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test-compare-type-equal' },
+      graph: {
+        nodes: [
+          { id: 'shape1', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'circle', size: 'small', color: 'red' } },
+          { id: 'shape2', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'circle', size: 'large', color: 'blue' } },
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_BY_TYPE', inputs: ['shape1', 'shape2'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+        ],
+        edges: [
+          { id: 'e1', from: 'shape1', to: 'cmp', toPort: 0 },
+          { id: 'e2', from: 'shape2', to: 'cmp', toPort: 1 },
+          { id: 'e3', from: 'cmp', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = await context.getOutput('result');
+    expectBoolean(result, true);
+  });
+
+  it('should compare shapes by type - not equal', async () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test-compare-type-not-equal' },
+      graph: {
+        nodes: [
+          { id: 'shape1', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'circle', size: 'small', color: 'red' } },
+          { id: 'shape2', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'square', size: 'small', color: 'blue' } },
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_BY_TYPE', inputs: ['shape1', 'shape2'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+        ],
+        edges: [
+          { id: 'e1', from: 'shape1', to: 'cmp', toPort: 0 },
+          { id: 'e2', from: 'shape2', to: 'cmp', toPort: 1 },
+          { id: 'e3', from: 'cmp', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = await context.getOutput('result');
+    expectBoolean(result, false);
+  });
+});
+
+describeWithBothRuntimes('Comparison Operations - COMPARE_BY_COLOR', (context) => {
+  it('should compare shapes by color - equal', async () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test-compare-color-equal' },
+      graph: {
+        nodes: [
+          { id: 'shape1', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'circle', size: 'small', color: 'red' } },
+          { id: 'shape2', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'square', size: 'large', color: 'red' } },
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_BY_COLOR', inputs: ['shape1', 'shape2'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+        ],
+        edges: [
+          { id: 'e1', from: 'shape1', to: 'cmp', toPort: 0 },
+          { id: 'e2', from: 'shape2', to: 'cmp', toPort: 1 },
+          { id: 'e3', from: 'cmp', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = await context.getOutput('result');
+    expectBoolean(result, true);
+  });
+
+  it('should compare shapes by color - not equal', async () => {
+    const program: DataflowProgram = {
+      metadata: { programId: 'test-compare-color-not-equal' },
+      graph: {
+        nodes: [
+          { id: 'shape1', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'circle', size: 'small', color: 'red' } },
+          { id: 'shape2', type: 'DataSource', dataType: 'shape', value: { kind: 'shape', type: 'square', size: 'small', color: 'blue' } },
+          { id: 'cmp', type: 'Transformation', dataType: 'boolean', operation: 'COMPARE_BY_COLOR', inputs: ['shape1', 'shape2'] },
+          { id: 'result', type: 'Output', dataType: 'boolean', input: 'cmp' }
+        ],
+        edges: [
+          { id: 'e1', from: 'shape1', to: 'cmp', toPort: 0 },
+          { id: 'e2', from: 'shape2', to: 'cmp', toPort: 1 },
+          { id: 'e3', from: 'cmp', to: 'result' }
+        ]
+      }
+    };
+
+    context.loadProgram(program);
+    const result = await context.getOutput('result');
+    expectBoolean(result, false);
+  });
+});
+
 describeWithBothRuntimes('Complex Expressions', (context) => {
   it('should execute complex expression (3 + 2) * (10 - 6) = 20', async () => {
     const program: DataflowProgram = {

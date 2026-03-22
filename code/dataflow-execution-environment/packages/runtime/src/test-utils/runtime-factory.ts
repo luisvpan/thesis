@@ -31,7 +31,8 @@ export function createRuntimeContext(runtimeType: 'batch' | 'incremental'): Runt
     getOutput: async (nodeId: string, time?: number) => {
       if (runtimeType === 'batch') {
         const outputs = await (runtime as Runtime).execute(time);
-        return outputs[0];
+        const evaluator = (runtime as Runtime).getEvaluator();
+        return await evaluator.evaluate(nodeId, time || 0, (runtime as Runtime).getGraph());
       } else {
         const evalResult = await (runtime as IncrementalRuntime).evaluatePartial(time || 0);
         const state = evalResult.nodeStates.get(nodeId);

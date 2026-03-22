@@ -43,3 +43,8 @@ export function expectAnimal(value: any, expected: { type: string; color: string
 export function expectPerson(value: any, expected: { ageGroup: string; gender: string }) {
   expect(value).toEqual({ kind: 'person', ...expected });
 }
+
+export function expectSet(value: any, expectedLength: number) {
+  expect(value).toEqual({ kind: 'set' });
+  expect(value.elements).toHaveLength(expectedLength);
+}
