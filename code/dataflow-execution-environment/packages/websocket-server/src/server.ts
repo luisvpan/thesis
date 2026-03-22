@@ -6,6 +6,16 @@ import type { DataflowProgram } from "@dataflow/shared/types";
 import { ConnectionManager } from "./connection-manager";
 import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
 
+interface ClientRuntimeData {
+  subscribedNodes: Set<string>;
+  runtime: IncrementalRuntime;
+  remoteAddress: string;
+  callbacks: Map<string, (state: any) => void>;
+}
+
+let connectionIdCounter = 0;
+const clientRuntimeMap = new Map<string, ClientRuntimeData>();
+
 interface WebSocketMessage {
   type: string;
   messageId?: string;
@@ -32,13 +42,8 @@ interface UnsubscribeNodeMessage extends WebSocketMessage {
   nodeId: string;
 }
 
-interface ClientData {
-  subscribedNodes: Set<string>;
-}
-
 const validator = new DagValidator();
 const connectionManager = new ConnectionManager();
-const incrementalRuntime = new IncrementalRuntime();
 
 const messageRateLimiter = createRateLimiter({
   windowMs: 60000,
@@ -63,10 +68,20 @@ export const app = new Elysia()
         return;
       }
       
+      const remoteAddress = ws.remoteAddress || 'unknown';
+      
       console.log("Client connected");
-      ws.data = {
-        subscribedNodes: new Set()
+      const connectionId = `conn_${connectionIdCounter++}`;
+      const clientRuntime = new IncrementalRuntime();
+      const clientData: ClientRuntimeData = {
+        subscribedNodes: new Set(),
+        runtime: clientRuntime,
+        remoteAddress,
+        callbacks: new Map()
       };
+      clientRuntimeMap.set(connectionId, clientData);
+      ws.data.connectionId = connectionId;
+      ws.data.subscribedNodes = new Set();
       connectionManager.addConnection(ws);
     },
  
@@ -95,7 +110,9 @@ export const app = new Elysia()
         }
       }
 
-      const ip = ws.data.remoteAddress || 'unknown';
+      const connectionId = ws.data?.connectionId as string;
+      const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
+      const ip = clientData?.remoteAddress || 'unknown';
       const rateCheck = messageRateLimiter.check(ip);
       
       if (!rateCheck.allowed) {
@@ -128,20 +145,48 @@ export const app = new Elysia()
 
           case "evaluate_incremental": {
             const evalMsg = msg as EvaluateIncrementalMessage;
-            incrementalRuntime.loadProgram(evalMsg.program);
- 
+            const connectionId = ws.data?.connectionId as string;
+            const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
+            const clientRuntime = clientData?.runtime;
+            if (!clientRuntime) {
+              const errorResponse = JSON.stringify({
+                type: "error",
+                messageId: evalMsg.messageId,
+                code: "RUNTIME_NOT_FOUND",
+                message: "Client runtime not found"
+              });
+              ws.send(errorResponse);
+              break;
+            }
+
+            clientRuntime.loadProgram(evalMsg.program);
+
             const TIMEOUT_MS = 5000;
-            const evaluationPromise = new Promise((resolve) => {
-              const evaluation = incrementalRuntime.evaluatePartial(0);
-              resolve(evaluation);
+            let timeoutTriggered = false;
+            const evaluationPromise = new Promise((resolve, reject) => {
+              setImmediate(() => {
+                if (timeoutTriggered) {
+                  reject(new Error('Evaluation timeout'));
+                  return;
+                }
+                try {
+                  const evaluation = clientRuntime.evaluatePartial(0);
+                  resolve(evaluation);
+                } catch (error) {
+                  reject(error);
+                }
+              });
             });
             
             const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Evaluation timeout')), TIMEOUT_MS);
+              setTimeout(() => {
+                timeoutTriggered = true;
+                reject(new Error('Evaluation timeout'));
+              }, TIMEOUT_MS);
             });
             
             const evaluation = await Promise.race([evaluationPromise, timeoutPromise]) as any;
- 
+
             const response = JSON.stringify({
               type: "evaluation_result",
               messageId: evalMsg.messageId,
@@ -156,18 +201,35 @@ export const app = new Elysia()
           case "subscribe_node": {
             const subMsg = msg as SubscribeNodeMessage;
             const { nodeId } = subMsg;
+            const connectionId = ws.data?.connectionId as string;
+            const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
+            const clientRuntime = clientData?.runtime;
+            if (!clientRuntime) {
+              const errorResponse = JSON.stringify({
+                type: "error",
+                messageId: subMsg.messageId,
+                code: "RUNTIME_NOT_FOUND",
+                message: "Client runtime not found"
+              });
+              ws.send(errorResponse);
+              break;
+            }
 
-            ws.data?.subscribedNodes?.add(nodeId);
+            clientData?.subscribedNodes?.add(nodeId);
 
-            incrementalRuntime.subscribe(nodeId, (state) => {
+            const callback = (state: any) => {
               if (ws.readyState === 1) {
                 ws.send(JSON.stringify({
                   type: "node_state_changed",
                   nodeId,
+                  messageId: subMsg.messageId,
                   state
                 }));
               }
-            });
+            };
+
+            clientRuntime.subscribe(nodeId, callback);
+            clientData?.callbacks?.set(nodeId, callback);
 
             const response = JSON.stringify({
               type: "node_state_changed",
@@ -182,9 +244,27 @@ export const app = new Elysia()
           case "unsubscribe_node": {
             const unsubMsg = msg as UnsubscribeNodeMessage;
             const { nodeId } = unsubMsg;
+            const connectionId = ws.data?.connectionId as string;
+            const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
+            const clientRuntime = clientData?.runtime;
+            if (!clientRuntime) {
+              const errorResponse = JSON.stringify({
+                type: "error",
+                messageId: unsubMsg.messageId,
+                code: "RUNTIME_NOT_FOUND",
+                message: "Client runtime not found"
+              });
+              ws.send(errorResponse);
+              break;
+            }
 
-            ws.data?.subscribedNodes?.delete(nodeId);
-            incrementalRuntime.unsubscribe(nodeId, () => {});
+            const callback = clientData?.callbacks?.get(nodeId);
+            if (callback) {
+              clientRuntime.unsubscribe(nodeId, callback);
+              clientData?.callbacks?.delete(nodeId);
+            }
+
+            clientData?.subscribedNodes?.delete(nodeId);
 
             const response = JSON.stringify({
               type: "node_state_changed",
@@ -217,7 +297,7 @@ export const app = new Elysia()
         
         const errorResponse = JSON.stringify({
           type: "error",
-          messageId: undefined,
+          messageId: msg.messageId,
           code: errorCode,
           message: errorMessage
         });
@@ -229,10 +309,19 @@ export const app = new Elysia()
     close(ws: ElysiaWS<any, any>) {
       console.log("Client disconnected");
 
-      for (const nodeId of ws.data?.subscribedNodes || []) {
-        incrementalRuntime.unsubscribe(nodeId, () => {});
+      const connectionId = ws.data?.connectionId as string;
+      const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
+      const clientRuntime = clientData?.runtime;
+      if (clientRuntime && clientData?.callbacks) {
+        for (const [nodeId, callback] of clientData.callbacks.entries()) {
+          clientRuntime.unsubscribe(nodeId, callback);
+        }
+        clientData.callbacks.clear();
       }
 
+      if (connectionId) {
+        clientRuntimeMap.delete(connectionId);
+      }
       connectionManager.removeConnection(ws);
     }
   });
