@@ -6,6 +6,14 @@ import type { DataflowProgram } from "@dataflow/shared/types";
 import { ConnectionManager } from "./connection-manager";
 import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
 
+/**
+ * Client runtime data structure for WebSocket connections
+ * @interface ClientRuntimeData
+ * @property {Set<string>} subscribedNodes - Set of node IDs this client is subscribed to
+ * @property {IncrementalRuntime} runtime - The incremental runtime instance for this client
+ * @property {string} remoteAddress - Client's remote address for rate limiting
+ * @property {Map<string, function>} callbacks - Map of node IDs to their change callbacks
+ */
 interface ClientRuntimeData {
   subscribedNodes: Set<string>;
   runtime: IncrementalRuntime;
@@ -15,16 +23,31 @@ interface ClientRuntimeData {
 
 let messageIdCounter = 0;
 
+/**
+ * Generates a unique message ID for WebSocket message tracking
+ * @returns {string} Unique message identifier
+ * @example
+ * const msgId = generateMessageId(); // "msg_0", "msg_1", ...
+ */
 function generateMessageId(): string {
   return `msg_${messageIdCounter++}`;
 }
 
 let connectionIdCounter = 0;
+
+/**
+ * Map of connection IDs to their associated client runtime data
+ * @type {Map<string, ClientRuntimeData>}
+ */
 const clientRuntimeMap = new Map<string, ClientRuntimeData>();
 
 const validator = new DagValidator();
 const connectionManager = new ConnectionManager();
 
+/**
+ * Rate limiter for WebSocket messages (300 messages per 60 seconds per IP)
+ * @type {import("@dataflow/shared/security/rate-limiter").RateLimiter}
+ */
 const messageRateLimiter = createRateLimiter({
   windowMs: 60000,
   maxRequests: 300
@@ -32,6 +55,13 @@ const messageRateLimiter = createRateLimiter({
 
 export const app = new Elysia()
   .ws("/live", {
+    /**
+     * WebSocket connection open event handler
+     * Initializes client connection, creates runtime instance, and adds to connection manager
+     * @event open
+     * @param {ElysiaWS} ws - WebSocket connection instance
+     * @throws {Error} Closes connection if maximum connections limit is reached
+     */
     open(ws: ElysiaWS<any, any>) {
       const currentConnections = connectionManager.getConnectionCount();
       const MAX_CONNECTIONS = 100;
@@ -65,6 +95,13 @@ export const app = new Elysia()
       connectionManager.addConnection(ws);
     },
  
+    /**
+     * WebSocket message event handler
+     * Processes incoming messages and routes to appropriate handlers based on message type
+     * @event message
+     * @param {ElysiaWS} ws - WebSocket connection instance
+     * @param {any} message - Incoming message (string, buffer, or parsed object)
+     */
     message: async (ws: ElysiaWS<any, any>, message: any) => {
       let msg: any;
 
@@ -109,6 +146,14 @@ export const app = new Elysia()
 
       try {
         switch (msg.type) {
+          /**
+           * Validates a dataflow program without executing it
+           * @messageType validate_program
+           * @param {Object} msg - Validation request message
+           * @param {DataflowProgram} msg.program - The program to validate
+           * @param {string} [msg.messageId] - Optional message ID for request tracking
+           * @returns {Object} Validation result with errors and warnings
+           */
           case "validate_program": {
             const result = validator.validateProgram(msg.program);
             const response = JSON.stringify({
@@ -122,6 +167,15 @@ export const app = new Elysia()
             break;
           }
 
+          /**
+           * Evaluates a program incrementally using the client's incremental runtime
+           * @messageType evaluate_incremental
+           * @param {Object} msg - Evaluation request message
+           * @param {DataflowProgram} msg.program - The program to evaluate
+           * @param {string} [msg.messageId] - Optional message ID for request tracking
+           * @returns {Object} Evaluation result with node states and changed nodes
+           * @throws {Error} If runtime not found, evaluation times out, or other errors occur
+           */
           case "evaluate_incremental": {
             const connectionId = ws.data?.connectionId as string;
             const clientData = connectionId ? clientRuntimeMap.get(connectionId) : undefined;
@@ -176,6 +230,15 @@ export const app = new Elysia()
             break;
           }
 
+          /**
+           * Subscribes to state changes for a specific node
+           * @messageType subscribe_node
+           * @param {Object} msg - Subscription request message
+           * @param {string} msg.nodeId - The ID of the node to subscribe to
+           * @param {string} [msg.messageId] - Optional message ID for request tracking
+           * @returns {Object} Confirmation of successful subscription
+           * @throws {Error} If runtime not found
+           */
           case "subscribe_node": {
             const { nodeId } = msg;
             const connectionId = ws.data?.connectionId as string;
@@ -218,6 +281,15 @@ export const app = new Elysia()
             break;
           }
 
+          /**
+           * Unsubscribes from state changes for a specific node
+           * @messageType unsubscribe_node
+           * @param {Object} msg - Unsubscription request message
+           * @param {string} msg.nodeId - The ID of the node to unsubscribe from
+           * @param {string} [msg.messageId] - Optional message ID for request tracking
+           * @returns {Object} Confirmation of successful unsubscription
+           * @throws {Error} If runtime not found
+           */
           case "unsubscribe_node": {
             const { nodeId } = msg;
             const connectionId = ws.data?.connectionId as string;
@@ -282,6 +354,12 @@ export const app = new Elysia()
       }
     },
 
+    /**
+     * WebSocket connection close event handler
+     * Cleans up client resources including subscriptions and removes from connection manager
+     * @event close
+     * @param {ElysiaWS} ws - WebSocket connection instance
+     */
     close(ws: ElysiaWS<any, any>) {
       console.log("Client disconnected");
 

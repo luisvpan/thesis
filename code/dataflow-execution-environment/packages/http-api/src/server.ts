@@ -9,6 +9,15 @@ import {
   ExecuteRequestSchema
 } from "./schemas";
 
+/**
+ * Calculates the maximum depth of a dataflow program's DAG structure
+ * @param {DataflowProgram} program - The dataflow program to analyze
+ * @returns {number} The maximum depth from any root node to a leaf node
+ * @throws {Error} If program structure is invalid
+ * @example
+ * const depth = calculateMaxDepth(program);
+ * console.log(`Program depth: ${depth}`);
+ */
 function calculateMaxDepth(program: DataflowProgram): number {
   if (!program?.graph?.nodes || program.graph.nodes.length === 0) {
     return 0;
@@ -57,19 +66,57 @@ function calculateMaxDepth(program: DataflowProgram): number {
 const startTime = Date.now();
 const validator = new DagValidator();
 
+/**
+ * Maximum number of nodes allowed in a dataflow program
+ * @constant {number}
+ */
 const MAX_NODES = 1000;
+
+/**
+ * Maximum allowed depth of a dataflow program's DAG structure
+ * @constant {number}
+ */
 const MAX_DEPTH = 10;
+
+/**
+ * Maximum memory limit in MB for program execution
+ * @constant {number}
+ */
 const MAX_MEMORY_MB = 100;
+
+/**
+ * Maximum number of concurrent program executions allowed
+ * @constant {number}
+ */
 const MAX_CONCURRENT_EXECUTIONS = 5;
 
+/**
+ * Counter tracking currently active program executions
+ * @type {number}
+ */
 let activeExecutions = 0;
 
+/**
+ * Rate limiter for API requests (100 requests per 60 seconds)
+ * @type {import("@dataflow/shared/security/rate-limiter").RateLimiter}
+ */
 const rateLimiter = createRateLimiter({
   windowMs: 60000,
   maxRequests: 100
 });
 
 const healthRoutes = new Elysia({ prefix: '/api/v1' })
+  /**
+   * Health check endpoint
+   * @route GET /api/v1/health
+   * @returns {Object} Health status response
+   * @property {string} status - Current health status ("healthy")
+   * @property {string} version - API version
+   * @property {number} uptime - Server uptime in seconds
+   * @example
+   * const response = await fetch('/api/v1/health');
+   * const { status, version, uptime } = await response.json();
+   */
   .get("/health", () => {
     const uptime = Math.floor((Date.now() - startTime) / 1000);
     return {
@@ -80,6 +127,13 @@ const healthRoutes = new Elysia({ prefix: '/api/v1' })
   });
 
 const compileRoutes = new Elysia({ prefix: '/api/v1' })
+  /**
+   * Rate limit middleware for compile endpoint
+   * Checks IP-based rate limits before processing requests
+   * @param {Object} context - Request context
+   * @param {Request} context.request - HTTP request object
+   * @throws {Error} If rate limit is exceeded
+   */
   .onBeforeHandle(({ request }) => {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const check = rateLimiter.check(ip);
@@ -88,6 +142,22 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
       throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
     }
   })
+  /**
+   * Compile a dataflow program without executing it
+   * @route POST /api/v1/compile
+   * @param {Object} body - Request body
+   * @param {DataflowProgram} body.program - The dataflow program to compile
+   * @returns {CompileResponse} Compilation result with success status, errors, and warnings
+   * @throws {Error} If program is too large, too deep, or rate limit exceeded
+   * @example
+   * const response = await fetch('/api/v1/compile', {
+   *   method: 'POST',
+   *   headers: { 'Content-Type': 'application/json' },
+   *   body: JSON.stringify({ program: myProgram })
+   * });
+   * const result = await response.json();
+   * console.log(result.success, result.errors);
+   */
   .post("/compile", ({ body }) => {
     const { program } = body;
     const programId = program.metadata?.programId || "unknown";
@@ -123,6 +193,13 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
   });
 
 const executeRoutes = new Elysia({ prefix: '/api/v1' })
+  /**
+   * Rate limit and concurrency middleware for execute endpoint
+   * Checks IP-based rate limits and concurrent execution limits before processing requests
+   * @param {Object} context - Request context
+   * @param {Request} context.request - HTTP request object
+   * @throws {Error} If rate limit is exceeded or concurrent execution limit reached
+   */
   .onBeforeHandle(({ request }) => {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const check = rateLimiter.check(ip);
@@ -135,6 +212,29 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
       throw new Error(`Too many concurrent executions: maximum of ${MAX_CONCURRENT_EXECUTIONS} reached`);
     }
   })
+  /**
+   * Execute a dataflow program and return outputs
+   * @route POST /api/v1/execute
+   * @param {Object} body - Request body
+   * @param {DataflowProgram} body.program - The dataflow program to execute
+   * @param {Object} body.options - Optional execution parameters
+   * @param {number} [body.options.maxTimesteps=100] - Maximum number of timesteps to execute
+   * @param {boolean} [body.options.includeTrace=false] - Whether to include execution trace
+   * @param {string} [body.options.traceLevel="medium"] - Level of detail for execution trace
+   * @returns {ExecuteResponse} Execution result with outputs and optional trace
+   * @throws {Error} If program is too large, too deep, rate limit exceeded, timeout, or validation fails
+   * @example
+   * const response = await fetch('/api/v1/execute', {
+   *   method: 'POST',
+   *   headers: { 'Content-Type': 'application/json' },
+   *   body: JSON.stringify({ 
+   *     program: myProgram,
+   *     options: { includeTrace: true }
+   *   })
+   * });
+   * const result = await response.json();
+   * console.log(result.outputs, result.trace);
+   */
   .post("/execute", async ({ body }) => {
     const { program, options = {} } = body;
     const maxTimesteps = options.maxTimesteps || 100;
@@ -211,6 +311,16 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
   });
 
 export const app = new Elysia()
+  /**
+   * Global error handler for the HTTP API server
+   * Maps different error types to appropriate HTTP status codes and responses
+   * @param {Object} context - Error context
+   * @param {string} context.code - Error code (VALIDATION, PARSE, NOT_FOUND, etc.)
+   * @param {Error} context.error - The error object
+   * @param {Object} context.set - Response setter object
+   * @returns {ErrorResponse} Formatted error response with status code
+   * @throws {Error} Unhandled errors are caught and returned with status 500
+   */
   .onError(({ code, error, set }) => {
     if (code === 'VALIDATION') {
       set.status = 422;
