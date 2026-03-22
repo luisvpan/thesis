@@ -13,6 +13,12 @@ interface ClientRuntimeData {
   callbacks: Map<string, (state: any) => void>;
 }
 
+let messageIdCounter = 0;
+
+function generateMessageId(): string {
+  return `msg_${messageIdCounter++}`;
+}
+
 let connectionIdCounter = 0;
 const clientRuntimeMap = new Map<string, ClientRuntimeData>();
 
@@ -118,7 +124,7 @@ export const app = new Elysia()
       if (!rateCheck.allowed) {
         const errorResponse = JSON.stringify({
           type: "error",
-          messageId: msg.messageId,
+          messageId: msg.messageId || generateMessageId(),
           code: "RATE_LIMIT_EXCEEDED",
           message: `Rate limit exceeded. Try again after ${Math.ceil((rateCheck.resetTime - Date.now()) / 1000)}s`
         });
@@ -134,7 +140,7 @@ export const app = new Elysia()
             const result = validator.validateProgram(validateMsg.program);
             const response = JSON.stringify({
               type: "validation_result",
-              messageId: validateMsg.messageId,
+              messageId: validateMsg.messageId || generateMessageId(),
               errors: result.errors,
               warnings: result.warnings
             });
@@ -151,7 +157,7 @@ export const app = new Elysia()
             if (!clientRuntime) {
               const errorResponse = JSON.stringify({
                 type: "error",
-                messageId: evalMsg.messageId,
+                messageId: evalMsg.messageId || generateMessageId(),
                 code: "RUNTIME_NOT_FOUND",
                 message: "Client runtime not found"
               });
@@ -189,7 +195,7 @@ export const app = new Elysia()
 
             const response = JSON.stringify({
               type: "evaluation_result",
-              messageId: evalMsg.messageId,
+              messageId: evalMsg.messageId || generateMessageId(),
               nodeStates: Object.fromEntries(evaluation.nodeStates),
               changedNodes: evaluation.changedNodes
             });
@@ -207,7 +213,7 @@ export const app = new Elysia()
             if (!clientRuntime) {
               const errorResponse = JSON.stringify({
                 type: "error",
-                messageId: subMsg.messageId,
+                messageId: subMsg.messageId || generateMessageId(),
                 code: "RUNTIME_NOT_FOUND",
                 message: "Client runtime not found"
               });
@@ -222,7 +228,7 @@ export const app = new Elysia()
                 ws.send(JSON.stringify({
                   type: "node_state_changed",
                   nodeId,
-                  messageId: subMsg.messageId,
+                  messageId: subMsg.messageId || generateMessageId(),
                   state
                 }));
               }
@@ -234,7 +240,7 @@ export const app = new Elysia()
             const response = JSON.stringify({
               type: "node_state_changed",
               nodeId,
-              messageId: subMsg.messageId
+              messageId: subMsg.messageId || generateMessageId()
             });
             console.log("Sending subscribe confirmation:", response);
             ws.send(response);
@@ -250,7 +256,7 @@ export const app = new Elysia()
             if (!clientRuntime) {
               const errorResponse = JSON.stringify({
                 type: "error",
-                messageId: unsubMsg.messageId,
+                messageId: unsubMsg.messageId || generateMessageId(),
                 code: "RUNTIME_NOT_FOUND",
                 message: "Client runtime not found"
               });
@@ -269,7 +275,7 @@ export const app = new Elysia()
             const response = JSON.stringify({
               type: "node_state_changed",
               nodeId,
-              messageId: unsubMsg.messageId
+              messageId: unsubMsg.messageId || generateMessageId()
             });
             console.log("Sending unsubscribe confirmation:", response);
             ws.send(response);
@@ -279,7 +285,7 @@ export const app = new Elysia()
           default:
             const response = JSON.stringify({
               type: "error",
-              messageId: msg.messageId,
+              messageId: msg.messageId || generateMessageId(),
               code: "INVALID_MESSAGE",
               message: "Unknown message type"
             });
@@ -297,7 +303,7 @@ export const app = new Elysia()
         
         const errorResponse = JSON.stringify({
           type: "error",
-          messageId: msg.messageId,
+          messageId: msg.messageId || generateMessageId(),
           code: errorCode,
           message: errorMessage
         });
