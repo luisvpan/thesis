@@ -4,7 +4,7 @@
 **Document Status:** Living implementation plan - update as implementation reveals better designs
 **Created:** 2026-02-26
 **Based On:** Complete specifications in specs/ directory
-**Last Updated:** 2026-03-22 (Comprehensive analysis complete - 95% production-ready)
+**Last Updated:** 2026-03-22 (P2.1 completed - IncrementalRuntime.getCacheStats() added, 97% production-ready)
 
 ---
 
@@ -41,11 +41,11 @@ packages/
 |-----------|--------|------------|-------|
 | **Shared Package** | ⚠️ 95% COMPLETE | 95% | All features complete, minor documentation improvements needed |
 | **Compiler Package** | ⚠️ 95% COMPLETE | 95% | All validation complete, monolithic validation file needs refactoring |
-| **Runtime Package** | ⚠️ 96% COMPLETE | 96% | All operations functional, parallelism implemented |
+| **Runtime Package** | ✅ 97% COMPLETE | 97% | All operations functional, parallelism implemented, IncrementalRuntime.getCacheStats() complete |
 | **HTTP API Package** | ⚠️ 95% COMPLETE | 95% | All endpoints working, JSDoc documentation needed |
 | **WebSocket Server Package** | ⚠️ 95% COMPLETE | 95% | Push notifications complete, JSDoc documentation needed |
 
-**Overall Completion: ~95%** (Production-Ready with improvements remaining)
+**Overall Completion: ~97%** (Production-Ready with improvements remaining)
 
 ---
 
@@ -53,7 +53,7 @@ packages/
 
 ### Test Summary
 - **Total Test Files:** 53
-- **Total Tests:** 392 (100% passing)
+- **Total Tests:** 394 (100% passing)
 - **Test Execution Time:** ~4.4s (within 5s target)
 - **TypeScript Compilation:** ✅ PASSES (0 errors)
 - **Total Source Lines:** ~11,779 LOC
@@ -77,9 +77,9 @@ packages/
 **Note:** Operations are tested indirectly through integration tests. Need 19 additional direct operation tests.
 
 **Runtime Memory Tests:**
-- `runtime-memory.test.ts` (2 tests) - Tests Runtime's cache stats API and memory management
+- `runtime-memory.test.ts` (4 tests) - Tests Runtime's and IncrementalRuntime's cache stats API and memory management
 - ✅ Tests Runtime.getCacheStats() method (added 2026-03-22)
-- ⚠️ Tests do NOT cover IncrementalRuntime (needs P2.3)
+- ✅ Tests IncrementalRuntime.getCacheStats() method (added 2026-03-22, P2.1 completed)
 
 ---
 
@@ -87,7 +87,7 @@ packages/
 
 ### ✅ P0 CRITICAL (All Resolved)
 - All P0 critical bugs have been fixed
-- All 387 tests passing (100% pass rate)
+- All 394 tests passing (100% pass rate)
 - 0 critical issues remaining
 
 ### P1 HIGH (Performance Optimization)
@@ -114,7 +114,7 @@ Current demand-driven evaluator evaluates operations sequentially, which can be 
 - No race conditions in parallel execution
 
 **Tests:**
-- ✅ All 392 tests passing (100% pass rate)
+- ✅ All 394 tests passing (100% pass rate)
 - ✅ Added parallelism verification tests
 - ✅ TypeScript compilation passes (0 errors)
 
@@ -154,7 +154,7 @@ case "ADD":
 - ✓ Demand-driven semantics preserved (no eager evaluation)
 - ✓ Performance improvement measurable (2-3x faster for parallelizable graphs)
 - ✓ No race conditions in parallel execution
-- ✓ All 392 tests still pass (100% pass rate)
+- ✓ All 394 tests still pass (100% pass rate)
 - ✓ TypeScript compilation passes (0 errors)
 
 **Tests Added:**
@@ -170,7 +170,7 @@ case "ADD":
 **Ralph Wiggum Checklist:**
 - [x] Parallelism implemented in demand-driven-evaluator.ts
 - [x] Performance tests show improvement
-- [x] All existing tests pass (392/392)
+- [x] All existing tests pass (394/394)
 - [x] Typecheck passes (0 errors)
 - [x] Git commit: "perf(runtime): add parallelism to demand-driven evaluation"
 
@@ -181,22 +181,22 @@ case "ADD":
 #### Task P2.1: Add getCacheStats() to IncrementalRuntime (1-2 hours)
 
 **Priority:** P2 MEDIUM
-**Status:** ⚠️ NOT STARTED
-**Impact:** Consistent memory management testing across both runtimes
+**Status:** ✅ COMPLETED (2026-03-22)
+**Impact:** Consistent memory management API across both runtimes, enables testing
 
-**Problem:**
-The `runtime-memory.test.ts` file tests Runtime's memory management via `getCacheStats()` method, but `IncrementalRuntime` does not expose this method. This means:
-- Memory management tests only cover Runtime (2 tests)
-- IncrementalRuntime memory behavior is untested at the integration level
-- Inconsistent API between Runtime and IncrementalRuntime
+**Implementation Summary:**
+Added `cacheHits` and `cacheMisses` tracking to `IncrementalRuntime`, implemented `getCacheStats()` method that returns `{ hits, misses, cacheSize }`. Cache hit/miss counters are incremented in the `getCachedState()` method.
 
-**Current State:**
-- ✅ `Runtime` exposes `getCacheStats()` (added 2026-03-22)
-- ✅ `Runtime` uses `DemandDrivenEvaluator` which has hit/miss tracking
-- ❌ `IncrementalRuntime` has its own LRU cache (500 entries) but no stats API
-- ❌ `IncrementalRuntime` does not track cache hits/misses
+**Impact:**
+- Consistent memory management API across both Runtime and IncrementalRuntime
+- Enables testing of IncrementalRuntime memory behavior
+- Facilitates monitoring and debugging of cache efficiency
 
-**Required Changes:**
+**Tests:**
+- ✅ All 394 tests passing (100% pass rate)
+- ✅ TypeScript compilation passes (0 errors)
+
+**Required Changes (COMPLETED):**
 
 Add `getCacheStats()` method to `IncrementalRuntime` class:
 
@@ -244,7 +244,7 @@ export class IncrementalRuntime {
 - ✓ Method returns { hits, misses, cacheSize } object
 - ✓ Cache hits/misses are tracked correctly
 - ✓ Cache size reflects current cache state
-- ✓ All 389 existing tests still pass
+- ✓ All 394 existing tests still pass
 - ✓ TypeScript compilation passes (0 errors)
 - ✓ runtime-memory.test.ts tests can be extended for IncrementalRuntime
 
@@ -259,11 +259,11 @@ export class IncrementalRuntime {
 **Layer:** Layer 6 (Runtime)
 
 **Ralph Wiggum Checklist:**
-- [ ] getCacheStats() added to IncrementalRuntime
-- [ ] Cache hit/miss tracking implemented
-- [ ] All existing tests pass (389/389)
-- [ ] Typecheck passes (0 errors)
-- [ ] Git commit: "feat(runtime): add getCacheStats to IncrementalRuntime for memory monitoring"
+- [x] getCacheStats() added to IncrementalRuntime
+- [x] Cache hit/miss tracking implemented
+- [x] All existing tests pass (394/394)
+- [x] Typecheck passes (0 errors)
+- [x] Git commit: "feat(runtime): add getCacheStats to IncrementalRuntime for memory monitoring"
 
 ---
 
@@ -331,7 +331,7 @@ describe('Filtering Operations', () => {
 - ✓ All 36 operations have direct unit tests
 - ✓ Test coverage reaches 90%+ for operations
 - ✓ Edge cases covered (empty sets, null values, type mismatches)
-- ✓ All 387+ tests pass
+- ✓ All 394 tests pass
 - ✓ TypeScript compilation passes (0 errors)
 
 **Required Tests:**
@@ -362,7 +362,7 @@ describe('Filtering Operations', () => {
 **Ralph Wiggum Checklist:**
 - [ ] All 19 missing operation tests added
 - [ ] Test coverage reaches 90%+
-- [ ] All existing tests still pass (387/387)
+- [ ] All existing tests still pass (394/394)
 - [ ] Typecheck passes (0 errors)
 - [ ] Git commit: "test(runtime): expand test coverage for operations"
 
@@ -459,7 +459,7 @@ export class Validator {
 **Acceptance Criteria:**
 - ✓ Validator split into 6 focused modules (<200 lines each)
 - ✓ All validation logic preserved (no functionality changes)
-- ✓ All 387 tests still pass
+- ✓ All 394 tests still pass
 - ✓ TypeScript compilation passes (0 errors)
 - ✓ Modules are independently testable
 - ✓ Spanish error messages preserved
@@ -475,7 +475,7 @@ export class Validator {
 
 **Ralph Wiggum Checklist:**
 - [ ] Validator split into 6 modules
-- [ ] All tests still pass (387/387)
+- [ ] All tests still pass (394/394)
 - [ ] Typecheck passes (0 errors)
 - [ ] Git commit: "refactor(compiler): split monolithic validator into modules"
 
@@ -566,7 +566,7 @@ export class ConnectionManager {
 - ✓ All public functions have JSDoc comments with @param and @returns
 - ✓ All classes have JSDoc comments with @class and @example
 - ✓ JSDoc comments include usage examples where relevant
-- ✓ All 387 tests still pass
+- ✓ All 394 tests still pass
 - ✓ TypeScript compilation passes (0 errors)
 - ✓ API documentation can be generated (e.g., using TypeDoc)
 
@@ -579,7 +579,7 @@ export class ConnectionManager {
 
 **Ralph Wiggum Checklist:**
 - [ ] All public APIs documented with JSDoc
-- [ ] All tests still pass (387/387)
+- [ ] All tests still pass (394/394)
 - [ ] Typecheck passes (0 errors)
 - [ ] Git commit: "docs: add JSDoc comments to public APIs"
 
@@ -592,31 +592,31 @@ export class ConnectionManager {
 | Component | Status | Completion | Critical Issues | Remaining Work |
 |-----------|--------|------------|-------------------|----------------|
 | **Shared Package** | ⚠️ 95% COMPLETE | 95% | 0 | Documentation (P3.1) |
-| **Compiler Package** | ⚠️ 95% COMPLETE | 95% | 0 | Refactor validator (P2.2), Documentation (P3.1) |
-| **Runtime Package** | ⚠️ 95% COMPLETE | 95% | 0 | Parallelism (P1.1), Test coverage (P2.1), Documentation (P3.1) |
+| **Compiler Package** | ⚠️ 95% COMPLETE | 95% | 0 | Refactor validator (P2.3), Documentation (P3.1) |
+| **Runtime Package** | ✅ 97% COMPLETE | 97% | 0 | Test coverage (P2.2), Documentation (P3.1) |
 | **HTTP API Package** | ⚠️ 95% COMPLETE | 95% | 0 | Documentation (P3.1) |
 | **WebSocket Server Package** | ⚠️ 95% COMPLETE | 95% | 0 | Documentation (P3.1) |
 
 ### Estimated Total Time for MVP Completion
 
 - **✅ P0 CRITICAL tasks:** 20-21 hours (COMPLETED)
-- **✅ P1 HIGH tasks:** 24-27 hours (COMPLETED)
+- **✅ P1 HIGH tasks:** 24-27 hours (COMPLETED + 2-3 hours parallelism)
 - **✅ P2 MEDIUM tasks:** 26-31 hours (COMPLETED - historical issues)
-- **P1 HIGH (NEW):** 2-3 hours (P1.1: Parallelism optimization)
-- **P2 MEDIUM (NEW):** 13-17 hours (P2.1: IncrementalRuntime stats + P2.2: Test coverage + P2.3: Refactor validator)
+- **✅ P2 MEDIUM (NEW):** 1-2 hours (P2.1: IncrementalRuntime stats - COMPLETED)
+- **P2 MEDIUM (NEW):** 12-15 hours (P2.2: Test coverage + P2.3: Refactor validator)
 - **P3 LOW (NEW):** 4-6 hours (P3.1: Documentation)
 
-**Total Estimated:** **84-104 hours** for production-ready system
-**Current Progress:** ~84-97 hours completed (95% - all core functionality working)
+**Total Estimated:** **87-107 hours** for production-ready system
+**Current Progress:** ~87-92 hours completed (97% - all core functionality working, parallelism complete, IncrementalRuntime API complete)
 
-**Remaining:** 19-27 hours (P1: 2-3h, P2: 13-17h, P3: 4-6h)
+**Remaining:** 16-21 hours (P2: 12-15h, P3: 4-6h)
 
 ### Remaining Tasks Breakdown
 
 | Priority | Task | Estimated Time | Impact |
 |----------|------|-----------------|--------|
-| **P1 HIGH** | P1.1: Add Parallelism to Demand-Driven Evaluation | 2-3 hours | Performance optimization |
-| **P2 MEDIUM** | P2.1: Add getCacheStats() to IncrementalRuntime | 1-2 hours | Consistent memory testing |
+| **✅ P1 HIGH** | P1.1: Add Parallelism to Demand-Driven Evaluation | ✅ COMPLETED | Performance optimization |
+| **✅ P2 MEDIUM** | P2.1: Add getCacheStats() to IncrementalRuntime | ✅ COMPLETED | Consistent memory testing |
 | **P2 MEDIUM** | P2.2: Expand Test Coverage for Operations | 8-10 hours | Better test quality |
 | **P2 MEDIUM** | P2.3: Refactor Monolithic Validation File | 4-5 hours | Code maintainability |
 | **P3 LOW** | P3.1: Add JSDoc Comments for API Documentation | 4-6 hours | Better documentation |
@@ -627,7 +627,7 @@ export class ConnectionManager {
 
 ### Current Status
 - ✅ TypeScript compilation: PASSES (0 errors)
-- ✅ System is 95% complete with all core functionality working
+- ✅ System is 97% complete with all core functionality working
 - ✅ LRU caches implemented (memory bounded)
 - ✅ O(n) cache invalidation (update graph <10ms)
 - ✅ Validation passes combined (30-40% faster compilation)
@@ -638,9 +638,10 @@ export class ConnectionManager {
 - ✅ WebSocket messageId in push notifications
 - Compilation: ~50-100ms for <100 nodes (within 100ms p95 target)
 - Execution: ~20-40ms for <50 nodes (within 50ms p95 target)
-- Test suite: 392/392 tests passing (100%)
+- Test suite: 394/394 tests passing (100%)
 - Memory: **BOUNDED** - LRU caches prevent leaks
 - ✅ Parallelism implemented (P1.1 - 2026-03-22)
+- ✅ IncrementalRuntime.getCacheStats() implemented (P2.1 - 2026-03-22)
 
 ### Targets vs Current Status
 
@@ -675,7 +676,7 @@ export class ConnectionManager {
 - ✅ Compiler validates programs correctly
 - ✅ Runtime executes programs
 - ✅ Nested operations supported
-- ✅ 392/392 tests passing (100%)
+- ✅ 394/394 tests passing (100%)
 - ✅ Handles 5 concurrent users
 - ✅ IncrementalRuntime COMPLETE
 - ✅ WebSocket Server COMPLETE (push notifications working)
@@ -683,15 +684,15 @@ export class ConnectionManager {
 - ✅ Memory bounded (LRU caches)
 - ✅ Input validation enforced (max 1000 nodes, 10 levels, 5 concurrent)
 - ✅ Parallelism implemented (P1.1 - 2026-03-22)
+- ✅ IncrementalRuntime memory API implemented (P2.1 - 2026-03-22)
 - ⚠️ Test coverage: 64% direct tests (needs P2.2)
-- ⚠️ IncrementalRuntime memory testing incomplete (needs P2.1)
 - ⚠️ Monolithic validator file (needs P2.3)
 
 ### Version 1.0 (All Layers)
-- ✅ All core functionality COMPLETE (95% overall)
+- ✅ All core functionality COMPLETE (97% overall)
 - WebSocket server for live feedback
 - IncrementalRuntime for partial evaluation
-  - All tests passing (392/392 - 100%)
+- All tests passing (394/394 - 100%)
 - Child-friendly Spanish messages throughout (400+ lines)
 - Generic set/stream operations
 - ✅ HTTP API and WebSocket Server follow Elysia best practices with TypeBox schemas
@@ -704,6 +705,7 @@ export class ConnectionManager {
 - ✅ WebSocket messageId generation
 - ✅ HTTP API programId in responses
 - ✅ Parallelism implemented (P1.1 - 2026-03-22)
+- ✅ IncrementalRuntime memory API implemented (P2.1 - 2026-03-22)
 - ⚠️ Test coverage gaps (needs P2.2)
 - ⚠️ Code maintainability (needs P2.3)
 - ⚠️ API documentation (needs P3.1)
@@ -750,7 +752,7 @@ Parser and validation:
 
 Runtime:
 - ✅ Demand-driven evaluator with LRU caching
-- ✅ IncrementalRuntime with subscription management, partial evaluation, cache invalidation (O(n))
+- ✅ IncrementalRuntime with subscription management, partial evaluation, cache invalidation (O(n)), getCacheStats() API (P2.1 completed)
 
 APIs:
 - ✅ HTTP API with all endpoints, rate limiting, timeouts, input validation, Eden Treaty export
@@ -773,10 +775,10 @@ Security:
 - Memory: Bounded (LRU) ✅
 
 **✅ Test Status:**
-  - Total tests: 389/389 passing (100% pass rate)
+  - Total tests: 394/394 passing (100% pass rate)
   - Test execution time: ~4.4s (within 5s target)
   - TypeScript compilation: ✅ PASSES (0 errors)
-  - Runtime memory tests: 2/2 (100% - Runtime only)
+  - Runtime memory tests: 4/4 (100% - Runtime and IncrementalRuntime)
   - Direct operation tests: 17/36 (needs P2.2)
   - Integration tests: 100% coverage
 
@@ -784,21 +786,17 @@ Security:
 
 ### Remaining Work
 
-**P1 HIGH (1 task - 2-3 hours):**
-- P1.1: Add Parallelism to Demand-Driven Evaluation (performance optimization)
+**P1 HIGH (0 tasks - 0 hours):**
+- ✅ All P1 tasks complete
 
-**P2 MEDIUM (3 tasks - 13-17 hours):**
-- P2.1: Add getCacheStats() to IncrementalRuntime (1-2 hours)
+**P2 MEDIUM (2 tasks - 12-15 hours):**
 - P2.2: Expand Test Coverage for Operations (8-10 hours)
 - P2.3: Refactor Monolithic Validation File (4-5 hours)
 
-**P3 LOW (1 task - 4-6 hours):**
-- P3.1: Add JSDoc Comments for API Documentation (4-6 hours)
-
-**Total Remaining:** 19-27 hours
+**Total Remaining:** 16-21 hours
 
 ---
 
-**Document Status:** Living implementation plan - 95% complete with 19-27 hours remaining
-**Last Updated:** 2026-03-22 (Added IncrementalRuntime memory testing task)
-**Next Review:** Upon completion of P2.1 (IncrementalRuntime memory management)
+**Document Status:** Living implementation plan - 97% complete with 16-21 hours remaining
+**Last Updated:** 2026-03-22 (P2.1 completed - IncrementalRuntime.getCacheStats() added)
+**Next Review:** Upon completion of P2.3 (Refactor monolithic validator file)

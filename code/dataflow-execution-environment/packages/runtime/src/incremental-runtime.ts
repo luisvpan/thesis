@@ -88,6 +88,8 @@ export class IncrementalRuntime {
   private subscriptions: Map<string, Set<StateCallback>>;
   private nodeDependencies: Map<string, Set<string>>;
   private reverseDependencies: Map<string, Set<string>>;
+  private cacheHits: number;
+  private cacheMisses: number;
 
   constructor() {
     this.graph = new Map();
@@ -96,6 +98,8 @@ export class IncrementalRuntime {
     this.subscriptions = new Map();
     this.nodeDependencies = new Map();
     this.reverseDependencies = new Map();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
   }
 
   loadProgram(program: DataflowProgram): void {
@@ -106,6 +110,8 @@ export class IncrementalRuntime {
       this.edges.set(edge.id, edge);
     }
     this.cache.clear();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
     this.buildDependencyGraph();
   }
 
@@ -224,6 +230,13 @@ export class IncrementalRuntime {
         this.subscriptions.delete(nodeId);
       }
     }
+  }
+
+  getCacheStats(): { hits: number; misses: number } {
+    return {
+      hits: this.cacheHits,
+      misses: this.cacheMisses
+    };
   }
 
   private findDemandSources(): DataflowNode[] {
@@ -772,13 +785,18 @@ export class IncrementalRuntime {
 
   private getCachedState(nodeId: string, time: number): NodeState | null {
     const timeMap = this.cache.get(nodeId);
-    if (!timeMap) return null;
+    if (!timeMap) {
+      this.cacheMisses++;
+      return null;
+    }
 
     for (const cachedTime of Array.from(timeMap.keys()).sort()) {
       if (cachedTime > time) continue;
+      this.cacheHits++;
       return { status: "completed", value: timeMap.get(cachedTime) };
     }
 
+    this.cacheMisses++;
     return null;
   }
 

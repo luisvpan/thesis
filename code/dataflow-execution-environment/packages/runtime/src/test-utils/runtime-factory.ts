@@ -10,11 +10,12 @@ export interface RuntimeTestContext {
   loadProgram: (program: DataflowProgram) => void;
   execute: (time?: number) => Promise<unknown[] | { nodeStates: Map<string, any>; changedNodes: string[] }>;
   getOutput: (nodeId: string, time?: number) => Promise<any>;
+  getCacheStats: () => { hits: number; misses: number };
 }
 
 export function createRuntimeContext(runtimeType: 'batch' | 'incremental'): RuntimeTestContext {
   const runtime = runtimeType === 'batch' ? new Runtime() : new IncrementalRuntime();
- 
+  
   return {
     runtime,
     loadProgram: (program: DataflowProgram) => {
@@ -36,6 +37,9 @@ export function createRuntimeContext(runtimeType: 'batch' | 'incremental'): Runt
         const state = evalResult.nodeStates.get(nodeId);
         return state && state.status === 'completed' ? state.value : null;
       }
+    },
+    getCacheStats: () => {
+      return runtime.getCacheStats();
     }
   };
 }
