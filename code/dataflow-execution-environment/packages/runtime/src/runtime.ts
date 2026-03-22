@@ -52,4 +52,8 @@ export class Runtime {
   getEvaluator(): DemandDrivenEvaluator {
     return this.evaluator;
   }
+
+  getCacheStats(): { hits: number; misses: number } {
+    return this.evaluator.getCacheStats();
+  }
 }
