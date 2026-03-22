@@ -71,28 +71,26 @@ function computeOperatorResult(
   return undefined;
 }
 
-const initialNodes: DataflowNode[] = [
-  {
-    id: 'num-3',
-    type: 'number',
-    position: { x: 80, y: 80 },
-    data: { value: 3 },
-  },
-  {
-    id: 'num-5',
-    type: 'number',
-    position: { x: 80, y: 200 },
-    data: { value: 5 },
-  },
-  {
-    id: 'op-sum',
-    type: 'operator',
-    position: { x: 320, y: 120 },
-    data: { operator: 'adicion' },
-  },
-];
+const initialNodes: DataflowNode[] = [];
 
 const initialEdges: Edge[] = [];
+
+/** Área usable en coordenadas de React Flow (mapeo desde posición normalizada en el frame). */
+const VISION_FLOW_BOUNDS = { xMin: 16, xMax: 920, yMin: 16, yMax: 560 } as const;
+
+/** Aprox. mitad del nodo número (small) para centrar la caja en el punto detectado. */
+const VISION_NODE_HALF_W = 48;
+const VISION_NODE_HALF_H = 40;
+
+function visionNormToFlowPosition(norm: { x: number; y: number }): { x: number; y: number } {
+  const nx = Math.min(1, Math.max(0, norm.x));
+  const ny = Math.min(1, Math.max(0, norm.y));
+  const x =
+    VISION_FLOW_BOUNDS.xMin + nx * (VISION_FLOW_BOUNDS.xMax - VISION_FLOW_BOUNDS.xMin) - VISION_NODE_HALF_W;
+  const y =
+    VISION_FLOW_BOUNDS.yMin + ny * (VISION_FLOW_BOUNDS.yMax - VISION_FLOW_BOUNDS.yMin) - VISION_NODE_HALF_H;
+  return { x: Math.max(0, x), y: Math.max(0, y) };
+}
 
 function speakTitle(title: string, subtitle: string) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -160,19 +158,27 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
 
     if (visionLast.number === undefined || visionLast.number === null) return;
 
-    const idx = visionLayoutIndexRef.current++;
     const value = visionLast.number;
     const id = `vision-${visionLast.t}`;
+    console.log(visionLast);
+    const p = visionLast.position;
+    const position =
+      p && typeof p.x === 'number' && typeof p.y === 'number'
+        ? visionNormToFlowPosition(p)
+        : (() => {
+            const idx = visionLayoutIndexRef.current++;
+            return {
+              x: 40 + (idx % 5) * 92,
+              y: 300 + Math.floor(idx / 5) * 104,
+            };
+          })();
 
     setNodes((nds) => [
       ...nds,
       {
         id,
         type: 'number' as const,
-        position: {
-          x: 40 + (idx % 5) * 92,
-          y: 300 + Math.floor(idx / 5) * 104,
-        },
+        position,
         data: { value },
       },
     ]);

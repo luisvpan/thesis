@@ -26,6 +26,14 @@ export function VisionDetectedBadge() {
               </span>
             )}
           </p>
+          {last.position != null && (
+            <p
+              className="mt-0.5 font-mono text-[11px] text-slate-600"
+              title="Centro del bbox normalizado al frame (0–1), enviado al API"
+            >
+              pos ({last.position.x.toFixed(3)}, {last.position.y.toFixed(3)})
+            </p>
+          )}
         </>
       ) : (
         <p className="mt-1 text-sm text-slate-500">

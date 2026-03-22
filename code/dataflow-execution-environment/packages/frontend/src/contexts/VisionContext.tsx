@@ -15,6 +15,8 @@ export type DetectedNumberPayload = {
   /** 1..9 solo para clases one..nine en data.yaml; operadores/formas no lo llevan */
   number?: number;
   confidence?: number;
+  /** Centro YOLO normalizado al frame (0..1), para mapear al canvas de React Flow */
+  position?: { x: number; y: number };
   t: number;
 };
 
@@ -64,7 +66,22 @@ export function VisionProvider({ children }: { children: ReactNode }) {
           data !== null &&
           (data as DetectedNumberPayload).type === "detectedNumber"
         ) {
-          setLast(data as DetectedNumberPayload);
+          const det = data as DetectedNumberPayload;
+          setLast(det);
+          const pos = det.position;
+          const posStr =
+            pos != null
+              ? ` pos=(${Number(pos.x).toFixed(3)}, ${Number(pos.y).toFixed(3)})`
+              : "";
+          console.log(
+            "[ide:vision] detección:",
+            det.number != null ? `#${det.number}` : "(sin dígito)",
+            det.label,
+            det.confidence != null
+              ? `${(det.confidence * 100).toFixed(0)}%`
+              : "",
+            posStr.trim() || "(sin posición)",
+          );
         }
       } catch (e) {
         console.warn("[ide:vision]", "JSON inválido", e);

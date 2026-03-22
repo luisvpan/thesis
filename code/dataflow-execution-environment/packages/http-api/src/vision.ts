@@ -13,6 +13,8 @@ export type VisionBroadcastPayload = {
   /** Valor 1..9 solo si la clase es one..nine; si no aplica, omitido */
   number?: number;
   confidence?: number;
+  /** Centro del bbox normalizado al frame de la cámara (0..1), para React Flow */
+  position?: { x: number; y: number };
   t: number;
 };
 
@@ -51,6 +53,7 @@ export const visionModule = new Elysia({ name: "vision" })
         label: body.label,
         number: body.number,
         confidence: body.confidence,
+        position: body.position,
         t: Date.now(),
       };
       broadcastToBrowsers(payload);
@@ -62,6 +65,12 @@ export const visionModule = new Elysia({ name: "vision" })
         label: t.String(),
         number: t.Optional(t.Number()),
         confidence: t.Optional(t.Number()),
+        position: t.Optional(
+          t.Object({
+            x: t.Number(),
+            y: t.Number(),
+          }),
+        ),
       }),
     },
   );

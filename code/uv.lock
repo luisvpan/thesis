@@ -701,6 +701,12 @@ wheels = [
 ]
 
 [[package]]
+name = "openni"
+version = "2.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/04/62eba5860340848c0f0de2ac2f7b5c87eddab4fd0df868e6ef54f00b740c/openni-2.3.0.tar.gz", hash = "sha256:ea938b415562f3892c4608f0082f875586acd60f0123c14003ebf4c27df34193", size = 37518, upload-time = "2019-01-30T22:25:37.234Z" }
+
+[[package]]
 name = "packaging"
 version = "26.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1012,7 +1018,9 @@ name = "thesis-vision-bridge"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "numpy" },
     { name = "opencv-python" },
+    { name = "openni" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "ultralytics" },
@@ -1020,7 +1028,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "numpy", specifier = ">=1.26.4" },
     { name = "opencv-python", specifier = ">=4.11.0.86" },
+    { name = "openni", specifier = ">=2.3.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "requests", specifier = ">=2.32.0" },
     { name = "ultralytics", specifier = ">=8.3.0" },
