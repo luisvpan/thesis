@@ -37,6 +37,15 @@ def compute_homography(
         >>> H.dtype
         dtype('float32')
     """
+    # Import cv2 only when needed (lazy import for CI environments)
+    try:
+        import cv2
+    except ImportError as e:
+        raise ImportError(
+            "OpenCV (cv2) is required for homography computation. "
+            "Install with: pip install opencv-python"
+        ) from e
+
     # Validate inputs
     if len(camera_points) != 4 or len(projector_points) != 4:
         raise ValueError(
@@ -75,6 +84,15 @@ def apply_homography(point: tuple[float, float], H: np.ndarray) -> tuple[float, 
     Returns:
         (x_proj, y_proj) transformed point in projector coordinates.
     """
+    # Import cv2 only when needed (lazy import for CI environments)
+    try:
+        import cv2
+    except ImportError as e:
+        raise ImportError(
+            "OpenCV (cv2) is required for homography computation. "
+            "Install with: pip install opencv-python"
+        ) from e
+
     # Convert to homogeneous coordinates
     point_homogeneous = np.array([[point[0], point[1], 1.0]], dtype=np.float32)
 
@@ -106,15 +124,3 @@ def validate_homography(H: np.ndarray) -> bool:
     if abs(np.linalg.det(H)) < 1e-10:
         return False
     return True
-
-
-# Import cv2 at module level (after validation to avoid import issues in tests)
-# Note: cv2 is required here, will raise ImportError if not available
-try:
-    import cv2
-except ImportError as e:
-    # Provide a helpful error message
-    raise ImportError(
-        "OpenCV (cv2) is required for homography computation. "
-        "Install with: pip install opencv-python"
-    ) from e
