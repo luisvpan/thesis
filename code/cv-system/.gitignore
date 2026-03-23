@@ -119,3 +119,14 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/node,windows,linux
+
+# ── GSD baseline (auto-generated) ──
+*.swo
+*.code-workspace
+.next/
+venv/
+target/
+vendor/
+coverage/
+.cache/
+tmp/
