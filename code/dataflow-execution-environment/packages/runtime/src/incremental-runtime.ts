@@ -409,11 +409,16 @@ export class IncrementalRuntime {
           const streamValue = node.value as { kind: "stream"; elementType: string; generatorFactory?: () => Generator<unknown>; generator: Generator<unknown> };
           const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
           const firstValue = gen.next().value;
+          let currentValue = firstValue;
+          for (let i = 0; i < time; i++) {
+            currentValue = gen.next().value;
+          }
           return {
             kind: "stream" as const,
             elementType: streamValue.elementType,
             generator: gen,
-            firstValue
+            firstValue,
+            currentValue
           };
         }
         if (dataType.startsWith("set")) {
@@ -532,7 +537,28 @@ export class IncrementalRuntime {
     if (result.state.status !== 'completed') {
       throw new Error(`NEXT: Failed to evaluate stream node ${streamNodeId}`);
     }
-    return result.state.value;
+    const stream = result.state.value as { kind: "stream"; elementType: string; currentValue: unknown };
+    
+    if (!stream || typeof stream !== 'object' || !('currentValue' in stream)) {
+      throw new Error('NEXT: Invalid stream value');
+    }
+
+    const currentValue = stream.currentValue;
+
+    if (typeof currentValue !== 'number') {
+      throw new Error(`NEXT: Expected numeric value, got ${typeof currentValue}`);
+    }
+
+    switch (stream.elementType) {
+      case "natural":
+        return { kind: "natural", value: currentValue };
+      case "integer":
+        return { kind: "integer", value: currentValue };
+      case "decimal":
+        return { kind: "decimal", value: currentValue };
+      default:
+        return currentValue;
+    }
   }
 
   private executeFIRST(inputs: unknown[], time: number, inputNodeIds: string[]): unknown {
@@ -648,11 +674,17 @@ export class IncrementalRuntime {
     }
     const previousAccumulated = previousResult.state.value;
 
-    const streamResult = this.evaluateNode(streamNodeId, time - 1);
+    const streamResult = this.evaluateNode(streamNodeId, time);
     if (streamResult.state.status !== 'completed') {
-      throw new Error(`ACCUMULATE: Failed to evaluate stream node ${streamNodeId} at time ${time - 1}`);
+      throw new Error(`ACCUMULATE: Failed to evaluate stream node ${streamNodeId} at time ${time}`);
     }
-    const streamValue = streamResult.state.value;
+    const stream = streamResult.state.value as { kind: "stream"; elementType: string; currentValue: unknown };
+    
+    if (!stream || typeof stream !== 'object' || !('currentValue' in stream)) {
+      throw new Error('ACCUMULATE: Invalid stream value');
+    }
+
+    const streamValue = stream.currentValue;
 
     const operationResult = this.evaluateNode(operationNodeId, time);
     if (operationResult.state.status !== 'completed') {
@@ -662,19 +694,19 @@ export class IncrementalRuntime {
 
     const operationName = operationValue.value;
     const previousVal = (previousAccumulated as any).value ?? previousAccumulated;
-    const streamVal = (streamValue as any).value ?? streamValue;
+    const streamVal = streamValue as number;
 
     if (operationName === "ADD") {
       const kind = (previousAccumulated as any).kind;
-      return { kind, value: (previousVal as number) + (streamVal as number) };
+      return { kind, value: (previousVal as number) + streamVal };
     }
     if (operationName === "MULTIPLY") {
       const kind = (previousAccumulated as any).kind;
-      return { kind, value: (previousVal as number) * (streamVal as number) };
+      return { kind, value: (previousVal as number) * streamVal };
     }
     if (operationName === "SUBTRACT") {
       const kind = (previousAccumulated as any).kind;
-      return { kind, value: (previousVal as number) - (streamVal as number) };
+      return { kind, value: (previousVal as number) - streamVal };
     }
     if (operationName === "DIVIDE") {
       const divisor = streamVal as number;

@@ -2,10 +2,30 @@ import type { DataflowGraph } from "../graph/dataflow-graph.js";
 import type { DemandDrivenEvaluator } from "../evaluator/demand-driven-evaluator.js";
 
 export async function NEXT(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): Promise<unknown> {
-  const [stream] = inputs;
+  const [streamInput] = inputs;
 
-  const streamId = stream.id;
-  return await evaluator.evaluate(streamId, time, graph);
+  const stream = await evaluator.evaluate(streamInput.id, time, graph) as { kind: "stream"; elementType: string; currentValue: unknown };
+  
+  if (!stream || typeof stream !== 'object' || !('currentValue' in stream)) {
+    throw new Error('NEXT: Invalid stream value');
+  }
+
+  const currentValue = stream.currentValue;
+
+  if (typeof currentValue !== 'number') {
+    throw new Error(`NEXT: Expected numeric value, got ${typeof currentValue}`);
+  }
+
+  switch (stream.elementType) {
+    case "natural":
+      return { kind: "natural", value: currentValue };
+    case "integer":
+      return { kind: "integer", value: currentValue };
+    case "decimal":
+      return { kind: "decimal", value: currentValue };
+    default:
+      return currentValue;
+  }
 }
 
 export async function FIRST(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): Promise<unknown> {
@@ -67,33 +87,53 @@ export async function FBY(inputs: Array<{ id: string; value: unknown }>, time: n
 }
 
 export async function ACCUMULATE(inputs: Array<{ id: string; value: unknown }>, time: number, graph: DataflowGraph, evaluator: DemandDrivenEvaluator, currentNodeId: string): Promise<unknown> {
-  const [stream, initial, operation] = inputs;
+  const [streamInput, operationInput, initialInput] = inputs;
 
   if (time === 0) {
-    const initialId = initial.id;
+    const initialId = initialInput.id;
     return await evaluator.evaluate(initialId, time, graph);
   }
 
-  const streamId = stream.id;
-  const streamValue = await evaluator.evaluate(streamId, time - 1, graph);
+  const stream = await evaluator.evaluate(streamInput.id, time, graph) as { kind: "stream"; elementType: string; currentValue: unknown };
+  
+  if (!stream || typeof stream !== 'object' || !('currentValue' in stream)) {
+    throw new Error('ACCUMULATE: Invalid stream value');
+  }
+
+  const streamValue = stream.currentValue;
   const previousAccumulated = await evaluator.evaluate(currentNodeId, time - 1, graph);
 
-  const operationName = (operation.value as { kind: "text"; value: string }).value;
+  let operationName: string;
+  if (typeof operationInput.value === 'string') {
+    operationName = operationInput.value;
+  } else if (typeof operationInput.value === 'object' && operationInput.value !== null && 'value' in operationInput.value) {
+    operationName = (operationInput.value as { kind: "text"; value: string }).value;
+  } else {
+    throw new Error(`ACCUMULATE: Invalid operation input: ${JSON.stringify(operationInput.value)}`);
+  }
 
   if (operationName === "ADD") {
-    return (previousAccumulated as number) + (streamValue as number);
+    const kind = (previousAccumulated as any).kind || 'natural';
+    const previousVal = (previousAccumulated as any).value ?? previousAccumulated;
+    return { kind, value: (previousVal as number) + (streamValue as number) };
   }
   if (operationName === "MULTIPLY") {
-    return (previousAccumulated as number) * (streamValue as number);
+    const kind = (previousAccumulated as any).kind || 'natural';
+    const previousVal = (previousAccumulated as any).value ?? previousAccumulated;
+    return { kind, value: (previousVal as number) * (streamValue as number) };
   }
   if (operationName === "SUBTRACT") {
-    return (previousAccumulated as number) - (streamValue as number);
+    const kind = (previousAccumulated as any).kind || 'integer';
+    const previousVal = (previousAccumulated as any).value ?? previousAccumulated;
+    return { kind, value: (previousVal as number) - (streamValue as number) };
   }
   if (operationName === "DIVIDE") {
     if ((streamValue as number) === 0) {
       throw new Error("ACCUMULATE: Division by zero");
     }
-    return (previousAccumulated as number) / (streamValue as number);
+    const kind = (previousAccumulated as any).kind || 'decimal';
+    const previousVal = (previousAccumulated as any).value ?? previousAccumulated;
+    return { kind, value: (previousVal as number) / (streamValue as number) };
   }
 
   throw new Error(`Unknown accumulation operation: ${operationName}`);

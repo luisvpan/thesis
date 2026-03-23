@@ -115,11 +115,16 @@ export class DemandDrivenEvaluator {
           const streamValue = node.value as { kind: "stream"; elementType: string; generatorFactory?: () => Generator<unknown>; generator: Generator<unknown> };
           const gen = streamValue.generatorFactory ? streamValue.generatorFactory() : streamValue.generator;
           const firstValue = gen.next().value;
+          let currentValue = firstValue;
+          for (let i = 0; i < time; i++) {
+            currentValue = gen.next().value;
+          }
           return {
             kind: "stream" as const,
             elementType: streamValue.elementType,
             generator: gen,
-            firstValue
+            firstValue,
+            currentValue
           };
         }
         if (dataType.startsWith("set")) {
