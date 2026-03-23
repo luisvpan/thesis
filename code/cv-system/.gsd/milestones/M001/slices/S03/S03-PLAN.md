@@ -1,35 +1,68 @@
 # S03: Calibrator
 
-**Goal:** Implement per-session calibration process: read 4 corner pairs from config, compute 4-point homography matrix, generate dmax_map (500 frames), return immutable CalibrationResult.
+**Goal:** System reads 4 corner pairs from config, computes 4-point homography matrix using cv2.getPerspectiveTransform, captures 500 depth frames to generate dmax_map (per-pixel depth mode), and returns immutable CalibrationResult with H, dmax_map, and metadata.
 
-**Demo:** System reads marker coords from config, generates dmax_map by capturing 500 depth frames, computes homography matrix H, and returns CalibrationResult. Print shows H shape (3,3), dmax_map shape (h,w), and metadata.
+**Demo:** Run `Calibrator.run()` with mock hardware; it computes H, generates dmax_map from N frames, validates results, and returns CalibrationResult with correct shapes and types.
 
 ## Must-Haves
-- Calibrator class that orchestrates calibration process
-- Reads 4 marker corner pairs (camera + projector) from CalibrationConfig
-- Computes homography matrix H (3x3) using cv2.getPerspectiveTransform
-- Captures N depth frames (configurable, default 500) to compute dmax_map
-- dmax_map uses per-pixel mode within depth range (configurable, default 650-800)
-- CalibrationResult dataclass is immutable (frozen=True) with H, dmax_map, metadata
-- All marker detection logic uses RGB stream (per ADR-003), but we're using config file (no detection needed)
+
+- System reads 4 corner point pairs (camera + projector coordinates) from configuration
+- Computes 4-point homography matrix using cv2.getPerspectiveTransform
+- Captures N=500 depth frames to generate dmax_map via histogram-based mode calculation
+- Returns immutable CalibrationResult dataclass containing H (3x3 float32), dmax_map (424, 512 uint16), and metadata
+- All calibration parameters externalized to CalibrationConfig (no magic numbers)
+
+## Proof Level
+
+- This slice proves: **contract**
+- Real runtime required: no
+- Human/UAT required: no
+
+## Verification
+
+- `uv run pytest tests/test_calibrator.py -v` — All calibrator tests pass
+- `uv run ruff check src/cv_system/config.py src/cv_system/calibration/` — No lint errors
+- `uv run ruff format src/cv_system/config.py src/cv_system/calibration/ --check` — Code formatted
+
+## Observability / Diagnostics
+
+- Runtime signals: Calibration progress printed to stdout (step 1, 2, 3, frame capture progress)
+- Inspection surfaces: CalibrationResult.metadata contains stats dict with mean, std, valid_pixel_ratio
+- Failure visibility: ValueError with descriptive messages (which attribute missing, invalid corner count, validation failed)
+- Redaction constraints: none (no PII in calibration data)
+
+## Integration Closure
+
+- Upstream surfaces consumed: SessionConfig.calibration (from S01), HardwareManager.get_depth_frame() (from S02)
+- New wiring introduced in this slice: Calibrator class connects config.calibration attributes to hardware manager
+- What remains before the milestone is truly usable end-to-end: S04 (Coordinate Transformer) and S05 (Detection Layer + main loop)
 
 ## Tasks
 
-- [ ] **T01: CalibrationResult dataclass**
-  Define immutable dataclass with homography matrix, dmax_map, and metadata fields.
+- [ ] **T01: Fix config attribute names to match calibrator expectations** `est:15m`
+  - Why: Calibrator expects `camera_corners`, `projector_corners`, `dmax_num_frames` but config provides `marker_camera_coords`, `marker_projector_coords`, `num_dmax_frames`. Fixing this mismatch unblocks the calibrator.
+  - Files: `src/cv_system/config.py`, `config/session.json`
+  - Do:
+    1. In `CalibrationConfig`, rename `marker_camera_coords` → `camera_corners`
+    2. In `CalibrationConfig`, rename `marker_projector_coords` → `projector_corners`
+    3. In `CalibrationConfig`, rename `num_dmax_frames` → `dmax_num_frames`
+    4. Update validator function names from `marker_*` to `camera_*/projector_*/dmax_*`
+    5. Update `config/session.json` field names to match new attributes
+  - Verify: `uv run ruff check src/cv_system/config.py --fix` passes
+  - Done when: All three attributes renamed in config.py and session.json, no ruff errors
 
-- [ ] **T02: DMax map generation**
-  Implement frame capture loop, histogram accumulation, and mode calculation for dmax_map.
-
-- [ ] **T03: Homography matrix computation**
-  Implement 4-point homography calculation using cv2.getPerspectiveTransform from config coords.
-
-- [ ] **T04: Calibrator orchestration**
-  Wire dmax generation and homography computation together in Calibrator class with proper error handling.
+- [ ] **T02: Validate calibrator integration with fixed config** `est:10m`
+  - Why: Verify that the attribute name fix allows calibrator to initialize and run successfully with actual config.
+  - Files: `src/cv_system/config.py`, `tests/test_calibrator.py`, `config/session.json`
+  - Do:
+    1. Run `uv run pytest tests/test_calibrator.py -v` to verify all tests pass
+    2. Run `uv run ruff check src/ && uv run ruff format src/ --check` for code quality
+    3. Verify test_calibrator.py tests use correct attribute names in mock fixtures
+  - Verify: `uv run pytest tests/test_calibrator.py -v` returns exit code 0 (all tests pass)
+  - Done when: All calibrator tests pass, no lint/format errors
 
 ## Files Likely Touched
-- `src/cv_system/calibration/result.py` (new)
-- `src/cv_system/calibration/calibrator.py` (new)
-- `src/cv_system/calibration/__init__.py` (new)
-- `pyproject.toml` (verify opencv-python, numpy deps)
-- `tests/test_calibration.py` (new)
+
+- `src/cv_system/config.py`
+- `config/session.json`
+- `tests/test_calibrator.py` (read-only, to verify fixtures match)
