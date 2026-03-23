@@ -6,7 +6,10 @@ for capturing depth and RGB frames.
 """
 
 import os
-from typing import Optional
+from types import ModuleType
+from typing import Optional, cast
+from openni import openni2
+from openni.openni2 import VideoStream, Device, VideoMode, OpenNIError
 
 import cv2
 import numpy as np
@@ -29,10 +32,10 @@ class HardwareManager:
 
     def __init__(self) -> None:
         """Initialize an empty HardwareManager (device not yet connected)."""
-        self.context: Optional[object] = None
-        self.device: Optional[object] = None
-        self.depth_stream: Optional[object] = None
-        self.rgb_stream: Optional[object] = None
+        self.context: Optional[ModuleType] = None
+        self.device: Optional[Device] = None
+        self.depth_stream: Optional[VideoStream] = None
+        self.rgb_stream: Optional[VideoStream] = None
         self.camera_config: Optional[CameraConfig] = None
         self._initialized: bool = False
 
@@ -51,14 +54,6 @@ class HardwareManager:
             raise HardwareError("HardwareManager is already initialized")
 
         try:
-            import openni2
-        except ImportError as e:
-            raise HardwareError(
-                "OpenNI2 module not found. "
-                "Ensure OPENNI2_REDIST_PATH is set in environment."
-            ) from e
-
-        try:
             # Check for OPENNI2_REDIST_PATH
             redist_path = os.getenv("OPENNI2_REDIST_PATH")
             if not redist_path:
@@ -67,14 +62,20 @@ class HardwareManager:
                 )
 
             # Initialize OpenNI2 context
-            self.context = openni2.initialize()
+            openni2.initialize(redist_path)
+            self.context = openni2
             self.camera_config = config
 
             # Open any Kinect V2 device
-            self.device = openni2.Device.open_any()
+            try:
+                self.device = openni2.Device.open_any()
+            except OpenNIError as e:
+                raise HardwareError("No Kinect V2 device found") from e
 
             # Set up depth stream
             self.depth_stream = self.device.create_depth_stream()
+            if self.depth_stream is None:
+                raise HardwareError("Failed to create depth stream")
             depth_mode = self._find_video_mode(
                 self.depth_stream,
                 config.depth_resolution[1],  # width
@@ -85,6 +86,9 @@ class HardwareManager:
 
             # Set up color stream
             self.rgb_stream = self.device.create_color_stream()
+            if self.rgb_stream is None:
+                raise HardwareError("Failed to create RGB stream")
+            #TODO: include pixelFormat in config and check for it in _find_video_mode
             rgb_mode = self._find_video_mode(
                 self.rgb_stream,
                 config.rgb_resolution[1],  # width
@@ -104,7 +108,9 @@ class HardwareManager:
             self._cleanup()
             raise HardwareError(f"Failed to initialize hardware: {e}") from e
 
-    def _find_video_mode(self, stream, width: int, height: int, fps: int) -> object:
+    def _find_video_mode(
+        self, stream: VideoStream, width: int, height: int, fps: int
+    ) -> object:
         """
         Find the appropriate video mode for a stream.
 
@@ -120,11 +126,16 @@ class HardwareManager:
         Raises:
             HardwareError: If no matching video mode is found.
         """
-        for mode in stream.get_sensor_info().get_supported_video_modes():
+        sensor_info = stream.get_sensor_info()
+        if sensor_info is None:
+            raise HardwareError("Failed to get sensor info for stream")
+        modes = cast(list[VideoMode], sensor_info.videoModes)
+        for mode in modes:
+            print(mode)
             if (
-                mode.get_resolutionX() == width
-                and mode.get_resolutionY() == height
-                and mode.get_fps() == fps
+                mode.resolutionX == width
+                and mode.resolutionY == height
+                and mode.fps == fps
             ):
                 return mode
 
@@ -146,10 +157,12 @@ class HardwareManager:
             raise HardwareError("HardwareManager is not initialized")
 
         try:
+            assert self.depth_stream is not None  # For type checker
             frame = self.depth_stream.read_frame()
             frame_data = frame.get_buffer_as_uint16()
 
             # Reshape to (height, width)
+            assert self.camera_config is not None  # For type checker
             depth_array = np.frombuffer(frame_data, dtype=np.uint16).reshape(
                 self.camera_config.depth_resolution
             )
@@ -175,10 +188,12 @@ class HardwareManager:
             raise HardwareError("HardwareManager is not initialized")
 
         try:
+            assert self.rgb_stream is not None  # For type checker
             frame = self.rgb_stream.read_frame()
             frame_data = frame.get_buffer_as_uint8()
 
             # Reshape to (height, width, 3)
+            assert self.camera_config is not None  # For type checker
             rgb_array = np.frombuffer(frame_data, dtype=np.uint8).reshape(
                 (*self.camera_config.rgb_resolution, 3)
             )
@@ -223,11 +238,8 @@ class HardwareManager:
 
         if self.context is not None:
             try:
+                self.context = cast(openni2, self.context)
                 self.context.unload()
-                # Import here to avoid undefined name if initialize never ran
-                import openni2
-
-                openni2.unload()
             except Exception:
                 pass
             self.context = None
