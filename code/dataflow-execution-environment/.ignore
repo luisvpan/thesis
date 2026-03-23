@@ -1,4 +1,0 @@
-# allow rigrep (agent tool to list stuff) and other tools to search in these folders
-!node_modules/
-!dist/
-!build/
