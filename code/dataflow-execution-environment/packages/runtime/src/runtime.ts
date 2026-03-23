@@ -3,10 +3,15 @@ import { DemandDrivenEvaluator } from "./evaluator/index.js";
 import type { DataflowProgram } from "@dataflow/shared/types";
 
 export class Runtime {
+  private readonly MAX_MEMORY_MB = 100;
+  private readonly MAX_MEMORY_BYTES = 100 * 1024 * 1024;
+  private initialMemoryUsage: number;
+  
   private graph: DataflowGraph;
   private evaluator: DemandDrivenEvaluator;
-
+ 
   constructor() {
+    this.initialMemoryUsage = process.memoryUsage().heapUsed;
     this.graph = new DataflowGraph();
     this.evaluator = new DemandDrivenEvaluator();
   }
@@ -35,11 +40,24 @@ export class Runtime {
   }
 
   async execute(time: number = 0): Promise<unknown[]> {
+    const beforeMemory = process.memoryUsage().heapUsed;
+    const currentMemory = beforeMemory - this.initialMemoryUsage;
+
+    if (currentMemory > this.MAX_MEMORY_BYTES) {
+      throw new Error(`Memory limit exceeded: ${Math.round(currentMemory / 1024 / 1024)}MB used, limit is ${this.MAX_MEMORY_MB}MB`);
+    }
+
     const outputs: unknown[] = [];
 
     for (const node of this.graph.getOutputNodes()) {
       const value = await this.evaluator.evaluate(node.id, time, this.graph);
       outputs.push(value);
+
+      const afterMemory = process.memoryUsage().heapUsed;
+      const memoryUsed = afterMemory - this.initialMemoryUsage;
+      if (memoryUsed > this.MAX_MEMORY_BYTES) {
+        throw new Error(`Memory limit exceeded during evaluation: ${Math.round(memoryUsed / 1024 / 1024)}MB used, limit is ${this.MAX_MEMORY_MB}MB`);
+      }
     }
 
     return outputs;

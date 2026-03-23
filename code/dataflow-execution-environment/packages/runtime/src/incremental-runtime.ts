@@ -82,6 +82,10 @@ export type Subscriber = {
 type StateCallback = (state: NodeState) => void;
 
 export class IncrementalRuntime {
+  private readonly MAX_MEMORY_MB = 100;
+  private readonly MAX_MEMORY_BYTES = 100 * 1024 * 1024;
+  private initialMemoryUsage: number;
+
   private graph: Map<string, DataflowNode>;
   private edges: Map<string, DataflowEdge>;
   private cache: LRUCache<string, Map<number, unknown>>;
@@ -92,6 +96,7 @@ export class IncrementalRuntime {
   private cacheMisses: number;
 
   constructor() {
+    this.initialMemoryUsage = process.memoryUsage().heapUsed;
     this.graph = new Map();
     this.edges = new Map();
     this.cache = new LRUCache<string, Map<number, unknown>>(500);
@@ -169,6 +174,13 @@ export class IncrementalRuntime {
   }
 
   evaluatePartial(timestep: number = 0): PartialEvaluation {
+    const beforeMemory = process.memoryUsage().heapUsed;
+    const currentMemory = beforeMemory - this.initialMemoryUsage;
+
+    if (currentMemory > this.MAX_MEMORY_BYTES) {
+      throw new Error(`Memory limit exceeded: ${Math.round(currentMemory / 1024 / 1024)}MB used, limit is ${this.MAX_MEMORY_MB}MB`);
+    }
+
     const nodeStates: Map<string, NodeState> = new Map();
     const changedNodes: string[] = [];
     
@@ -184,6 +196,12 @@ export class IncrementalRuntime {
         const result = this.evaluateNode(source.id, timestep);
         nodeStates.set(source.id, result.state);
         evaluatedNodes.push(source.id);
+        
+        const afterMemory = process.memoryUsage().heapUsed;
+        const memoryUsed = afterMemory - this.initialMemoryUsage;
+        if (memoryUsed > this.MAX_MEMORY_BYTES) {
+          throw new Error(`Memory limit exceeded during evaluation: ${Math.round(memoryUsed / 1024 / 1024)}MB used, limit is ${this.MAX_MEMORY_MB}MB`);
+        }
         
         if (result.state.status === "completed" && result.changedNodes) {
           changedNodes.push(...result.changedNodes);
