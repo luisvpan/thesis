@@ -1,0 +1,1 @@
+Limpia los archivos que se comittearon por error en las carpetas por encima (de computer vision y temas del informe)

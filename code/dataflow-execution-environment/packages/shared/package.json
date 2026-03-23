@@ -1,0 +1,18 @@
+{
+  "name": "@dataflow/shared",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./types": "./src/types/index.ts",
+    "./operations": "./src/operations/index.ts",
+    "./generators": "./src/generators/index.ts",
+    "./generators/registry": "./src/generators/registry.ts",
+    "./security/rate-limiter": "./src/security/rate-limiter.ts",
+    "./security": "./src/security/index.ts"
+  },
+  "types": "./src/types/index.ts",
+  "scripts": {
+    "build": "bun build src/types/index.ts --outdir=dist --target=bun",
+    "test": "bun test"
+  }
+}
