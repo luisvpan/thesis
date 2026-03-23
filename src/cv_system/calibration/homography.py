@@ -53,6 +53,18 @@ def compute_homography(
             f"got {len(camera_points)} camera, {len(projector_points)} projector"
         )
 
+    # Validate that each point is a (x, y) tuple
+    for i, pt in enumerate(camera_points):
+        if not isinstance(pt, (tuple, list)) or len(pt) != 2:
+            raise ValueError(
+                f"camera_points must be 4 (x, y) pairs: camera_points[{i}] = {pt}"
+            )
+    for i, pt in enumerate(projector_points):
+        if not isinstance(pt, (tuple, list)) or len(pt) != 2:
+            raise ValueError(
+                f"projector_points must be 4 (x, y) pairs: projector_points[{i}] = {pt}"
+            )
+
     # Convert to numpy arrays with correct shape and dtype
     # cv2.getPerspectiveTransform expects shape (4, 2) with float32
     camera_array = np.array(camera_points, dtype=np.float32).reshape((4, 2))
@@ -96,13 +108,13 @@ def apply_homography(point: tuple[float, float], H: np.ndarray) -> tuple[float, 
             "Install with: pip install opencv-python"
         ) from e
 
-    # Convert to homogeneous coordinates
-    point_homogeneous = np.array([[point[0], point[1], 1.0]], dtype=np.float32)
+    # cv2.perspectiveTransform expects shape (N, 1, 2) with dtype float32
+    point_array = np.array([[[point[0], point[1]]]], dtype=np.float32)
 
     # Apply transformation
-    transformed = cv2.perspectiveTransform(point_homogeneous, H)
+    transformed = cv2.perspectiveTransform(point_array, H)
 
-    # Extract x, y (divide by w is done by perspectiveTransform)
+    # Extract x, y from (1, 1, 2) result
     return (float(transformed[0, 0, 0]), float(transformed[0, 0, 1]))
 
 
