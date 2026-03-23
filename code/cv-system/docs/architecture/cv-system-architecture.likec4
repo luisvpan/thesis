@@ -1,0 +1,294 @@
+// ============================================================
+// CV System — Arquitectura de módulos
+// Tesis: Lenguaje de programación tangible con AR + Kinect V2
+// ============================================================
+
+specification {
+  element system {
+    style {
+      shape rectangle
+      color primary
+    }
+  }
+  element module {
+    style {
+      shape component
+      color green
+    }
+  }
+  element datastore {
+    style {
+      shape storage
+      color amber
+    }
+  }
+  element hardware {
+    style {
+      shape cylinder
+      color red
+    }
+  }
+  element external {
+    style {
+      shape rectangle
+      color muted
+    }
+  }
+  element dataobject {
+    style {
+      shape document
+      color indigo
+    }
+  }
+
+  relationship produces
+  relationship consumes
+  relationship exposes {
+    line solid
+  }
+  relationship configures {
+    line dotted
+    color gray
+  }
+  relationship communicates {
+    line solid
+    color amber
+  }
+}
+
+model {
+
+  // === HARDWARE FÍSICO ===
+  kinect = hardware 'Kinect V2' {
+    description 'Sensor de profundidad (512×424) y cámara RGB (1920×1080)'
+    technology 'Microsoft Kinect V2'
+  }
+
+  projector = hardware 'Videobeam' {
+    description 'Proyector de imágenes sobre la superficie de trabajo'
+    technology 'Proyector DLP/LCD'
+  }
+
+  // === SISTEMA EXTERNO: Servidor del lenguaje ===
+  lang-server = external 'Language Runtime' {
+    description 'Servidor Bun/Elysia que ejecuta el lenguaje tangible dataflow'
+    technology 'Bun + Elysia + WebSocket'
+  }
+
+  // === SUBSISTEMA DE VISIÓN POR COMPUTADORA ===
+  cv = system 'CV System' {
+    description 'Subsistema de visión por computadora: calibración, transformación y detección'
+    technology 'Python + OpenCV + OpenNI2'
+
+    // --- Capa 1: Gestión de Hardware ---
+    hw-manager = module 'Hardware Manager' {
+      description '''
+        Único módulo que conoce OpenNI2.
+        Inicializa el Kinect, expone streams de
+        profundidad y RGB como arrays NumPy,
+        y gestiona el ciclo de vida del dispositivo.
+      '''
+      technology 'OpenNI2 + NumPy'
+    }
+
+    // --- Capa 2: Calibración ---
+    calibrator = module 'Calibrator' {
+      description '''
+        Orquesta el proceso de calibración por sesión:
+        1. Proyecta 4 marcadores en el viewport
+        2. Detecta marcadores en imagen RGB del Kinect
+        3. Calcula homografía (cv2.getPerspectiveTransform)
+        4. Genera dmax_map (moda de N frames de profundidad)
+        Produce un CalibrationResult inmutable para la sesión.
+      '''
+      technology 'OpenCV'
+
+      marker-projector = module 'Marker Projector' {
+        description 'Genera la imagen con 4 marcadores en posiciones conocidas del viewport'
+      }
+
+      marker-detector = module 'Marker Detector' {
+        description '''
+          Detecta los 4 marcadores en la imagen RGB del Kinect.
+          Threshold + detección de contornos sobre imagen de color,
+          luego mapeo RGB→profundidad vía registro del Kinect V2.
+        '''
+      }
+
+      dmax-generator = module 'DMax Generator' {
+        description '''
+          Captura N frames de profundidad del ROI y calcula
+          la moda por píxel para construir el mapa de referencia
+          de la superficie base.
+        '''
+      }
+    }
+
+    // --- Capa 3: Transformación de Coordenadas ---
+    transformer = module 'Coordinate Transformer' {
+      description '''
+        Servicio stateless post-calibración.
+        Encapsula la matriz de homografía 3×3 y expone
+        transformaciones bidireccionales:
+        camera_to_projector(point) y projector_to_camera(point)
+        mediante cv2.perspectiveTransform.
+      '''
+      technology 'OpenCV (homografía 3×3)'
+    }
+
+    // --- Capa 4: Detección ---
+    detection = system 'Detection Layer' {
+      description 'Módulos de detección de interacción sobre la superficie'
+
+      touch-detector = module 'Touch Detector' {
+        description '''
+          Compara cada frame de profundidad contra el dmax_map
+          para detectar foreground (objetos/manos sobre la mesa).
+          Usa ring buffer de N frames como ventana deslizante
+          para filtrar ruido y validar toques persistentes.
+        '''
+        technology 'NumPy + OpenCV'
+      }
+
+      piece-detector = module 'Piece Detector' {
+        description '''
+          [Futuro] Detecta y clasifica las piezas físicas
+          del lenguaje tangible usando el stream RGB.
+        '''
+        technology 'YOLO (futuro)'
+      }
+    }
+
+    // --- Datos de sesión ---
+    calibration-result = dataobject 'CalibrationResult' {
+      description '''
+        Objeto inmutable producido por la calibración:
+        - Matriz de homografía H (3×3, float64)
+        - dmax_map (array 2D, uint16)
+        - Metadatos: timestamp, resoluciones, ROI en coords cámara
+        Opcionalmente persistible a disco para debugging.
+      '''
+    }
+
+    session-config = dataobject 'Session Config' {
+      description '''
+        Configuración del entorno por sesión:
+        - Resoluciones (Kinect depth, Kinect RGB, proyector)
+        - Número de frames para dmax_map
+        - Rango de profundidad esperado (min_depth, max_depth)
+        - Tamaño de ventana deslizante para touch detection
+        - Umbrales de detección
+      '''
+    }
+
+    // --- Capa de comunicación ---
+    ws-bridge = module 'WebSocket Bridge' {
+      description '''
+        Comunica eventos de detección (toques, piezas)
+        al Language Runtime vía WebSocket.
+        Serializa posiciones en coordenadas del proyector.
+      '''
+      technology 'WebSocket client'
+    }
+
+    // =====================
+    // RELACIONES INTERNAS
+    // =====================
+
+    // Hardware Manager expone streams
+    hw-manager -> calibrator 'provee frames RGB y depth'
+    hw-manager -> detection 'provee stream de profundidad en tiempo real'
+
+    // Calibración produce resultado
+    calibrator -[produces]-> calibration-result 'genera al inicio de sesión'
+
+    // CalibrationResult alimenta las capas 3 y 4
+    calibration-result -> transformer 'matriz de homografía H'
+    calibration-result -> detection 'dmax_map + ROI'
+
+    // Detección usa transformación
+    detection -> transformer 'mapea coordenadas cámara → proyector'
+
+    // Detección emite eventos
+    detection -> ws-bridge 'eventos de toque/piezas en coords proyector'
+
+    // Session Config configura módulos
+    session-config -[configures]-> hw-manager 'resoluciones, FPS'
+    session-config -[configures]-> calibrator 'num_frames, depth range'
+    session-config -[configures]-> detection 'window size, umbrales'
+  }
+
+  // =====================
+  // RELACIONES EXTERNAS
+  // =====================
+
+  // Hardware físico
+  kinect -> cv.hw-manager 'streams de profundidad + RGB'
+  cv.calibrator.marker-projector -> projector 'imagen de marcadores'
+  cv.detection -> projector 'feedback visual (vía language runtime)'
+
+  // Comunicación con el servidor del lenguaje
+  cv.ws-bridge -[communicates]-> lang-server 'eventos de detección (WebSocket)'
+  lang-server -[communicates]-> projector 'comandos de proyección AR'
+}
+
+// =====================
+// VISTAS
+// =====================
+
+views {
+
+  // Vista general: todo el sistema
+  view index {
+    title 'Sistema Completo — Vista General'
+    description 'Visión de alto nivel del sistema: hardware, CV system y language runtime'
+
+    include *
+    include cv.*
+  }
+
+  // Vista del CV System con sus módulos internos
+  view cv-internals of cv {
+    title 'CV System — Módulos Internos'
+    description '''
+      Las 4 capas del subsistema de visión:
+      1. Hardware Manager (integración con Kinect)
+      2. Calibrator (homografía + dmax_map)
+      3. Coordinate Transformer (servicio de mapeo)
+      4. Detection Layer (toques + piezas)
+    '''
+
+    include *
+    include calibrator.*
+    include detection.*
+  }
+
+  // Vista del flujo de calibración
+  view calibration-flow of cv.calibrator {
+    title 'Flujo de Calibración'
+    description '''
+      Detalle del proceso de calibración por sesión:
+      proyección de marcadores → detección RGB → homografía → dmax_map
+    '''
+
+    include *
+    include cv.hw-manager
+    include cv.calibration-result
+    include cv.session-config
+  }
+
+  // Vista de detección en tiempo real
+  view detection-flow of cv.detection {
+    title 'Detección en Tiempo Real'
+    description '''
+      Flujo de detección durante una sesión activa:
+      frames de profundidad → comparación con dmax_map → eventos
+    '''
+
+    include *
+    include cv.hw-manager
+    include cv.transformer
+    include cv.calibration-result
+    include cv.ws-bridge
+  }
+}
