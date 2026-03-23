@@ -9,6 +9,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from dotenv import load_dotenv
 
 import numpy as np
 
@@ -18,6 +19,8 @@ from cv_system.detection.touch_detector import TouchDetector
 from cv_system.hardware.manager import HardwareManager
 from cv_system.hardware.manager import HardwareError
 from cv_system.transform.transformer import CoordinateTransformer
+
+load_dotenv()  # Load environment variables from .env file if present
 
 
 def main() -> None:
@@ -64,7 +67,7 @@ def main() -> None:
             hardware.initialize(config.camera)
             print("  Hardware initialized successfully")
         except HardwareError as e:
-            print(f"  ERROR: Failed to initialize hardware: {e}")
+            print(f"  ERROR: {e}")
             sys.exit(1)
 
         # Step 2: Run calibration
