@@ -88,7 +88,7 @@ class HardwareManager:
             self.rgb_stream = self.device.create_color_stream()
             if self.rgb_stream is None:
                 raise HardwareError("Failed to create RGB stream")
-            #TODO: include pixelFormat in config and check for it in _find_video_mode
+            # TODO: include pixelFormat in config and check for it in _find_video_mode
             rgb_mode = self._find_video_mode(
                 self.rgb_stream,
                 config.rgb_resolution[1],  # width

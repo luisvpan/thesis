@@ -17,6 +17,8 @@ import numpy as np
 from cv_system.calibration.dmax import compute_depth_stats, generate_dmax_map
 from cv_system.calibration.homography import compute_homography, validate_homography
 from cv_system.calibration.result import CalibrationResult
+from cv_system.config import SessionConfig
+from cv_system.hardware.manager import HardwareManager, HardwareError
 
 
 class Calibrator:
@@ -33,8 +35,8 @@ class Calibrator:
 
     def __init__(
         self,
-        config: object,  # CalibrationConfig (circular import avoidance)
-        hardware_manager: object,  # HardwareManager (circular import avoidance)
+        config: SessionConfig,  # CalibrationConfig (circular import avoidance)
+        hardware_manager: HardwareManager,  # HardwareManager (circular import avoidance)
     ) -> None:
         """Initialize the calibrator with config and hardware manager.
 
@@ -183,7 +185,7 @@ class Calibrator:
             try:
                 depth_frame = self.hardware_manager.get_depth_frame()
                 return depth_frame
-            except Exception as e:
+            except HardwareError as e:
                 raise RuntimeError(f"Failed to capture depth frame: {e}") from e
 
         try:
