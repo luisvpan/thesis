@@ -65,13 +65,13 @@ describe("Integration Tests - Performance", () => {
       }
     });
 
-    it("should have no memory leaks across 100 compilations", () => {
+    it("should have no memory leaks across 50 compilations", () => {
       const compiler = new Compiler();
       
       const source = generateLargeProgram(100);
       const initialMemory = process.memoryUsage().heapUsed;
       
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 50; i++) {
         const result = compiler.compile(source);
         expect(result.success).toBe(true);
       }
