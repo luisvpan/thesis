@@ -54,7 +54,7 @@ class CalibrationConfig(BaseModel):
     """Parameters for the per-session calibration process."""
 
     # Number of depth frames to capture for dmax_map generation
-    num_dmax_frames: int = 500
+    dmax_num_frames: int = 500
 
     # Expected depth range for the table surface (in millimeters)
     # Values outside this range are excluded from dmax calculation
@@ -63,7 +63,7 @@ class CalibrationConfig(BaseModel):
 
     # Four corner points in camera coordinates (y, x)
     # Format: [(y1, x1), (y2, x2), (y3, x3), (y4, x4)]
-    marker_camera_coords: list[Tuple[int, int]] = [
+    camera_corners: list[Tuple[int, int]] = [
         (0, 0),
         (0, 424),
         (512, 0),
@@ -72,19 +72,19 @@ class CalibrationConfig(BaseModel):
 
     # Four corner points in projector coordinates (y, x)
     # Format: [(y1, x1), (y2, x2), (y3, x3), (y4, x4)]
-    marker_projector_coords: list[Tuple[int, int]] = [
+    projector_corners: list[Tuple[int, int]] = [
         (0, 0),
         (0, 1080),
         (1920, 0),
         (1920, 1080),
     ]
 
-    @field_validator("num_dmax_frames")
+    @field_validator("dmax_num_frames")
     @classmethod
     def num_frames_must_be_positive(cls, v: int) -> int:
         """Ensure number of frames is positive."""
         if v <= 0:
-            raise ValueError("num_dmax_frames must be positive")
+            raise ValueError("dmax_num_frames must be positive")
         return v
 
     @field_validator("depth_range_min", "depth_range_max")
@@ -104,7 +104,7 @@ class CalibrationConfig(BaseModel):
             raise ValueError("depth_range_max must be greater than depth_range_min")
         return v
 
-    @field_validator("marker_camera_coords", "marker_projector_coords")
+    @field_validator("camera_corners", "projector_corners")
     @classmethod
     def must_have_four_corners(cls, v: list) -> list:
         """Ensure exactly four corner points are provided."""

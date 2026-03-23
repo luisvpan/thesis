@@ -5,16 +5,16 @@
     "fps": 30
   },
   "calibration": {
-    "num_dmax_frames": 500,
+    "dmax_num_frames": 500,
     "depth_range_min": 650,
     "depth_range_max": 800,
-    "marker_camera_coords": [
+    "camera_corners": [
       [0, 0],
       [0, 424],
       [512, 0],
       [512, 424]
     ],
-    "marker_projector_coords": [
+    "projector_corners": [
       [0, 0],
       [0, 1080],
       [1920, 0],

@@ -15,6 +15,7 @@ opencode.json
 .gsd/activity/
 .gsd/runtime/
 .gsd/journal/
+.gsd/worktrees/
 .gsd/auto.lock
 .gsd/gsd.db
 .gsd/gsd.db-*

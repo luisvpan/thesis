@@ -39,7 +39,7 @@
 
 ## Tasks
 
-- [ ] **T01: Fix config attribute names to match calibrator expectations** `est:15m`
+- [x] **T01: Fix config attribute names to match calibrator expectations** `est:15m`
   - Why: Calibrator expects `camera_corners`, `projector_corners`, `dmax_num_frames` but config provides `marker_camera_coords`, `marker_projector_coords`, `num_dmax_frames`. Fixing this mismatch unblocks the calibrator.
   - Files: `src/cv_system/config.py`, `config/session.json`
   - Do:
