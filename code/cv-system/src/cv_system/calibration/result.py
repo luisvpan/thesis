@@ -1,10 +1,11 @@
 """Calibration result dataclass.
 
 This module defines the immutable CalibrationResult dataclass that contains
-the homography matrix, dmax_map, and metadata computed during calibration.
+the homography matrix, dmax_map, camera_corners, and metadata computed
+during calibration.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -18,6 +19,9 @@ class CalibrationResult:
         H: 3x3 homography matrix mapping camera coordinates to projector coordinates.
         dmax_map: 2D array where each pixel contains the most frequent depth value
             within the configured range across N calibration frames.
+        camera_corners: List of 4 (x, y) tuples representing the detected
+            camera corner coordinates in depth space, sorted as
+            [top-left, top-right, bottom-left, bottom-right].
         metadata: Dictionary containing calibration metadata such as number of frames
             captured, depth range used, timestamp, etc.
 
@@ -27,7 +31,8 @@ class CalibrationResult:
 
     H: np.ndarray
     dmax_map: np.ndarray
-    metadata: dict[str, Any]
+    camera_corners: list[tuple[int, int]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validate that arrays have expected shapes and types."""
@@ -45,10 +50,19 @@ class CalibrationResult:
                 f"dmax_map must be 2D, got {self.dmax_map.ndim} dimensions"
             )
 
+        # Validate camera_corners has exactly 4 points if provided
+        if self.camera_corners and len(self.camera_corners) != 4:
+            raise ValueError(
+                f"camera_corners must have exactly 4 points, got {len(self.camera_corners)}"
+            )
+
     def __repr__(self) -> str:
         """Return a concise representation of the calibration result."""
+        camera_info = (
+            f", camera_corners={self.camera_corners}" if self.camera_corners else ""
+        )
         return (
             f"CalibrationResult(H_shape={self.H.shape}, "
-            f"dmax_map_shape={self.dmax_map.shape}, "
+            f"dmax_map_shape={self.dmax_map.shape}{camera_info}, "
             f"metadata_keys={list(self.metadata.keys())})"
         )

@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+from unittest.mock import Mock, patch
 
 # Skip tests if cv2 is not available (requires system libraries)
 pytest.importorskip("cv2", exc_type=ImportError)
@@ -14,16 +15,22 @@ from cv_system.calibration.result import CalibrationResult
 def mock_calibration_config():
     """Create a mock calibration config object."""
 
+    class MockCameraConfig:
+        depth_resolution = (424, 512)
+        rgb_resolution = (1080, 1920)
+
     class MockCalibration:
         def __init__(self):
-            self.camera_corners = [(100, 100), (700, 100), (700, 500), (100, 500)]
-            self.projector_corners = [(100, 100), (700, 100), (700, 500), (100, 500)]
+            # No longer need camera_corners in config
+            # Order must match MarkerDetector sorting: [top-left, top-right, bottom-left, bottom-right]
+            self.projector_corners = [(100, 100), (700, 100), (100, 500), (700, 500)]
             self.dmax_num_frames = 10
             self.depth_range_min = 650
             self.depth_range_max = 800
 
     class MockConfig:
         def __init__(self):
+            self.camera = MockCameraConfig()
             self.calibration = MockCalibration()
 
     return MockConfig()
@@ -31,30 +38,72 @@ def mock_calibration_config():
 
 @pytest.fixture
 def mock_hardware_manager():
-    """Create a mock hardware manager that returns depth frames."""
+    """Create a mock hardware manager that returns RGB and depth frames."""
+
+    class MockCameraConfig:
+        depth_resolution = (424, 512)
+        rgb_resolution = (1080, 1920)
 
     class MockHardwareManager:
         def __init__(self):
             self.frame_count = 0
+            self.camera_config = MockCameraConfig()
+
+        def get_rgb_frame(self):
+            # Return a simulated RGB frame with 4 white squares for testing
+            # Simulate 1920x1080 RGB frame with 4 white markers
+            # Order: [top-left, top-right, bottom-left, bottom-right]
+            frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+            # Draw white squares at expected positions (will be detected)
+            half_size = 50
+            corners = [(100, 100), (700, 100), (100, 500), (700, 500)]
+            for x, y in corners:
+                x1, y1 = max(0, x - half_size), max(0, y - half_size)
+                x2, y2 = min(1920, x + half_size), min(1080, y + half_size)
+                frame[y1:y2, x1:x2] = [255, 255, 255]
+            return frame
 
         def get_depth_frame(self):
             # Return constant depth value for testing
             self.frame_count += 1
             return np.full((424, 512), 700, dtype=np.uint16)
 
+        def map_rgb_to_depth(self, rgb_points):
+            # Scale RGB coordinates to depth coordinates
+            # RGB: 1920x1080, Depth: 512x424
+            depth_points = [
+                (int(x * 512 / 1920), int(y * 424 / 1080)) for x, y in rgb_points
+            ]
+            return depth_points
+
     return MockHardwareManager()
 
 
+@pytest.fixture
+def mock_marker_projector():
+    """Create a mock marker projector that doesn't use GUI."""
+    with patch("cv_system.calibration.calibrator.MarkerProjector") as mock:
+        instance = Mock()
+        instance.project_markers.return_value = 1
+        instance.destroy_window.return_value = None
+        mock.return_value = instance
+        yield instance
+
+
 def test_calibrator_initialization_valid(
-    mock_calibration_config, mock_hardware_manager
+    mock_calibration_config, mock_hardware_manager, mock_marker_projector
 ):
     """Test that Calibrator initializes with valid config and hardware."""
     calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
     assert calibrator.config is mock_calibration_config
     assert calibrator.hardware_manager is mock_hardware_manager
+    assert calibrator.marker_detector is not None
+    assert calibrator.marker_projector is not None
 
 
-def test_calibrator_initialization_missing_calibration_attr(mock_hardware_manager):
+def test_calibrator_initialization_missing_calibration_attr(
+    mock_hardware_manager, mock_marker_projector
+):
     """Test that Calibrator rejects config without calibration attribute."""
 
     class MockConfig:
@@ -66,8 +115,10 @@ def test_calibrator_initialization_missing_calibration_attr(mock_hardware_manage
         Calibrator(config, mock_hardware_manager)
 
 
-def test_calibrator_initialization_missing_corners(mock_hardware_manager):
-    """Test that Calibrator rejects config without corner pairs."""
+def test_calibrator_initialization_missing_corners(
+    mock_hardware_manager, mock_marker_projector
+):
+    """Test that Calibrator rejects config without projector_corners."""
 
     class MockCalibration:
         pass
@@ -78,31 +129,40 @@ def test_calibrator_initialization_missing_corners(mock_hardware_manager):
 
     config = MockConfig()
 
-    with pytest.raises(
-        ValueError, match="must have camera_corners and projector_corners"
-    ):
+    with pytest.raises(ValueError, match="must have projector_corners"):
         Calibrator(config, mock_hardware_manager)
 
 
-def test_calibrator_initialization_wrong_corner_count(mock_hardware_manager):
+def test_calibrator_initialization_wrong_corner_count(
+    mock_hardware_manager, mock_marker_projector
+):
     """Test that Calibrator rejects config with wrong number of corners."""
 
     class MockCalibration:
         def __init__(self):
-            self.camera_corners = [(100, 100), (700, 100)]  # Only 2 corners
-            self.projector_corners = [(100, 100), (700, 100)]
+            self.projector_corners = [(100, 100), (700, 100)]  # Only 2 corners
+            self.dmax_num_frames = 10
+            self.depth_range_min = 650
+            self.depth_range_max = 800
 
     class MockConfig:
         def __init__(self):
+            self.camera = type(
+                "MockCameraConfig",
+                (),
+                {"depth_resolution": (424, 512), "rgb_resolution": (1080, 1920)},
+            )()
             self.calibration = MockCalibration()
 
     config = MockConfig()
 
-    with pytest.raises(ValueError, match="Exactly 4 corner pairs required"):
+    with pytest.raises(ValueError, match="Exactly 4 projector corners required"):
         Calibrator(config, mock_hardware_manager)
 
 
-def test_calibrator_run_success(mock_calibration_config, mock_hardware_manager):
+def test_calibrator_run_success(
+    mock_calibration_config, mock_hardware_manager, mock_marker_projector
+):
     """Test that Calibrator.run() completes successfully."""
     calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
     result = calibrator.run()
@@ -112,13 +172,34 @@ def test_calibrator_run_success(mock_calibration_config, mock_hardware_manager):
     assert result.H.dtype == np.float32
     assert result.dmax_map.shape == (424, 512)
     assert result.dmax_map.dtype == np.uint16
+    assert len(result.camera_corners) == 4
     assert "num_frames" in result.metadata
     assert "depth_range" in result.metadata
     assert "elapsed_seconds" in result.metadata
     assert "stats" in result.metadata
+    assert "camera_corners" in result.metadata
 
 
-def test_calibrator_run_metadata(mock_calibration_config, mock_hardware_manager):
+def test_calibrator_run_camera_corners(
+    mock_calibration_config, mock_hardware_manager, mock_marker_projector
+):
+    """Test that calibration result contains detected camera_corners."""
+    calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
+    result = calibrator.run()
+
+    assert len(result.camera_corners) == 4
+    assert all(
+        isinstance(x, int) and isinstance(y, int) for x, y in result.camera_corners
+    )
+    # Verify corners are within depth frame bounds
+    depth_width, depth_height = 512, 424
+    assert all(0 <= x < depth_width for x, _ in result.camera_corners)
+    assert all(0 <= y < depth_height for _, y in result.camera_corners)
+
+
+def test_calibrator_run_metadata(
+    mock_calibration_config, mock_hardware_manager, mock_marker_projector
+):
     """Test that CalibrationResult metadata is populated correctly."""
     calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
     result = calibrator.run()
@@ -130,58 +211,134 @@ def test_calibrator_run_metadata(mock_calibration_config, mock_hardware_manager)
     assert "mean" in result.metadata["stats"]
     assert "std" in result.metadata["stats"]
     assert "valid_pixel_ratio" in result.metadata["stats"]
+    assert result.metadata["camera_corners"] == result.camera_corners
 
 
-def test_calibrator_hardware_capture_error(mock_calibration_config):
+def test_calibrator_hardware_capture_error(
+    mock_calibration_config, mock_marker_projector
+):
     """Test that hardware capture errors are handled."""
 
+    class MockCameraConfig:
+        depth_resolution = (424, 512)
+        rgb_resolution = (1080, 1920)
+
     class FailingHardwareManager:
+        def __init__(self):
+            self.camera_config = MockCameraConfig()
+
+        def get_rgb_frame(self):
+            raise RuntimeError("RGB capture error")
+
         def get_depth_frame(self):
             raise RuntimeError("Hardware error")
 
+        def map_rgb_to_depth(self, rgb_points):
+            return rgb_points
+
     calibrator = Calibrator(mock_calibration_config, FailingHardwareManager())
 
-    with pytest.raises(RuntimeError, match="Failed to generate dmax_map"):
-        calibrator.run()
-
-
-def test_calibrator_invalid_homography():
-    """Test that invalid homography is caught during validation."""
-
-    class MockCalibration:
-        def __init__(self):
-            # Collinear points - homography will fail
-            self.camera_corners = [(100, 100), (200, 200), (300, 300), (400, 400)]
-            self.projector_corners = [(100, 100), (200, 200), (300, 300), (400, 400)]
-            self.dmax_num_frames = 10
-            self.depth_range_min = 650
-            self.depth_range_max = 800
-
-    class MockConfig:
-        def __init__(self):
-            self.calibration = MockCalibration()
-
-    class MockHardwareManager:
-        def get_depth_frame(self):
-            return np.full((424, 512), 700, dtype=np.uint16)
-
-    config = MockConfig()
-    hardware = MockHardwareManager()
-
-    calibrator = Calibrator(config, hardware)
-
-    # cv2.getPerspectiveTransform will raise an error for collinear points
     with pytest.raises(RuntimeError, match="Failed to compute homography"):
         calibrator.run()
 
 
-def test_calibrator_invalid_dmax_shape(mock_calibration_config):
+def test_calibrator_marker_detection_failure(
+    mock_calibration_config, mock_marker_projector
+):
+    """Test that marker detection failures are handled."""
+
+    class MockCameraConfig:
+        depth_resolution = (424, 512)
+        rgb_resolution = (1080, 1920)
+
+    class HardwareManagerNoMarkers:
+        def __init__(self):
+            self.camera_config = MockCameraConfig()
+
+        def get_rgb_frame(self):
+            # Return frame with no white markers
+            return np.zeros((1080, 1920, 3), dtype=np.uint8)
+
+        def get_depth_frame(self):
+            return np.full((424, 512), 700, dtype=np.uint16)
+
+        def map_rgb_to_depth(self, rgb_points):
+            return [(0, 0)]
+
+    calibrator = Calibrator(mock_calibration_config, HardwareManagerNoMarkers())
+
+    with pytest.raises(RuntimeError, match="Failed to compute homography"):
+        calibrator.run()
+
+
+def test_calibrator_camera_corners_out_of_bounds(
+    mock_calibration_config, mock_marker_projector
+):
+    """Test that out-of-bounds camera corners are rejected."""
+
+    class MockCameraConfig:
+        depth_resolution = (424, 512)
+        rgb_resolution = (1080, 1920)
+
+    class HardwareManagerOutOfBounds:
+        def __init__(self):
+            self.camera_config = MockCameraConfig()
+
+        def get_rgb_frame(self):
+            frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+            # Draw white squares
+            # Order: [top-left, top-right, bottom-left, bottom-right]
+            half_size = 50
+            corners = [(100, 100), (700, 100), (100, 500), (700, 500)]
+            for x, y in corners:
+                x1, y1 = max(0, x - half_size), max(0, y - half_size)
+                x2, y2 = min(1920, x + half_size), min(1080, y + half_size)
+                frame[y1:y2, x1:x2] = [255, 255, 255]
+            return frame
+
+        def get_depth_frame(self):
+            return np.full((424, 512), 700, dtype=np.uint16)
+
+        def map_rgb_to_depth(self, rgb_points):
+            # Return one coordinate out of bounds
+            return [(-10, 100), (100, 100), (100, 100), (100, 100)]
+
+    calibrator = Calibrator(mock_calibration_config, HardwareManagerOutOfBounds())
+
+    with pytest.raises(RuntimeError, match="Failed to compute homography"):
+        calibrator.run()
+
+
+def test_calibrator_invalid_dmax_shape(
+    mock_calibration_config, mock_hardware_manager, mock_marker_projector
+):
     """Test that invalid dmax_map shape is caught."""
 
+    class MockCameraConfig:
+        depth_resolution = (424, 512)
+        rgb_resolution = (1080, 1920)
+
     class MockHardwareManager:
+        def __init__(self):
+            self.camera_config = MockCameraConfig()
+
+        def get_rgb_frame(self):
+            frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+            # Draw white squares
+            # Order: [top-left, top-right, bottom-left, bottom-right]
+            half_size = 50
+            for x, y in [(100, 100), (700, 100), (100, 500), (700, 500)]:
+                x1, y1 = max(0, x - half_size), max(0, y - half_size)
+                x2, y2 = min(1920, x + half_size), min(1080, y + half_size)
+                frame[y1:y2, x1:x2] = [255, 255, 255]
+            return frame
+
         def get_depth_frame(self):
             # Return wrong shape
             return np.full((512, 424), 700, dtype=np.uint16)
+
+        def map_rgb_to_depth(self, rgb_points):
+            return [(int(x * 512 / 1920), int(y * 424 / 1080)) for x, y in rgb_points]
 
     calibrator = Calibrator(mock_calibration_config, MockHardwareManager())
 
@@ -189,16 +346,39 @@ def test_calibrator_invalid_dmax_shape(mock_calibration_config):
         calibrator.run()
 
 
-def test_calibrator_low_valid_pixel_ratio(mock_calibration_config):
+def test_calibrator_low_valid_pixel_ratio(
+    mock_calibration_config, mock_hardware_manager, mock_marker_projector
+):
     """Test that dmax_map with too few valid pixels is rejected."""
 
+    class MockCameraConfig:
+        depth_resolution = (424, 512)
+        rgb_resolution = (1080, 1920)
+
     class MockHardwareManager:
+        def __init__(self):
+            self.camera_config = MockCameraConfig()
+
+        def get_rgb_frame(self):
+            frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+            # Draw white squares
+            # Order: [top-left, top-right, bottom-left, bottom-right]
+            half_size = 50
+            for x, y in [(100, 100), (700, 100), (100, 500), (700, 500)]:
+                x1, y1 = max(0, x - half_size), max(0, y - half_size)
+                x2, y2 = min(1920, x + half_size), min(1080, y + half_size)
+                frame[y1:y2, x1:x2] = [255, 255, 255]
+            return frame
+
         def get_depth_frame(self):
             # Return mostly zeros (outside depth range)
             frame = np.full((424, 512), 0, dtype=np.uint16)
             # Add a few valid pixels in center
             frame[200:224, 250:262] = 700
             return frame
+
+        def map_rgb_to_depth(self, rgb_points):
+            return [(int(x * 512 / 1920), int(y * 424 / 1080)) for x, y in rgb_points]
 
     calibrator = Calibrator(mock_calibration_config, MockHardwareManager())
 

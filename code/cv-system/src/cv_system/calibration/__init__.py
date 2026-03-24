@@ -14,6 +14,8 @@ from cv_system.calibration.homography import (
     compute_homography,
     validate_homography,
 )
+from cv_system.calibration.marker_detector import MarkerDetector
+from cv_system.calibration.marker_projector import MarkerProjector
 from cv_system.calibration.result import CalibrationResult
 
 __all__ = [
@@ -24,4 +26,6 @@ __all__ = [
     "validate_homography",
     "generate_dmax_map",
     "compute_depth_stats",
+    "MarkerProjector",
+    "MarkerDetector",
 ]
