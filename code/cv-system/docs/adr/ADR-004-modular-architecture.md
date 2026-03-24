@@ -6,7 +6,7 @@ Accepted
 
 ## Date
 
-2026-03-19
+2026-03-19 (updated 2026-03-24)
 
 ## Context
 
@@ -20,9 +20,19 @@ We restructure the CV system into **4 layers with separated responsibilities**, 
 
 The only module that knows about OpenNI2. Initializes the Kinect V2, configures and exposes the depth (512x424) and RGB (1920x1080) streams as NumPy arrays. Manages the device lifecycle (initialization, teardown). No other module imports OpenNI2 directly.
 
+The Hardware Manager explicitly configures and validates the **pixel format** of each stream: `PIXEL_FORMAT_DEPTH_1_MM` for depth (uint16, values in millimeters) and `PIXEL_FORMAT_RGB888` for color (3 bytes per pixel, RGB order). These formats are exposed as stream metadata so consuming modules know how to interpret the raw data. If the Kinect does not support the requested format, the Hardware Manager fails at initialization with a clear error rather than producing silently corrupt data.
+
 ### Layer 2: Calibrator (`calibration/`)
 
-Orchestrates the per-session calibration process. Contains three submodules: marker generation for the projector, marker detection in the RGB image, and dmax_map generation. Consumes frames from the Hardware Manager. Produces an immutable `CalibrationResult` containing the homography matrix, the dmax_map, and session metadata.
+Orchestrates the per-session calibration process. Contains three submodules:
+
+**Marker Projector:** Generates a fullscreen black image at the projector's resolution and draws 4 high-contrast white squares at the configured `projector_corners`. Displays the image on the projector's display using `cv2.namedWindow` + `cv2.setWindowProperty(WINDOW_FULLSCREEN)`. No additional libraries beyond OpenCV are needed.
+
+**Marker Detector:** Captures a frame from the Kinect's RGB stream and detects the 4 projected markers using threshold + contour detection. Extracts centroids as the computed `camera_corners`. These are never configured — they are always the result of detection. Maps RGB coordinates to depth space via the Kinect V2's hardware registration.
+
+**DMax Generator:** Captures `num_frames_for_depth_mode_estimation` depth frames from the ROI, stores them in a temporary `(N, h, w)` array, and computes the per-pixel depth mode directly. No histogram binning, no depth range parameters (see ADR-005).
+
+The Calibrator produces an immutable `CalibrationResult` containing the homography matrix, the dmax_map, and session metadata.
 
 ### Layer 3: Coordinate Transformer (`transform/`)
 
@@ -38,7 +48,12 @@ Communicates detection events to the Language Runtime via WebSocket. Serializes 
 
 ### Configuration
 
-All magic numbers are externalized into a `SessionConfig` loaded at startup. Hardware parameters (resolutions, FPS) are configured in the Hardware Manager. Calibration parameters (number of frames for dmax, depth range) are passed to the Calibrator. Detection parameters (sliding window size, thresholds) are passed to the Detection Layer.
+All magic numbers are externalized into a `SessionConfig` loaded at startup:
+
+- **Hardware Manager:** resolutions, FPS, pixel formats.
+- **Calibrator:** `projector_corners` (where to draw markers), `num_frames_for_depth_mode_estimation` (frames for dmax_map).
+- **Detection Layer:** sliding window size, touch thresholds.
+- **Computed (not configured):** `camera_corners` (detected by Marker Detector), depth range (eliminated — direct mode estimation).
 
 ## Consequences
 

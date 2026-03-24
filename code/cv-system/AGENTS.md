@@ -83,7 +83,8 @@ cv-system/
 - If `import openni` fails, check `OPENNI2_REDIST_PATH` in `.env`
 - The Kinect streams depth as (424, 512) not (512, 424) — watch reshape order
 - `cv2.getPerspectiveTransform` expects `float32` arrays, not `int`
-- `dmax_map` is per-session — never hardcode depth ranges
+- `dmax_map` is per-session — depth range is derived automatically, never hardcoded
+- Pixel formats matter: depth is `DEPTH_1_MM` (uint16 mm), color is `RGB888`
 
 ### Codebase Patterns
 

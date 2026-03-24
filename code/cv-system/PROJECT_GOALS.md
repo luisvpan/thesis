@@ -6,7 +6,7 @@ Implement the **computer vision system** that serves as the bridge between the p
 
 ```
 Physical table    →  [CV System]  →  Language Runtime  →  Projector
-(blocks, hands)      ^^^^^^^^^^^^^^     (evaluates program)  (AR feedback)
+(blocks, hands)      ^^^^^^^^^^^^    (evaluates program)  (AR feedback)
                      This is what
                      we build here
 ```
@@ -16,7 +16,7 @@ Physical table    →  [CV System]  →  Language Runtime  →  Projector
 ### In Scope
 
 - Kinect V2 integration (depth and RGB streams) via OpenNI2
-- Per-session calibration: 4-point homography + dmax_map generation
+- Per-session calibration: automatic marker detection, 4-point homography, dmax_map generation
 - Camera ↔ projector coordinate transformation
 - Touch/interaction detection on the work surface
 - Tangible language piece detection (future, YOLO)
@@ -44,9 +44,9 @@ Design decisions are documented as ADRs in `docs/adr/`:
 |-----|----------|
 | ADR-001 | Python as the system language |
 | ADR-002 | uv as the package manager |
-| ADR-003 | 4-point homography for calibration |
+| ADR-003 | 4-point homography for calibration (projector_corners configured, camera_corners computed) |
 | ADR-004 | 4-layer modular architecture |
-| ADR-005 | dmax_map as in-memory per-session reference |
+| ADR-005 | dmax_map as in-memory per-session reference (direct mode estimation, no depth range config) |
 | ADR-006 | AsyncAPI for WebSocket protocol documentation |
 | ADR-007 | Makefile for startup coordination |
 | ADR-008 | Ruff as linter and formatter |
@@ -55,8 +55,8 @@ Design decisions are documented as ADRs in `docs/adr/`:
 
 The system is organized in 4 layers (see ADR-004 and `docs/architecture/cv-subsystem-architecture.likec4`):
 
-1. **Hardware Manager** — Kinect V2 integration (OpenNI2). Single point of contact with the hardware.
-2. **Calibrator** — Per-session calibration process. Produces homography + dmax_map.
+1. **Hardware Manager** — Kinect V2 integration (OpenNI2). Single point of contact with the hardware. Configures and validates pixel formats per stream (DEPTH_1_MM for depth, RGB888 for color).
+2. **Calibrator** — Per-session calibration process. Projects 4 markers at configured `projector_corners` via OpenCV fullscreen windowing, detects them automatically in the Kinect's RGB image to compute `camera_corners`, calculates the homography, and generates the dmax_map via direct mode estimation over N frames.
 3. **Coordinate Transformer** — Stateless camera ↔ projector mapping service.
 4. **Detection Layer** — Touch detection (ring buffer + dmax) and piece detection (YOLO, future).
 
@@ -64,10 +64,10 @@ Plus a **WebSocket Bridge** for communication with the Language Runtime.
 
 ## Technical Constraints
 
-- **Hardware:** Kinect V2 (depth 512x424, RGB 1920x1080, 30fps), projector (1920x1080)
+- **Hardware:** Kinect V2 (depth 512x424 @ DEPTH_1_MM, RGB 1920x1080 @ RGB888, 30fps), projector (1920x1080)
 - **OS:** Windows recommended for Kinect V2 / OpenNI2 driver compatibility
 - **Latency:** Detection must operate at the Kinect's frame rate (30fps) for responsive interaction with children
-- **Concurrent users:** 1 table per system instance
+- **Concurrent users:** 1 table per system instance. The Language Runtime scales to 5 concurrent users, but each table has its own CV system
 - **Recalibration:** Once at the start of each session (~17s for 500 dmax_map frames)
 
 ## Open Questions
@@ -82,10 +82,11 @@ Plus a **WebSocket Bridge** for communication with the Language Runtime.
 - Hartley, R. & Zisserman, A. (2004). *Multiple View Geometry in Computer Vision*, 2nd ed. Cambridge University Press.
 - Torralba, A., Isola, P. & Freeman, W.T. (2024). *Foundations of Computer Vision*. MIT Press. Ch. 41: Homographies.
 - Guo, Y. et al. (2018). "A real-time interactive system of surface reconstruction and dynamic projection mapping with RGB-depth sensor and projector." *IJDSN*, 14(7).
+- Khoshelham, K. & Elberink, S.O. (2012). "Accuracy and Resolution of Kinect Depth Data for Indoor Mapping Applications." *Sensors*, 12(2).
 - OpenCV Homography Tutorial: https://docs.opencv.org/4.13.0/d9/dab/tutorial_homography.html
 - AsyncAPI Specification: https://www.asyncapi.com/docs/reference/specification/v3.1.0
 
 ---
 
 **Document Status:** Living document
-**Last Updated:** 2026-03-21
+**Last Updated:** 2026-03-24

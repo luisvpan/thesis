@@ -6,7 +6,7 @@ Accepted
 
 ## Date
 
-2026-03-19  
+2026-03-19 (updated 2026-03-23)
 
 ## Context
 
@@ -32,18 +32,30 @@ The physical setup (Kinect and projector mounted at different heights and angles
 
 We replace the 2-point transformation with a **4-point homography** using `cv2.getPerspectiveTransform`.
 
+### What is configured vs. what is computed
+
+**`projector_corners` are configured.** These are the 4 positions (in projector pixel coordinates) where the calibration markers will be drawn. They define the usable work area on the projected surface. They are known a priori because we choose where to project them (e.g., the corners of the desired work rectangle within the projector's 1920x1080 viewport). These are the `dst_points` for `cv2.getPerspectiveTransform`.
+
+**`camera_corners` are computed, never configured.** These are the 4 positions where the Kinect's camera actually sees the projected markers. They are detected automatically during the calibration process. Hardcoding them would defeat the purpose of calibration — the homography would be static and unable to adapt to the physical setup. These are the `src_points` for `cv2.getPerspectiveTransform`.
+
+This is why `cv2.getPerspectiveTransform` (exact 4-point solution) is sufficient and RANSAC is unnecessary: we control the `dst_points` (projector) precisely, and the `src_points` (camera) are detected from high-contrast markers with no ambiguity.
+
 ### Calibration flow
 
-1. The calibration module projects 4 markers at known positions in the projector viewport (the corners of the usable work area).
-2. The markers are detected in the Kinect's **RGB** image (not depth), using threshold + contour detection.
-3. RGB coordinates are mapped to the depth space using the Kinect V2's hardware registration.
-4. With the 4 correspondence pairs (camera → projector), the homography matrix H (3x3) is computed via `cv2.getPerspectiveTransform`.
-5. Any point transformation is performed with `cv2.perspectiveTransform(point, H)`.
+1. **Marker Projector** creates a fullscreen black image at the projector's resolution and draws 4 high-contrast white squares at the configured `projector_corners`. This image is displayed via `cv2.namedWindow` + `cv2.setWindowProperty(WINDOW_FULLSCREEN)` on the projector's display. No additional libraries are needed — OpenCV handles windowing natively.
+
+2. **Marker Detector** captures a frame from the Kinect's RGB stream (not depth) and detects the 4 white squares using threshold + contour detection. The high contrast (white on black) makes detection robust and simple. The detector extracts the centroids of the 4 detected markers — these are the `camera_corners` in RGB coordinates.
+
+3. The RGB coordinates are mapped to the depth space using the Kinect V2's hardware registration (coordinate mapping between the color and depth sensors).
+
+4. With the 4 correspondence pairs (`camera_corners` → `projector_corners`), the homography matrix H (3x3) is computed via `cv2.getPerspectiveTransform`.
+
+5. Any subsequent point transformation is performed with `cv2.perspectiveTransform(point, H)`.
 
 ### RANSAC ruled out
 
-RANSAC was ruled out because it is unnecessary in this scenario: the correspondence points are controlled (intentionally projected and detected), there are no outliers from automatic feature matching. With exactly 4 points, `cv2.getPerspectiveTransform` solves the system deterministically. If marker detection proves unreliable in the future, more than 4 points can be projected and `cv2.findHomography` with least squares (without RANSAC) can be used instead.
+RANSAC was ruled out because it is unnecessary in this scenario: the `projector_corners` are controlled precisely, and the `camera_corners` are detected from high-contrast markers with no competing features. With exactly 4 points, `cv2.getPerspectiveTransform` solves the system deterministically. If marker detection proves unreliable in the future, more than 4 points can be projected and `cv2.findHomography` with least squares (without RANSAC) can be used instead.
 
 ## Consequences
 
-Calibration requires projecting and detecting 4 markers instead of 2, which implies a more robust detection pipeline (4 squares instead of 2). Detection is performed on the Kinect's RGB image, which requires the hardware module to expose the RGB stream in addition to depth (at least during calibration). The resulting transformation automatically corrects rotation, skew, perspective, and non-uniform scale, eliminating the offset that existed with the linear transformation.
+Calibration requires projecting and detecting 4 markers instead of 2, which implies a more robust detection pipeline (4 squares instead of 2). Detection is performed on the Kinect's RGB image, which requires the Hardware Manager to expose the RGB stream in addition to depth (at least during calibration). The marker projection uses OpenCV's native windowing (`cv2.namedWindow` + fullscreen) and requires no additional dependencies. The resulting transformation automatically corrects rotation, skew, perspective, and non-uniform scale, eliminating the offset that existed with the linear transformation.
