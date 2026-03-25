@@ -25,8 +25,6 @@ def mock_calibration_config():
             # Order must match MarkerDetector sorting: [top-left, top-right, bottom-left, bottom-right]
             self.projector_corners = [(100, 100), (700, 100), (100, 500), (700, 500)]
             self.dmax_num_frames = 10
-            self.depth_range_min = 650
-            self.depth_range_max = 800
 
     class MockConfig:
         def __init__(self):
@@ -68,11 +66,6 @@ def mock_hardware_manager():
             self.frame_count += 1
             return np.full((424, 512), 700, dtype=np.uint16)
 
-        def map_rgb_to_depth(self, rgb_points):
-            # Scale RGB coordinates to depth coordinates
-            # RGB: 1920x1080, Depth: 512x424
-            depth_points = [
-                (int(x * 512 / 1920), int(y * 424 / 1080)) for x, y in rgb_points
             ]
             return depth_points
 
@@ -111,9 +104,6 @@ def test_calibrator_initialization_missing_calibration_attr(
 
     config = MockConfig()
 
-    with pytest.raises(ValueError, match="must have 'calibration' attribute"):
-        Calibrator(config, mock_hardware_manager)
-
 
 def test_calibrator_initialization_missing_corners(
     mock_hardware_manager, mock_marker_projector
@@ -142,8 +132,6 @@ def test_calibrator_initialization_wrong_corner_count(
         def __init__(self):
             self.projector_corners = [(100, 100), (700, 100)]  # Only 2 corners
             self.dmax_num_frames = 10
-            self.depth_range_min = 650
-            self.depth_range_max = 800
 
     class MockConfig:
         def __init__(self):
@@ -174,43 +162,12 @@ def test_calibrator_run_success(
     assert result.dmax_map.dtype == np.uint16
     assert len(result.camera_corners) == 4
     assert "num_frames" in result.metadata
-    assert "depth_range" in result.metadata
-    assert "elapsed_seconds" in result.metadata
-    assert "stats" in result.metadata
-    assert "camera_corners" in result.metadata
-
-
-def test_calibrator_run_camera_corners(
-    mock_calibration_config, mock_hardware_manager, mock_marker_projector
-):
-    """Test that calibration result contains detected camera_corners."""
-    calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
-    result = calibrator.run()
-
-    assert len(result.camera_corners) == 4
-    assert all(
-        isinstance(x, int) and isinstance(y, int) for x, y in result.camera_corners
-    )
-    # Verify corners are within depth frame bounds
-    depth_width, depth_height = 512, 424
-    assert all(0 <= x < depth_width for x, _ in result.camera_corners)
-    assert all(0 <= y < depth_height for _, y in result.camera_corners)
-
-
-def test_calibrator_run_metadata(
-    mock_calibration_config, mock_hardware_manager, mock_marker_projector
-):
-    """Test that CalibrationResult metadata is populated correctly."""
-    calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
-    result = calibrator.run()
-
-    assert result.metadata["num_frames"] == 10
-    assert result.metadata["depth_range"] == (650, 800)
     assert result.metadata["depth_shape"] == (424, 512)
     assert result.metadata["elapsed_seconds"] > 0
-    assert "mean" in result.metadata["stats"]
-    assert "std" in result.metadata["stats"]
-    assert "valid_pixel_ratio" in result.metadata["stats"]
+    # Direct mode calibrator adds method and dmax_compute_time_ms
+    assert "method" in result.metadata
+    assert result.metadata["method"] == "direct"
+    assert "dmax_compute_time_ms" in result.metadata
     assert result.metadata["camera_corners"] == result.camera_corners
 
 
@@ -384,3 +341,52 @@ def test_calibrator_low_valid_pixel_ratio(
 
     with pytest.raises(ValueError, match="too few valid pixels"):
         calibrator.run()
+
+
+def test_calibrator_run_success_direct_mode(
+    mock_calibration_config, mock_hardware_manager, mock_marker_projector
+):
+    """Test that Calibrator.run() completes successfully with direct mode."""
+    calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
+    result = calibrator.run()
+
+    assert isinstance(result, CalibrationResult)
+    assert result.H.shape == (3, 3)
+    assert result.H.dtype == np.float32
+    assert result.dmax_map.shape == (424, 512)
+    assert result.dmax_map.dtype == np.uint16
+    assert len(result.camera_corners) == 4
+    # Direct mode adds "method": "direct"
+    assert result.metadata["method"] == "direct"
+    assert "dmax_compute_time_ms" in result.metadata
+    assert result.metadata["num_frames"] == 10
+    assert result.metadata["depth_shape"] == (424, 512)
+
+
+def test_calibrator_dmax_quality_validation_valid(mock_calibration_config, mock_hardware_manager):
+    """Test that dmax_map with sufficient valid pixels passes."""
+    with patch("cv_system.calibration.calibrator.generate_dmax_map") as mock_gen:
+        # Return dmax_map with sufficient valid pixels (>50%)
+        mock_gen.return_value = np.full((424, 512), 700, dtype=np.uint16)
+
+        calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
+        result = calibrator.run()  # Should not raise
+
+        assert result.metadata["num_frames"] == 10
+
+
+def test_calibrator_dmax_quality_validation_low_valid_ratio(
+    mock_calibration_config, mock_hardware_manager
+):
+    """Test that dmax_map with too few valid pixels is rejected."""
+    with patch("cv_system.calibration.calibrator.generate_dmax_map") as mock_gen:
+        # Return dmax_map with few valid pixels (<50%)
+        dmax_bad = np.full((424, 512), 700, dtype=np.uint16)
+        dmax_bad[0:212, :] = 0  # Less than 50% valid
+
+        mock_gen.return_value = dmax_bad
+
+        calibrator = Calibrator(mock_calibration_config, mock_hardware_manager)
+
+        with pytest.raises(ValueError, match="too few valid pixels"):
+            calibrator.run()

@@ -11,6 +11,7 @@ dependencies = [
     "opencv-python>=4.0.0",
     "numpy>=2.0.0",
     "python-dotenv>=1.2.2",
+    "websockets>=12.0",
 ]
 
 [project.scripts]
@@ -20,6 +21,7 @@ cv-system = "cv_system.main:main"
 dev = [
     "ruff>=0.1.0",
     "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
 ]
 
 [build-system]

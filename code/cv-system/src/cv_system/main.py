@@ -2,17 +2,21 @@
 Main entry point for the CV system.
 
 Orchestrates the full session lifecycle: config load → hardware init →
-calibration → detection loop → shutdown.
+calibration → detection loop → WebSocket communication → shutdown.
 """
 
+import asyncio
+import logging
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 from dotenv import load_dotenv
 
 import numpy as np
 
+from cv_system.bridge import WebSocketBridge, TouchEvent
 from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.detection.touch_detector import TouchDetector
@@ -21,6 +25,35 @@ from cv_system.hardware.manager import HardwareError
 from cv_system.transform.transformer import CoordinateTransformer
 
 load_dotenv()  # Load environment variables from .env file if present
+
+logger = logging.getLogger(__name__)
+
+
+def run_websocket_client(bridge: WebSocketBridge) -> None:
+    """
+    Run WebSocket client in async event loop.
+
+    This function runs in a separate thread to avoid blocking the
+    synchronous detection loop.
+
+    Args:
+        bridge: WebSocketBridge instance to connect and manage.
+    """
+    # Get asyncio event loop
+    loop = asyncio.new_event_loop()
+
+    try:
+        # Run the async connect method
+        loop.run_until_complete(bridge.connect())
+        logger.info("WebSocket connected successfully")
+
+        # Listen for messages (this blocks until connection closes)
+        loop.run_until_complete(bridge.ws.wait_closed() if bridge.ws else asyncio.Future())
+
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+    finally:
+        loop.close()
 
 
 def main() -> None:
@@ -31,8 +64,9 @@ def main() -> None:
     2. Initialize Kinect V2 hardware
     3. Run calibration to compute homography and dmax_map
     4. Initialize coordinate transformer and touch detector
-    5. Run continuous detection loop
-    6. Handle graceful shutdown with hardware cleanup
+    5. Initialize and connect WebSocket Bridge
+    6. Run continuous detection loop with WebSocket event sending
+    7. Handle graceful shutdown with hardware and WebSocket cleanup
     """
     # Load config path from environment variable or use default
     config_path_str = os.getenv("CONFIG_PATH", "config/session.json")
@@ -49,19 +83,15 @@ def main() -> None:
     print(f"Camera RGB resolution: {config.camera.rgb_resolution}")
     print(f"FPS: {config.camera.fps}")
     print(f"DMax frames: {config.calibration.dmax_num_frames}")
-    print(
-        f"Depth range: {config.calibration.depth_range_min}-"
-        f"{config.calibration.depth_range_max} mm"
-    )
-    print(f"Ring buffer size: {config.detection.ring_buffer_size}")
-    print(f"Touch threshold: {config.detection.touch_threshold} mm")
     print("=" * 60)
 
     hardware = None
+    ws_bridge = None
+    ws_thread = None
 
     try:
         # Step 1: Initialize hardware
-        print("\n[1/4] Initializing hardware...")
+        print("\n[1/6] Initializing hardware...")
         hardware = HardwareManager()
         try:
             hardware.initialize(config.camera)
@@ -71,29 +101,59 @@ def main() -> None:
             sys.exit(1)
 
         # Step 2: Run calibration
-        print("\n[2/4] Running calibration...")
+        print("\n[2/6] Running calibration...")
         calibrator = Calibrator(config, hardware)
         calibration_result = calibrator.run()
 
         # Print calibration metadata
         print("\nCalibration metadata:")
         print(f"  Frames captured: {calibration_result.metadata['num_frames']}")
-        print(f"  Depth range: {calibration_result.metadata['depth_range']} mm")
-        stats = calibration_result.metadata["stats"]
-        print(f"  DMax mean: {stats['mean']:.1f} mm")
-        print(f"  DMax std: {stats['std']:.1f} mm")
-        print(f"  Valid pixel ratio: {stats['valid_pixel_ratio']:.2%}")
+        stats = calibration_result.metadata.get("stats", {})
+        if stats:
+            print(f"  DMax mean: {stats.get('mean', 0):.1f} mm")
+            print(f"  DMax std: {stats.get('std', 0):.1f} mm")
+            print(f"  Valid pixel ratio: {stats.get('valid_pixel_ratio', 0):.2%}")
 
         # Step 3: Initialize transformer and detector
-        print("\n[3/4] Initializing transformer and detector...")
+        print("\n[3/6] Initializing transformer and detector...")
         transformer = CoordinateTransformer(calibration_result)
         print("  Coordinate transformer initialized")
 
         detector = TouchDetector(calibration_result.dmax_map, config.detection)
         print("  Touch detector initialized")
 
-        # Step 4: Run detection loop
-        print("\n[4/4] Starting detection loop...")
+        # Step 4: Initialize WebSocket Bridge
+        print("\n[4/6] Initializing WebSocket Bridge...")
+
+        # Get WebSocket URL from environment variable or use default
+        ws_url = os.getenv("LANGUAGE_RUNTIME_WS_URL", "ws://localhost:3000/live")
+        logger.info(f"WebSocket URL: {ws_url}")
+
+        # Instantiate WebSocket Bridge
+        ws_bridge = WebSocketBridge(url=ws_url)
+        print("  WebSocket Bridge initialized")
+
+        # Start WebSocket client in background thread
+        ws_thread = threading.Thread(
+            target=run_websocket_client,
+            args=(ws_bridge,),
+            name="WebSocketClient",
+            daemon=True,
+        )
+        ws_thread.start()
+        print("  WebSocket client starting in background thread...")
+
+        # Wait for WebSocket connection (give it 2 seconds to connect)
+        print("  Waiting for WebSocket connection...")
+        time.sleep(2)
+
+        # Check if WebSocket is connected
+        if ws_bridge.state.value != "CONNECTED":
+            print(f"  WARNING: WebSocket not connected (state: {ws_bridge.state.value})")
+            print("  Continuing without WebSocket communication...")
+
+        # Step 5: Run detection loop
+        print("\n[5/6] Starting detection loop...")
         print("  Press Ctrl+C to stop\n")
 
         frame_count = 0
@@ -118,9 +178,24 @@ def main() -> None:
                         touches_camera_np
                     )
 
-                    # Print touch coordinates
-                    for i, pt in enumerate(touches_projector):
-                        x, y = pt[0]
+                    # Send touch events via WebSocket
+                    for i, (x, y) in enumerate(touches_projector):
+                        # Create TouchEvent with timestamp
+                        touch_event = TouchEvent.from_detected_touch(x=float(x), y=float(y))
+
+                        # Send via WebSocket (if connected)
+                        if ws_bridge.state.value == "CONNECTED" and ws_bridge.ws is not None:
+                            # Send in async context - need to schedule on the event loop
+                            asyncio.run_coroutine_threadsafe(
+                                ws_bridge.send_touch_event(touch_event.to_dict()),
+                                loop=asyncio.get_event_loop()
+                            )
+                        else:
+                            logger.warning(
+                                f"Touch {i + 1} at ({x:.1f}, {y:.1f}) - WebSocket not connected, skipping"
+                            )
+
+                        # Print touch coordinates
                         print(
                             f"  Frame {frame_count}: Touch {i + 1} at "
                             f"proj_x={x:.0f}, proj_y={y:.0f}"
@@ -155,9 +230,21 @@ def main() -> None:
         # Guaranteed cleanup
         print("\n" + "=" * 60)
         print("Shutting down gracefully...")
+
+        # Disconnect WebSocket
+        if ws_bridge is not None:
+            print("  Disconnecting WebSocket...")
+            ws_bridge.disconnect()
+            print("  WebSocket disconnected")
+            if ws_thread is not None:
+                ws_thread.join(timeout=2)
+                print("  WebSocket thread stopped")
+
+        # Shutdown hardware
         if hardware is not None:
             hardware.shutdown()
             print("Hardware shutdown complete")
+
         print("=" * 60)
 
         if frame_count > 0:

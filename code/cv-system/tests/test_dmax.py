@@ -1,9 +1,12 @@
-"""Tests for dmax_map generation."""
+"""Tests for dmax_map generation.
+
+Tests direct mode implementation (no histogram, no depth range filtering).
+"""
 
 import numpy as np
 import pytest
 
-from cv_system.calibration.dmax import compute_depth_stats, generate_dmax_map
+from cv_system.calibration.dmax import generate_dmax_map
 
 
 @pytest.fixture
@@ -20,14 +23,14 @@ def mock_capture_constant_depth() -> callable:
 def mock_capture_varying_depth() -> callable:
     """Mock capture function that returns varying depth values per frame."""
 
-    frame_idx = 0
+    frame_idx = [0]
 
     def capture() -> np.ndarray:
         nonlocal frame_idx
         # Alternate between 700 and 750 to test mode calculation
-        depth = 700 if frame_idx % 2 == 0 else 750
+        depth = 700 if frame_idx[0] % 2 == 0 else 750
         frame = np.full((424, 512), depth, dtype=np.uint16)
-        frame_idx += 1
+        frame_idx[0] += 1
         return frame
 
     return capture
@@ -38,7 +41,6 @@ def test_generate_dmax_map_basic(mock_capture_constant_depth: callable) -> None:
     dmax_map = generate_dmax_map(
         capture_frame=mock_capture_constant_depth,
         num_frames=10,
-        depth_range=(650, 800),
         depth_shape=(424, 512),
     )
 
@@ -53,37 +55,12 @@ def test_generate_dmax_map_varying_depth(mock_capture_varying_depth: callable) -
     dmax_map = generate_dmax_map(
         capture_frame=mock_capture_varying_depth,
         num_frames=20,
-        depth_range=(650, 800),
         depth_shape=(424, 512),
     )
 
-    # With equal counts of 700 and 750, argmax picks the first occurrence
+    # With equal counts of 700 and 750, argmax picks first occurrence
     # So we expect 700 (since even frames are captured first)
     assert np.all(dmax_map == 700)
-
-
-def test_generate_dmax_map_depth_range_filtering() -> None:
-    """Test that pixels outside depth range are not counted."""
-
-    def capture() -> np.ndarray:
-        # Mix of values: some in range (700), some out (600, 850)
-        frame = np.full((10, 10), 700, dtype=np.uint16)
-        frame[0:3, 0:3] = 600  # Below range
-        frame[7:10, 7:10] = 850  # Above range
-        return frame
-
-    dmax_map = generate_dmax_map(
-        capture_frame=capture,
-        num_frames=10,
-        depth_range=(650, 800),
-        depth_shape=(10, 10),
-    )
-
-    # Pixels in range should be 700
-    assert np.all(dmax_map[3:7, 3:7] == 700)
-    # Pixels out of range should be 0 (invalid)
-    assert np.all(dmax_map[0:3, 0:3] == 0)
-    assert np.all(dmax_map[7:10, 7:10] == 0)
 
 
 def test_generate_dmax_map_invalid_depth_shape() -> None:
@@ -100,27 +77,13 @@ def test_generate_dmax_map_invalid_depth_shape() -> None:
         )
 
 
-def test_generate_dmax_map_invalid_depth_range() -> None:
-    """Test that invalid depth_range raises ValueError."""
-
-    def capture() -> np.ndarray:
-        return np.full((424, 512), 700, dtype=np.uint16)
-
-    with pytest.raises(ValueError, match="min must be less than max"):
-        generate_dmax_map(
-            capture_frame=capture,
-            num_frames=10,
-            depth_range=(800, 650),  # Invalid: min >= max
-        )
-
-
-def test_generate_dmax_map_frame_shape_mismatch() -> None:
+def test_generate_dmax_map_invalid_frame_shape() -> None:
     """Test that frame shape mismatch raises ValueError."""
-
-    def capture() -> np.ndarray:
-        return np.full((512, 424), 700, dtype=np.uint16)  # Wrong shape
-
     with pytest.raises(ValueError, match="Frame shape mismatch"):
+
+        def capture() -> np.ndarray:
+            return np.full((512, 424), 700, dtype=np.uint16)  # Wrong shape
+
         generate_dmax_map(
             capture_frame=capture,
             num_frames=10,
@@ -128,35 +91,58 @@ def test_generate_dmax_map_frame_shape_mismatch() -> None:
         )
 
 
-def test_compute_depth_stats_valid() -> None:
-    """Test compute_depth_stats with valid dmax_map."""
-    dmax_map = np.full((100, 100), 700, dtype=np.uint16)
+def test_generate_dmax_map_direct_mode_no_depth_range():
+    """Test that direct mode does not use depth_range filtering."""
+    # Create capture that returns values both in and out of old depth range
+    def capture_mixed_range() -> np.ndarray:
+        # Mix of values: some in old range (650-800), some out (600, 850)
+        # Direct mode should pick mode regardless of range
+        return np.full((10, 10), 700, dtype=np.uint16)
 
-    stats = compute_depth_stats(dmax_map, depth_range=(650, 800))
+    dmax_map = generate_dmax_map(
+        capture_frame=capture_mixed_range,
+        num_frames=10,
+        depth_shape=(10, 10),
+    )
 
-    assert stats["mean"] == 700.0
-    assert stats["std"] == 0.0
-    assert stats["min"] == 700.0
-    assert stats["max"] == 700.0
-    assert stats["valid_pixel_ratio"] == 1.0
-
-
-def test_compute_depth_stats_partial_valid() -> None:
-    """Test compute_depth_stats with some invalid pixels."""
-    dmax_map = np.full((100, 100), 700, dtype=np.uint16)
-    dmax_map[0:10, :] = 0  # Invalid pixels
-
-    stats = compute_depth_stats(dmax_map, depth_range=(650, 800))
-
-    assert stats["mean"] == 700.0
-    assert stats["valid_pixel_ratio"] == 0.9
+    # Direct mode ignores depth range, should pick 700 (most frequent)
+    assert np.all(dmax_map == 700)
 
 
-def test_compute_depth_stats_all_invalid() -> None:
-    """Test compute_depth_stats with all invalid pixels."""
-    dmax_map = np.zeros((100, 100), dtype=np.uint16)
+def test_generate_dmax_map_handles_zero_values():
+    """Test that mode computation handles zero values correctly."""
+    frame_idx = [0]
 
-    stats = compute_depth_stats(dmax_map, depth_range=(650, 800))
+    def capture_with_zeros() -> np.ndarray:
+        nonlocal frame_idx
+        frame_idx[0] += 1
+        # 80% of frames are 700, 20% are 0
+        if frame_idx[0] < 8:
+            return np.full((10, 10), 700, dtype=np.uint16)
+        else:
+            return np.full((10, 10), 0, dtype=np.uint16)
 
-    assert stats["mean"] == 0.0
-    assert stats["valid_pixel_ratio"] == 0.0
+    dmax_map = generate_dmax_map(
+        capture_frame=capture_with_zeros,
+        num_frames=10,
+        depth_shape=(10, 10),
+    )
+
+    # Mode should pick 700 (8/10 frequency)
+    assert np.all(dmax_map == 700)
+
+
+def test_generate_dmax_map_large_num_frames():
+    """Test that large num_frames does not cause memory issues."""
+    # This tests memory handling for 500 frames (typical calibration)
+    def capture() -> np.ndarray:
+        return np.full((100, 100), 700, dtype=np.uint16)
+
+    # 500 frames @ 100x100 uint16 = ~10MB - should work fine
+    dmax_map = generate_dmax_map(
+        capture_frame=capture,
+        num_frames=500,
+        depth_shape=(100, 100),
+    )
+
+    assert dmax_map.shape == (100, 100)

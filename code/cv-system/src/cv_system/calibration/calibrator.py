@@ -37,8 +37,8 @@ class Calibrator:
     3. Detects markers in RGB frame using MarkerDetector
     4. Maps detected RGB centroids to depth coordinates
     5. Computes homography matrix from detected camera_corners
-    6. Generates dmax_map from N depth frames
-    7. Returns immutable CalibrationResult
+    6. Generates dmax_map from N depth frames using direct mode estimation
+    7. Returns immutable CalibrationResult with generation metadata
 
     Attributes:
         config: SessionConfig containing calibration parameters.
@@ -96,13 +96,13 @@ class Calibrator:
         1. Project 4 calibration markers and detect them in RGB frame
         2. Map detected RGB centroids to depth coordinates
         3. Compute homography matrix from detected camera_corners
-        4. Generate dmax_map by capturing N depth frames
+        4. Generate dmax_map using direct mode estimation (no histogram, no depth range filtering)
         5. Validate results
-        6. Return immutable CalibrationResult
+        6. Return immutable CalibrationResult with generation metadata
 
         Returns:
             CalibrationResult with homography matrix, dmax_map, camera_corners,
-            and metadata.
+            and metadata (includes "method": "direct").
 
         Raises:
             RuntimeError: If calibration fails at any step.
@@ -122,36 +122,22 @@ class Calibrator:
 
         # Step 2: Generate dmax_map
         print("\nStep 2: Generating dmax_map...")
+        dmax_start_time = time.time()
         dmax_map = self._generate_dmax_map()
-        stats = compute_depth_stats(
-            dmax_map,
-            depth_range=(
-                self.config.calibration.depth_range_min,
-                self.config.calibration.depth_range_max,
-            ),
-        )
-        print(
-            f"  dmax_map stats: mean={stats['mean']:.1f}, "
-            f"std={stats['std']:.1f}, valid_ratio={stats['valid_pixel_ratio']:.2%}"
-        )
+        dmax_elapsed_ms = (time.time() - dmax_start_time) * 1000
 
-        # Step 3: Validate results
+        # Validate results
         print("\nStep 3: Validating results...")
         self._validate_results(H, dmax_map, camera_corners)
-        print("  Validation passed")
 
         # Step 4: Create calibration result
         elapsed = time.time() - start_time
         metadata = {
+            "method": "direct",  # Direct mode estimation (no histogram)
             "num_frames": self.config.calibration.dmax_num_frames,
-            "depth_range": (
-                self.config.calibration.depth_range_min,
-                self.config.calibration.depth_range_max,
-            ),
             "depth_shape": dmax_map.shape,
             "elapsed_seconds": elapsed,
-            "stats": stats,
-            "camera_corners": camera_corners,
+            "dmax_compute_time_ms": dmax_elapsed_ms,
         }
 
         result = CalibrationResult(
@@ -263,10 +249,13 @@ class Calibrator:
             raise RuntimeError(f"Failed to compute homography: {e}") from e
 
     def _generate_dmax_map(self) -> "np.ndarray":
-        """Generate dmax_map from depth frames using hardware manager.
+        """Generate dmax_map from depth frames using direct mode estimation.
+
+        Captures N depth frames and computes the per-pixel most frequent
+        depth value (mode) along the time axis. No depth range filtering.
 
         Returns:
-            2D dmax_map array.
+            2D dmax_map array (uint16).
 
         Raises:
             RuntimeError: If frame capture fails.
@@ -285,10 +274,6 @@ class Calibrator:
             dmax_map = generate_dmax_map(
                 capture_frame=capture_frame,
                 num_frames=calibration.dmax_num_frames,
-                depth_range=(
-                    calibration.depth_range_min,
-                    calibration.depth_range_max,
-                ),
                 depth_shape=(424, 512),  # Kinect V2 depth frame shape
             )
             return dmax_map
@@ -341,14 +326,14 @@ class Calibrator:
                 f"dmax_map has invalid shape {dmax_map.shape}, expected (424, 512)"
             )
 
-        # Check that dmax_map has some valid data
-        calibration = self.config.calibration
-        valid_mask = (dmax_map >= calibration.depth_range_min) & (
-            dmax_map <= calibration.depth_range_max
-        )
+        # Check that dmax_map has some valid data (non-zero pixels)
+        # Direct mode dmax: valid pixels are non-zero (no depth range filtering)
+        valid_mask = dmax_map > 0  # Valid pixels are non-zero
         valid_ratio = np.sum(valid_mask) / dmax_map.size
 
         if valid_ratio < 0.5:  # At least 50% of pixels should be valid
             raise ValueError(
                 f"dmax_map has too few valid pixels: {valid_ratio:.1%} < 50%"
             )
+
+        logger.info(f"dmax_map validation passed: {valid_ratio:.1%} valid pixels")
