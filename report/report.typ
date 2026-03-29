@@ -140,19 +140,83 @@ EDS Robotics (2022) la define como “un grupo de tecnologías o herramientas qu
 = Capítulo III. Marco Metodológico
 
 == Tipo de Investigación
-¿Experimental Explicativa? (Tal y como las define Arias)
+Investigación proyectiva (Hurtado, 2010)
 
 == Técnicas e Instrumentos de Recolección de Datos
-¿Revisiones documentales que hicimos? ¿Investigaciones? ¿Revistas, foros y demás del internet que revisamos?
+Revisión documental, entrevistas semiestructuradas
 
 == Metodología de Desarrollo Utilizada
-// TODO: Revisar esto bien.
-Al analizar las características del trabajo de investigación, se considera el enfoque a adoptar. Dado que no se prevé un contacto constante con el cliente y que los requisitos aún no están bien definidos, se decidió optar por un enfoque tradicional. Se partirá de una metodología basada en el modelo de desarrollo de software por prototipos, con el fin de definir los requisitos finales a través de los prototipos realizados y las pruebas correspondientes.
-En el modelo de desarrollo de software por prototipos, se desarrollan rápidamente prototipos antes del producto final para validar la funcionalidad y el diseño del software, permitiendo obtener resultados tempranos que reduzcan riesgos. Además, establecen puntos de partida que aclaran la visión del producto final, ya que, aunque se tiene una idea de lo que se quiere lograr, no siempre se conoce la viabilidad del producto.
-En este caso, se utilizará como base el trabajo de investigación “Entorno de Realidad Aumentada Espacial para el Desarrollo de Juegos Sociales Dirigidos a Niños de Educación Preescolar”, que servirá como punto de partida para el modelado y diseño de los primeros prototipos. A partir de los resultados obtenidos con los prototipos, se definirán los requerimientos finales del entorno a desarrollar.
-Una vez definidos los requerimientos, se implementará una metodología basada en el modelo de desarrollo de software incremental, dividiendo el proyecto en incrementos que se desarrollarán de forma secuencial y segura. Según Pressman (2013), el modelo incremental se divide en cinco fases: Comunicación, Planeación, Modelado (que incluye análisis y diseño), Construcción y Despliegue. En la fase de Comunicación, los miembros del equipo se reúnen para definir los objetivos del incremento. Luego, en la fase de Planeación, se planifica la iteración y se realiza un modelado rápido. Finalmente, se lleva a cabo la construcción del incremento y se valida el resultado final.
-Una vez completado este proceso, los incrementos validados se integran para obtener el producto final.
+Al analizar las características del trabajo de investigación, se consideró el enfoque a adoptar. Dado que no se previó un contacto constante con el cliente y que los requisitos aún no estaban bien definidos, se decidió optar por un enfoque basado en prototipos, con el fin de definir los requerimientos finales a través de los prototipos realizados y sus validaciones.
+Según Pressman (2010), el enfoque basado en prototipos está enmarcado dentro de los modelos de proceso evolutivos, que "son iterativos. Se caracterizan por la manera en la que permiten
+desarrollar versiones cada vez más completas del software.". Particularmente para el enfoque basado en prototipos, el proceso se divide en 4 fases, como se observa en la @prototyping-figure: comunicación, plan rápido - modelado - diseño rápido, construcción del prototipo y despliegue - entrega y retroalimentación. Se definen a continuación:
+#figure(
+  image("images/prototyping-paradigm.png"),
+  caption: [
+    Etapas del enfoque basado en prototipos. Tomado de (cambiar esto por referencia de Typst, no textual) Ingeniería del software. Un enfoque práctico, (p. 36), por Pressman, 2010, México.
+  ],
+) <prototyping-figure>
+
+[Colocar imagen del pressman, figura 2.6, con descripción] figura uwu
+- Comunicación: Se establece comunicación con los interesados (clientes, usuarios, participantes) para definir los objetivos generales, qué requerimientos se conocen, y en qué se requiere una mejor definición.
+- Plan rápido - modelado - diseño rápido: A diferencia de otros enfoques, donde la planificación, modelado y diseño son exhaustivos; en el enfoque basado en prototipos, el énfasis está en definir qué partes del software serán visibles para los usuarios y hacer representaciones de estas (por ejemplo, la interfaz que usarán para interactuar con el software), de modo que se pueda pasar rápidamente a la construcción del prototipo.
+- Construcción del prototipo: Se construye un prototipo, que sirve como una versión preliminar del sistema, donde la mantenibilidad a largo plazo o la calidad general no son tan relevantes. Al ser necesario que funcione pronto, es común que se tomen decisiones cuestionables durante la implementación, como la elección de lenguajes de programación inapropiados o uso de algoritmos poco eficientes.
+- Despliegue - entrega y retroalimentación: El prototipo construído se despliega para ser evaluado por los interesados, quienes proporcionan retroalimentación, que se usa para refinar los requerimientos.
+Las iteraciones continúan mientras se busca que los prototipos que se construyan se acerquen cada vez más a cumplir con las necesidades de los interesados, lo que a su vez ayuda a comprender mejor qué se necesita como producto final. Así pues, los prototipos funcionan como un mecanismo para definir los requerimientos del sistema, reducir riesgos y, dependiendo de cómo se construyan, ser descartados o evolucionar hasta convertirse en el producto final.
+En este caso, se utilizó como base el trabajo de investigación “Entorno de Realidad Aumentada Espacial para el Desarrollo de Juegos Sociales Dirigidos a Niños de Educación Preescolar”, que sirvió como punto de partida para el modelado y diseño de los primeros prototipos. A partir de los resultados obtenidos con los prototipos, se definieron los requerimientos finales del entorno a desarrollar.
 
 // Capítulo IV
 = Capítulo IV. Desarrollo y Resultados
 ¿Basarnos en el cronograma de actividades original para iniciar con la redacción?
+
+Analizar el uso de programación tangible en entornos de realidad aumentada, a fin de caracterizar el ambiente a desarrollar.
+
+
+Diseñar un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en función del análisis realizado.
+
+
+Construir un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en base al diseño realizado.
+
+Prototipo 1:
+
+Partiendo de la tesis de Anthony Barrios, se buscó una aproximación más programática, asimilándose a Scratch, por lo que se partió de seguir el paradigma imperativo y la programación con bloques. Sin embargo, dado que Scratch ya es ampliamente usado y tiene varias investigaciones al respecto de su uso (hablar más sobre esto en el objetivo 1), el tutor sugirió seguir una aproximación distinta, basada en el paradigma de programación dataflow, pues ofrece una clara visualización de cómo fluyen y se transforman los datos del programa, además de ser uno del que poco se ha hablado, más en su aplicación para fomentar el desarrollo del pensamiento computacional.
+
+Dado este cambio, se procedió con la definición de los primeros datos y operaciones a usar, para lo que se eligieron bloques con formas geométricas simples (cuadrados, círculos y triángulos) y colores básicos (morado, amarillo, naranja, verde, rojo y azul) que, para simplificar el desarrollo, se decidió que algunos representarían operaciones en vez de un dato. Los datos que se soportaban provenían directamente de las formas (cuadrados, círculos y triángulos de distintos colores), y las operaciones eran conjunción, intersección, diferencia y diferencia simétrica. El diseño consistió de zonas que reconocían las formas colocadas como datos, otras que reconocian las formas como operaciones, y zonas de salida que mostraban el resultado de la ejecución. Todas estas zonas estaban colocadas de forma fija, restringiendo la creación de nuevas zonas o la asociación entre estas para el usuario final, lo que limitaba la flexibilidad del entorno pero facilitaba el desarrollo del prototipo.
+
+Para la construcción, se decidió continuar el uso de Python para todo, haciendo uso de OpenCV y OpenNI para la visión por computador, y también OpenCV para la interfaz gráfica. Se usó un sensor Kinect para la captura de imágenes, y se implementó un sistema de reconocimiento de formas basado en la detección de contornos, que permitía identificar las formas geométricas y sus colores para determinar los datos y operaciones a ejecutar. El resultado de la ejecución se mostraba en una zona de salida mediante la superposición de imágenes generadas por el software. Este prototipo puede verse en la @first-prototype-figure.
+
+#figure(
+  image("images/first-prototype.jpeg"),
+  caption: [
+    Primer prototipo del ambiente, con bloques de formas geométricas simples y colores básicos para representar datos y operaciones.
+  ],
+) <first-prototype-figure>
+
+Como resultado de este prototipo, se vió que no se podía partir directamente del código legado por Barrios, pues se necesitaban de librerías más potentes para tener una interfaz gráfica más atractiva, algoritmos más robustos para la detección de piezas más complejas (números, imágenes), y una arquitectura de software más flexible para permitir la creación de nuevas zonas y la asociación entre estas. Además, surgió la inquietud de que las resoluciones de las cámaras del sensor Kinect v1 no fueran suficientes para detectar piezas más complejas, lo que llevó a la decisión de cambiar al sensor Kinect v2, lo que permitiría una detección más precisa y robusta.
+
+Prototipo 2:
+
+Debido a las preocupaciones con respecto al Kinect v1, y tras analizar las posibles ventajas, se concluyó que se intentaría el cambio al Kinect v2. El desarrollo de este prototipo entonces se enfocó en la adaptación del código legado por Barrios, para la calibración y detección de toques, para soportar el nuevo sensor.
+
+Así pues, se llevó a cabo una investigación sobre el uso del Kinect v2 con Python, las diferencias entre el Kinect v1 y el Kinect v2, las librerías disponibles para la visión por computador con este nuevo sensor, y el algoritmo de detección de toques basado en profundidad.
+
+Las librerías disponibles para integrar el Kinect v2 con Python son limitadas. Se probaron aproximaciones con PyKinect2 y libfreenect2, sin embargo, el primero fallaba por falta de soporte para Python 3+, y el segundo no detectaba el Kinect v2;OpenNI2, que se usó para el Kinect v1, no es compatible con el Kinect v2 por defecto, pero existen parches para hacerlo compatible, con lo cual se logró usar OpenNI2 para la integración del Kinect v2 con Python. Siguiendo con la calibración y detección de toques, se hicieron modificaciones exhaustivas al código legado para adaptarlo al nuevo sensor, lo que llevó a la implementación de un nuevo algoritmo de detección de marcadores (2 cuadrados blancos en las esquinas superior izquierda e inferior derecha de la proyección), además de la afinación de múltiples números mágicos (literales escritos en el código sin documentar su significado). Este prototipo puede verse en la @second-prototype-figure.
+
+#figure(
+  image("images/second-prototype.jpeg"),
+  caption: [
+    Segundo prototipo del ambiente, con el cambio al sensor Kinect v2 y la adaptación del código legado para la calibración y detección de toques.
+  ],
+) <second-prototype-figure>
+
+Este prototipo, si bien permitió validar la viabilidad del cambio al Kinect v2, también mostró que el código legado por Barrios era difícil de mantener. También se vió que la transformación Window-to-Viewport que se usa en los algoritmos es muy sensible a la configuración física del entorno (paralelismo entre la proyección sobre la superficie y el ángulo de la cámara), resultando en que la detección de toques no fuese tan precisa como se esperaba.
+
+Prototipo 3:
+
+Tras trabajar tanto en una única parte del sistema (integración con el hardware y detección de toques), se decidió que el siguiente paso sería trabajar en la visión por computador para la detección de las piezas que conformarían el entorno. (...)
+
+
+Validar el ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
+
+
+Realizar la documentación formal del ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
+
