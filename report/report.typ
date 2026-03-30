@@ -19,44 +19,57 @@ Tutor Académico | Lárez Mata, Jesús José
 Fecha | Mes, Año
 
 // Dedicatoria
-= Dedicatoria
-A nuestras familias, a las grandes amistades que hicimos en la universidad, a todos los que no lo lograron, y al futuro que nos depara.
+// = Dedicatoria
+// A nuestras familias, a las grandes amistades que hicimos en la universidad, a todos los que no lo lograron, y al futuro que nos depara.
 
 // Agradecimientos
-= Agradecimientos
-Gracias a la escuela de Ingeniería Informática, por su apoyo y palabras de aliento en los momentos más difíciles.
-Gracias al profesor Jesús Lárez, por aceptar ser nuestro tutor, por su paciencia, regaños, correcciones, infinito saber y dedicación a la enseñanza.
-Gracias al profesor y director Franklin Bello, por siempre estar presente, guiandonos y alentandonos para que sigamos adelante.
-Gracias al señor Andrés, por las historias, las anécdotas, las enseñanzas y el constante apoyo y dedicación a todos los que día tras día estamos presentes y trabajando en el salón de prototipos.
+// = Agradecimientos
+// Gracias a la escuela de Ingeniería Informática, por su apoyo y palabras de aliento en los momentos más difíciles.
+// Gracias al profesor Jesús Lárez, por aceptar ser nuestro tutor, por su paciencia, regaños, correcciones, infinito saber y dedicación a la enseñanza.
+// Gracias al profesor y director Franklin Bello, por siempre estar presente, guiandonos y alentandonos para que sigamos adelante.
+// Gracias al señor Andrés, por las historias, las anécdotas, las enseñanzas y el constante apoyo y dedicación a todos los que día tras día estamos presentes y trabajando en el salón de prototipos.
 
 // Capítulo I
 = Capítulo I. El Problema
 // TODO: Usar referencias y citas de Typst en vez de manuales.
 // TODO: Arreglar estilado.
 == Planteamiento del Problema
+
 Papert (1980) predijo el auge de las computadoras en la educación, planteando que los niños deberían aprender a programar tal y como es aprender francés viviendo en Francia en vez de aprenderlo mediante las clases de lenguas extranjeras en las aulas del colegio; es decir, mediante la interacción directa con las computadoras, un enfoque en que el niño use y experimente con la computadora para aprender, en vez de que la computadora le enseñe al niño. También hace énfasis en que la simple presencia de las computadoras cambiaría y moldearía una nueva forma de enseñar y aprender, inimaginable para la sociedad de aquel momento. Papert fue un visionario, pues lo que él defendía se hizo realidad en partes, con una creciente demanda de la competencia del pensamiento computacional, término que no usó Papert sino Wing (2006) para referirse a la forma de pensar de los científicos de computación; pero con retos que enfrentar.
+
 Quien acuñó el término de pensamiento computacional, Wing (2006), lo describe como una habilidad que todos deberían aprender y usar, no solo los científicos en computación. Defiende que debería de añadirse a la educación de los niños, al mismo nivel que las 3R (lectura, escritura y aritmética), por los usos que tiene, no solo al aprender a programar, sino en la descomposición y solución de problemas, la creación de modelos, el análisis de datos, la abstracción. Añade que su utilidad en otras disciplinas ya es visible, notándose en cómo el aprendizaje automático ha transformado a la estadística, el reciente interés de los científicos de computación en la biología, o la computación cuántica y su efecto en la física. El sueño de Papert, que todos tuvieran una computadora, se convirtió en lo que se conoce hoy como computación ubicua; Wing, por su parte, sueña que el pensamiento computacional sea igual de omnipresente, y propone que el primer paso es que deje de ser exclusivo de los científicos de computación, que se enseñe a los estudiantes preuniversitarios.
+
 // ¿Por qué es importante el pensamiento computacional en niños? ->
 // ¿Por qué es un problema que los niños no desarrollen el pensamiento computacional? ->
 // Se debe mencionar que programar/codificar se ha convertido en una competencia básica del siglo XXI (habilidades del siglo XXI), según Sánchez Vera, et al. (2019).
 // Después de mencionar que el pensamiento computacional se considera como una nueva alfabetización
 // y que programar/codificar se ha convertido en una competencia básica del siglo XXI:
 // Se debe mencionar que el pensamiento computacional se considera como una nueva alfabetización, la alfabetización digital (Zapata-Ros, 2015). Texto que referencia esto:
+
 Zapata-Ros (2015) sostiene que el pensamiento computacional representa una nueva alfabetización digital que debe comenzar desde las primeras etapas del desarrollo individual, al igual que sucede con otras habilidades clave como las 3R. Esta alfabetización no se limita únicamente al aprendizaje de la programación, sino que permite a las personas organizar su entorno, desarrollar estrategias de desenvolvimiento y resolución de problemas cotidianos, además de organizar su mundo de relaciones en un contexto de comunicación más racional y eficiente, resultando en una mayor calidad de vida.
 
 La ausencia del desarrollo del pensamiento computacional en los niños se ha convertido en un problema relevante en la sociedad actual. Sánchez Vera (2019) señala que codificar ha sido incluido específicamente como una de las competencias básicas del siglo XXI, y que el pensamiento computacional permite desarrollar una nueva alfabetización necesaria en el mundo contemporáneo, ayudando a que los individuos no sean solo consumidores digitales, sino creadores y participantes activos con las tecnologías. La falta de estas competencias limita las capacidades de los niños para desenvolverse eficazmente en un contexto cada vez más digitalizado, reduciendo su potencial para resolver problemas complejos y expresar sus ideas mediante la tecnología. Además, como indica Zapata-Ros (2015), la carencia de estas habilidades desde edades tempranas dificulta que en ciclos superiores los estudiantes puedan desarrollar plenamente el pensamiento computacional, ya que no cuentan con las bases cognitivas necesarias que se construyen mediante la manipulación de objetos y conceptos fundamentales como la seriación, la discriminación por propiedades y la secuenciación.
+
 En la actualidad, la presencia de computadoras, tabletas, teléfonos, televisores y relojes inteligentes, y demás dispositivos con pantalla; resulta en que los seres humanos están expuestos a las pantallas durante todo el día, en períodos de tiempo extensos incluso en ambientes dedicados a la enseñanza y el aprendizaje, como los colegios y universidades; causando la preocupación generalizada por los efectos a corto y largo plazo de esto, especialmente en los niños. Council on Communications and Media et al. (2016), en representación de la Academia Americana de Pediatría, sostienen que el uso de pantallas en niños de 2 a 5 años no debe sobrepasar una hora al día, dividida en periodos cortos con descansos frecuentes. J. Duarte (comunicación personal, 28 de febrero de 2025) respalda a la AAP, añadiendo que los periodos continuos de exposición han de ser de 15 minutos como máximo, condicionando el uso de herramientas como Scratch para el desarrollo del pensamiento computacional durante sus sesiones de clase, y recurriendo en su lugar a herramientas tangibles, como el juego de mesa Mouse Mania, que presentan limitaciones para la enseñanza de conceptos avanzados, como los bucles y condicionales, y dificultan fomentar el aprendizaje colaborativo y la socialización entre niños.
+
 La primera aproximación al uso de herramientas tangibles para la enseñanza de conceptos de programación a niños vino de parte de Radia Perlman, pionera en el área de las interfaces de usuario tangibles (Morgado et al., 2006), quien desarrolló entre 1974 y 1976 un lenguaje de programación tangible de sistemas, llamado TORTIS, con la finalidad de que los niños pudieran adquirir las competencias que traía el aprender lenguajes de programación completos al interactuar con objetos físicos. Este lenguaje consistía en controlar una pequeña “tortuga” (un disco equipado con una luz, una bocina y un lápiz, este último encargado de dibujar el resultado de la ejecución del programa) mediante uno de dos componentes: una serie de cajas de botones con acciones, o una “máquina tragacartas” con cartas de plástico. La razón detrás de la creación de dos componentes para interactuar con el lenguaje es, interpretando las palabras de Perlman, que con las cajas de botones los niños pensaban que el programa era el dibujo resultante, en vez del conjunto de comandos que ejecutaban con los botones; mientras que, con la máquina tragafichas, que construyó para solucionar el problema de las cajas, era difícil que lo niños entendieran que cada carta estaba asociada a un comando porque, para la ejecución de cada una, se debía buscar la carta, insertarla en una ranura de la máquina y presionar un botón. Incluso con estos problemas, Perlman llegó a una nueva aproximación para la enseñanza de conceptos de programación para los niños.
+
 Un ejemplo más conocido de programación tangible es el caso de AlgoBlock (Suzuki y Kato, 1993), un lenguaje de programación tangible inspirado en Logo que consiste en unir una serie de bloques físicos para formar un programa que controla un submarino mostrado en una pantalla. Igual que las cartas en el segundo componente de TORTIS, cada bloque representa un comando, y algunos bloques representan estructuras de control condicionales y de bucle. Lo interesante de AlgoBlock son los principios que siguieron sus autores en su desarrollo: facilidad de uso, acceso simultáneo, monitoreo mutuo y pase del turno mediante gestos; los cuales incitan la conversación y la colaboración entre los participantes. Aunque los autores no mencionan alguna deficiencia en AlgoBlock tras ponerlo a prueba, sí hacen énfasis en que este solo representa el primer paso en la identificación de los principios para el diseño de ambientes de aprendizaje colaborativo.
+
 La idea detrás de la programación tangible es llevada más allá por Zapata-Ros (2019), quien habla sobre el pensamiento computacional desenchufado, que ayuda a que los niños adquieran las competencias relacionadas al pensamiento computacional en las etapas de su vida en que más la necesiten, como durante los estudios secundarios o la universidad, basándose en los principios fundamentales de la instrucción propuestos por Merrill (2002), especialmente en el principio de activación. Zapata-Ros describe al pensamiento computacional desenchufado como actividades que fomenten en los niños una serie de habilidades que, tras ser evocadas en ciclos superiores, favorezcan el desarrollo del pensamiento computacional, ejemplos de estas son el uso de fichas, juegos en el salón de clase o en el patio, juguetes, aquellas que se suelen hacer sin el uso de pantallas ni computadoras. Además, sugiere actividades ya existentes con estas características y la forma de usarlas para promover el pensamiento computacional.
+
 Aparte del pensamiento computacional desenchufado, la realidad aumentada espacial también presenta similitudes con la programación tangible, al permitir la superposición del mundo real con el virtual (Park et al., 2015), de cierta manera siendo la evolución de TORTIS y AlgoBlock; y, al igual que el pensamiento computacional desenchufado, se ha utilizado la realidad aumentada espacial para fomentar el desarrollo del pensamiento computacional en niños. Billinghurst y Duenser (2012) evaluaron el uso de realidad aumentada espacial en aulas de clase, específicamente en forma de libros aumentados (libros impresos en los que algunas de sus páginas tienen imágenes virtuales superpuestas) y aplicaciones móviles de realidad aumentada, siendo los resultados recopilados del uso de los libros aumentados los de mayor interés para esta investigación, destacando la utilidad en la enseñanza de conceptos espaciales al proveer una interacción intuitiva, atractiva y natural de los temas estudiados; apoyando en la retención de contenidos que se desenvuelven en secciones de realidad aumentada, permitiendo que niños con dificultades en la comprensión de textos de aprendizaje tengan la opción de interactuar con el contenido para aprender; y en el desarrollo del pensamiento computacional al hacer uso de herramientas de construcción de escenas de realidad aumentada espacial diseñadas para niños, quienes se inspiran en hacer sus propias escenas tras ver y experimentar con las de los libros aumentados. Además, como los libros en sí contienen secciones físicas intercaladas con secciones de realidad aumentada, se reducía el tiempo de uso de pantallas.
+
 Pasando a Venezuela, Barrios (2025) de la Universidad Católica Andrés Bello (UCAB) presentó un entorno de realidad aumentada espacial que consiste en una mesa interactiva táctil, la cual permite el desarrollo de juegos sociales entre niños de educación preescolar y básica que promueven la colaboración y socialización. Con base en lo expuesto previamente, se ve la oportunidad de extender el entorno hecho por Barrios incluyendo un módulo de programación tangible, aprovechando el enfoque en juegos sociales para fomentar la colaboración, la socialización, el trabajo en equipo y el pensamiento computacional.
+
 En este contexto, se propone desarrollar un ambiente de programación tangible con realidad aumentada espacial basado en los referentes mencionados, con la finalidad de promover el desarrollo significativo del pensamiento computacional desde edades tempranas, mediante un enfoque que promueva el aprendizaje colaborativo y un desarrollo integral que vaya más allá del cognitivo.
 
 === Objetivo General
+
 Desarrollar un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años.
 
 === Objetivos Específicos
+
 + Analizar el uso de programación tangible en entornos de realidad aumentada, a fin de caracterizar el ambiente a desarrollar.
 + Diseñar un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en función del análisis realizado.
 + Construir un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en base al diseño realizado.
@@ -64,36 +77,58 @@ Desarrollar un ambiente de programación tangible con realidad aumentada espacia
 + Realizar la documentación formal del ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
 
 == Alcance
-El presente trabajo tendrá como objetivo desarrollar un ambiente de programación tangible para fomentar el desarrollo del pensamiento computacional en niños entre 6 y 9 años de edad. Este estará orientado a fomentar el desarrollo del pensamiento computacional de los niños, considerando aspectos esenciales como el aprendizaje colaborativo, la socialización y la inclusividad.
-En primer lugar, se llevará a cabo una etapa de revisión de conceptos para obtener detalles sobre el pensamiento computacional y su desarrollo en edades tempranas. A continuación, se realizará un análisis exhaustivo para comprender la aplicación de la programación tangible en entornos de realidad aumentada, con el fin de fomentar el pensamiento computacional.
-Posteriormente, se procederá al diseño y desarrollo del entorno, que incluye dos aspectos: la construcción del hardware, que funcionará como interfaz de interacción humano-computador, y el desarrollo del software, encargado de procesar la información recibida a través del hardware. Adicionalmente, se propondrá un protocolo de pruebas que se aplicará durante la validación posterior a la construcción del entorno.
-Finalmente, se elaborará la documentación correspondiente, incluyendo el manual del sistema y el manual de usuario.
+
+El presente trabajo tuvo como objetivo desarrollar un ambiente de programación tangible para fomentar el desarrollo del pensamiento computacional en niños entre 6 y 9 años de edad. Este estuvo orientado a fomentar el desarrollo del pensamiento computacional de los niños, considerando aspectos esenciales como el aprendizaje colaborativo, la socialización y la inclusividad.
+
+En primer lugar, se llevó a cabo una etapa de revisión de conceptos para obtener detalles sobre el pensamiento computacional y su desarrollo en edades tempranas. A continuación, se realizó un análisis exhaustivo para comprender la aplicación de la programación tangible en entornos de realidad aumentada, con el fin de fomentar el pensamiento computacional.
+
+Posteriormente, se procedió al diseño y desarrollo del entorno, que incluye dos aspectos: la construcción del hardware, que funcionó como interfaz de interacción humano-computador, y el desarrollo del software, encargado de procesar la información recibida a través del hardware. Adicionalmente, se propuso un protocolo de pruebas que se aplicó durante la validación posterior a la construcción del entorno.
+
+Finalmente, se elaboró la documentación correspondiente, incluyendo el manual del sistema y el manual de usuario.
 
 == Limitaciones
+
 === Dificultades Asociadas a Nuevas Tecnologías
-Podrían surgir inconvenientes durante el desarrollo y construcción del entorno debido a la falta de experiencia en realidad aumentada espacial.
+
+Surgieron inconvenientes durante el desarrollo y construcción del entorno debido a la falta de experiencia en realidad aumentada espacial.
 
 === Problemas Asociados a los Componentes Utilizados
-Es posible que los componentes necesarios no sean de fácil acceso, especialmente el sensor Kinect, que actualmente no se comercializa con frecuencia. Además, pueden resultar costosos.
-Para solucionar esto, los autores proveerán su propio Kinect, y se tomarán previsiones con respecto a los componentes faltantes.
+
+Si bien se logró obtener la mayoría de los componentes necesarios para el desarrollo del entorno, algunos de ellos presentaron dificultades para su integración dentro del sistema.
 
 == Justificación
-Este trabajo de investigación apoyaría al desarrollo del pensamiento computacional, el aprendizaje colaborativo y la socialización entre los niños, fomentando la futura activación de estas competencias en su crecimiento personal, académico y profesional, y convirtiéndose en una herramienta útil y una gran alternativa para educadores conscientes en que los niños deben aprender sobre el mundo virtual sin sacrificar el mundo físico, con el añadido de combinar ambos mundos en una experiencia única.
+
+Este trabajo de investigación apoya al desarrollo del pensamiento computacional, el aprendizaje colaborativo y la socialización entre los niños, fomentando la futura activación de estas competencias en su crecimiento personal, académico y profesional, y convirtiéndose en una herramienta útil y una gran alternativa para educadores conscientes en que los niños deben aprender sobre el mundo virtual sin sacrificar el mundo físico, con el añadido de combinar ambos mundos en una experiencia única.
+
 === Aporte Principal
-El uso del ambiente de programación tangible permitiría que los niños aprendan de forma lúdica, creando experiencias significativas para el aprendizaje del pensamiento computacional a través de la manipulación de objetos físicos, reflejada en la visión por computador. Además, promovería el aprendizaje colaborativo, ayudándoles a desarrollar el pensamiento computacional.
+
+El uso del ambiente de programación tangible permite que los niños aprendan de forma lúdica, creando experiencias significativas para el aprendizaje del pensamiento computacional a través de la manipulación de objetos físicos, reflejada en la visión por computador. Además, promueve el aprendizaje colaborativo, ayudándoles a desarrollar el pensamiento computacional.
+
 === Innovación
-Se presentará una propuesta que permitiría a los niños acceder a un ambiente de aprendizaje interactivo para aprender a programar con componentes tanto físicos como digitales. Este enfoque equilibraría el uso de pantallas y las técnicas tradicionales de aprendizaje mediante la utilización de elementos físicos y digitales.
+
+Se presenta una propuesta que permite a los niños acceder a un ambiente de aprendizaje interactivo para aprender a programar con componentes tanto físicos como digitales. Este enfoque equilibra el uso de pantallas y las técnicas tradicionales de aprendizaje mediante la utilización de elementos físicos y digitales.
+
 === Beneficiarios
+
 ==== Niños entre 6 y 9 años de edad.
-Fomentaría el desarrollo del pensamiento computacional en los niños desde edades tempranas, lo cual podría influir positivamente en su rendimiento académico y en su habilidad para resolver problemas lógicos.
+
+Fomenta el desarrollo del pensamiento computacional en los niños desde edades tempranas, lo cual puede influir positivamente en su rendimiento académico y en su habilidad para resolver problemas lógicos.
+
 ==== Profesores de primeros grados de educación básica.
-Contarían con una herramienta útil que facilitaría el proceso de enseñanza-aprendizaje a niños mediante juegos interactivos.
+
+Cuentan con una herramienta útil que facilita el proceso de enseñanza-aprendizaje a niños mediante una experiencia interactiva.
+
 === Impacto en los Objetivos de Desarrollo Sostenible
-Esta investigación tendría un impacto significativo en el Objetivo 4 (Educación de calidad) de los Objetivos de Desarrollo Sostenible, especialmente en las Metas 4.4 y 4.6:
+
+Esta investigación tiene un impacto significativo en el Objetivo 4 (Educación de calidad) de los Objetivos de Desarrollo Sostenible, especialmente en las Metas 4.4 y 4.6:
+
 ==== Meta 4.4.
-Aumentaría el número de jóvenes y adultos con competencias necesarias para acceder al empleo, fomentando desde edades tempranas el desarrollo del pensamiento lógico y computacional.
+
+Aumenta el número de jóvenes y adultos con competencias necesarias para acceder al empleo, fomentando desde edades tempranas el desarrollo del pensamiento lógico y computacional.
+
 ==== Meta 4.6.
-Promovería conocimientos básicos de aritmética en adultos, fomentando el aprendizaje desde la infancia a través de juegos interactivos.
+
+Promueve conocimientos básicos de aritmética en adultos, fomentando el aprendizaje desde la infancia a través de juegos interactivos.
 
 // Capítulo II
 = Capítulo II. Marco Teórico
@@ -101,22 +136,39 @@ Promovería conocimientos básicos de aritmética en adultos, fomentando el apre
 == Antecedentes de investigación
 // TODO: Acomodarlos al formato pedido en la Guía.
 === Entorno de robótica educativa multiagente orientado a favorecer el desarrollo del pensamiento computacional en jóvenes cursantes de educación media.
+
 En este trabajo (Espejo, 2022) se destaca la construcción de un entorno de robótica educativa multiagente, cuyo objetivo es promover el pensamiento computacional. Se empleó una metodología basada en el modelo espiral, a través de la cual se definieron los requisitos y se diseñó el entorno. Este entorno se encarga de obtener información del mundo físico mediante visión por computadora y procesar dicha información para seguir las instrucciones programadas en MakeCode.
+
 Su aporte a este trabajo es que demuestra que se puede usar la robótica multiagente para favorecer el desarrollo del pensamiento computacional en jóvenes, de modo que se toma una nueva visión del problema de “fomentar el desarrollo del pensamiento computacional” pero para niños entre 6 y 9 años y mediante el uso de programación tangible en vez de robótica multiagente.
+
 === Entorno de realidad aumentada espacial para el desarrollo de juegos sociales dirigidos a niños de educación preescolar.
+
 Esta tesis (Barrios, 2025) marca un hito en los entornos de realidad aumentada espacial, presentando un producto llamado “Magicboard”. En este, los niños pueden interactuar con una pizarra digital en forma de mesa a través de un sensor que detecta gestos y objetos físicos. Este producto permite a los niños aprender mediante juegos sociales que tienen como pilar el aprendizaje colaborativo.
+
 En este caso, se llevó a cabo una etapa de investigación en la que se obtuvieron las características esenciales para la construcción de la pizarra, considerando la manera en que los niños interactúan y aprenden. Posteriormente, se utilizó un videobeam, un sensor Kinect y el software correspondiente para la gestión de la interacción.
+
 Este trabajo representa una continuación del producto resultante de la tesis de Barrios, buscando añadir a “Magicboard” la fomentación del desarrollo del pensamiento computacional a través de la programación tangible.
+
 === Sistema interactivo para la enseñanza de programación a niños con discapacidad visual.
+
 Este trabajo (Rojas y Youssef, 2025) presenta un sistema interactivo diseñado para que los niños con discapacidad visual puedan utilizar bloques físicos para programar. Estos bloques cuentan con características táctiles que permiten a las personas con discapacidad visual leer y entender el significado de cada bloque. De esta manera, pueden construir una secuencia de instrucciones que es posteriormente procesada por un sistema de visión por computadora. Este sistema analiza la conexión entre los bloques y ejecuta la secuencia construida.
+
 Lo más relevante de este estudio para la propuesta son los bloques físicos, ya que representan una interfaz de programación tangible; este sistema propuesto por Rojas y Youssef se puede tomar como un punto de partida para prototipos del ambiente de programación tangible que se desarrollaría en este trabajo.
+
 === Can computational thinking be improved by using a methodology based on metaphors and scratch to teach computer programming to children? [¿Se puede mejorar el pensamiento computacional mediante el uso de una metodología basada en metáforas y Scratch para enseñar programación a los niños?]
+
 Este trabajo de investigación (Pérez-Marín et al., 2020) busca responder a la pregunta sobre si el pensamiento computacional puede mejorarse mediante una metodología basada en metáforas y el uso de Scratch para enseñar programación a los niños. Para ello, se llevaron a cabo experimentos y métodos de evaluación para analizar cómo los niños aprenden. Se utilizaron herramientas como Scratch y la aplicación CompThink como medios para evaluar el aprendizaje de los niños.
+
 El trabajo se estructura en diversas secciones, cada una abordando temas específicos. En primer lugar, se presenta la sección de "Contexto", donde se expone el concepto de pensamiento computacional y las formas en que puede enseñarse la programación en la educación primaria. A continuación, se detalla la sección de "Materiales y Métodos", describiendo los procedimientos del experimento realizado. Posteriormente, se muestran los Resultados obtenidos y las Conclusiones finales, que incluyen posibles líneas de trabajo futuras.
+
 Este estudio permite demostrar que herramientas como Scratch, el cual está basado en programación en bloques, son útiles para la enseñanza de la programación a los niños, lo cual representa un punto de partida para prototipos del ambiente de programación tangible que se desarrollaría en este trabajo.
+
 === Using an online serious game to teach basic programming concepts and facilitate gameful experiences for high school students [Usando un juego serio en línea para enseñar conceptos básicos de programación y facilitar experiencias divertidas para estudiantes de secundaria]
+
 Este trabajo (Montes et al., 2021) destaca el experimento realizado por estudiantes de la Universidad Rey Juan Carlos de Madrid, en el que se utilizaron "Juegos Serios" con el objetivo de facilitar el aprendizaje de programación en niños. El experimento se llevó a cabo con 38 niños de K-10, y se buscó proporcionar una experiencia de juego satisfactoria mientras aprendían.
+
 Los resultados demostraron que los niños tuvieron una experiencia positiva, concluyendo que el uso de juegos incrementó sus puntuaciones de aprendizaje.
+
 Este estudio sirve como base para la propuesta, al inspirar el uso de “Juegos Serios” como herramienta clave para fomentar el aprendizaje de conceptos de programación de una manera lúdica y atractiva.
 
 == Bases Teóricas
@@ -182,23 +234,21 @@ Suzuki y Kato (1993) identificaron principios clave para el diseño de ambientes
 
 Park et al. (2015) definen la realidad aumentada espacial como una tecnología que superpone contenido virtual sobre el mundo real mediante proyección directa sobre superficies físicas, a diferencia de la realidad aumentada tradicional que requiere dispositivos intermediarios como pantallas. Esta tecnología permite la interacción directa con el espacio físico, que se refleja en el espacio virtual. La realidad aumentada espacial se diferencia de la realidad aumentada tradicional en que no requiere dispositivos intermediarios (como tablets o smartphones) para visualizar el contenido aumentado.
 
-
-
 // TODO: Revisar si esto se adapta a lo descrito como Bases Teóricas en la Guía, o si pertenece a Terminología Básica.
-=== Serious games [Juegos serios].
-En un artículo del Tecnológico de Monterrey (Fuerte, 2018) se definen los juegos como “juegos diseñados con un propósito formativo más que para fines de entretenimiento.” Estos juegos permiten a los docentes enseñar a sus estudiantes sobre diversos temas, facilitando el aprendizaje mientras se divierten.
-=== Pensamiento computacional.
-El artículo “Research Notebook: Computational Thinking--What and Why?” [Cuaderno de Investigación: Pensamiento Computacional--¿Qué y Por Qué?] (Wing, 2011) afirma que el pensamiento computacional implica resolver problemas, diseñar sistemas y comprender el comportamiento humano, haciendo uso de los conceptos fundamentales de la informática. Este pensamiento se caracteriza por la formulación de un problema de manera que permita el uso del computador para resolverlo, la organización y el análisis lógico de la información, la representación de la información a través de abstracciones y la búsqueda de la solución más efectiva que sea capaz de resolver una familia de problemas.
-=== Realidad aumentada.
-La Realidad Aumentada fue definida por García Requejo (2024) como “la tecnología capaz de añadir información a una imagen del mundo real mostrada a través de un dispositivo electrónico (móvil, tablet y ordenador).” Esta tecnología tiene como principales características la capacidad de superponer elementos visuales sobre imágenes reales, proyectar imágenes en 3D que parezcan naturales con respecto al entorno real y realizar una evaluación del contexto, correspondiéndole con lo observado a través de nuestros ojos.
-=== Realidad aumentada espacial.
-La Realidad Aumentada Espacial fue descrita en el artículo “Spatial augmented reality for product appearance design evaluation” (Park et al., 2015) como una nueva tecnología que puede producir contenidos inmersivos al superponer la virtualidad y el entorno del mundo real. Esta tecnología se diferencia de la Realidad Aumentada en la forma en la que se muestra, ya que en la Realidad Aumentada Espacial existe una interacción con el espacio físico que posteriormente se refleja en el espacio virtual, mientras que, en el otro tipo de Realidad Aumentada, no existe interacción con el espacio físico y todo se muestra en las pantallas.
-=== Aprendizaje colaborativo.
-La Preparatoria Panamericana (2020) define al aprendizaje colaborativo como el “enfoque educativo que, por medio de grupos, busca mejorar el aprendizaje a través del trabajo conjunto.” Este enfoque permite una mejora en la interacción entre alumnos, la comprensión y exposición de perspectivas diversas, inspira creatividad y desarrolla habilidades de pensamiento crítico. Algunos ejemplos incluyen grupos de estudio, debates, juegos de rol, pares y la resolución de problemas de manera grupal. (LHH, 2023)
-=== Neurodiversidad.
-García-Bullé del Tecnológico de Monterrey (2021) define la neurodiversidad como “los individuos que viven con autismo principalmente, pero también abarca dislexia, dispraxia, déficit atencional con hiperactividad (TDAH), u otras condiciones que les llevan a navegar procesos cognitivos y emocionales de manera distinta a la norma.” El término se originó en los años 90 para promover la aceptación y el trato normal a personas que pueden actuar de forma diferente. Judy Singer (socióloga que acuñó el término en los años 90) visualiza la neurodiversidad como un “movimiento de justicia social”, con el objetivo de resaltar aquellos beneficios que tienen estas personas y generar comprensión con respecto a las limitaciones que conlleva la neurodiversidad. (Miller, 2024)
-=== Visión por computador.
-EDS Robotics (2022) la define como “un grupo de tecnologías o herramientas que permiten a los equipos captar imágenes del mundo real, procesarlas y generar información a través de ellas”. Gracias a estas tecnologías, se puede obtener información del entorno físico para posteriormente ser procesada y plasmada en una pantalla de entorno digital. Esta información se capta a través de un sensor, que envía las imágenes o datos a un dispositivo de interpretación que busca reconocer patrones previamente obtenidos.
+// === Serious games [Juegos serios].
+// En un artículo del Tecnológico de Monterrey (Fuerte, 2018) se definen los juegos como “juegos diseñados con un propósito formativo más que para fines de entretenimiento.” Estos juegos permiten a los docentes enseñar a sus estudiantes sobre diversos temas, facilitando el aprendizaje mientras se divierten.
+// === Pensamiento computacional.
+// El artículo “Research Notebook: Computational Thinking--What and Why?” [Cuaderno de Investigación: Pensamiento Computacional--¿Qué y Por Qué?] (Wing, 2011) afirma que el pensamiento computacional implica resolver problemas, diseñar sistemas y comprender el comportamiento humano, haciendo uso de los conceptos fundamentales de la informática. Este pensamiento se caracteriza por la formulación de un problema de manera que permita el uso del computador para resolverlo, la organización y el análisis lógico de la información, la representación de la información a través de abstracciones y la búsqueda de la solución más efectiva que sea capaz de resolver una familia de problemas.
+// === Realidad aumentada.
+// La Realidad Aumentada fue definida por García Requejo (2024) como “la tecnología capaz de añadir información a una imagen del mundo real mostrada a través de un dispositivo electrónico (móvil, tablet y ordenador).” Esta tecnología tiene como principales características la capacidad de superponer elementos visuales sobre imágenes reales, proyectar imágenes en 3D que parezcan naturales con respecto al entorno real y realizar una evaluación del contexto, correspondiéndole con lo observado a través de nuestros ojos.
+// === Realidad aumentada espacial.
+// La Realidad Aumentada Espacial fue descrita en el artículo “Spatial augmented reality for product appearance design evaluation” (Park et al., 2015) como una nueva tecnología que puede producir contenidos inmersivos al superponer la virtualidad y el entorno del mundo real. Esta tecnología se diferencia de la Realidad Aumentada en la forma en la que se muestra, ya que en la Realidad Aumentada Espacial existe una interacción con el espacio físico que posteriormente se refleja en el espacio virtual, mientras que, en el otro tipo de Realidad Aumentada, no existe interacción con el espacio físico y todo se muestra en las pantallas.
+// === Aprendizaje colaborativo.
+// La Preparatoria Panamericana (2020) define al aprendizaje colaborativo como el “enfoque educativo que, por medio de grupos, busca mejorar el aprendizaje a través del trabajo conjunto.” Este enfoque permite una mejora en la interacción entre alumnos, la comprensión y exposición de perspectivas diversas, inspira creatividad y desarrolla habilidades de pensamiento crítico. Algunos ejemplos incluyen grupos de estudio, debates, juegos de rol, pares y la resolución de problemas de manera grupal. (LHH, 2023)
+// === Neurodiversidad.
+// García-Bullé del Tecnológico de Monterrey (2021) define la neurodiversidad como “los individuos que viven con autismo principalmente, pero también abarca dislexia, dispraxia, déficit atencional con hiperactividad (TDAH), u otras condiciones que les llevan a navegar procesos cognitivos y emocionales de manera distinta a la norma.” El término se originó en los años 90 para promover la aceptación y el trato normal a personas que pueden actuar de forma diferente. Judy Singer (socióloga que acuñó el término en los años 90) visualiza la neurodiversidad como un “movimiento de justicia social”, con el objetivo de resaltar aquellos beneficios que tienen estas personas y generar comprensión con respecto a las limitaciones que conlleva la neurodiversidad. (Miller, 2024)
+// === Visión por computador.
+// EDS Robotics (2022) la define como “un grupo de tecnologías o herramientas que permiten a los equipos captar imágenes del mundo real, procesarlas y generar información a través de ellas”. Gracias a estas tecnologías, se puede obtener información del entorno físico para posteriormente ser procesada y plasmada en una pantalla de entorno digital. Esta información se capta a través de un sensor, que envía las imágenes o datos a un dispositivo de interpretación que busca reconocer patrones previamente obtenidos.
 
 // Capítulo III
 = Capítulo III. Marco Metodológico
@@ -289,13 +339,161 @@ A partir de las características definidas, y con el propósito de guiar el dise
 
 == Diseñar un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en función del análisis realizado
 
+Este capítulo describe el diseño del ambiente de aprendizaje y del lenguaje de programación tangible denominado ERAE, en coherencia con los requerimientos funcionales y no funcionales del sistema. Se distingue deliberadamente lo pedagógico y físico del ambiente, la arquitectura lógica del software, la especificación conceptual y formal del lenguaje, y la forma en que el compilador y el entorno de ejecución se integran con otros subsistemas.
 
+=== Requisitos y contexto
+
+El ambiente está dirigido a niños de 6 a 9 años y a docentes de educación primaria (1er a 3er grado). Los niños construyen soluciones a problemas planteados por el docente, manipulando elementos tangibles y la interacción digital sobre la superficie de trabajo; se prioriza que cada niño exprese su forma de resolver el problema con los medios disponibles, sin imponer una única solución óptima. Los docentes orientan el uso del ambiente y el desarrollo del pensamiento computacional.
+// el sistema debe permitir crear y gestionar actividades alineadas al currículo.
+
+Los contenidos sobre los que se apoyan datos, operaciones, actividades de ejemplo y criterios de integración en aula se toman del currículo de matemáticas de 1er a 3er grado del Ministerio del Poder Popular para la Educación de Venezuela correspondiente al año 2025, de modo que el ambiente pueda incorporarse de forma coherente a las planificaciones de esos grados.
+
+=== Arquitectura física y lógica del ambiente
+
+El sistema se concibe como una interfaz de usuario tangible (TUI) de tipo tabletop. Las entradas físicas se realizan mediante la TUI (piezas, regiones); las conexiones digitales (generadas a través de toques sobre la superficie y reconocidas como enlaces en el grafo) y las salidas se canalizan por la proyección sobre la superficie. Así se satisface el requerimiento de que los programas combinen elementos tangibles y conexiones digitales que representen datos, flujos y operaciones.
+
+El ambiente material incluye, como mínimo, un conjunto de elementos tangibles y representaciones digitales asociadas que denotan orígenes de datos u operaciones sobre datos (que, articulados con las conexiones inferidas, constituyen un programa en el lenguaje tangible); un computador; un proyector; una cámara de color y de profundidad; y una superficie plana dividida en al menos dos zonas. En una zona se colocan exclusivamente los elementos tangibles; en la otra se proyecta la interfaz y tiene lugar la interacción entre lo tangible y lo digital. La cámara captura la escena en esa segunda zona, envía la información al computador, el cual interpreta la imagen, reconoce elementos, posiciones y relaciones entre orígenes de datos y zonas de transformación, compila y ejecuta el programa inferido y proyecta la salida sobre la superficie plana.
+
+A nivel lógico, el flujo a seguir es: captura; reconstrucción del programa (representación estructurada); compilación y ejecución; presentación de resultados y retroalimentación (visual y auditiva) que orienta al niño durante y después de la construcción. El núcleo de compilación y ejecución se describe en la sección de integración; aquí basta señalar que está pensado para operar sobre representaciones del programa compatibles con la especificación del lenguaje ERAE.
+
+//TODO: leer y conciliar términos (datos vs orígenes de datos, ver si este último es necesario, y así), además de formas de interacción con el ambiente
+=== Interacción y percepción
+
+==== Áreas delimitadas para orígenes de datos y zonas de transformación
+
+Los orígenes de datos y las zonas de transformación los definen los niños al colocar elementos tangibles y al delimitar regiones sobre la superficie. Esas regiones se detectan por visión por computador. Cada región acotada puede interpretarse como un origen de datos o como una zona de transformación. Si es un origen de datos, los elementos tangibles dentro de la región son los valores que conforman dicho origen; si es una zona de transformación, los elementos tangibles en su interior representan las operaciones que se aplicarán a los datos procedentes de los orígenes conectados.
+
+==== Conexiones entre orígenes de datos y zonas de transformación
+
+Las conexiones no se materializan con cables ni con piezas adicionales: son conexiones digitales trazadas por los niños sobre la superficie (por ejemplo, mediante toques). La cámara y el computador reconocen esas conexiones y establecen la relación entre orígenes y zonas de transformación.
+
+La interfaz refleja orígenes, zonas y conexiones inferidas a partir de lo físico y lo trazado. Esto cumple el requerimiento de retroalimentación para guiar durante la construcción y el requerimiento no funcional de retroalimentación visual y auditiva. En lo visual, entre otras cosas, se incluye:
+
+- Resaltar orígenes de datos y zonas de transformación reconocidos.
+- Resaltar conexiones reconocidas entre orígenes y zonas de transformación.
+- Mostrar mensajes de error o advertencia cuando el programa sea inválido o incompleto.
+- Resaltar orígenes o conexiones erróneas o inválidas (manejo de errores de disposición).
+- Señalar elementos tangibles no reconocidos o no utilizados en el programa actual.
+
+En lo auditivo, se complementa con señales sonoras acordes a reconocimiento correcto, advertencia o error, de modo que la guía no dependa solo de la vista. El modo incremental de integración (véase más adelante) refuerza la guía continua mientras el grafo está aún incompleto.
+
+==== Ejecución y salida
+
+La salida del programa se muestra en la interfaz proyectada sobre la superficie plana, usando las representaciones digitales del lenguaje. La composición de piezas físicas, conexiones digitales trazadas y elementos en pantalla constituye la representación visible de un programa que aborda el problema de la actividad en curso.
+
+=== Visión del lenguaje en el ambiente
+
+El lenguaje ERAE es un lenguaje de flujo de datos (dataflow), donde los programas se representan como grafos de nodos que producen valores, los transforman y declaran salidas. En el ambiente, ese grafo tiene una parte tangible (piezas, disposición, regiones) y una parte digital (conexiones inferidas del trazado, proyección, estado de reconocimiento, mensajes y retroalimentación sonora), en línea con los requerimientos de datos, flujos y operaciones combinados en una sola construcción compartida entre el niño y el sistema.
+
+No se persigue la Turing-completitud como objetivo pedagógico; se busca un lenguaje suficientemente expresivo para un subconjunto de problemas acordes al currículo citado, y simple de interpretar por niños de 6 a 9 años. La evaluación del programa puede describirse de forma abstracta como bajo demanda, en la línea de lenguajes de flujo de datos clásicos como Lucid (los nodos se evalúan cuando sus resultados son requeridos por otros nodos o por la salida).
+
+La especificación detallada de tipos, operadores y estructura sintáctica del lenguaje se presenta en la siguiente sección.
+
+//TODO: cambiar esto por una especificación del lenguaje visual, hablando sobre las piezas tangibles, su función de evitar errores sintácticos y agregar azúcar sintáctico, y solo hacer mención del lenguaje textual y de su especificación formal en un apéndice
+=== Especificación del lenguaje de programación tangible ERAE
+
+==== Filosofía de diseño
+
+Los principios rectores, en línea con prácticas de lenguajes educativos como el enfoque de tipos fijos de Scratch, son:
+
+- *Tipos integrados:* conjunto de tipos cerrado, sin extensión por parte del usuario, para reducir la carga cognitiva.
+- *Operaciones seguras:* comprobación en tiempo de compilación de compatibilidad de datos entre operadores.
+- *Prevención de errores:* verificación estricta de tipos y de la aridad de cada operación (número correcto de entradas), en apoyo al manejo de errores en la disposición tangible y digital antes de ejecutar.
+- *Alineación curricular:* tipos y operaciones elegidos para mapearse a clasificación, comparación y manipulación de colecciones propios de primaria, en coherencia con el currículo de matemáticas de referencia.
+
+==== Estructura de un programa
+
+Un programa válido se organiza como una colección de declaraciones. A nivel conceptual, los nodos se clasifican en:
+
+- *Nodos de fuente:* aportan datos iniciales al grafo.
+- *Nodos de transformación:* aplican operaciones a las entradas que reciben por las conexiones del flujo de datos.
+- *Nodos de salida:* designan los valores que deben mostrarse o entregarse al entorno de visualización.
+
+La sintaxis concreta (palabras clave, literales y reglas de formación) se especifica formalmente mediante una gramática en notación EBNF de la W3C. //TODO: añadir la gramática EBNF completa. La gramática completa y los ejemplos extendidos pueden consignarse en anexo o en el documento de especificación del lenguaje, para no duplicar aquí decenas de reglas léxicas.
+
+==== Tipos de datos
+
+Tipos numéricos y escalares primitivos:
+
+- *Naturales:* enteros mayores o iguales que cero.
+- *Enteros:* positivos y negativos.
+- *Decimales:* números con parte fraccionaria para medidas.
+- *Fracciones:* representación explícita de cocientes (por ejemplo $1/2$, $3/4$).
+- *Texto:* cadenas para etiquetas y valores simbólicos.
+- *Booleanos:* verdadero o falso.
+
+Tipos curriculares:
+
+- *Formas:* atributos de tipo geométrico (círculo, triángulo, cuadrado), tamaño y color.
+- *Coches:* atributo de color.
+- *Comida:* atributos de sabor (dulce, salado, agrio, amargo) y color.
+- *Animales:* tipo de animal y color.
+- *Personas:* grupo etario y género.
+
+Los valores concretos permitidos para cada atributo (por ejemplo, paleta de colores o conjunto de tipos de forma) están fijados en la especificación formal del lenguaje para mantener coherencia entre tangibles, reconocimiento y ejecución.
+
+Tipos compuestos:
+
+- *Conjuntos:* colecciones homogéneas de elementos de un mismo tipo.
+- *Flujos:* secuencias de valores en el tiempo, en correspondencia con la naturaleza dataflow del lenguaje y con patrones de iteración o señales discretas.
+
+==== Catálogo de operaciones
+
+Las operaciones se agrupan en familias. La lista siguiente resume las categorías previstas en la especificación; cada operador tiene firmas de tipo que el compilador debe respetar.
+
+- *Operaciones numéricas:* suma, resta, multiplicación, división.
+- *Operaciones de comparación:* comparación general de igualdad; comparaciones por tamaño, color, tipo, sabor, grupo etario y género, según los tipos involucrados.
+- *Filtrado y selección:* filtro genérico y variantes por tamaño, color, tipo, sabor, grupo etario y género, para extraer elementos de conjuntos que cumplan condiciones.
+- *Operaciones de conjuntos:* unión, intersección, diferencia y complemento.
+- *Ordenación:* orden general y orden alfabético cuando aplique.
+
+// ==== Ejemplo ilustrativo
+
+// El siguiente fragmento es solo ilustrativo de la forma de los programas; la sintaxis definitiva y los nombres exactos de operadores coinciden con la gramática del documento de especificación.
+
+// ```dataflow
+// source a: natural = 3;
+// source b: natural = 2;
+// transform sum: natural = ADD(a, b);
+// output result: natural = sum;
+// ```
+
+=== Integración del compilador y el runtime con el resto del sistema
+
+// ==== Principio arquitectónico
+
+Se adopta una separación entre núcleo sin estado y adaptadores delgados. El compilador y el runtime no conocen los detalles de comunicación con el resto del sistema, ya que reciben datos de programa, devuelven resultados o diagnósticos, y no mantienen sesión de usuario. Esta comunicación se implementa en capas periféricas que serializan y deserializan solicitudes y respuestas.
+
+// ==== Modos de evaluación
+
+// Modo por lotes (batch): pensado para ejecutar un programa completo cuando la escena ya está estable o cuando el subsistema de visión entrega un grafo cerrado. Entrada: programa completo y válido (por ejemplo en JSON). Proceso: compilar, validar y ejecutar. Salida: resultados finales y traza de ejecución. Caso de uso típico: la visión detecta que el niño terminó de montar el programa, envía la representación y se proyecta el resultado final.
+
+// Modo incremental: pensado para retroalimentación mientras el programa aún se construye (requerimiento funcional de guía durante la construcción). Entrada: grafo parcial. Proceso: validar el fragmento y evaluar únicamente lo que sea semánticamente posible. Salida: valores parciales o estados de pendiente en nodos aún incompletos. Caso de uso: el niño añade o conecta un bloque y el sistema responde al instante si faltan entradas o si una parte del grafo ya puede mostrarse; la capa de presentación puede combinar esta salida con pistas visuales y auditivas.
+
+// ==== Interfaces de integración
+
+// La capa de integración prevé, entre otros mecanismos, una API HTTP para el modo por lotes y un servidor WebSocket para el modo en vivo con el IDE o entornos de construcción interactiva. El protocolo de lenguaje de servidores (LSP) puede utilizarse para asistir al editor o IDE que acompañe el diseño de actividades avanzadas, en coherencia con los objetivos de herramientas de apoyo al lenguaje ERAE.
+
+// == Actividades y rol docente
+// === Rol del docente
+
+//=== Definición y gestión de actividades
+
+// Una actividad agrupa: el enunciado del problema, la explicación de los conceptos involucrados, las condiciones durante el desarrollo, el inicio de la tarea y el resultado esperado. Los niños resuelven la actividad construyendo un programa con el lenguaje tangible y los elementos provistos por el ambiente. El sistema permite a los docentes crear, editar y organizar actividades alineadas al currículo de matemáticas de 1.er a 3.er grado (MPPE, 2025) y orientadas al desarrollo del pensamiento computacional en la franja de edad objetivo.
+
+=== Guía de diseño de actividades
+
+La guía incluye actividades modelo con problemas y soluciones de referencia elaboradas por los autores del ambiente, inspiradas en el mismo currículo. Su función es formativa: no debe interpretarse como catálogo cerrado de los únicos problemas que el ambiente admite, ni como restricción a la variedad de soluciones válidas. Se enfatiza el papel activo del niño en la exploración de estrategias y soluciones.
+
+// == Formalización adicional y referencias internas
+
+//TODO: La gramática EBNF completa, el inventario exhaustivo de literales para tipos curriculares y los ejemplos de programas en distintos dominios pueden incorporarse como anexo al trabajo de grado o mantenerse en un documento de especificación separado (Diseño del Lenguaje ERAE), citado desde este capítulo. Cualquier divergencia futura entre implementación y especificación debe resolverse actualizando primero la especificación y luego el texto del diseño, para conservar trazabilidad académica.
 
 == Construir un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en base al diseño realizado
 
 === Prototipo 1
 
-Partiendo de la tesis de Anthony Barrios, se buscó una aproximación más programática, asimilándose a Scratch, por lo que se partió de seguir el paradigma imperativo y la programación con bloques. Sin embargo, dado que Scratch ya es ampliamente usado y tiene varias investigaciones al respecto de su uso (hablar más sobre esto en el objetivo 1), el tutor sugirió seguir una aproximación distinta, basada en el paradigma de programación dataflow, pues ofrece una clara visualización de cómo fluyen y se transforman los datos del programa, además de ser uno del que poco se ha hablado, más en su aplicación para fomentar el desarrollo del pensamiento computacional.
+Partiendo de la tesis de Anthony Barrios, se buscó una aproximación más programática, asimilándose a Scratch, por lo que se partió de seguir el paradigma imperativo y la programación con bloques. Sin embargo, dado que Scratch ya es ampliamente usado y tiene varias investigaciones al respecto de su uso, tal como se planteó durante el análisis previo; el tutor sugirió seguir una aproximación distinta, basada en el paradigma de programación dataflow, pues ofrece una clara visualización de cómo fluyen y se transforman los datos del programa.
 
 Dado este cambio, se procedió con la definición de los primeros datos y operaciones a usar, para lo que se eligieron bloques con formas geométricas simples (cuadrados, círculos y triángulos) y colores básicos (morado, amarillo, naranja, verde, rojo y azul) que, para simplificar el desarrollo, se decidió que algunos representarían operaciones en vez de un dato. Los datos que se soportaban provenían directamente de las formas (cuadrados, círculos y triángulos de distintos colores), y las operaciones eran conjunción, intersección, diferencia y diferencia simétrica. El diseño consistió de zonas que reconocían las formas colocadas como datos, otras que reconocian las formas como operaciones, y zonas de salida que mostraban el resultado de la ejecución. Todas estas zonas estaban colocadas de forma fija, restringiendo la creación de nuevas zonas o la asociación entre estas para el usuario final, lo que limitaba la flexibilidad del entorno pero facilitaba el desarrollo del prototipo.
 
