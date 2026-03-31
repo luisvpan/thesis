@@ -1,17 +1,53 @@
+#set document(
+  title: "Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años",
+  author: ("Arzolay Rodríguez, Eduardo Javier Isidoro", "Vásquez Paniagua, Luis Daniel"),
+  description: "Este trabajo de investigación se centra en el desarrollo de un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, con el objetivo de fomentar el desarrollo del pensamiento computacional desde edades tempranas. Se aborda la importancia del pensamiento computacional en la educación infantil, se analizan los desafíos asociados al uso de pantallas en niños pequeños, y se propone una solución innovadora que combina elementos físicos y digitales para crear una experiencia de aprendizaje interactiva y atractiva.",
+  keywords: (
+    "programación tangible",
+    "realidad aumentada espacial",
+    "pensamiento computacional",
+    "niños",
+    "aprendizaje",
+    "dataflow",
+  ),
+  date: auto,
+)
+
+#set text(
+  font: "Times New Roman",
+  size: 12pt,
+  lang: "es",
+  region: "VE",
+  hyphenate: false,
+)
+
+#set page()
+
+#let leading = 1.5em // Your line spacing (1, 1.5, 2, etc.)
+#let leading = leading - 0.25em // "Normalization"
+#set par(
+  justify: true,
+  leading: leading,
+  spacing: leading,
+)
+
+#set figure.caption(separator: [.])
+
 // Portada
 // TODO: Cambiar placeholders.
 // TODO: Cambiar estilado, añadir negritas, centrar, etc. Revisar Anexo A1 de la Guía Informe TG.
-Universidad Católica Andrés Bello
-Facultad de Ingeniería
-Escuela de Ingeniería Informática
+*Universidad Católica Andrés Bello* \
+*Facultad de Ingeniería* \
+*Escuela de Ingeniería Informática*
 
-Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años
+#title()
 
-Trabajo de Grado
-presentado ante la
-UNIVERSIDAD CATÓLICA ANDRÉS BELLO
-como parte de los requisitos para optar al título de
-Ingeniero en Informática
+*Trabajo de Grado* \
+presentado ante la \
+#upper[*Universidad Católica Andrés Bello*] \
+como parte de los requisitos para optar al título de \
+*Ingeniero en Informática*
+
 // TODO: formato tabla, izquierda realizado por, derecha nombres
 Realizado por | Arzolay Rodríguez, Eduardo Javier Isidoro
 | Vásquez Paniagua, Luis Daniel
@@ -29,10 +65,15 @@ Fecha | Mes, Año
 // Gracias al profesor y director Franklin Bello, por siempre estar presente, guiandonos y alentandonos para que sigamos adelante.
 // Gracias al señor Andrés, por las historias, las anécdotas, las enseñanzas y el constante apoyo y dedicación a todos los que día tras día estamos presentes y trabajando en el salón de prototipos.
 
+#set par(
+  first-line-indent: (amount: 1.25cm, all: true),
+)
+
 // Capítulo I
 = Capítulo I. El Problema
 // TODO: Usar referencias y citas de Typst en vez de manuales.
 // TODO: Arreglar estilado.
+
 == Planteamiento del Problema
 
 Papert (1980) predijo el auge de las computadoras en la educación, planteando que los niños deberían aprender a programar tal y como es aprender francés viviendo en Francia en vez de aprenderlo mediante las clases de lenguas extranjeras en las aulas del colegio; es decir, mediante la interacción directa con las computadoras, un enfoque en que el niño use y experimente con la computadora para aprender, en vez de que la computadora le enseñe al niño. También hace énfasis en que la simple presencia de las computadoras cambiaría y moldearía una nueva forma de enseñar y aprender, inimaginable para la sociedad de aquel momento. Papert fue un visionario, pues lo que él defendía se hizo realidad en partes, con una creciente demanda de la competencia del pensamiento computacional, término que no usó Papert sino Wing (2006) para referirse a la forma de pensar de los científicos de computación; pero con retos que enfrentar.
@@ -217,11 +258,12 @@ Un material didáctico ~cita requerida~ es un recurso didáctico específico y c
 
 Un medio didáctico ~cita requerida~ se refiere al canal o vía a través del cual se transmite y presenta la información educativa. Los medios didácticos son los soportes o tecnologías que vehiculan el contenido educativo, determinando cómo se presenta la información al aprendiz. Diferentes medios (visual, auditivo, táctil, kinestésico) activan diferentes canales sensoriales y cognitivos, influyendo en cómo se procesa y retiene la información. La realidad aumentada espacial, por ejemplo, ~puede~ constituye un medio didáctico que presenta información visual superpuesta sobre el mundo físico, activando canales visuales y espaciales para facilitar la comprensión de conceptos abstractos mediante representaciones visuales concretas.
 
-=== Programación y Entornos de Desarrollo (Me quedé aquí)
+=== Programación y Entornos de Desarrollo
 
 Los entornos de desarrollo constituyen el conjunto de herramientas, bibliotecas y configuraciones que facilitan la creación, edición, depuración y ejecución de programas computacionales. Entre estos entornos, los Entornos de Desarrollo Integrados (IDE) representan aplicaciones que combinan múltiples herramientas de desarrollo en una interfaz unificada, incluyendo editores de código con resaltado de sintaxis, depuradores, compiladores, sistemas de control de versiones y gestores de proyectos. La programación es el proceso de diseñar y construir programas computacionales que ejecutan tareas específicas mediante la escritura de código en lenguajes de programación. Cuando se trata de programación para niños, especialmente en edades tempranas, es necesario adaptar estos entornos a las capacidades cognitivas y motoras de los aprendices. Las tecnologías educativas, entendidas como el conjunto de herramientas, recursos y metodologías que integran tecnología digital en procesos de enseñanza-aprendizaje, han demostrado ser efectivas para facilitar el aprendizaje cuando se diseñan apropiadamente. El uso de medios digitales en niños requiere consideraciones especiales: mientras que los medios digitales pueden ofrecer interactividad, retroalimentación inmediata y representaciones visuales atractivas, también presentan desafíos relacionados con la atención, la sobrecarga cognitiva y la necesidad de mantener el equilibrio entre la estimulación digital y el desarrollo de habilidades físicas y sociales. La programación para niños debe considerar diferentes paradigmas de programación, que son estilos o enfoques fundamentales para estructurar y organizar código.
 
 Un lenguaje de programación es un sistema formal de comunicación que permite a los programadores expresar instrucciones y algoritmos de manera estructurada para que sean ejecutados por una computadora. Los lenguajes de programación proporcionan un conjunto de reglas sintácticas y semánticas que definen cómo se pueden combinar símbolos y palabras clave para crear programas funcionales. Los paradigmas de programación representan estilos o enfoques fundamentales para estructurar y organizar código, definiendo la forma en que los programadores conceptualizan y resuelven problemas computacionales. El paradigma imperativo es uno de los paradigmas más fundamentales, donde los programas se estructuran como secuencias de instrucciones que modifican el estado del programa mediante asignaciones y comandos. En este paradigma, el programador especifica explícitamente los pasos que la computadora debe seguir para resolver un problema, controlando el flujo de ejecución mediante estructuras de control como bucles y condicionales.
+
 El dataflow es un paradigma de programación donde el flujo de datos determina la ejecución del programa, en lugar de un flujo de control secuencial. En este paradigma, las operaciones se ejecutan cuando sus datos de entrada están disponibles, creando un modelo de programación basado en la transformación y el flujo de información a través de una red de operaciones.
 
 El lenguaje de programación tangible es un enfoque donde los elementos del lenguaje de programación se representan mediante objetos físicos manipulables, permitiendo a los usuarios construir programas mediante la organización espacial y física de estos objetos, eliminando la necesidad de sintaxis textual y facilitando la comprensión de conceptos computacionales a través de la manipulación concreta.
@@ -261,8 +303,7 @@ Revisión documental, entrevistas semiestructuradas
 
 == Metodología de Desarrollo Utilizada
 Al analizar las características del trabajo de investigación, se consideró el enfoque a adoptar. Dado que no se previó un contacto constante con el cliente y que los requisitos aún no estaban bien definidos, se decidió optar por un enfoque basado en prototipos, con el fin de definir los requerimientos finales a través de los prototipos realizados y sus validaciones.
-Según Pressman (2010), el enfoque basado en prototipos está enmarcado dentro de los modelos de proceso evolutivos, que "son iterativos. Se caracterizan por la manera en la que permiten
-desarrollar versiones cada vez más completas del software.". Particularmente para el enfoque basado en prototipos, el proceso se divide en 4 fases, como se observa en la @prototyping-figure: comunicación, plan rápido - modelado - diseño rápido, construcción del prototipo y despliegue - entrega y retroalimentación. Se definen a continuación:
+Según Pressman (2010), el enfoque basado en prototipos está enmarcado dentro de los modelos de proceso evolutivos, que "son iterativos. Se caracterizan por la manera en la que permiten desarrollar versiones cada vez más completas del software.". Particularmente para el enfoque basado en prototipos, el proceso se divide en 4 fases, como se observa en la #lower[@prototyping-figure]: comunicación, plan rápido - modelado - diseño rápido, construcción del prototipo y despliegue - entrega y retroalimentación. Se definen a continuación:
 
 #figure(
   image("images/prototyping-paradigm.png"),
@@ -332,7 +373,7 @@ A partir de las características definidas, y con el propósito de guiar el dise
 
 ==== Requerimientos no funcionales
 
-+ El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1er a 3er grado.
++ El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado.
 + El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años.
 + El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales.
 + La retroalimentación debe ser presentada de forma visual y auditiva.
@@ -343,10 +384,10 @@ Este capítulo describe el diseño del ambiente de aprendizaje y del lenguaje de
 
 === Requisitos y contexto
 
-El ambiente está dirigido a niños de 6 a 9 años y a docentes de educación primaria (1er a 3er grado). Los niños construyen soluciones a problemas planteados por el docente, manipulando elementos tangibles y la interacción digital sobre la superficie de trabajo; se prioriza que cada niño exprese su forma de resolver el problema con los medios disponibles, sin imponer una única solución óptima. Los docentes orientan el uso del ambiente y el desarrollo del pensamiento computacional.
+El ambiente está dirigido a niños de 6 a 9 años y a docentes de educación primaria (1#super[er] a 3#super[er] grado). Los niños construyen soluciones a problemas planteados por el docente, manipulando elementos tangibles y la interacción digital sobre la superficie de trabajo; se prioriza que cada niño exprese su forma de resolver el problema con los medios disponibles, sin imponer una única solución óptima. Los docentes orientan el uso del ambiente y el desarrollo del pensamiento computacional.
 // el sistema debe permitir crear y gestionar actividades alineadas al currículo.
 
-Los contenidos sobre los que se apoyan datos, operaciones, actividades de ejemplo y criterios de integración en aula se toman del currículo de matemáticas de 1er a 3er grado del Ministerio del Poder Popular para la Educación de Venezuela correspondiente al año 2025, de modo que el ambiente pueda incorporarse de forma coherente a las planificaciones de esos grados.
+Los contenidos sobre los que se apoyan datos, operaciones, actividades de ejemplo y criterios de integración en aula se toman del currículo de matemáticas de 1#super[er] a 3#super[er] grado del Ministerio del Poder Popular para la Educación de Venezuela correspondiente al año 2025, de modo que el ambiente pueda incorporarse de forma coherente a las planificaciones de esos grados.
 
 === Arquitectura física y lógica del ambiente
 
@@ -497,7 +538,7 @@ Partiendo de la tesis de Anthony Barrios, se buscó una aproximación más progr
 
 Dado este cambio, se procedió con la definición de los primeros datos y operaciones a usar, para lo que se eligieron bloques con formas geométricas simples (cuadrados, círculos y triángulos) y colores básicos (morado, amarillo, naranja, verde, rojo y azul) que, para simplificar el desarrollo, se decidió que algunos representarían operaciones en vez de un dato. Los datos que se soportaban provenían directamente de las formas (cuadrados, círculos y triángulos de distintos colores), y las operaciones eran conjunción, intersección, diferencia y diferencia simétrica. El diseño consistió de zonas que reconocían las formas colocadas como datos, otras que reconocian las formas como operaciones, y zonas de salida que mostraban el resultado de la ejecución. Todas estas zonas estaban colocadas de forma fija, restringiendo la creación de nuevas zonas o la asociación entre estas para el usuario final, lo que limitaba la flexibilidad del entorno pero facilitaba el desarrollo del prototipo.
 
-Para la construcción, se decidió continuar el uso de Python para todo, haciendo uso de OpenCV y OpenNI2 para la visión por computador, y también OpenCV para la interfaz gráfica. Se usó un sensor Kinect para la captura de imágenes, y se implementó un sistema de reconocimiento de formas basado en la detección de contornos, que permitía identificar las formas geométricas y sus colores para determinar los datos y operaciones a ejecutar. El resultado de la ejecución se mostraba en una zona de salida mediante la superposición de imágenes generadas por el software. Este prototipo puede verse en la @first-prototype-figure.
+Para la construcción, se decidió continuar el uso de Python para todo, haciendo uso de OpenCV y OpenNI2 para la visión por computador, y también OpenCV para la interfaz gráfica. Se usó un sensor Kinect para la captura de imágenes, y se implementó un sistema de reconocimiento de formas basado en la detección de contornos, que permitía identificar las formas geométricas y sus colores para determinar los datos y operaciones a ejecutar. El resultado de la ejecución se mostraba en una zona de salida mediante la superposición de imágenes generadas por el software. Este prototipo puede verse en la #lower[@first-prototype-figure].
 
 #figure(
   image("images/first-prototype.jpeg"),
@@ -514,7 +555,7 @@ Debido a las preocupaciones con respecto al Kinect v1, y tras analizar las posib
 
 Así pues, se llevó a cabo una investigación sobre el uso del Kinect v2 con Python, las diferencias entre el Kinect v1 y el Kinect v2, las librerías disponibles para la visión por computador con este nuevo sensor, y el algoritmo de detección de toques basado en profundidad.
 
-Las librerías disponibles para integrar el Kinect v2 con Python son limitadas. Se probaron aproximaciones con PyKinect2 y libfreenect2, sin embargo, el primero fallaba por falta de soporte para Python 3+, y el segundo no detectaba el Kinect v2; OpenNI2, que se usó para el Kinect v1, no es compatible con el Kinect v2 por defecto, pero existen parches para hacerlo compatible, con lo cual se logró usar OpenNI2 para la integración del Kinect v2 con Python. Siguiendo con la calibración y detección de toques, se hicieron modificaciones exhaustivas al código legado para adaptarlo al nuevo sensor, lo que llevó a la implementación de un nuevo algoritmo de detección de marcadores (2 cuadrados blancos en las esquinas superior izquierda e inferior derecha de la proyección), además de la afinación de múltiples números mágicos (literales escritos en el código sin documentar su significado). Este prototipo puede verse en la @second-prototype-figure.
+Las librerías disponibles para integrar el Kinect v2 con Python son limitadas. Se probaron aproximaciones con PyKinect2 y libfreenect2, sin embargo, el primero fallaba por falta de soporte para Python 3+, y el segundo no detectaba el Kinect v2; OpenNI2, que se usó para el Kinect v1, no es compatible con el Kinect v2 por defecto, pero existen parches para hacerlo compatible, con lo cual se logró usar OpenNI2 para la integración del Kinect v2 con Python. Siguiendo con la calibración y detección de toques, se hicieron modificaciones exhaustivas al código legado para adaptarlo al nuevo sensor, lo que llevó a la implementación de un nuevo algoritmo de detección de marcadores (2 cuadrados blancos en las esquinas superior izquierda e inferior derecha de la proyección), además de la afinación de múltiples números mágicos (literales escritos en el código sin documentar su significado). Este prototipo puede verse en la #lower[@second-prototype-figure].
 
 #figure(
   image("images/second-prototype.jpeg"),
@@ -531,7 +572,7 @@ Tras trabajar tanto en una única parte del sistema (integración con el hardwar
 
 Para esto, se decidió usar un modelo de detección de objetos basado en aprendizaje profundo, específicamente el modelo YOLO11-nano, que es una versión ligera del modelo YOLO11, diseñado para ser eficiente en términos de velocidad y recursos computacionales, lo que lo hace adecuado para aplicaciones en tiempo real como la visión por computador con el Kinect v2. Se planeó entrenar este modelo con un conjunto de datos personalizado que incluía imágenes de una versión previa de las piezas que se usarían en el entorno, con el objetivo de lograr una detección precisa y evaluar la viabilidad de detectar las piezas mediante modelos de detección de objetos.
 
-Se entrenó al modelo con el conjunto de datos personalizado de imágenes de una versión previa de las piezas que se usarían en el entorno, que incluían animales y números, que pueden verse en la @third-prototype-dataset-figure; y se evaluó su desempeño en términos de precisión y velocidad de detección. // Este prototipo puede verse en la @third-prototype-figure.
+Se entrenó al modelo con el conjunto de datos personalizado de imágenes de una versión previa de las piezas que se usarían en el entorno, que incluían animales y números, que pueden verse en la #lower[@third-prototype-dataset-figure]; y se evaluó su desempeño en términos de precisión y velocidad de detección. // Este prototipo puede verse en la #lower[@third-prototype-figure].
 
 Los resultados obtenidos mostraron que el modelo de detección de objetos basado en aprendizaje profundo era capaz de detectar las piezas con una precisión aceptable, aunque se identificaron áreas de mejora, principalmente la confusión entre clases (por ejemplo, entre el 9 y el 6). Además, se observó que la velocidad de detección era adecuada para su uso en tiempo real con el Kinect v2, lo que validó la viabilidad de esta aproximación para la detección de piezas en el entorno.
 
@@ -553,9 +594,9 @@ Los resultados obtenidos mostraron que el modelo de detección de objetos basado
 
 Dado que se usaría un paradigma de programación dataflow, se decidió que se seguiría con la definición y elaboración de un lenguaje de programación visual basado en este paradigma, con el objetivo de crear una interfaz gráfica atractiva y funcional para los usuarios finales, que permitiera la creación de programas mediante la manipulación de bloques visuales que representaran operaciones y datos.
 
-Se llevó a cabo una investigación sobre los lenguajes de programación dataflow, tomando como referente a Lucid (colocar cita), por ser un lenguaje de programación dataflow purista, y se definieron los elementos básicos del lenguaje de programación visual, incluyendo los tipos de bloques, las operaciones disponibles, y la forma en que los bloques se conectan para formar programas. Este diseño puede verse en la @fourth-prototype-visual-design-figure. Las operaciones disponibles se basarían en el currículum de matemáticas de educación básica, con el objetivo de fomentar el desarrollo del pensamiento computacional a través de conceptos matemáticos, y se incluirían operaciones como suma, resta, multiplicación, división, entre otras. En pro de una correcta división de las responsabilidades del sistema, se separó el lenguaje de programación visual en dos partes: un apartado de detección de piezas, que se encargaría de detectar las piezas físicas colocadas por los usuarios y traducirlas a una representación interna del programa; y un apartado de ejecución, que se encargaría de ejecutar el programa representado internamente y enviar los resultados a la interfaz gráfica. Esta separación permitiría una mayor flexibilidad y mantenibilidad del sistema, facilitando la incorporación de nuevas piezas y operaciones en el futuro.
+Se llevó a cabo una investigación sobre los lenguajes de programación dataflow, tomando como referente a Lucid (colocar cita), por ser un lenguaje de programación dataflow purista, y se definieron los elementos básicos del lenguaje de programación visual, incluyendo los tipos de bloques, las operaciones disponibles, y la forma en que los bloques se conectan para formar programas. Este diseño puede verse en la #lower[@fourth-prototype-visual-design-figure]. Las operaciones disponibles se basarían en el currículum de matemáticas de educación básica, con el objetivo de fomentar el desarrollo del pensamiento computacional a través de conceptos matemáticos, y se incluirían operaciones como suma, resta, multiplicación, división, entre otras. En pro de una correcta división de las responsabilidades del sistema, se separó el lenguaje de programación visual en dos partes: un apartado de detección de piezas, que se encargaría de detectar las piezas físicas colocadas por los usuarios y traducirlas a una representación interna del programa; y un apartado de ejecución, que se encargaría de ejecutar el programa representado internamente y enviar los resultados a la interfaz gráfica. Esta separación permitiría una mayor flexibilidad y mantenibilidad del sistema, facilitando la incorporación de nuevas piezas y operaciones en el futuro.
 
-Durante el desarrollo de este prototipo, el enfoque estuvo en la implementación del apartado de ejecución del lenguaje de programación dataflow, para lo cual se definieron 3 representaciones de los programas formados por los bloques visuales: una de intercambio, basada en JSON; una textual, para entrada y depuración; y un formato en memoria, para uso interno por el entorno de ejecución; y se implementó un compilador y un runtime para ejecutar estos programas. Se decidió usar TypeScript como lenguaje de programación, debido a su flexibilidad, facilidad para el desarrollo rápido, y su capacidad para manejar estructuras de datos complejas mediante su tipado; Bun como motor de ejecución, pues permite la ejecución directa de programas escritos en TypeScript sin un paso previo de transpilación, y provee ventajas de rendimiento contra sus competidores Node y Deno; y la librería Chevrotain, que provee un kit herramientas para la construcción de _parsers_; facilitando la implementación del entorno. Además, se implementó un servidor HTTP y uno de WebSockets, para lo cual se utilizó la librería Elysia, que permiten la comunicación con la interfaz gráfica y el apartado de visión por computador. // Este prototipo puede verse en la @fourth-prototype-figure.
+Durante el desarrollo de este prototipo, el enfoque estuvo en la implementación del apartado de ejecución del lenguaje de programación dataflow, para lo cual se definieron 3 representaciones de los programas formados por los bloques visuales: una de intercambio, basada en JSON; una textual, para entrada y depuración; y un formato en memoria, para uso interno por el entorno de ejecución; y se implementó un compilador y un runtime para ejecutar estos programas. Se decidió usar TypeScript como lenguaje de programación, debido a su flexibilidad, facilidad para el desarrollo rápido, y su capacidad para manejar estructuras de datos complejas mediante su tipado; Bun como motor de ejecución, pues permite la ejecución directa de programas escritos en TypeScript sin un paso previo de transpilación, y provee ventajas de rendimiento contra sus competidores Node y Deno; y la librería Chevrotain, que provee un kit herramientas para la construcción de _parsers_; facilitando la implementación del entorno. Además, se implementó un servidor HTTP y uno de WebSockets, para lo cual se utilizó la librería Elysia, que permiten la comunicación con la interfaz gráfica y el apartado de visión por computador. // Este prototipo puede verse en la #lower[@fourth-prototype-figure].
 
 //TODO: colocar imágenes/tablas de las 3 representaciones de los programas, quizás todo en apéndices. Para JSON, puede ser la interfaz de TS. Para la representación textual, la EBNF del lenguaje con las consideraciones semánticas, que este sí sería un apéndice 100%. Para la representación en memoria, una tabla con la estructura de datos usada para representar los programas internamente.
 
@@ -580,9 +621,9 @@ Con el prototipo del entorno listo, se vió que la aproximación de separación 
 
 Con baes en el diseño del ambiente, se planteó continuar con la interfaz gráfica del entorno de desarrollo integrado (IDE) para el lenguaje de programación, con el objetivo de crear una experiencia de usuario atractiva e intuitiva que facilitara la creación de programas mediante la manipulación de bloques físicos, si bien la integración con la detección de bloques se pospuso y se buscó probar la funcionalidad con bloques digitales.
 
-El diseño propuesto puede verse en la @fifth-prototype-design-figure, y se enfocó en la creación de una interfaz gráfica que permitiera a los usuarios interactuar con el entorno de programación tangible de manera intuitiva, facilitando la creación de programas mediante la manipulación de bloques digitales que representaran las futuras piezas físicas. Se decidió llamar a esta interfaz "modo sandbox" del IDE.
+El diseño propuesto puede verse en la #lower[@fifth-prototype-design-figure], y se enfocó en la creación de una interfaz gráfica que permitiera a los usuarios interactuar con el entorno de programación tangible de manera intuitiva, facilitando la creación de programas mediante la manipulación de bloques digitales que representaran las futuras piezas físicas. Se decidió llamar a esta interfaz "modo sandbox" del IDE.
 
-Se implementaron características como la visualización del programa en tiempo real, la posibilidad de arrastrar y soltar bloques para crear programas, y una sección de resultados donde se mostraban los resultados de la ejecución del programa. Además, se buscó crear una experiencia de usuario atractiva mediante el uso de colores y una disposición clara de los elementos en la interfaz. Este prototipo fue desarrollado en TypeScript, usando la librería React para la construcción de la interfaz gráfica, la librería React Flow para la representación visual de los datos, operaciones y flujos de datos. // Este prototipo puede verse en la @fifth-prototype-figure.
+Se implementaron características como la visualización del programa en tiempo real, la posibilidad de arrastrar y soltar bloques para crear programas, y una sección de resultados donde se mostraban los resultados de la ejecución del programa. Además, se buscó crear una experiencia de usuario atractiva mediante el uso de colores y una disposición clara de los elementos en la interfaz. Este prototipo fue desarrollado en TypeScript, usando la librería React para la construcción de la interfaz gráfica, la librería React Flow para la representación visual de los datos, operaciones y flujos de datos. // Este prototipo puede verse en la #lower[@fifth-prototype-figure].
 
 //TODO: mover esto a objetivo 2 - diseño
 #figure(
@@ -606,9 +647,9 @@ Al finalizar el desarrollo de la interfaz gráfica del modo sandbox, se vió que
 
 Continuando con el prototipo 5, se decidió integrarle la detección de piezas físicas mediante el Kinect v1, por dificultades temporales con el Kinect v2; y el uso de un nuevo modelo de detección de objetos basado en aprendizaje profundo, pues se cambió el diseño de las piezas físicas a usar, requiriendo de un reentrenamiento del modelo. Además, se planteó comenzar la integración con el entorno de ejecución del lenguaje de programación dataflow, optando por la integración mediante WebSockets para la comunicación.
 
-Se llevó a cabo un rediseño de las piezas físicas a usar, buscando cubrir los datos y operaciones que se definieron para el lenguaje, un diseño sencillo de entender y usar para los niños, pero no tan complejo en aras de facilitar la detección por parte del modelo, resultando en un diseño tipo carta. Estas nuevas piezas pueden verse en la @sixth-prototype-pieces-design-figure. Además, también se hicieron modificaciones en la interfaz gráfica del modo sandbox, entre ellas usar colores oscuros, para facilitar la visualización de la proyección del entorno virtual sobre la superficie física.
+Se llevó a cabo un rediseño de las piezas físicas a usar, buscando cubrir los datos y operaciones que se definieron para el lenguaje, un diseño sencillo de entender y usar para los niños, pero no tan complejo en aras de facilitar la detección por parte del modelo, resultando en un diseño tipo carta. Estas nuevas piezas pueden verse en la #lower[@sixth-prototype-pieces-design-figure]. Además, también se hicieron modificaciones en la interfaz gráfica del modo sandbox, entre ellas usar colores oscuros, para facilitar la visualización de la proyección del entorno virtual sobre la superficie física.
 
-Al entrenar el nuevo modelo de detección de objetos, se comenzó con el modelo YOLOv11-nano, con un dataset en el que las _bounding boxes_ comprendían toda la carta, incluyendo las etiquetas ("Operador", "Resta", "Tortuga", etc.), áreas blancas alrededor de la pieza, e imagen de la pieza; este modelo tenía dificultades para detectar las piezas, principalmente por la confusión entre clases, por lo que se decidió ajustar las _bounding boxes_ para que solo comprendieran el área de la imagen de la pieza, sin incluir las etiquetas ni áreas blancas, lo que llevó a una pequeña mejora en la detección, pero sin llegar a los resultados esperados. Finalmente, se cambió al modelo YOLOv11-small, una versión ligeramente más pesada y potente de YOLO que el nano, que ofrece una mejora significativa en la precisión de detección, lo que permitió obtener resultados satisfactorios en la detección de las piezas físicas. Además, se implementó una integración básica con el entorno de ejecución del lenguaje de programación dataflow mediante WebSockets, enviando las piezas reconocidas al entorno, pero sin las conexiones entre estas. Este prototipo puede verse en la @sixth-prototype-figure.
+Al entrenar el nuevo modelo de detección de objetos, se comenzó con el modelo YOLOv11-nano, con un dataset en el que las _bounding boxes_ comprendían toda la carta, incluyendo las etiquetas ("Operador", "Resta", "Tortuga", etc.), áreas blancas alrededor de la pieza, e imagen de la pieza; este modelo tenía dificultades para detectar las piezas, principalmente por la confusión entre clases, por lo que se decidió ajustar las _bounding boxes_ para que solo comprendieran el área de la imagen de la pieza, sin incluir las etiquetas ni áreas blancas, lo que llevó a una pequeña mejora en la detección, pero sin llegar a los resultados esperados. Finalmente, se cambió al modelo YOLOv11-small, una versión ligeramente más pesada y potente de YOLO que el nano, que ofrece una mejora significativa en la precisión de detección, lo que permitió obtener resultados satisfactorios en la detección de las piezas físicas. Además, se implementó una integración básica con el entorno de ejecución del lenguaje de programación dataflow mediante WebSockets, enviando las piezas reconocidas al entorno, pero sin las conexiones entre estas. Este prototipo puede verse en la #lower[@sixth-prototype-figure].
 
 //TODO: mover esto a objetivo 2 - diseño
 #figure(
