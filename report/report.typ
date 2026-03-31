@@ -295,8 +295,17 @@ Park et al. (2015) definen la realidad aumentada espacial como una tecnología q
 // Capítulo III
 = Capítulo III. Marco Metodológico
 
-== Tipo de Investigación
-Investigación proyectiva (Hurtado, 2010)
+== Tipo de investigación
+
+El presente trabajo se clasifica como investigación proyectiva. Hurtado de Barrera (2010) define este holotipo como aquel que culmina en la elaboración de una propuesta, un plan, un programa, un procedimiento o un artefacto orientado a resolver una necesidad o un problema de carácter práctico en un ámbito determinado del conocimiento; enfoque frecuente en el campo de la tecnología, donde se abordan aplicaciones concretas y se responde al cómo hacer las cosas. La investigación proyectiva se distingue de un proyecto factible que se limitaría a pasar del diagnóstico a la propuesta sin recorrer los estadios analíticos, comparativos, explicativos y predictivos que permiten fundamentar el diseño: omitirlos implica riesgos para la pertinencia y el alcance de lo propuesto (Hurtado de Barrera, 2010). Por tanto, la conveniencia de este tipo de investigación aquí radica en que el aporte central consiste en diseñar y sustentar un ambiente integrado de programación tangible con realidad aumentada espacial, a partir del diagnóstico y del análisis previos, y no en un relato meramente descriptivo del uso de dichas herramientas.
+
+=== Técnicas e instrumentos de recolección de datos
+
+Arias (2012) sostiene que las técnicas de recolección de datos son los métodos establecidos para recopilar información, mientras que los instrumentos son cualquier herramienta, dispositivo o formato empleado para recoger esa información. De este modo, la elección de instrumentos queda justificada en la medida en que cada uno cumple una función concreta de registro o captura al servicio de la técnica aplicada: el instrumento materializa la técnica y hace auditable el proceso de recolección.
+
+Para la técnica de revisión documental o análisis documental se utilizaron, como instrumentos en el sentido de Arias (2012), las propias fuentes escritas y digitales consultadas (artículos, libros, informes de trabajos de grado, documentación técnica, material audiovisual especializado), en tanto formatos mediante los cuales la información alcanzó al investigador y pudo ser sistematizada para el marco teórico, el estado del arte y los criterios de diseño.
+
+Para la técnica de entrevista semiestructurada, Arias (2012) describe la entrevista como una conversación en torno a un tema que permite obtener los datos requeridos; el enfoque semiestructurado combina un guion con preguntas predeterminadas y preguntas abiertas o de profundización. Los instrumentos empleados fueron el guion de entrevista, en cuanto formato que asegura cobertura del tema y comparabilidad; el cuaderno de notas, como soporte para el registro escrito de respuestas y observaciones durante el encuentro; y el teléfono móvil u otro dispositivo autorizado para grabación de audio, en tanto herramienta que preserva la literalidad del discurso con el consentimiento de las personas entrevistadas.
 
 == Técnicas e Instrumentos de Recolección de Datos
 Revisión documental, entrevistas semiestructuradas
