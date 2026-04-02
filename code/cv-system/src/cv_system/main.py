@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import numpy as np
 
 from cv_system.bridge import WebSocketBridge, TouchEvent
+from cv_system.calibration.marker_projector import MarkerProjector
 from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.detection.touch_detector import TouchDetector
@@ -48,7 +49,9 @@ def run_websocket_client(bridge: WebSocketBridge) -> None:
         logger.info("WebSocket connected successfully")
 
         # Listen for messages (this blocks until connection closes)
-        loop.run_until_complete(bridge.ws.wait_closed() if bridge.ws else asyncio.Future())
+        loop.run_until_complete(
+            bridge.ws.wait_closed() if bridge.ws else asyncio.Future()
+        )
 
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
@@ -149,7 +152,9 @@ def main() -> None:
 
         # Check if WebSocket is connected
         if ws_bridge.state.value != "CONNECTED":
-            print(f"  WARNING: WebSocket not connected (state: {ws_bridge.state.value})")
+            print(
+                f"  WARNING: WebSocket not connected (state: {ws_bridge.state.value})"
+            )
             print("  Continuing without WebSocket communication...")
 
         # Step 5: Run detection loop
@@ -159,6 +164,14 @@ def main() -> None:
         frame_count = 0
         start_time = time.time()
 
+        PROJ_W, PROJ_H = 1920, 1080
+
+        cv2.namedWindow("Projector View", cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(
+            "Projector View", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
+        )
+        cv2.moveWindow("Projector View", 1920, 0)
+
         while True:
             try:
                 # Capture depth frame
@@ -167,11 +180,16 @@ def main() -> None:
                 # Detect touches in camera space
                 touches_camera = detector.detect(depth_frame)
 
+                # print("Touches detected in camera space:")
+                # print(touches_camera)
+
+                # 1. Crear el lienzo negro (Fondo de la pantalla del proyector)
+                # Usamos 3 canales (BGR) para poder dibujar en verde
+                canvas = np.zeros((PROJ_H, PROJ_W, 3), dtype=np.uint8)
+
                 # Transform touches to projector space
                 if touches_camera:
-                    # Convert list of tuples to numpy array with shape (N, 1, 2)
                     touches_camera_np = np.array(touches_camera, dtype=np.float32)
-                    touches_camera_np = touches_camera_np[:, np.newaxis, :]
 
                     # Transform to projector space
                     touches_projector = transformer.camera_to_projector(
@@ -181,28 +199,53 @@ def main() -> None:
                     # Send touch events via WebSocket
                     for i, (x, y) in enumerate(touches_projector):
                         # Create TouchEvent with timestamp
-                        touch_event = TouchEvent.from_detected_touch(x=float(x), y=float(y))
+                        # Solo procesar si están dentro de los límites del proyector
+                        if 0 <= x < 1920 and 0 <= y < 1080:
+                            touch_event = TouchEvent.from_detected_touch(
+                                x=float(x), y=float(y)
+                            )
+                            # ... enviar por WebSocket ...
 
-                        # Send via WebSocket (if connected)
-                        if ws_bridge.state.value == "CONNECTED" and ws_bridge.ws is not None:
-                            # Send in async context - need to schedule on the event loop
-                            asyncio.run_coroutine_threadsafe(
-                                ws_bridge.send_touch_event(touch_event.to_dict()),
-                                loop=asyncio.get_event_loop()
+                            # Coordenadas como enteros para OpenCV
+                            pos = (int(x), int(y))
+
+                            # Dibujar círculo verde: (Lienzo, Centro, Radio, Color BGR, Grosor)
+                            cv2.circle(
+                                canvas, pos, radius=20, color=(0, 255, 0), thickness=-1
+                            )  # Dibuja un círculo verde en la posición del toque
+
+                            # Print touch coordinates
+                            print(
+                                f"  Frame {frame_count}: Touch {i + 1} at "
+                                f"proj_x={x:.0f}, proj_y={y:.0f}"
                             )
                         else:
-                            logger.warning(
-                                f"Touch {i + 1} at ({x:.1f}, {y:.1f}) - WebSocket not connected, skipping"
-                            )
+                            # Opcional: log para debug
+                            # print(f"Toque fuera de rango: ({x:.1f}, {y:.1f})")
+                            pass
+                        # print(touch_event)
 
-                        # Print touch coordinates
-                        print(
-                            f"  Frame {frame_count}: Touch {i + 1} at "
-                            f"proj_x={x:.0f}, proj_y={y:.0f}"
-                        )
+                        # Send via WebSocket (if connected)
+                        # if ws_bridge.state.value == "CONNECTED" and ws_bridge.ws is not None:
+                        #     # Send in async context - need to schedule on the event loop
+                        #     asyncio.run_coroutine_threadsafe(
+                        #         ws_bridge.send_touch_event(touch_event.to_dict()),
+                        #         loop=asyncio.get_event_loop()
+                        #     )
+                        # else:
+                        #     logger.warning(
+                        #         f"Touch {i + 1} at ({x:.1f}, {y:.1f}) - WebSocket not connected, skipping"
+                        #     )
                 else:
                     if frame_count % 30 == 0:  # Print "no touches" every 30 frames
                         print(f"  Frame {frame_count}: No touches detected")
+
+                # 3. Mostrar la ventana
+                cv2.imshow("Projector View", canvas)
+
+                # 4. Manejo de salida (ESC o 'q')
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
 
                 frame_count += 1
 
@@ -256,5 +299,37 @@ def main() -> None:
                 print(f"  Average FPS: {frame_count / elapsed:.1f}")
 
 
+import cv2
+
 if __name__ == "__main__":
-    main()
+    config_path_str = os.getenv("CONFIG_PATH", "config/session.json")
+    config_path = Path(config_path_str)
+
+    config = load_config(config_path)
+
+    print("\n[1/6] Initializing hardware...")
+    hardware = HardwareManager()
+    try:
+        hardware.initialize(config.camera)
+        print("  Hardware initialized successfully")
+    except HardwareError as e:
+        print(f"  ERROR: {e}")
+        sys.exit(1)
+
+    # Step 2: Run calibration
+    print("\n[2/6] Running calibration...")
+    calibrator = Calibrator(config, hardware)
+    calibration_result = calibrator.run()
+
+    # Print calibration metadata
+    print("\nCalibration metadata:")
+    print(f"  Frames captured: {calibration_result.metadata['num_frames']}")
+    stats = calibration_result.metadata.get("stats", {})
+    if stats:
+        print(f"  DMax mean: {stats.get('mean', 0):.1f} mm")
+        print(f"  DMax std: {stats.get('std', 0):.1f} mm")
+        print(f"  Valid pixel ratio: {stats.get('valid_pixel_ratio', 0):.2%}")
+
+    cv2.waitKey()
+
+    # main()
