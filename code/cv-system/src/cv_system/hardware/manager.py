@@ -84,6 +84,7 @@ class HardwareManager:
                 config.depth_resolution[1],  # width
                 config.depth_resolution[0],  # height
                 config.fps,
+                openni2.PIXEL_FORMAT_DEPTH_1_MM,
             )
             self.depth_stream.set_video_mode(depth_mode)
 
@@ -97,6 +98,7 @@ class HardwareManager:
                 config.rgb_resolution[1],  # width
                 config.rgb_resolution[0],  # height
                 config.fps,
+                openni2.PIXEL_FORMAT_RGB888,
             )
             self.rgb_stream.set_video_mode(rgb_mode)
 
@@ -129,8 +131,8 @@ class HardwareManager:
             raise HardwareError(f"Failed to initialize hardware: {e}") from e
 
     def _find_video_mode(
-        self, stream: VideoStream, width: int, height: int, fps: int
-    ) -> object:
+        self, stream: VideoStream, width: int, height: int, fps: int, pixel_format: int
+    ) -> VideoMode:
         """
         Find the appropriate video mode for a stream.
 
@@ -139,7 +141,7 @@ class HardwareManager:
             width: Desired width in pixels.
             height: Desired height in pixels.
             fps: Desired frames per second.
-
+            pixel_format: The pixel format for the video mode.
         Returns:
             VideoMode object matching the requested parameters.
 
@@ -156,6 +158,7 @@ class HardwareManager:
                 mode.resolutionX == width
                 and mode.resolutionY == height
                 and mode.fps == fps
+                and mode.pixelFormat == pixel_format
             ):
                 return mode
 
