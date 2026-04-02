@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class ConnectionState(str, Enum):
     """Connection states for WebSocket lifecycle tracking."""
+
     DISCONNECTED = "DISCONNECTED"
     CONNECTING = "CONNECTING"
     CONNECTED = "CONNECTED"
@@ -56,6 +57,7 @@ class WebSocketBridge:
         """
         # Get URL from environment variable if not provided
         import os
+
         if url is None:
             url = os.getenv("LANGUAGE_RUNTIME_WS_URL", "ws://localhost:3000/live")
 
@@ -104,8 +106,7 @@ class WebSocketBridge:
         while self.reconnect_enabled:
             try:
                 logger.info(
-                    f"Connecting to {self.url} "
-                    f"(attempt {self._reconnect_attempts + 1})"
+                    f"Connecting to {self.url} (attempt {self._reconnect_attempts + 1})"
                 )
 
                 self.ws = await websockets.connect(self.url)
@@ -146,7 +147,9 @@ class WebSocketBridge:
 
         try:
             async for message in self.ws:
-                logger.debug(f"Received message: {message[:100]}")  # Truncate for logging
+                logger.debug(
+                    f"Received message: {message[:100]}"
+                )  # Truncate for logging
 
                 # Handle different message types
                 if message == "ping":
@@ -191,9 +194,7 @@ class WebSocketBridge:
             RuntimeError: If WebSocket is not connected.
         """
         if self.ws is None or self.state != ConnectionState.CONNECTED:
-            raise RuntimeError(
-                "WebSocket is not connected. Call connect() first."
-            )
+            raise RuntimeError("WebSocket is not connected. Call connect() first.")
 
         # Validate touch event structure
         if "position" not in touch:

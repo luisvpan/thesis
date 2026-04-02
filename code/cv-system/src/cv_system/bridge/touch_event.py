@@ -41,13 +41,9 @@ class TouchEvent:
         """
         # Validate coordinates within projector bounds
         if not (0 <= x < 1920):
-            raise ValueError(
-                f"x-coordinate out of bounds: {x} not in [0, 1920)"
-            )
+            raise ValueError(f"x-coordinate out of bounds: {x} not in [0, 1920)")
         if not (0 <= y < 1080):
-            raise ValueError(
-                f"y-coordinate out of bounds: {y} not in [0, 1080)"
-            )
+            raise ValueError(f"y-coordinate out of bounds: {y} not in [0, 1080)")
 
         # Validate timestamp format (basic check for ISO 8601)
         try:
@@ -63,10 +59,7 @@ class TouchEvent:
         self.position = {"x": round(x, 2), "y": round(y, 2)}
         self.timestamp = timestamp
 
-        logger.debug(
-            f"Created TouchEvent: x={x:.2f}, y={y:.2f}, "
-            f"timestamp={timestamp}"
-        )
+        logger.debug(f"Created TouchEvent: x={x:.2f}, y={y:.2f}, timestamp={timestamp}")
 
     @classmethod
     def from_detected_touch(
