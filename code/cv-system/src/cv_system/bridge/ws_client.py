@@ -214,7 +214,7 @@ class WebSocketBridge:
 
         await self.ws.send(message)
 
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         """
         Gracefully disconnect from WebSocket server.
 
