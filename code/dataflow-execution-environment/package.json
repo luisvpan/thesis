@@ -5,12 +5,18 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"bun run dev:api\" \"bun run dev:web\"",
+    "dev:api": "bun run --filter @dataflow/http-api dev",
+    "dev:web": "bun run --filter thesis-frontend dev",
+    "build": "bun run --filter thesis-frontend build && bun run --filter @dataflow/http-api build",
+    "start": "NODE_ENV=production bun packages/http-api/src/main.ts",
     "typecheck": "bun tsc --noEmit",
     "lint": "echo 'Lint not configured'",
     "format": "echo 'Format not configured'"
   },
   "devDependencies": {
     "@types/bun": "^1.3.10",
+    "concurrently": "^9.1.2",
     "typescript": "^5.9.3"
   }
 }
