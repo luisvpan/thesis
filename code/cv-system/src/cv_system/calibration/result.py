@@ -125,13 +125,13 @@ class CalibrationResult:
 
         # Construct JSON structure
         data = {
-                "version": metadata.get("version", "1.0"),
-                "timestamp": metadata.get("timestamp"),
-                "metadata": metadata,
-                "H": H_list,
-                "dmax_map": dmax_map_list,
-                "camera_corners": camera_corners_list,
-            }
+            "version": metadata.get("version", "1.0"),
+            "timestamp": metadata.get("timestamp"),
+            "metadata": metadata,
+            "H": H_list,
+            "dmax_map": dmax_map_list,
+            "camera_corners": camera_corners_list,
+        }
 
         # Write JSON file with indentation for human readability
         try:
@@ -142,7 +142,9 @@ class CalibrationResult:
             print(f"  Metadata: {list(self.metadata.keys())}")
             print("Calibration result saved successfully")
         except OSError as e:
-            raise OSError(f"Failed to write calibration file to {output_path}: {e}") from e
+            raise OSError(
+                f"Failed to write calibration file to {output_path}: {e}"
+            ) from e
 
     @classmethod
     def load(cls, path: Path | str) -> "CalibrationResult":
@@ -170,9 +172,7 @@ class CalibrationResult:
 
         # Check file exists
         if not input_path.exists():
-            raise FileNotFoundError(
-                f"Calibration file not found at {input_path}"
-            )
+            raise FileNotFoundError(f"Calibration file not found at {input_path}")
 
         # Read JSON file
         try:
@@ -184,15 +184,11 @@ class CalibrationResult:
         try:
             data = json.loads(content)
         except json.JSONDecodeError as e:
-            raise ValueError(
-                f"Invalid JSON in calibration file: {e}"
-            ) from e
+            raise ValueError(f"Invalid JSON in calibration file: {e}") from e
 
         # Validate required fields exist
         required_fields = ["version", "timestamp", "metadata", "H", "dmax_map"]
-        missing_fields = [
-            field for field in required_fields if field not in data
-        ]
+        missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             raise ValueError(
                 f"Missing required fields in calibration file: {missing_fields}"
@@ -204,9 +200,7 @@ class CalibrationResult:
             H = np.array(H_list, dtype=np.float32)
 
             if H.shape != (3, 3):
-                raise ValueError(
-                    f"H has invalid shape {H.shape}, expected (3, 3)"
-                )
+                raise ValueError(f"H has invalid shape {H.shape}, expected (3, 3)")
         except (KeyError, TypeError, ValueError) as e:
             raise ValueError(f"Failed to deserialize H matrix: {e}") from e
 
@@ -242,7 +236,9 @@ class CalibrationResult:
 
         # Create frozen CalibrationResult instance
         # __post_init__ will validate shapes and types
-        result = cls(H=H, dmax_map=dmax_map, camera_corners=camera_corners, metadata=metadata)
+        result = cls(
+            H=H, dmax_map=dmax_map, camera_corners=camera_corners, metadata=metadata
+        )
 
         # Log successful load
         print(f"  H shape: {result.H.shape}")

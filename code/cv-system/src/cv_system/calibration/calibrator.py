@@ -15,6 +15,7 @@ to provide RGB and depth frame capture capability.
 import logging
 import time
 
+import cv2
 import numpy as np
 
 from cv_system.calibration.dmax import compute_depth_stats, generate_dmax_map
@@ -180,7 +181,7 @@ class Calibrator:
             print(f"  Projecting {len(projector_corners)} markers...")
             self.marker_projector.project_markers(projector_corners)
             logger.info("Marker projection complete")
-
+            cv2.waitKey()
             # Step 2: Capture RGB frame
             logger.info("Capturing RGB frame for marker detection")
             print("  Capturing RGB frame...")
@@ -188,6 +189,11 @@ class Calibrator:
             logger.info(
                 f"RGB frame captured: shape={rgb_frame.shape}, dtype={rgb_frame.dtype}"
             )
+
+            # Show rgb frame captured
+            cv2.namedWindow("Captured RGB Frame", cv2.WINDOW_NORMAL)
+            cv2.imshow("Captured RGB Frame", rgb_frame)
+            cv2.waitKey()
 
             # Step 3: Detect markers in RGB frame
             logger.info("Detecting markers in RGB frame")
@@ -266,6 +272,7 @@ class Calibrator:
         def capture_frame() -> "np.ndarray":
             try:
                 depth_frame = self.hardware_manager.get_depth_frame()
+
                 return depth_frame
             except HardwareError as e:
                 raise RuntimeError(f"Failed to capture depth frame: {e}") from e

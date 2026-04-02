@@ -7,6 +7,7 @@ Refactored from histogram-based approach to direct mode estimation using scipy.s
 No depth_range filtering — captures full depth range without quantization loss.
 """
 
+import time
 from typing import Callable
 
 import numpy as np
@@ -51,7 +52,7 @@ def generate_dmax_map(
     frame_stack = np.zeros((num_frames, height, width), dtype=np.uint16)
 
     captured_count = 0
-    start_time = 0.0
+    start_time = time.perf_counter()
 
     print(f"Capturing {num_frames} frames for dmax_map generation (direct mode)...")
 
@@ -67,12 +68,11 @@ def generate_dmax_map(
 
             # Direct assignment to frame stack (no binning)
             frame_stack[i] = frame
-
             captured_count += 1
 
             # Progress feedback
             if (i + 1) % 100 == 0:
-                elapsed = 0.0 - start_time
+                elapsed = time.perf_counter() - start_time
                 fps = (i + 1) / elapsed if elapsed > 0 else 0
                 print(f"  Captured {i + 1}/{num_frames} frames ({fps:.1f} fps)")
 
@@ -83,7 +83,7 @@ def generate_dmax_map(
             print(f"Warning: Failed to capture frame {i + 1}: {e}")
             continue
 
-    elapsed = 0.0 - start_time
+    elapsed = time.perf_counter() - start_time
     print(
         f"Captured {captured_count}/{num_frames} frames in {elapsed:.2f}s "
         f"({captured_count / elapsed if elapsed > 0 else 0:.1f} fps)"
@@ -96,22 +96,21 @@ def generate_dmax_map(
     # axis=0 computes mode along time axis (frames)
     # nan_policy='omit' excludes invalid depth readings (NaN, out-of-range)
     # keepdims=False ensures output is 2D (height, width), not reduced to 1D
-    mode_result = stats.mode(frame_stack, axis=0, nan_policy='omit', keepdims=False)
+    mode_result = stats.mode(frame_stack, axis=0, nan_policy="omit", keepdims=False)
 
     # Extract mode array
-    dmax_map = mode_result.mode[0]
+    dmax_map = mode_result.mode
 
     # Convert to uint16 (depth range is 0-65535mm)
     dmax_map = dmax_map.astype(np.uint16)
 
-    # Handle edge case: pixels with zero valid count are invalid (0)
-    # mode_result.count has the count of the mode value for each pixel
-    max_counts = mode_result.count[0]
-    dmax_map[max_counts == 0] = 0
-
     mode_time_ms = (elapsed * 1000) if elapsed > 0 else 0
 
-    print(f"dmax_map generated: shape={dmax_map.shape}, dtype={dmax_map.dtype}, mode computed in {mode_time_ms:.0f}ms")
+    print(
+        f"dmax_map generated: shape={dmax_map.shape}, dtype={dmax_map.dtype}, mode computed in {mode_time_ms:.0f}ms"
+    )
+
+    return dmax_map
 
 
 def compute_depth_stats(

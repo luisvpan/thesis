@@ -37,7 +37,7 @@ class MarkerDetector:
         max_area: Maximum contour area in pixels (default: 40000, ~200x200).
         aspect_ratio_tolerance: Max deviation from 1.0 for square detection
             (default: 0.3, allows 0.7-1.3 ratio).
-        threshold_value: Threshold value for white detection (default: 200,
+        threshold_value: Threshold value for white detection (default: 190,
             0-255 range, higher = stricter).
     """
 
@@ -180,7 +180,7 @@ class MarkerDetector:
         except ImportError as e:
             raise ImportError(
                 "OpenCV (cv2) is required for marker detection. "
-                "Install with: pip install opencv-python"
+                "Install with: uv add opencv-python"
             ) from e
 
         # Convert to grayscale
@@ -194,10 +194,34 @@ class MarkerDetector:
             f"white_pixels={np.count_nonzero(binary)}"
         )
 
+        cv2.namedWindow("Marker Detection - Grayscale", cv2.WINDOW_NORMAL)
+        cv2.imshow("Marker Detection - Grayscale", binary)
+        cv2.waitKey()
+
+        gray_normalized = cv2.normalize(
+            binary, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U
+        )  # type: ignore
+
+        cv2.namedWindow("Marker Detection - Grayscale Normalized", cv2.WINDOW_NORMAL)
+        cv2.imshow("Marker Detection - Grayscale Normalized", gray_normalized)
+        cv2.waitKey()
+
         # Find contours
         contours, hierarchy = cv2.findContours(
-            binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            gray_normalized, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
+        print(len(contours))
+        # Show contours in the gray normalized image for debugging
+        rgb_with_contours = rgb_frame.copy()
+        cv2.drawContours(rgb_with_contours, contours, -1, (0, 255, 0), 3)
+
+        cv2.namedWindow(
+            "Marker Detection - Grayscale Normalized With Contours", cv2.WINDOW_NORMAL
+        )
+        cv2.imshow(
+            "Marker Detection - Grayscale Normalized With Contours", rgb_with_contours
+        )
+        cv2.waitKey()
 
         logger.info(f"Found {len(contours)} contours in thresholded image")
 
@@ -207,7 +231,7 @@ class MarkerDetector:
                 f"Threshold value {self.threshold_value} may be too high or "
                 f"image may not contain white markers."
             )
-
+        full_mask = gray_normalized.copy()
         # Filter contours by size and aspect ratio
         valid_markers = []
         for i, contour in enumerate(contours):
@@ -223,21 +247,23 @@ class MarkerDetector:
             # Get bounding rectangle for aspect ratio check
             x, y, w, h = cv2.boundingRect(contour)
             aspect_ratio = float(w) / h if h > 0 else 0
+            print(aspect_ratio)
 
             # Filter by aspect ratio (should be close to 1.0 for squares)
-            min_ratio = 1.0 - self.aspect_ratio_tolerance
-            max_ratio = 1.0 + self.aspect_ratio_tolerance
-            if aspect_ratio < min_ratio or aspect_ratio > max_ratio:
-                logger.debug(
-                    f"Contour {i}: aspect_ratio={aspect_ratio:.2f} rejected "
-                    f"(outside [{min_ratio:.2f}, {max_ratio:.2f}])"
-                )
-                continue
+            # min_ratio = 1.0 - self.aspect_ratio_tolerance
+            # max_ratio = 1.0 + self.aspect_ratio_tolerance
+            # if aspect_ratio < min_ratio or aspect_ratio > max_ratio:
+            #     logger.debug(
+            #         f"Contour {i}: aspect_ratio={aspect_ratio:.2f} rejected "
+            #         f"(outside [{min_ratio:.2f}, {max_ratio:.2f}])"
+            #     )
+            #     continue
 
             # Check color (should be white in the original RGB frame)
             # Sample the center of the contour
             mask = np.zeros(gray.shape, dtype=np.uint8)
             cv2.drawContours(mask, [contour], 0, 255, -1)
+            cv2.drawContours(full_mask, [contour], -1, (0, 255, 0), 2)
             mean_val = cv2.mean(rgb_frame, mask=mask)[:3]
             avg_brightness = sum(mean_val) / 3.0
 
@@ -272,7 +298,9 @@ class MarkerDetector:
                 f"Valid marker {len(valid_markers)}: ({centroid_x}, {centroid_y}), "
                 f"area={area}, aspect_ratio={aspect_ratio:.2f}, brightness={avg_brightness:.1f}"
             )
-
+        cv2.namedWindow("Marker Detection - Contour Mask", cv2.WINDOW_NORMAL)
+        cv2.imshow("Marker Detection - Contour Mask", full_mask)
+        cv2.waitKey()
         logger.info(
             f"Filtered to {len(valid_markers)} valid markers from {len(contours)} contours"
         )

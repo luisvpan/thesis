@@ -45,6 +45,10 @@ class MarkerProjector:
     # OpenCV window name for the marker projection
     WINDOW_NAME = "Calibration Markers"
 
+    # TODO: consider if it's needed to move this configuration to config file
+    # Position to move the window
+    WINDOW_DISPLAY_POSITION = (1920, 0)
+
     def __init__(
         self,
         resolution: tuple[int, int] | None = None,
@@ -103,9 +107,12 @@ class MarkerProjector:
         destroy_window() or the program exits.
 
         Args:
-            projector_corners: List of 4 (x, y) tuples specifying the center
-                positions of the white square markers. Each corner must be
-                within the image bounds.
+            projector_corners: List of 4 (x, y) tuples specifying the positions
+                of the white square markers, going from top-left, top-right,
+                bottom-left, to bottom-right. Each corner must be within the image
+                bounds. What is represented by the position depends on the specific
+                corner, e.x., the top-left corner of the top-left marker should be
+                at the first specified (x, y) tuple.
 
         Returns:
             The OpenCV window handle for the fullscreen window.
@@ -144,20 +151,17 @@ class MarkerProjector:
                     f"got ({x}, {y})"
                 )
 
-            x_int = int(x)
-            y_int = int(y)
-
             # Validate coordinates are within bounds
             width, height = self.resolution
-            if x_int < 0 or x_int >= width:
+            if x < 0 or x > width:
                 raise ValueError(
                     f"projector_corners[{i}] x-coordinate out of bounds: "
-                    f"{x_int} not in [0, {width})"
+                    f"{x} not in [0, {width}]"
                 )
-            if y_int < 0 or y_int >= height:
+            if y < 0 or y > height:
                 raise ValueError(
                     f"projector_corners[{i}] y-coordinate out of bounds: "
-                    f"{y_int} not in [0, {height})"
+                    f"{y} not in [0, {height}]"
                 )
 
         logger.info(f"Validated {len(projector_corners)} projector corners")
@@ -172,20 +176,38 @@ class MarkerProjector:
 
         # Draw white squares at each corner position
         for i, (x, y) in enumerate(projector_corners):
-            x_int, y_int = int(x), int(y)
+            x_center, y_center = int(x), int(y)
             half_size = self.marker_size // 2
 
+            match i:
+                case 0:  # top-left corner
+                    x_center += half_size
+                    y_center += half_size
+                case 1:  # top-right corner
+                    x_center -= half_size
+                    y_center += half_size
+                case 2:  # bottom-left corner
+                    x_center += half_size
+                    y_center -= half_size
+                case 3:  # bottom-right corner
+                    x_center -= half_size
+                    y_center -= half_size
+
             # Calculate square bounds (clipped to image bounds)
-            x1 = max(0, x_int - half_size)
-            y1 = max(0, y_int - half_size)
-            x2 = min(width, x_int + half_size)
-            y2 = min(height, y_int + half_size)
+            x1 = max(0, x_center - half_size)
+            y1 = max(0, y_center - half_size)
+            x2 = min(width, x_center + half_size)
+            y2 = min(height, y_center + half_size)
+
+            print(
+                f"Drawing marker {i + 1} at ({x_center}, {y_center}), bounds=(({x1}, {y1}), ({x2}, {y2}))"
+            )
 
             # Draw white square
             image[y1:y2, x1:x2] = [255, 255, 255]
 
             logger.debug(
-                f"Drew marker {i + 1} at ({x_int}, {y_int}), "
+                f"Drew marker {i + 1} at ({x_center}, {y_center}), "
                 f"bounds=({x1}, {y1}, {x2}, {y2})"
             )
 
@@ -201,13 +223,14 @@ class MarkerProjector:
             ) from e
 
         # Create fullscreen window
-        cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_FULLSCREEN)
+        cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_NORMAL)
+        cv2.moveWindow(self.WINDOW_NAME, *self.WINDOW_DISPLAY_POSITION)
+        cv2.setWindowProperty(
+            self.WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
+        )
 
         # Display the image
         cv2.imshow(self.WINDOW_NAME, image)
-
-        # Process pending events to ensure window appears
-        cv2.waitKey(1)
 
         logger.info(
             f"Projected markers fullscreen: window='{self.WINDOW_NAME}', "

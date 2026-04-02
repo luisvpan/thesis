@@ -115,12 +115,17 @@ class TouchDetector:
             raise ValueError(f"depth_frame dtype {depth_frame.dtype} must be uint16")
 
         # Compute depth difference using int16 to avoid overflow
-        # Lower depth values mean closer to the camera
-        diff = depth_frame.astype(np.int16) - self._dmax_map.astype(np.int16)
+        # Higher depth values mean closer to the camera
+        diff = self._dmax_map - depth_frame
 
         # Create binary mask: pixels significantly closer than dmax
-        # Negative diff means current depth is less than dmax (closer to camera)
-        mask = (diff < -self.touch_threshold).astype(np.uint8) * 255
+        mask = ((diff >= 0) & (diff <= self.touch_threshold)).astype(np.uint8) * 255
+
+        cv2.namedWindow(
+            "Touch Detection Mask", cv2.WINDOW_NORMAL
+        )  # For debugging visualization
+        cv2.imshow("Touch Detection Mask", mask)  # Show depth difference for debugging
+        cv2.waitKey(1)  # Needed to update the window
 
         # Update ring buffer
         N = self.ring_buffer_size
@@ -135,6 +140,31 @@ class TouchDetector:
         # For N frames, need at least (N - N//2) frames to agree
         persistence_threshold = (N - N // 2) * 255
         touch_mask = (accumulated >= persistence_threshold).astype(np.uint8) * 255
+
+        cv2.namedWindow(
+            "Touch Detection Persistence Mask", cv2.WINDOW_NORMAL
+        )  # For debugging visualization
+        cv2.imshow(
+            "Touch Detection Persistence Mask", touch_mask
+        )  # Show depth difference for debugging
+        cv2.waitKey(1)  # Needed to update the window
+
+        # Aplicar morfología para eliminar ruido y cerrar huecos
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        touch_mask = cv2.morphologyEx(
+            touch_mask,
+            cv2.MORPH_CLOSE,  # Erosión seguida de dilatación
+            kernel,
+            iterations=1,
+        )
+
+        cv2.namedWindow(
+            "Touch Detection Persistence Mask Cleaned", cv2.WINDOW_NORMAL
+        )  # For debugging visualization
+        cv2.imshow(
+            "Touch Detection Persistence Mask Cleaned", touch_mask
+        )  # Show depth difference for debugging
+        cv2.waitKey(1)  # Needed to update the window
 
         # Find connected components
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
