@@ -70,7 +70,7 @@ class CalibrationConfig(BaseModel):
 
     # Four corner points in projector coordinates (y, x)
     # Format: [(y1, x1), (y2, x2), (y3, x3), (y4, x4)]
-    projector_corners: list[Tuple[float, float]] = [
+    projector_corners: list[Tuple[int, int]] = [
         (0, 0),
         (0, 1080),
         (1920, 0),
