@@ -13,6 +13,11 @@
   date: auto,
 )
 
+#set page(
+  paper: "us-letter",
+  margin: (x: 2.54cm, y: 2.54cm),
+)
+
 #let fontSize = 12pt
 #let indent = 1.25cm
 
@@ -108,8 +113,6 @@
 #pagebreak(weak: true)
 
 #set page(
-  paper: "us-letter",
-  margin: (x: 2.54cm, y: 2.54cm),
   footer: context {
     set align(center)
 
