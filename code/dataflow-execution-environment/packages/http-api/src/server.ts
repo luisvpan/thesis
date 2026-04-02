@@ -4,6 +4,7 @@ import { Runtime } from "@dataflow/runtime";
 import type { DataflowProgram, ValidationResult } from "@dataflow/shared/types";
 import { DagValidator } from "@dataflow/compiler";
 import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
+import { visionModule } from "./vision";
 
 const startTime = Date.now();
 const validator = new DagValidator();
@@ -185,6 +186,7 @@ export const app = new Elysia()
   })
   .use(healthRoutes)
   .use(compileRoutes)
-  .use(executeRoutes);
+  .use(executeRoutes)
+  .use(visionModule);
 
 export type App = typeof app;
