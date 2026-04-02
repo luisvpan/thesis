@@ -1,7 +1,7 @@
 #set document(
-  title: "Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años",
+  title: [Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años],
   author: ("Arzolay Rodríguez, Eduardo Javier Isidoro", "Vásquez Paniagua, Luis Daniel"),
-  description: "Este trabajo de investigación se centra en el desarrollo de un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, con el objetivo de fomentar el desarrollo del pensamiento computacional desde edades tempranas. Se aborda la importancia del pensamiento computacional en la educación infantil, se analizan los desafíos asociados al uso de pantallas en niños pequeños, y se propone una solución innovadora que combina elementos físicos y digitales para crear una experiencia de aprendizaje interactiva y atractiva.",
+  description: [Este trabajo de investigación se centra en el desarrollo de un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, con el objetivo de fomentar el desarrollo del pensamiento computacional desde edades tempranas. Se aborda la importancia del pensamiento computacional en la educación infantil, se analizan los desafíos asociados al uso de pantallas en niños pequeños, y se propone una solución innovadora que combina elementos físicos y digitales para crear una experiencia de aprendizaje interactiva y atractiva.],
   keywords: (
     "programación tangible",
     "realidad aumentada espacial",
@@ -13,15 +13,16 @@
   date: auto,
 )
 
+#let fontSize = 12pt
+#let indent = 1.25cm
+
 #set text(
   font: "Times New Roman",
-  size: 12pt,
+  size: fontSize,
   lang: "es",
   region: "VE",
   hyphenate: false,
 )
-
-#set page()
 
 #let leading = 1.5em // Your line spacing (1, 1.5, 2, etc.)
 #let leading = leading - 0.25em // "Normalization"
@@ -31,32 +32,67 @@
   spacing: leading,
 )
 
+#show title: set text(size: fontSize)
+#show heading: set text(size: fontSize)
+#show heading: set block(above: leading, below: leading)
+#show heading.where(level: 1): set align(center)
+#show heading.where(level: 2): set align(left)
+#show heading.where(level: 3): it => pad(left: indent, [#it.body\.])
+#show heading.where(level: 4): it => pad(left: indent, [_#it.body\._])
+#show heading.where(level: 5): it => {
+  set text(style: "italic", weight: "regular")
+  pad(left: indent, it)
+}
+
 #set figure.caption(separator: [.])
 
+#show figure: it => {
+  let leading = 1em // Your line spacing (1, 1.5, 2, etc.)
+  let leading = leading - 0.25em // "Normalization"
+  set par(
+    justify: false,
+    leading: leading,
+    spacing: leading,
+  )
+
+  it
+}
+#show figure.caption: it => align(start + top, it)
+
+#let image-width = 80%
+#show figure.where(kind: image): set image(width: image-width)
+
 // Portada
-// TODO: Cambiar placeholders.
-// TODO: Cambiar estilado, añadir negritas, centrar, etc. Revisar Anexo A1 de la Guía Informe TG.
-*Universidad Católica Andrés Bello* \
-*Facultad de Ingeniería* \
-*Escuela de Ingeniería Informática*
+#grid(
+  align: center,
+  gutter: 1fr,
+  [#image("images/ucab-logo.png")
+    *Universidad Católica Andrés Bello* \
+    *Facultad de Ingeniería* \
+    *Escuela de Ingeniería Informática*],
+  title(),
+  [*Trabajo de Grado* \
+    presentado ante la \
+    #upper[*Universidad Católica Andrés Bello*] \
+    como parte de los requisitos para optar al título de \
+    *Ingeniero en Informática*],
+  grid.cell(align: start + top, grid(
+    columns: (1fr, 1fr),
+    gutter: leading,
+    align: start + top,
+    [Realizado por], [Arzolay Rodríguez, Eduardo Javier Isidoro \ Vásquez Paniagua, Luis Daniel],
+    [Tutor Académico], [Lárez Mata, Jesús José],
+    [Fecha], [Abril, 2026],
+  )),
+)
 
-#title()
-
-*Trabajo de Grado* \
-presentado ante la \
-#upper[*Universidad Católica Andrés Bello*] \
-como parte de los requisitos para optar al título de \
-*Ingeniero en Informática*
-
-// TODO: formato tabla, izquierda realizado por, derecha nombres
-Realizado por | Arzolay Rodríguez, Eduardo Javier Isidoro
-| Vásquez Paniagua, Luis Daniel
-Tutor Académico | Lárez Mata, Jesús José
-Fecha | Mes, Año
+#pagebreak(weak: true)
 
 // Dedicatoria
 // = Dedicatoria
 // A nuestras familias, a las grandes amistades que hicimos en la universidad, a todos los que no lo lograron, y al futuro que nos depara.
+
+#pagebreak(weak: true)
 
 // Agradecimientos
 // = Agradecimientos
@@ -66,8 +102,84 @@ Fecha | Mes, Año
 // Gracias al señor Andrés, por las historias, las anécdotas, las enseñanzas y el constante apoyo y dedicación a todos los que día tras día estamos presentes y trabajando en el salón de prototipos.
 
 #set par(
-  first-line-indent: (amount: 1.25cm, all: true),
+  first-line-indent: (amount: indent, all: true),
 )
+
+#pagebreak(weak: true)
+
+#set page(
+  paper: "us-letter",
+  margin: (x: 2.54cm, y: 2.54cm),
+  footer: context {
+    set align(center)
+
+    let current-page = here().page()
+    if current-page > 1 {
+      counter(page).display("i")
+    }
+  },
+)
+
+#let leading = 1em // Your line spacing (1, 1.5, 2, etc.)
+#let leading = leading - 0.25em // "Normalization"
+#set par(
+  justify: true,
+  leading: leading,
+  spacing: leading,
+)
+
+// Índice
+#context {
+  let headings = query(heading)
+  let tables = query(figure.where(kind: table))
+  let images = query(figure.where(kind: image))
+
+  let indexables = (
+    (list: headings, title: [Índice de Contenido], target: heading),
+    (list: tables, title: [Índice de Tablas], target: figure.where(kind: table)),
+    (list: images, title: [Índice de Figuras], target: figure.where(kind: image)),
+  )
+
+  for (list, title, target) in indexables {
+    if list.len() > 0 [
+      #outline(
+        title: title,
+        target: target,
+      )
+    ]
+  }
+}
+
+#pagebreak(weak: true)
+
+#let leading = 1.5em // Your line spacing (1, 1.5, 2, etc.)
+#let leading = leading - 0.25em // "Normalization"
+#set par(
+  justify: true,
+  leading: leading,
+  spacing: leading,
+)
+
+#counter(page).update(1)
+
+#set page(
+  header: context {
+    let is-chapter = query(heading.where(level: 1))
+      .filter(h => h.location().page() == here().page())
+      .any(h => ("Capítulo" in h.body.text or "Introducción" in h.body.text))
+
+    if not is-chapter {
+      set align(right)
+      counter(page).display()
+    }
+  },
+  footer: auto,
+)
+
+// Introducción
+//= Introducción
+
+#pagebreak(weak: true)
 
 // Capítulo I
 = Capítulo I. El Problema
@@ -151,11 +263,11 @@ Se presenta una propuesta que permite a los niños acceder a un ambiente de apre
 
 === Beneficiarios
 
-==== Niños entre 6 y 9 años de edad.
+==== Niños entre 6 y 9 años de edad
 
 Fomenta el desarrollo del pensamiento computacional en los niños desde edades tempranas, lo cual puede influir positivamente en su rendimiento académico y en su habilidad para resolver problemas lógicos.
 
-==== Profesores de primeros grados de educación básica.
+==== Profesores de primeros grados de educación básica
 
 Cuentan con una herramienta útil que facilita el proceso de enseñanza-aprendizaje a niños mediante una experiencia interactiva.
 
@@ -171,10 +283,12 @@ Aumenta el número de jóvenes y adultos con competencias necesarias para accede
 
 Promueve conocimientos básicos de aritmética en adultos, fomentando el aprendizaje desde la infancia a través de juegos interactivos.
 
+#pagebreak(weak: true)
+
 // Capítulo II
 = Capítulo II. Marco Teórico
 
-== Antecedentes de investigación
+== Antecedentes de Investigación
 // TODO: Acomodarlos al formato pedido en la Guía.
 === Entorno de robótica educativa multiagente orientado a favorecer el desarrollo del pensamiento computacional en jóvenes cursantes de educación media.
 
@@ -292,10 +406,12 @@ Park et al. (2015) definen la realidad aumentada espacial como una tecnología q
 // === Visión por computador.
 // EDS Robotics (2022) la define como “un grupo de tecnologías o herramientas que permiten a los equipos captar imágenes del mundo real, procesarlas y generar información a través de ellas”. Gracias a estas tecnologías, se puede obtener información del entorno físico para posteriormente ser procesada y plasmada en una pantalla de entorno digital. Esta información se capta a través de un sensor, que envía las imágenes o datos a un dispositivo de interpretación que busca reconocer patrones previamente obtenidos.
 
+#pagebreak(weak: true)
+
 // Capítulo III
 = Capítulo III. Marco Metodológico
 
-== Tipo de investigación
+== Tipo de Investigación
 
 El presente trabajo se clasifica como investigación proyectiva. Hurtado de Barrera (2010) define este holotipo como aquel que culmina en la elaboración de una propuesta, plan, programa, procedimiento o artefacto, que esté orientado a resolver una necesidad o problema de carácter práctico en un ámbito determinado del conocimiento; siendo un enfoque frecuente en el campo de la tecnología, donde el objetivo es responder al cómo hacer las cosas mediante aplicaciones concretas. Para alcanzar ese resultado, la investigación proyectiva no parte directamente de una idea hacia su implementación, sino que recorre estadios previos, analíticos, comparativos, explicativos y predictivos; que fundamentan y justifican las decisiones de diseño.
 
@@ -330,10 +446,12 @@ Según Pressman (2010), el enfoque basado en prototipos está enmarcado dentro d
 Las iteraciones continúan mientras se busca que los prototipos que se construyan se acerquen cada vez más a cumplir con las necesidades de los interesados, lo que a su vez ayuda a comprender mejor qué se necesita como producto final. Así pues, los prototipos funcionan como un mecanismo para definir los requerimientos del sistema, reducir riesgos y, dependiendo de cómo se construyan, ser descartados o evolucionar hasta convertirse en el producto final.
 En este caso, se utilizó como base el trabajo de investigación “Entorno de Realidad Aumentada Espacial para el Desarrollo de Juegos Sociales Dirigidos a Niños de Educación Preescolar”, que sirvió como punto de partida para el modelado y diseño de los primeros prototipos. A partir de los resultados obtenidos con los prototipos, se definieron los requerimientos finales del entorno a desarrollar.
 
+#pagebreak(weak: true)
+
 // Capítulo IV
 = Capítulo IV. Desarrollo y Resultados
 
-== Analizar el uso de programación tangible en entornos de realidad aumentada, a fin de caracterizar el ambiente a desarrollar
+== Analizar el Uso de Programación Tangible en Entornos de Realidad Aumentada, a fin de Caracterizar el Ambiente a Desarrollar
 
 Durante el análisis previo al desarrollo de este trabajo, se llevó a cabo una revisión de los conceptos fundamentales que sustentan el ambiente, con el propósito de caracterizar con precisión las decisiones de diseño que lo definen. Esta revisión se estructuró en torno a dos ejes complementarios: por un lado, los fundamentos teóricos del pensamiento computacional y su desarrollo desde edades tempranas; por el otro, la evaluación del estado del arte en el uso de ambientes de programación tangible y entornos de realidad aumentada espacial como estrategias para fomentar el desarrollo de ese pensamiento en niños.
 
@@ -389,7 +507,7 @@ A partir de las características definidas, y con el propósito de guiar el dise
 + El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales.
 + La retroalimentación debe ser presentada de forma visual y auditiva.
 
-== Diseñar un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en función del análisis realizado
+== Diseñar un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Función del Análisis Realizado
 
 Este capítulo describe el diseño del ambiente de aprendizaje y del lenguaje de programación tangible denominado ERAE, en coherencia con los requerimientos funcionales y no funcionales del sistema. Se distingue deliberadamente lo pedagógico y físico del ambiente, la arquitectura lógica del software, la especificación conceptual y formal del lenguaje, y la forma en que el compilador y el entorno de ejecución se integran con otros subsistemas.
 
@@ -541,7 +659,7 @@ La guía incluye actividades modelo con problemas y soluciones de referencia ela
 
 //TODO: La gramática EBNF completa, el inventario exhaustivo de literales para tipos curriculares y los ejemplos de programas en distintos dominios pueden incorporarse como anexo al trabajo de grado o mantenerse en un documento de especificación separado (Diseño del Lenguaje ERAE), citado desde este capítulo. Cualquier divergencia futura entre implementación y especificación debe resolverse actualizando primero la especificación y luego el texto del diseño, para conservar trazabilidad académica.
 
-== Construir un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en base al diseño realizado
+== Construir un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Base al Diseño Realizado
 
 === Prototipo 1
 
@@ -684,16 +802,30 @@ Con este prototipo terminado, se vió que la integración de la detección de pi
 // === Prototipo n (integración final, no existe todavía)
 
 
-// == Validar el ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido
+// == Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
 
 
-// == Realizar la documentación formal del ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido
+// == Realizar la Documentación Formal del Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
+
+#pagebreak(weak: true)
 
 // Capítulo V
-= Capítulo V. Conclusiones y Recomendaciones
+// = Capítulo V. Conclusiones y Recomendaciones
 
 // Analizar el uso de programación tangible en entornos de realidad aumentada, a fin de caracterizar el ambiente a desarrollar.
 // Diseñar un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en función del análisis realizado.
 // Construir un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, en base al diseño realizado.
 // Validar el ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
 // Realizar la documentación formal del ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
+
+#pagebreak(weak: true)
+
+// = Referencias bibliográficas
+
+#pagebreak(weak: true)
+
+// = Apéndices
+
+#pagebreak(weak: true)
+
+// = Anexos
