@@ -175,10 +175,10 @@ def main() -> None:
         while True:
             try:
                 # Capture depth frame
-                depth_frame = hardware.get_depth_frame()
+                depth_frame, rgb_frame = hardware.get_depth_frame(), hardware.get_rgb_frame()
 
                 # Detect touches in camera space
-                touches_camera = detector.detect(depth_frame)
+                touches_camera = detector.detect(depth_frame, rgb_frame)
 
                 # print("Touches detected in camera space:")
                 # print(touches_camera)

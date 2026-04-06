@@ -1,194 +1,108 @@
-"""
-Touch detector with ring buffer for temporal filtering.
-
-This module implements a touch detection system that compares depth frames against
-a dmax_map (maximum depth map representing the table surface). It uses a ring buffer
-to accumulate temporal information and filter out transient noise.
-"""
-
-import cv2
+import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 import numpy as np
-
+import cv2
+import time
 
 class TouchDetector:
-    """
-    Detects touch points by comparing depth frames against a calibrated dmax_map.
-
-    The detector uses a ring buffer for temporal filtering to reduce noise and
-    improve detection reliability. Objects closer to the camera than the table
-    surface (i.e., with depth values significantly lower than dmax_map) are
-    identified as potential touch points.
-
-    Attributes:
-        dmax_map: Read-only array representing the maximum depth at each pixel (uint16).
-        ring_buffer_size: Number of frames to accumulate for temporal filtering.
-        touch_threshold: Depth difference threshold (mm) to detect foreground objects.
-        min_touch_size: Minimum touch area (pixels) to filter out noise.
-        max_touch_size: Maximum touch area (pixels) to filter out large objects.
-    """
-
     def __init__(self, dmax_map: np.ndarray, config):
-        """
-        Initialize the TouchDetector with a dmax_map and detection configuration.
+        self._dmax_map = dmax_map
+        self.touch_threshold = getattr(config, "touch_threshold", 20)
+        self.latest_result = None
+        self.FINGER_TIPS = [4, 8, 12, 16, 20]
+        
+        # ROI - Ajusta estos para tu mesa
+        self.roi_x, self.roi_y, self.roi_w, self.roi_h = 400, 200, 1100, 700
 
-        Args:
-            dmax_map: Maximum depth map array with shape (424, 512) and dtype uint16.
-                      This represents the calibrated table surface depth.
-            config: DetectionConfig instance containing:
-                    - ring_buffer_size: Number of frames in ring buffer (positive integer)
-                    - touch_threshold: Depth threshold for touch detection (positive integer)
-                    - min_touch_size: Minimum touch area in pixels (positive integer)
-                    - max_touch_size: Maximum touch area in pixels (positive integer)
+        def result_callback(result: vision.HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+            self.latest_result = result
 
-        Raises:
-            ValueError: If dmax_map has incorrect shape, dtype, or if config has invalid values.
-        """
-        # Validate dmax_map
-        if dmax_map.dtype != np.uint16:
-            raise ValueError(f"dmax_map must have dtype uint16, got {dmax_map.dtype}")
-        if dmax_map.shape != (424, 512):
-            raise ValueError(
-                f"dmax_map must have shape (424, 512), got {dmax_map.shape}"
-            )
-
-        # Store dmax_map as read-only
-        self._dmax_map = dmax_map.copy()
-        self._dmax_map.flags.writeable = False
-
-        # Extract and validate config parameters
-        ring_buffer_size = getattr(config, "ring_buffer_size", 5)
-        touch_threshold = getattr(config, "touch_threshold", 20)
-        min_touch_size = getattr(config, "min_touch_size", 10)
-        max_touch_size = getattr(config, "max_touch_size", 5000)
-
-        if ring_buffer_size <= 0:
-            raise ValueError(
-                f"ring_buffer_size must be positive, got {ring_buffer_size}"
-            )
-        if touch_threshold <= 0:
-            raise ValueError(f"touch_threshold must be positive, got {touch_threshold}")
-        if min_touch_size <= 0:
-            raise ValueError(f"min_touch_size must be positive, got {min_touch_size}")
-        if max_touch_size <= 0:
-            raise ValueError(f"max_touch_size must be positive, got {max_touch_size}")
-        if max_touch_size <= min_touch_size:
-            raise ValueError(
-                f"max_touch_size ({max_touch_size}) must be greater than "
-                f"min_touch_size ({min_touch_size})"
-            )
-
-        self.ring_buffer_size = ring_buffer_size
-        self.touch_threshold = touch_threshold
-        self.min_touch_size = min_touch_size
-        self.max_touch_size = max_touch_size
-
-        # Preallocate ring buffer with shape (N, h, w)
-        h, w = dmax_map.shape
-        self._buffer = np.zeros((ring_buffer_size, h, w), dtype=np.uint8)
-        self._idx = 0
-
-    def detect(self, depth_frame: np.ndarray) -> list[tuple[int, int]]:
-        """
-        Detect touch points in a depth frame.
-
-        The method computes the depth difference between the current frame and
-        the dmax_map, applies a threshold to identify foreground objects, and
-        uses temporal filtering via the ring buffer to reduce noise.
-
-        Args:
-            depth_frame: Current depth frame with shape (424, 512) and dtype uint16.
-
-        Returns:
-            List of (x, y) tuples representing touch centroids in camera coordinates.
-            Returns an empty list if no touches are detected.
-
-        Raises:
-            ValueError: If depth_frame shape or dtype doesn't match dmax_map.
-        """
-        # Validate depth_frame
-        if depth_frame.shape != self._dmax_map.shape:
-            raise ValueError(
-                f"depth_frame shape {depth_frame.shape} must match "
-                f"dmax_map shape {self._dmax_map.shape}"
-            )
-        if depth_frame.dtype != np.uint16:
-            raise ValueError(f"depth_frame dtype {depth_frame.dtype} must be uint16")
-
-        # Compute depth difference using int16 to avoid overflow
-        # Higher depth values mean closer to the camera
-        diff = self._dmax_map - depth_frame
-
-        # Create binary mask: pixels significantly closer than dmax
-        mask = ((diff >= 0) & (diff <= self.touch_threshold)).astype(np.uint8) * 255
-
-        cv2.namedWindow(
-            "Touch Detection Mask", cv2.WINDOW_NORMAL
-        )  # For debugging visualization
-        cv2.imshow("Touch Detection Mask", mask)  # Show depth difference for debugging
-        cv2.waitKey(1)  # Needed to update the window
-
-        # Update ring buffer
-        N = self.ring_buffer_size
-        self._buffer[self._idx % N] = mask
-        self._idx += 1
-
-        # Accumulate buffer
-        accumulated = np.sum(self._buffer, axis=0)
-
-        # Apply persistence threshold: majority voting
-        # A pixel is considered a touch if it appears in majority of frames
-        # For N frames, need at least (N - N//2) frames to agree
-        persistence_threshold = (N - N // 2) * 255
-        touch_mask = (accumulated >= persistence_threshold).astype(np.uint8) * 255
-
-        cv2.namedWindow(
-            "Touch Detection Persistence Mask", cv2.WINDOW_NORMAL
-        )  # For debugging visualization
-        cv2.imshow(
-            "Touch Detection Persistence Mask", touch_mask
-        )  # Show depth difference for debugging
-        cv2.waitKey(1)  # Needed to update the window
-
-        # Aplicar morfología para eliminar ruido y cerrar huecos
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        touch_mask = cv2.morphologyEx(
-            touch_mask,
-            cv2.MORPH_CLOSE,  # Erosión seguida de dilatación
-            kernel,
-            iterations=1,
+        base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
+        options = vision.HandLandmarkerOptions(
+            base_options=base_options,
+            running_mode=vision.RunningMode.LIVE_STREAM,
+            result_callback=result_callback,
+            num_hands=2,
+            min_hand_detection_confidence=0.15,
+            min_tracking_confidence=0.5
         )
+        self.detector = vision.HandLandmarker.create_from_options(options)
 
-        cv2.namedWindow(
-            "Touch Detection Persistence Mask Cleaned", cv2.WINDOW_NORMAL
-        )  # For debugging visualization
-        cv2.imshow(
-            "Touch Detection Persistence Mask Cleaned", touch_mask
-        )  # Show depth difference for debugging
-        cv2.waitKey(1)  # Needed to update the window
+    def detect(self, depth_frame: np.ndarray, rgb_frame: np.ndarray) -> list[tuple[int, int]]:
+        rgb_h, rgb_w, _ = rgb_frame.shape
+        depth_h, depth_w = depth_frame.shape
+        
+        # Enviar al detector (usamos un resize interno para bajar latencia si es necesario)
+        roi_rgb = rgb_frame[self.roi_y : self.roi_y + self.roi_h, 
+                            self.roi_x : self.roi_x + self.roi_w]
+        roi_rgb_mp = cv2.cvtColor(roi_rgb, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=roi_rgb_mp)
+        
+        timestamp_ms = int(time.time() * 1000)
+        self.detector.detect_async(mp_image, timestamp_ms)
 
-        # Find connected components
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
-            touch_mask, connectivity=8
-        )
-
-        # Filter by area and extract centroids
         touches = []
-        # stats[0] is the background component, skip it
-        for i in range(1, num_labels):
-            area = stats[i, cv2.CC_STAT_AREA]
-            if self.min_touch_size <= area <= self.max_touch_size:
-                # Centroids are in (x, y) format
-                cx, cy = centroids[i]
-                touches.append((int(cx), int(cy)))
+        debug_img = rgb_frame.copy()
 
+        # Dibujar ROI
+        cv2.rectangle(debug_img, (self.roi_x, self.roi_y), 
+                      (self.roi_x + self.roi_w, self.roi_y + self.roi_h), (255, 255, 0), 1)
+
+        if self.latest_result and self.latest_result.hand_landmarks:
+            for hand_landmarks in self.latest_result.hand_landmarks:
+                # Puntos verdes de tracking
+                for lm in hand_landmarks:
+                    gx = int(lm.x * self.roi_w + self.roi_x)
+                    gy = int(lm.y * self.roi_h + self.roi_y)
+                    cv2.circle(debug_img, (gx, gy), 2, (0, 255, 0), -1)
+
+                for idx in self.FINGER_TIPS:
+                    lm = hand_landmarks[idx]
+                    gx_f = lm.x * self.roi_w + self.roi_x
+                    gy_f = lm.y * self.roi_h + self.roi_y
+                    
+                    # Mapeo a espacio de profundidad
+                    cx = int(gx_f * depth_w / rgb_w)
+                    cy = int(gy_f * depth_h / rgb_h)
+
+                    # ... dentro del bucle de puntas de dedos ...
+                    if 0 <= cx < depth_w and 0 <= cy < depth_h:
+                        # 1. Muestreo de área pequeña para promediar el ruido electrónico
+                        # Un bloque de 3x3 píxeles en 512x424 es muy pequeño pero estable
+                        roi_size = 1
+                        z_roi = depth_frame[max(0, cy-roi_size):cy+roi_size+1, 
+                                            max(0, cx-roi_size):cx+roi_size+1]
+                        
+                        # Filtrar ceros y obtener la mediana (mucho más estable que el valor directo)
+                        valid_z = z_roi[z_roi > 0]
+                        current_z = int(np.median(valid_z)) if valid_z.size > 0 else 0
+                        
+                        surface_z = int(self._dmax_map[cy, cx])
+                        diff = surface_z - current_z
+                        
+                        # 2. Umbral con margen de ruido (Histéresis)
+                        # Ajustamos a -10 para absorber fluctuaciones del sensor
+                        is_touching = False
+                        if -10 <= diff <= self.touch_threshold and current_z > 0:
+                            is_touching = True
+                            touches.append((cx, cy))
+    
+                        # --- DEBUG DE VALORES ---
+                        color = (0, 0, 255) if is_touching else (0, 255, 255)
+                        cv2.circle(debug_img, (int(gx_f), int(gy_f)), 4, color, -1)
+                        
+                        # Marcador visual de lectura nula
+                        if current_z == 0:
+                            debug_text = "NO DATA (Z=0)"
+                            color = (0, 165, 255) # Naranja
+                        else:
+                            debug_text = f"Z:{current_z} M:{surface_z} D:{diff}"
+                        
+                        cv2.putText(debug_img, debug_text, (int(gx_f) + 10, int(gy_f)), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+    
+        cv2.namedWindow("Kinect V2 - Livestream AI Debug", cv2.WINDOW_NORMAL)
+        cv2.imshow("Kinect V2 - Livestream AI Debug", debug_img)
+        cv2.waitKey(1)
         return touches
-
-    def reset(self) -> None:
-        """
-        Clear the ring buffer and reset the frame counter.
-
-        This method is useful for resetting the temporal state when
-        calibration changes or when starting a new session.
-        """
-        self._buffer.fill(0)
-        self._idx = 0
