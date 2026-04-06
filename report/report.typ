@@ -420,16 +420,13 @@ El presente trabajo se clasifica como investigación proyectiva. Hurtado de Barr
 
 Este enfoque resulta pertinente para el presente trabajo porque su contribución principal no es describir el uso de la programación tangible o la realidad aumentada espacial, sino diseñar y construir un ambiente que los integre de forma coherente, sustentado en el diagnóstico y el análisis realizados.
 
-=== Técnicas e instrumentos de recolección de datos
+== Técnicas e instrumentos de recolección de datos
 
 Según Arias (2012), las técnicas de recolección de datos son los métodos establecidos para recopilar información, mientras que los instrumentos son las herramientas, dispositivos o formatos empleados para ello. En este trabajo se recurrió a dos técnicas: la revisión documental y la entrevista semiestructurada.
 
 La revisión documental permitió construir el marco teórico, el estado del arte y los criterios de diseño del ambiente. Las fuentes consultadas incluyeron artículos académicos, libros e informes de trabajos de grado.
 
 La entrevista semiestructurada, descrita por Arias (2012) como una conversación orientada a la obtención de datos que combina preguntas predeterminadas con preguntas abiertas de profundización, se empleó para recoger perspectivas de personas con conocimiento directo del contexto educativo.
-
-== Técnicas e Instrumentos de Recolección de Datos
-Revisión documental, entrevistas semiestructuradas
 
 == Metodología de Desarrollo Utilizada
 Al analizar las características del trabajo de investigación, se consideró el enfoque a adoptar. Dado que no se previó un contacto constante con el cliente y que los requisitos aún no estaban bien definidos, se decidió optar por un enfoque basado en prototipos, con el fin de definir los requerimientos finales a través de los prototipos realizados y sus validaciones.
