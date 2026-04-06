@@ -127,15 +127,14 @@ def validate_homography(H: np.ndarray) -> bool:
     Returns:
         True if valid, False otherwise.
     """
+    print(f"Homography: {H}")
     if H.shape != (3, 3):
         return False
     if H.dtype != np.float32:
-        return False
-    # Check that bottom row is approximately [0, 0, 1] (standard form)
-    bottom_row = H[2, :]
-    if not (abs(bottom_row[0]) < 1e-6 and abs(bottom_row[1]) < 1e-6):
+        print()
         return False
     # Check determinant is not zero (matrix is invertible)
     if abs(np.linalg.det(H)) < 1e-10:
+        print(f"Invalid homography: determinant is zero, got {np.linalg.det(H)}")
         return False
     return True

@@ -9,6 +9,7 @@ pytest.importorskip("cv2", exc_type=ImportError)
 from cv_system.calibration.homography import (
     apply_homography,
     compute_homography,
+    create_homography_validation_frame,
     validate_homography,
 )
 
@@ -156,3 +157,33 @@ def test_homography_roundtrip() -> None:
         expected_x, expected_y = projector_rect[i]
         assert tx == pytest.approx(expected_x, abs=2)
         assert ty == pytest.approx(expected_y, abs=2)
+
+
+def test_create_homography_validation_frame_identity() -> None:
+    """Validation frame should be generated and show near-zero error."""
+    camera = [(100, 100), (700, 100), (700, 500), (100, 500)]
+    projector = [(100, 100), (700, 100), (700, 500), (100, 500)]
+
+    H = compute_homography(camera, projector)
+    frame, metrics = create_homography_validation_frame(
+        H,
+        camera,
+        projector,
+        frame_size=(800, 600),
+    )
+
+    assert frame.shape == (600, 800, 3)
+    assert frame.dtype == np.uint8
+    assert metrics["rms_error_px"] == pytest.approx(0.0, abs=1e-3)
+    assert metrics["mean_error_px"] == pytest.approx(0.0, abs=1e-3)
+    assert metrics["max_error_px"] == pytest.approx(0.0, abs=1e-3)
+
+
+def test_create_homography_validation_frame_requires_four_points() -> None:
+    """Validation frame generator should reject invalid point counts."""
+    camera = [(0, 0), (1, 0), (1, 1), (0, 1)]
+    projector = [(0, 0), (10, 0), (10, 10), (0, 10)]
+    H = compute_homography(camera, projector)
+
+    with pytest.raises(ValueError, match="Exactly 4 points required"):
+        create_homography_validation_frame(H, camera[:3], projector)

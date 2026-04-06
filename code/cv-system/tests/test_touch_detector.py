@@ -5,7 +5,6 @@ Tests cover initialization, detection logic, ring buffer behavior,
 area filtering, and edge cases like overflow handling.
 """
 
-import cv2
 import numpy as np
 import pytest
 
@@ -133,7 +132,8 @@ def test_touch_detector_invalid_touch_sizes(dmax_map):
         max_touch_size=50,
     )
     with pytest.raises(
-        ValueError, match="max_touch_size \\(50\\) must be greater than min_touch_size \\(100\\)"
+        ValueError,
+        match="max_touch_size \\(50\\) must be greater than min_touch_size \\(100\\)",
     ):
         TouchDetector(dmax_map, config)
 
@@ -290,8 +290,6 @@ def test_touch_detector_depth_overflow(dmax_map, detection_config):
     This test ensures that subtracting two uint16 values where result would be
     negative is handled correctly by casting to int16 first.
     """
-    detector = TouchDetector(dmax_map, detection_config)
-
     # Create dmax_map with high value (near uint16 max)
     high_dmax = np.full((424, 512), 65000, dtype=np.uint16)
     detector_high = TouchDetector(high_dmax, detection_config)

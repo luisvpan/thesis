@@ -59,7 +59,9 @@ def test_transformer_initialization(identity_calibration: CalibrationResult) -> 
     np.testing.assert_allclose(transformer.H_inv, expected_inv, rtol=1e-5)
 
 
-def test_camera_to_projector_single_point(identity_calibration: CalibrationResult) -> None:
+def test_camera_to_projector_single_point(
+    identity_calibration: CalibrationResult,
+) -> None:
     """Test transforming a single point from camera to projector space."""
     transformer = CoordinateTransformer(identity_calibration)
 
@@ -73,7 +75,9 @@ def test_camera_to_projector_single_point(identity_calibration: CalibrationResul
     np.testing.assert_allclose(result, point, rtol=1e-5)
 
 
-def test_projector_to_camera_single_point(identity_calibration: CalibrationResult) -> None:
+def test_projector_to_camera_single_point(
+    identity_calibration: CalibrationResult,
+) -> None:
     """Test transforming a single point from projector to camera space."""
     transformer = CoordinateTransformer(identity_calibration)
 
@@ -111,7 +115,9 @@ def test_batch_points(identity_calibration: CalibrationResult) -> None:
     np.testing.assert_allclose(result, points, rtol=1e-5)
 
 
-def test_batch_points_projector_to_camera(identity_calibration: CalibrationResult) -> None:
+def test_batch_points_projector_to_camera(
+    identity_calibration: CalibrationResult,
+) -> None:
     """Test transforming multiple points from projector to camera space."""
     transformer = CoordinateTransformer(identity_calibration)
 
@@ -235,7 +241,9 @@ def test_invalid_dtype_raises(identity_calibration: CalibrationResult) -> None:
     assert "float32" in str(exc_info.value)
 
 
-def test_invalid_shape_missing_dimension(identity_calibration: CalibrationResult) -> None:
+def test_invalid_shape_missing_dimension(
+    identity_calibration: CalibrationResult,
+) -> None:
     """Test that passing shape (1,2) instead of (1,1,2) raises ValueError."""
     transformer = CoordinateTransformer(identity_calibration)
 
@@ -249,7 +257,9 @@ def test_invalid_shape_missing_dimension(identity_calibration: CalibrationResult
     assert "(N,1,2)" in str(exc_info.value)
 
 
-def test_invalid_shape_wrong_coordinates(identity_calibration: CalibrationResult) -> None:
+def test_invalid_shape_wrong_coordinates(
+    identity_calibration: CalibrationResult,
+) -> None:
     """Test that passing wrong number of coordinates raises ValueError."""
     transformer = CoordinateTransformer(identity_calibration)
 

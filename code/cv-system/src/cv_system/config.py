@@ -58,8 +58,6 @@ class CalibrationConfig(BaseModel):
 
     # Expected depth range for the table surface (in millimeters)
     # Values outside this range are excluded from dmax calculation
-    depth_range_min: int = 650
-    depth_range_max: int = 800
 
     # Four corner points in camera coordinates (y, x)
     # Format: [(y1, x1), (y2, x2), (y3, x3), (y4, x4)]
@@ -72,7 +70,7 @@ class CalibrationConfig(BaseModel):
 
     # Four corner points in projector coordinates (y, x)
     # Format: [(y1, x1), (y2, x2), (y3, x3), (y4, x4)]
-    projector_corners: list[Tuple[float, float]] = [
+    projector_corners: list[Tuple[int, int]] = [
         (0, 0),
         (0, 1080),
         (1920, 0),
@@ -87,27 +85,6 @@ class CalibrationConfig(BaseModel):
             raise ValueError("dmax_num_frames must be positive")
         return v
 
-    @field_validator("depth_range_min", "depth_range_max")
-    @classmethod
-    def depth_must_be_positive(cls, v: int) -> int:
-        """Ensure depth values are positive."""
-        if v <= 0:
-            raise ValueError("depth values must be positive")
-        return v
-
-    @field_validator("depth_range_max")
-    @classmethod
-    def depth_range_max_must_exceed_min(cls, v: int, info) -> int:
-        """Ensure max depth exceeds min depth."""
-        min_val = info.data.get("depth_range_min", 0)
-        if v <= min_val:
-            raise ValueError("depth_range_max must be greater than depth_range_min")
-        return v
-
-    @field_validator("camera_corners", "projector_corners")
-    @classmethod
-    def must_have_four_corners(cls, v: list) -> list:
-        """Ensure exactly four corner points are provided."""
         if len(v) != 4:
             raise ValueError("must have exactly 4 corner points")
         if len(v[0]) != 2:

@@ -51,16 +51,16 @@ class CoordinateTransformer:
         """Transform point(s) from camera space to projector space.
 
         Args:
-            point: Input point(s) as a numpy array with shape (N, 1, 2) where N is
+            point: Input point(s) as a numpy array with shape (N, 2) where N is
                 the number of points. Must have dtype float32.
 
         Returns:
-            Transformed point(s) with same shape (N, 1, 2) and dtype float32.
+            Transformed point(s) with same shape (N, 2) and dtype float32.
 
         Raises:
             ValueError: If point.dtype is not float32.
-            ValueError: If point.ndim != 3.
-            ValueError: If point.shape[2] != 2 (expected 2D coordinates).
+            ValueError: If point.ndim != 2.
+            ValueError: If point.shape[1] != 2 (expected 2D coordinates).
         """
         # Validate dtype
         if point.dtype != np.float32:
@@ -70,39 +70,43 @@ class CoordinateTransformer:
             )
 
         # Validate dimensions
-        if point.ndim != 3:
+        if point.ndim != 2:
             raise ValueError(
-                f"Expected 3D array (N,1,2) for batch dimension, got {point.ndim}D array. "
-                f"Expected shape (N,1,2), got {point.shape}."
+                f"Expected 2D array (N,2) for batch dimension, got {point.ndim}D array. "
+                f"Expected shape (N,2), got {point.shape}."
             )
 
         # Validate shape
-        if point.shape[2] != 2:
+        if point.shape[1] != 2:
             raise ValueError(
-                f"Expected 2 coordinates (x, y) in last dimension, got {point.shape[2]}. "
-                f"Expected shape (N,1,2), got {point.shape}."
+                f"Expected 2 coordinates (x, y) in last dimension, got {point.shape[1]}. "
+                f"Expected shape (N,2), got {point.shape}."
             )
 
-        # Transform using OpenCV's perspectiveTransform
-        result = cv2.perspectiveTransform(point, self._H)
+        point_cv2_format = point.copy()[
+            :, np.newaxis, :
+        ]  # Convert (N,2) to (N,1,2) for cv2
 
-        # Ensure result is float32
-        return result.astype(np.float32)
+        # Transform using OpenCV's perspectiveTransform
+        result = cv2.perspectiveTransform(point_cv2_format, self._H)
+
+        # Ensure result is float32 and reshape back to (N, 2)
+        return result.reshape(-1, 2).astype(np.float32)
 
     def projector_to_camera(self, point: np.ndarray) -> np.ndarray:
         """Transform point(s) from projector space to camera space.
 
         Args:
-            point: Input point(s) as a numpy array with shape (N, 1, 2) where N is
+            point: Input point(s) as a numpy array with shape (N, 2) where N is
                 the number of points. Must have dtype float32.
 
         Returns:
-            Transformed point(s) with same shape (N, 1, 2) and dtype float32.
+            Transformed point(s) with same shape (N, 2) and dtype float32.
 
         Raises:
             ValueError: If point.dtype is not float32.
-            ValueError: If point.ndim != 3.
-            ValueError: If point.shape[2] != 2 (expected 2D coordinates).
+            ValueError: If point.ndim != 2.
+            ValueError: If point.shape[1] != 2 (expected 2D coordinates).
         """
         # Validate dtype
         if point.dtype != np.float32:
@@ -112,21 +116,25 @@ class CoordinateTransformer:
             )
 
         # Validate dimensions
-        if point.ndim != 3:
+        if point.ndim != 2:
             raise ValueError(
-                f"Expected 3D array (N,1,2) for batch dimension, got {point.ndim}D array. "
-                f"Expected shape (N,1,2), got {point.shape}."
+                f"Expected 2D array (N,2) for batch dimension, got {point.ndim}D array. "
+                f"Expected shape (N,2), got {point.shape}."
             )
 
         # Validate shape
-        if point.shape[2] != 2:
+        if point.shape[1] != 2:
             raise ValueError(
-                f"Expected 2 coordinates (x, y) in last dimension, got {point.shape[2]}. "
-                f"Expected shape (N,1,2), got {point.shape}."
+                f"Expected 2 coordinates (x, y) in last dimension, got {point.shape[1]}. "
+                f"Expected shape (N,2), got {point.shape}."
             )
 
-        # Transform using inverse homography
-        result = cv2.perspectiveTransform(point, self._H_inv)
+        point_cv2_format = point.copy()[
+            :, np.newaxis, :
+        ]  # Convert (N,2) to (N,1,2) for cv2
 
-        # Ensure result is float32
-        return result.astype(np.float32)
+        # Transform using inverse homography
+        result = cv2.perspectiveTransform(point_cv2_format, self._H_inv)
+
+        # Ensure result is float32 and reshape back to (N, 2)
+        return result.reshape(-1, 2).astype(np.float32)

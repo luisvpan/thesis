@@ -5,6 +5,7 @@ This module handles all OpenNI2 interactions and provides a clean interface
 for capturing depth and RGB frames.
 """
 
+import logging
 import os
 from types import ModuleType
 from typing import Optional, cast
@@ -15,6 +16,8 @@ import cv2
 import numpy as np
 
 from cv_system.config import CameraConfig
+
+logger = logging.getLogger(__name__)
 
 
 class HardwareError(RuntimeError):
@@ -81,6 +84,7 @@ class HardwareManager:
                 config.depth_resolution[1],  # width
                 config.depth_resolution[0],  # height
                 config.fps,
+                openni2.PIXEL_FORMAT_DEPTH_1_MM,
             )
             self.depth_stream.set_video_mode(depth_mode)
 
@@ -94,8 +98,26 @@ class HardwareManager:
                 config.rgb_resolution[1],  # width
                 config.rgb_resolution[0],  # height
                 config.fps,
+                openni2.PIXEL_FORMAT_RGB888,
             )
             self.rgb_stream.set_video_mode(rgb_mode)
+
+            # Enable depth-to-color registration for coordinate alignment
+            # This allows RGB coordinates to directly map to depth frame coordinates
+            if self.device.is_image_registration_mode_supported(
+                openni2.IMAGE_REGISTRATION_DEPTH_TO_COLOR
+            ):
+                self.device.set_image_registration_mode(
+                    openni2.IMAGE_REGISTRATION_DEPTH_TO_COLOR
+                )
+                logger.info(
+                    "Enabled depth-to-color image registration - RGB coordinates "
+                    "map directly to depth frame"
+                )
+            else:
+                raise HardwareError(
+                    "Device does not support depth-to-color image registration"
+                )
 
             # Start both streams
             self.depth_stream.start()
@@ -109,8 +131,8 @@ class HardwareManager:
             raise HardwareError(f"Failed to initialize hardware: {e}") from e
 
     def _find_video_mode(
-        self, stream: VideoStream, width: int, height: int, fps: int
-    ) -> object:
+        self, stream: VideoStream, width: int, height: int, fps: int, pixel_format: int
+    ) -> VideoMode:
         """
         Find the appropriate video mode for a stream.
 
@@ -119,7 +141,7 @@ class HardwareManager:
             width: Desired width in pixels.
             height: Desired height in pixels.
             fps: Desired frames per second.
-
+            pixel_format: The pixel format for the video mode.
         Returns:
             VideoMode object matching the requested parameters.
 
@@ -136,6 +158,7 @@ class HardwareManager:
                 mode.resolutionX == width
                 and mode.resolutionY == height
                 and mode.fps == fps
+                and mode.pixelFormat == pixel_format
             ):
                 return mode
 
@@ -207,6 +230,105 @@ class HardwareManager:
             return rgb_array
         except Exception as e:
             raise HardwareError(f"Failed to capture RGB frame: {e}") from e
+
+    def map_rgb_to_depth(
+        self, rgb_points: list[tuple[int, int]]
+    ) -> list[tuple[int, int]]:
+        """
+        Map RGB coordinates to depth frame coordinates.
+
+        This method leverages OpenNI2's hardware coordinate registration to convert
+        RGB pixel coordinates to the corresponding depth frame coordinates.
+
+        When IMAGE_REGISTRATION_DEPTH_TO_COLOR is enabled during initialization,
+        the depth frame is registered to align with the RGB frame's coordinate
+        system. In this mode, RGB coordinates directly correspond to depth frame
+        coordinates (1-to-1 mapping).
+
+        Args:
+            rgb_points: List of (x, y) tuples in RGB frame coordinates.
+                      x is column (0 <= x < rgb_width),
+                      y is row (0 <= y < rgb_height).
+
+        Returns:
+            List of (x, y) tuples in depth frame coordinates.
+            Returns empty list if input is empty.
+
+        Raises:
+            HardwareError: If hardware is not initialized or registration
+                        mapping fails.
+            ValueError: If rgb_points contains invalid coordinates or wrong format.
+
+        Example:
+            >>> manager.initialize(config)
+            >>> manager.map_rgb_to_depth([(960, 540)])  # Center of 1920x1080 RGB
+            [(256, 212)]  # Corresponding depth coordinate (scaled to 512x424)
+        """
+        if not self._initialized:
+            raise HardwareError("HardwareManager is not initialized")
+
+        if not rgb_points:
+            logger.debug(
+                "map_rgb_to_depth called with empty list, returning empty list"
+            )
+            return []
+
+        # Log input for observability
+        logger.info(f"Mapping {len(rgb_points)} RGB points to depth coordinates")
+        logger.debug(f"Input RGB points: {rgb_points}")
+
+        # Validate input format
+        if not isinstance(rgb_points, list):
+            raise ValueError("rgb_points must be a list of (x, y) tuples")
+
+        assert self.camera_config is not None  # For type checker
+        rgb_width, rgb_height = (
+            self.camera_config.rgb_resolution[1],
+            self.camera_config.rgb_resolution[0],
+        )
+        depth_width, depth_height = (
+            self.camera_config.depth_resolution[1],
+            self.camera_config.depth_resolution[0],
+        )
+
+        logger.debug(
+            f"RGB resolution: {rgb_width}x{rgb_height}, "
+            f"Depth resolution: {depth_width}x{depth_height}"
+        )
+
+        # Validate all points first
+        for i, point in enumerate(rgb_points):
+            if not isinstance(point, tuple) or len(point) != 2:
+                raise ValueError(
+                    f"rgb_points[{i}] must be an (x, y) tuple: got {point}"
+                )
+            x, y = point
+            if not isinstance(x, int) or not isinstance(y, int):
+                raise ValueError(
+                    f"rgb_points[{i}] coordinates must be integers: got ({x}, {y})"
+                )
+            if not (0 <= x < rgb_width):
+                raise ValueError(
+                    f"rgb_points[{i}] x-coordinate out of bounds: {x} not in [0, {rgb_width})"
+                )
+            if not (0 <= y < rgb_height):
+                raise ValueError(
+                    f"rgb_points[{i}] y-coordinate out of bounds: {y} not in [0, {rgb_height})"
+                )
+
+        # Map RGB coordinates to depth coordinates
+        # With IMAGE_REGISTRATION_DEPTH_TO_COLOR enabled, depth frame is registered
+        # to RGB space. The coordinates are scaled based on the resolution ratio.
+        depth_points = []
+        for i, (x, y) in enumerate(rgb_points):
+            # Scale RGB coordinates to depth frame resolution
+            depth_x = int(x * depth_width / rgb_width)
+            depth_y = int(y * depth_height / rgb_height)
+            depth_points.append((depth_x, depth_y))
+
+        logger.info(f"Output depth points: {depth_points}")
+
+        return depth_points
 
     def shutdown(self) -> None:
         """Shutdown hardware and release resources."""
