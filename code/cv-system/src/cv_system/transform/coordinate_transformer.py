@@ -1,4 +1,4 @@
-"""Coordinate transformer for bidirectional camera ↔ projector mapping.
+"""Coordinate transformer for bidirectional camera <-> projector mapping.
 
 This module provides the CoordinateTransformer class, a stateless service that
 wraps the homography matrix from CalibrationResult and exposes bidirectional
@@ -12,7 +12,7 @@ from cv_system.calibration.result import CalibrationResult
 
 
 class CoordinateTransformer:
-    """Stateless coordinate transformer for camera ↔ projector mapping.
+    """Stateless coordinate transformer for camera <-> projector mapping.
 
     This class wraps the homography matrix H from a CalibrationResult and provides
     bidirectional coordinate transformations between camera and projector space.
@@ -34,7 +34,7 @@ class CoordinateTransformer:
         Raises:
             ValueError: If H is not invertible (determinant is zero or near-zero).
         """
-        self._H = calibration_result.H.copy()
+        self._H = calibration_result.depth_H.copy()
         self._H_inv = np.linalg.inv(self._H)
 
     @property

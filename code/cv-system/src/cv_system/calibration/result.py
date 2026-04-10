@@ -19,11 +19,15 @@ class CalibrationResult:
     """Immutable calibration result containing transformation data.
 
     Attributes:
-        H: 3x3 homography matrix mapping camera coordinates to projector coordinates.
+        depth_H: 3x3 homography matrix mapping depth coordinates to projector coordinates.
+        rgb_H: 3x3 homography matrix mapping RGB coordinates to projector coordinates.
         dmax_map: 2D array where each pixel contains the most frequent depth value
             across N calibration frames (direct mode, no depth range filtering).
-        camera_corners: List of 4 (x, y) tuples representing the detected
-            camera corner coordinates in depth space, sorted as
+        depth_corners: List of 4 (x, y) tuples representing the detected
+            depth corner coordinates in depth space, sorted as
+            [top-left, top-right, bottom-left, bottom-right].
+        rgb_corners: List of 4 (x, y) tuples representing the detected
+            RGB corner coordinates in camera space, sorted as
             [top-left, top-right, bottom-left, bottom-right].
         metadata: Dictionary containing calibration metadata such as number of frames
             captured, generation method, timestamp, etc.
@@ -32,20 +36,30 @@ class CalibrationResult:
     preventing accidental modification of calibration data.
     """
 
-    H: np.ndarray
+    depth_H: np.ndarray
+    rgb_H: np.ndarray
     dmax_map: np.ndarray
-    camera_corners: list[tuple[int, int]] = field(default_factory=list)
+    depth_corners: list[tuple[int, int]] = field(default_factory=list)
+    rgb_corners: list[tuple[int, int]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validate that arrays have expected shapes and types."""
-        # Validate H is 3x3
-        if self.H.shape != (3, 3):
-            raise ValueError(f"Homography matrix must be 3x3, got {self.H.shape}")
+        # Validate depth_H is 3x3
+        if self.depth_H.shape != (3, 3):
+            raise ValueError(f"Depth homography matrix must be 3x3, got {self.depth_H.shape}")
 
-        # Validate H is float32
-        if self.H.dtype != np.float32:
-            raise ValueError(f"Homography matrix must be float32, got {self.H.dtype}")
+        # Validate rgb_H is 3x3
+        if self.rgb_H.shape != (3, 3):
+            raise ValueError(f"RGB homography matrix must be 3x3, got {self.rgb_H.shape}")
+
+        # Validate depth_H is float32
+        if self.depth_H.dtype != np.float32:
+            raise ValueError(f"Depth homography matrix must be float32, got {self.depth_H.dtype}")
+
+        # Validate rgb_H is float32
+        if self.rgb_H.dtype != np.float32:
+            raise ValueError(f"RGB homography matrix must be float32, got {self.rgb_H.dtype}")
 
         # Validate dmax_map is 2D
         if self.dmax_map.ndim != 2:
@@ -53,20 +67,30 @@ class CalibrationResult:
                 f"dmax_map must be 2D, got {self.dmax_map.ndim} dimensions"
             )
 
-        # Validate camera_corners has exactly 4 points if provided
-        if self.camera_corners and len(self.camera_corners) != 4:
+        # Validate depth_corners has exactly 4 points if provided
+        if self.depth_corners and len(self.depth_corners) != 4:
             raise ValueError(
-                f"camera_corners must have exactly 4 points, got {len(self.camera_corners)}"
+                f"depth_corners must have exactly 4 points, got {len(self.depth_corners)}"
+            )
+
+        # Validate rgb_corners has exactly 4 points if provided
+        if self.rgb_corners and len(self.rgb_corners) != 4:
+            raise ValueError(
+                f"rgb_corners must have exactly 4 points, got {len(self.rgb_corners)}"
             )
 
     def __repr__(self) -> str:
         """Return a concise representation of the calibration result."""
-        camera_info = (
-            f", camera_corners={self.camera_corners}" if self.camera_corners else ""
+        depth_info = (
+            f", depth_corners={self.depth_corners}" if self.depth_corners else ""
+        )
+        rgb_info = (
+            f", rgb_corners={self.rgb_corners}" if self.rgb_corners else ""
         )
         return (
-            f"CalibrationResult(H_shape={self.H.shape}, "
-            f"dmax_map_shape={self.dmax_map.shape}{camera_info}, "
+            f"CalibrationResult(depth_H_shape={self.depth_H.shape}, "
+            f"rgb_H_shape={self.rgb_H.shape}, "
+            f"dmax_map_shape={self.dmax_map.shape}{depth_info}{rgb_info}, "
             f"metadata_keys={list(self.metadata.keys())})"
         )
 
@@ -94,23 +118,29 @@ class CalibrationResult:
         print(f"Saving calibration result to {output_path}")
 
         # Validate data before serialization (defensive check)
-        if self.H.shape != (3, 3):
-            raise ValueError(f"H has invalid shape {self.H.shape}, expected (3, 3)")
+        if self.depth_H.shape != (3, 3):
+            raise ValueError(f"Depth H has invalid shape {self.depth_H.shape}, expected (3, 3)")
         if self.dmax_map.ndim != 2:
             raise ValueError(
                 f"dmax_map has invalid dimensions {self.dmax_map.ndim}, expected 2D"
             )
 
-        # Serialize H matrix (3x3 float32) to nested list
+        # Serialize depth_H matrix (3x3 float32) to nested list
         # Using .tolist() for human-readable JSON (can view in text editor)
-        H_list = self.H.tolist()
+        depth_H_list = self.depth_H.tolist()
+
+        # Serialize rgb_H matrix (3x3 float32) to nested list
+        rgb_H_list = self.rgb_H.tolist()
 
         # Serialize dmax_map (2D uint16) to list-of-lists
         # Tradeoff: Larger file size than base64, but human-readable for debugging
         dmax_map_list = self.dmax_map.tolist()
 
-        # Serialize camera_corners as list of lists
-        camera_corners_list = [list(corner) for corner in self.camera_corners]
+        # Serialize depth_corners as list of lists
+        depth_corners_list = [list(corner) for corner in self.depth_corners]
+
+        # Serialize rgb_corners as list of lists
+        rgb_corners_list = [list(corner) for corner in self.rgb_corners]
 
         # Build merged metadata with timestamp and version
         # Preserve existing metadata (num_frames, depth_shape, computed_at_ms, etc.)
@@ -128,17 +158,21 @@ class CalibrationResult:
             "version": metadata.get("version", "1.0"),
             "timestamp": metadata.get("timestamp"),
             "metadata": metadata,
-            "H": H_list,
+            "depth_H": depth_H_list,
+            "rgb_H": rgb_H_list,
             "dmax_map": dmax_map_list,
-            "camera_corners": camera_corners_list,
+            "depth_corners": depth_corners_list,
+            "rgb_corners": rgb_corners_list,
         }
 
         # Write JSON file with indentation for human readability
         try:
             output_path.write_text(json.dumps(data, indent=2))
-            print(f"  H shape: {self.H.shape}")
+            print(f"  Depth H shape: {self.depth_H.shape}")
+            print(f"  RGB H shape: {self.rgb_H.shape}")
             print(f"  dmax_map shape: {self.dmax_map.shape}")
-            print(f"  Camera corners: {self.camera_corners}")
+            print(f"  Depth corners: {self.depth_corners}")
+            print(f"  RGB corners: {self.rgb_corners}")
             print(f"  Metadata: {list(self.metadata.keys())}")
             print("Calibration result saved successfully")
         except OSError as e:
@@ -187,22 +221,32 @@ class CalibrationResult:
             raise ValueError(f"Invalid JSON in calibration file: {e}") from e
 
         # Validate required fields exist
-        required_fields = ["version", "timestamp", "metadata", "H", "dmax_map"]
+        required_fields = ["version", "timestamp", "metadata", "depth_H", "rgb_H", "dmax_map", "depth_corners", "rgb_corners"]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             raise ValueError(
                 f"Missing required fields in calibration file: {missing_fields}"
             )
 
-        # Deserialize H matrix (3x3 float32)
+        # Deserialize depth_H matrix (3x3 float32)
         try:
-            H_list = data["H"]
-            H = np.array(H_list, dtype=np.float32)
+            depth_H_list = data["depth_H"]
+            depth_H = np.array(depth_H_list, dtype=np.float32)
 
-            if H.shape != (3, 3):
-                raise ValueError(f"H has invalid shape {H.shape}, expected (3, 3)")
+            if depth_H.shape != (3, 3):
+                raise ValueError(f"Depth H has invalid shape {depth_H.shape}, expected (3, 3)")
         except (KeyError, TypeError, ValueError) as e:
-            raise ValueError(f"Failed to deserialize H matrix: {e}") from e
+            raise ValueError(f"Failed to deserialize depth_H matrix: {e}") from e
+
+        # Deserialize rgb_H matrix (3x3 float32)
+        try:
+            rgb_H_list = data["rgb_H"]
+            rgb_H = np.array(rgb_H_list, dtype=np.float32)
+
+            if rgb_H.shape != (3, 3):
+                raise ValueError(f"RGB H has invalid shape {rgb_H.shape}, expected (3, 3)")
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError(f"Failed to deserialize rgb_H matrix: {e}") from e
 
         # Deserialize dmax_map (2D uint16)
         try:
@@ -216,17 +260,29 @@ class CalibrationResult:
         except (KeyError, TypeError, ValueError) as e:
             raise ValueError(f"Failed to deserialize dmax_map: {e}") from e
 
-        # Deserialize camera_corners (list of tuples)
+        # Deserialize depth_corners (list of tuples)
         try:
-            corners_list = data["camera_corners"]
-            camera_corners = [(x, y) for x, y in corners_list]
+            corners_list = data["depth_corners"]
+            depth_corners = [(x, y) for x, y in corners_list]
 
-            if len(camera_corners) != 4:
+            if len(depth_corners) != 4:
                 raise ValueError(
-                    f"camera_corners must have exactly 4 points, got {len(camera_corners)}"
+                    f"depth_corners must have exactly 4 points, got {len(depth_corners)}"
                 )
         except (KeyError, TypeError) as e:
-            raise ValueError(f"Failed to deserialize camera_corners: {e}") from e
+            raise ValueError(f"Failed to deserialize depth_corners: {e}") from e
+
+        # Deserialize rgb_corners (list of tuples)
+        try:
+            corners_list = data["rgb_corners"]
+            rgb_corners = [(x, y) for x, y in corners_list]
+
+            if len(rgb_corners) != 4:
+                raise ValueError(
+                    f"rgb_corners must have exactly 4 points, got {len(rgb_corners)}"
+                )
+        except (KeyError, TypeError) as e:
+            raise ValueError(f"Failed to deserialize rgb_corners: {e}") from e
 
         # Deserialize metadata (preserve all fields)
         try:
@@ -237,13 +293,15 @@ class CalibrationResult:
         # Create frozen CalibrationResult instance
         # __post_init__ will validate shapes and types
         result = cls(
-            H=H, dmax_map=dmax_map, camera_corners=camera_corners, metadata=metadata
+            depth_H=depth_H, rgb_H=rgb_H, dmax_map=dmax_map, depth_corners=depth_corners, rgb_corners=rgb_corners, metadata=metadata
         )
 
         # Log successful load
-        print(f"  H shape: {result.H.shape}")
+        print(f"  Depth H shape: {result.depth_H.shape}")
+        print(f"  RGB H shape: {result.rgb_H.shape}")
         print(f"  dmax_map shape: {result.dmax_map.shape}")
-        print(f"  Camera corners: {result.camera_corners}")
+        print(f"  Depth corners: {result.depth_corners}")
+        print(f"  RGB corners: {result.rgb_corners}")
         print(f"  Metadata keys: {list(result.metadata.keys())}")
         print("Calibration result loaded successfully")
 

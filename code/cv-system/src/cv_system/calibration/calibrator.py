@@ -117,10 +117,11 @@ class Calibrator:
 
         # Step 1: Compute homography matrix via marker detection
         print("\nStep 1: Projecting markers and detecting in RGB frame...")
-        H, camera_corners = self._compute_homography()
-        print(f"  Homography matrix computed: {H.shape}, dtype={H.dtype}")
-        print(f"  Detected camera_corners: {camera_corners}")
-
+        depth_H, rgb_H, depth_corners, rgb_corners = self._compute_homography()
+        print(f"  Depth H shape: {depth_H.shape}, dtype={depth_H.dtype}")
+        print(f"  RGB H shape: {rgb_H.shape}, dtype={rgb_H.dtype}")
+        print(f"  Detected depth_corners: {depth_corners}")
+        print(f"  Detected rgb_corners: {rgb_corners}")
         # Step 2: Generate dmax_map
         print("\nStep 2: Generating dmax_map...")
         dmax_start_time = time.time()
@@ -129,7 +130,7 @@ class Calibrator:
 
         # Validate results
         print("\nStep 3: Validating results...")
-        self._validate_results(H, dmax_map, camera_corners)
+        self._validate_results(depth_H, dmax_map, depth_corners)
 
         # Step 4: Create calibration result
         elapsed = time.time() - start_time
@@ -142,19 +143,20 @@ class Calibrator:
         }
 
         result = CalibrationResult(
-            H=H, dmax_map=dmax_map, camera_corners=camera_corners, metadata=metadata
+            depth_H=depth_H, rgb_H=rgb_H, dmax_map=dmax_map, depth_corners=depth_corners, rgb_corners=rgb_corners, metadata=metadata
         )
 
         print("\n" + "=" * 60)
         print("Calibration complete")
-        print(f"  H shape: {result.H.shape}")
+        print(f"  Depth H shape: {result.depth_H.shape}")
+        print(f"  RGB H shape: {result.rgb_H.shape}")
         print(f"  dmax_map shape: {result.dmax_map.shape}")
         print(f"  Elapsed time: {elapsed:.2f}s")
         print("=" * 60)
 
         return result
 
-    def _compute_homography(self) -> tuple["np.ndarray", list[tuple[int, int]]]:
+    def _compute_homography(self) -> tuple["np.ndarray", "np.ndarray", list[tuple[int, int]], list[tuple[int, int]]]:
         """Compute homography matrix via automatic marker detection.
 
         This method:
@@ -165,8 +167,10 @@ class Calibrator:
         5. Computes homography matrix from detected camera_corners
 
         Returns:
-            Tuple of (3x3 homography matrix (float32), camera_corners as list of 4
-            (x, y) tuples in depth coordinates).
+            Tuple of (3x3 depth homography matrix (float32),
+            3x3 RGB homography matrix (float32), camera_corners as list of 4
+            (x, y) tuples in depth coordinates, camera_corners as list of 4
+            (x, y) tuples in RGB coordinates).
 
         Raises:
             RuntimeError: If homography computation fails.
@@ -178,13 +182,11 @@ class Calibrator:
         try:
             # Step 1: Project markers
             logger.info(f"Projecting markers at {projector_corners}")
-            print(f"  Projecting {len(projector_corners)} markers...")
             self.marker_projector.project_markers(projector_corners)
             logger.info("Marker projection complete")
             cv2.waitKey()
             # Step 2: Capture RGB frame
             logger.info("Capturing RGB frame for marker detection")
-            print("  Capturing RGB frame...")
             rgb_frame = self.hardware_manager.get_rgb_frame()
             logger.info(
                 f"RGB frame captured: shape={rgb_frame.shape}, dtype={rgb_frame.dtype}"
@@ -197,54 +199,57 @@ class Calibrator:
 
             # Step 3: Detect markers in RGB frame
             logger.info("Detecting markers in RGB frame")
-            print("  Detecting markers...")
             rgb_corners = self.marker_detector.detect_markers(rgb_frame)
             logger.info(
                 f"Detected {len(rgb_corners)} markers in RGB coordinates: {rgb_corners}"
             )
-            print(f"  Detected {len(rgb_corners)} markers at {rgb_corners}")
 
             # Step 4: Map RGB centroids to depth coordinates
             logger.info("Mapping RGB corners to depth coordinates")
-            print("  Mapping RGB coordinates to depth...")
-            camera_corners = self.hardware_manager.map_rgb_to_depth(rgb_corners)
-            logger.info(f"Mapped to depth coordinates: {camera_corners}")
-            print(f"  Mapped to depth coordinates: {camera_corners}")
+            depth_corners = self.hardware_manager.map_rgb_to_depth(rgb_corners)
+            logger.info(f"Mapped to depth coordinates: {depth_corners}")
 
-            # Validate mapped camera_corners are within depth frame bounds
+            # Validate mapped depth_corners are within depth frame bounds
             depth_width, depth_height = (
                 self.config.camera.depth_resolution[1],
                 self.config.camera.depth_resolution[0],
             )
-            for i, (x, y) in enumerate(camera_corners):
+            for i, (x, y) in enumerate(depth_corners):
                 if not (0 <= x < depth_width):
                     raise ValueError(
-                        f"camera_corners[{i}] x-coordinate out of bounds: "
+                        f"depth_corners[{i}] x-coordinate out of bounds: "
                         f"{x} not in [0, {depth_width})"
                     )
                 if not (0 <= y < depth_height):
                     raise ValueError(
-                        f"camera_corners[{i}] y-coordinate out of bounds: "
+                        f"depth_corners[{i}] y-coordinate out of bounds: "
                         f"{y} not in [0, {depth_height})"
                     )
 
-            logger.info("Camera_corners within depth frame bounds")
+            logger.info("Depth_corners within depth frame bounds")
 
             # Step 5: Compute homography matrix
-            H = compute_homography(
-                camera_points=camera_corners,
+            depth_H = compute_homography(
+                camera_points=depth_corners,
+                projector_points=projector_corners,
+            )
+            rgb_H = compute_homography(
+                camera_points=rgb_corners,
                 projector_points=projector_corners,
             )
 
             # Validate the homography
-            if not validate_homography(H):
+            if not validate_homography(depth_H):
                 raise ValueError("Computed homography matrix is invalid")
+
+            if not validate_homography(rgb_H):
+                raise ValueError("Computed RGB homography matrix is invalid")
 
             # Clean up marker projection window
             self.marker_projector.destroy_window()
             logger.info("Marker projection window destroyed")
 
-            return H, camera_corners
+            return depth_H, rgb_H, depth_corners, rgb_corners
 
         except Exception as e:
             # Clean up marker projection window on error

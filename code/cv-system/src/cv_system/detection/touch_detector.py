@@ -4,18 +4,36 @@ from mediapipe.tasks.python import vision
 import numpy as np
 import cv2
 import time
+from enum import IntEnum, verify, UNIQUE
+from typing import Optional
+
+@verify(UNIQUE)
+class HandLandmark(IntEnum):
+  THUMB_TIP = 4
+  INDEX_FINGER_TIP = 8
+  MIDDLE_FINGER_TIP = 12
+  RING_FINGER_TIP = 16
+  PINKY_TIP = 20
 
 class TouchDetector:
-    def __init__(self, dmax_map: np.ndarray, config):
+
+    latest_result: Optional[vision.HandLandmarkerResult] = None
+
+    def __init__(self, dmax_map: np.ndarray, rgb_corners: list[tuple[int, int]], config):
         self._dmax_map = dmax_map
+        self.rgb_corners = rgb_corners
         self.touch_threshold = getattr(config, "touch_threshold", 20)
         self.latest_result = None
-        self.FINGER_TIPS = [4, 8, 12, 16, 20]
-        
-        # ROI - Ajusta estos para tu mesa
-        self.roi_x, self.roi_y, self.roi_w, self.roi_h = 400, 200, 1100, 700
+        self.FINGER_TIPS = [HandLandmark.INDEX_FINGER_TIP.value]
 
-        def result_callback(result: vision.HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+        smallest_x = min(corner[0] for corner in rgb_corners)
+        smallest_y = min(corner[1] for corner in rgb_corners)
+        largest_x = max(corner[0] for corner in rgb_corners)
+        largest_y = max(corner[1] for corner in rgb_corners)
+
+        self.roi_x, self.roi_y, self.roi_w, self.roi_h = smallest_x, smallest_y, largest_x - smallest_x, largest_y - smallest_y
+
+        def result_callback(result: vision.HandLandmarkerResult, _output_image: mp.Image, _timestamp_ms: int):
             self.latest_result = result
 
         base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
@@ -32,9 +50,11 @@ class TouchDetector:
     def detect(self, depth_frame: np.ndarray, rgb_frame: np.ndarray) -> list[tuple[int, int]]:
         rgb_h, rgb_w, _ = rgb_frame.shape
         depth_h, depth_w = depth_frame.shape
+
+        print(self.roi_x, self.roi_y, self.roi_w, self.roi_h)
         
         # Enviar al detector (usamos un resize interno para bajar latencia si es necesario)
-        roi_rgb = rgb_frame[self.roi_y : self.roi_y + self.roi_h, 
+        roi_rgb = rgb_frame[self.roi_y : self.roi_y + self.roi_h,
                             self.roi_x : self.roi_x + self.roi_w]
         roi_rgb_mp = cv2.cvtColor(roi_rgb, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=roi_rgb_mp)
@@ -105,4 +125,5 @@ class TouchDetector:
         cv2.namedWindow("Kinect V2 - Livestream AI Debug", cv2.WINDOW_NORMAL)
         cv2.imshow("Kinect V2 - Livestream AI Debug", debug_img)
         cv2.waitKey(1)
+        
         return touches

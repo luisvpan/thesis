@@ -23,7 +23,7 @@ from cv_system.calibration.calibrator import Calibrator
 from cv_system.detection.touch_detector import TouchDetector
 from cv_system.hardware.manager import HardwareManager
 from cv_system.hardware.manager import HardwareError
-from cv_system.transform.transformer import CoordinateTransformer
+from cv_system.transform import CoordinateTransformer, ImageTransformer
 
 load_dotenv()  # Load environment variables from .env file if present
 
@@ -119,10 +119,12 @@ def main() -> None:
 
         # Step 3: Initialize transformer and detector
         print("\n[3/6] Initializing transformer and detector...")
-        transformer = CoordinateTransformer(calibration_result)
+        coordinate_transformer = CoordinateTransformer(calibration_result)
         print("  Coordinate transformer initialized")
+        image_transformer = ImageTransformer(calibration_result, config.camera)
+        print("  Image transformer initialized")
 
-        detector = TouchDetector(calibration_result.dmax_map, config.detection)
+        detector = TouchDetector(calibration_result.dmax_map, calibration_result.rgb_corners, config.detection)
         print("  Touch detector initialized")
 
         # Step 4: Initialize WebSocket Bridge
@@ -178,7 +180,11 @@ def main() -> None:
                 depth_frame, rgb_frame = hardware.get_depth_frame(), hardware.get_rgb_frame()
 
                 # Detect touches in camera space
-                touches_camera = detector.detect(depth_frame, rgb_frame)
+                rgb_float = rgb_frame.astype(np.float32) / 255.0
+
+                rgb_roi = image_transformer.camera_to_projector(rgb_float)
+
+                touches_camera = detector.detect(depth_frame, rgb_roi)
 
                 # print("Touches detected in camera space:")
                 # print(touches_camera)
@@ -192,7 +198,7 @@ def main() -> None:
                     touches_camera_np = np.array(touches_camera, dtype=np.float32)
 
                     # Transform to projector space
-                    touches_projector = transformer.camera_to_projector(
+                    touches_projector = coordinate_transformer.camera_to_projector(
                         touches_camera_np
                     )
 
@@ -331,5 +337,43 @@ if __name__ == "__main__":
         print(f"  Valid pixel ratio: {stats.get('valid_pixel_ratio', 0):.2%}")
 
     cv2.waitKey()
+
+    image_transformer = ImageTransformer(calibration_result, config.camera)
+
+    frame_count = 0
+    start_time = time.time()
+
+    PROJ_W, PROJ_H = 1920, 1080
+    cv2.namedWindow("Projector View", cv2.WINDOW_NORMAL)
+    cv2.namedWindow("Camera View", cv2.WINDOW_NORMAL)
+
+    while True:
+        try:
+            # Capture depth frame
+            depth_frame, rgb_frame = hardware.get_depth_frame(), hardware.get_rgb_frame()
+
+            rgb_float = rgb_frame.astype(np.float32) / 255.0
+
+            image = image_transformer.camera_to_projector(rgb_float)
+
+            # 3. Mostrar la ventana
+            cv2.imshow("Projector View", image)
+            cv2.imshow("Camera View", rgb_frame)
+
+            # 4. Manejo de salida (ESC o 'q')
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+            frame_count += 1
+
+            # Print FPS every 100 frames
+            if frame_count % 100 == 0:
+                elapsed = time.time() - start_time
+                fps = frame_count / elapsed
+                print(f"  [FPS: {fps:.1f}]")
+
+        except KeyboardInterrupt:
+            # Continue to finally block for graceful shutdown
+                break
 
     # main()

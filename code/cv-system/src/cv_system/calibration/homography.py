@@ -9,8 +9,8 @@ import numpy as np
 
 
 def compute_homography(
-    camera_points: list[tuple[float, float]],
-    projector_points: list[tuple[float, float]],
+    camera_points: list[tuple[int, int]],
+    projector_points: list[tuple[int, int]],
 ) -> np.ndarray:
     """Compute 3x3 homography matrix from 4 point correspondences.
 
