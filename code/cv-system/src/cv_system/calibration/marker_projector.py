@@ -204,7 +204,7 @@ class MarkerProjector:
             )
 
             # Draw white square
-            image[y1:y2, x1:x2] = [255, 255, 255]
+            image[y1:y2, x1:x2] = [255, 0, 255]
 
             logger.debug(
                 f"Drew marker {i + 1} at ({x_center}, {y_center}), "

@@ -2,208 +2,189 @@ import logging
 import numpy as np
 import cv2
 
-# Configuración de logging
 logger = logging.getLogger(__name__)
 
-
 class MarkerDetector:
-    """Detecta 4 marcadores cuadrados blancos para calibración automática.
-
-    Utiliza umbral adaptativo para ser robusto a cambios de iluminación y
-    al viñeteado (oscurecimiento de esquinas) proyectado.
     """
-
-    # Parámetros de detección por defecto
-    DEFAULT_MIN_AREA = 2500      # ~50x50 píxeles
-    DEFAULT_MAX_AREA = 40000     # ~200x200 píxeles
-    
-    # Parámetros Críticos del Umbral Adaptativo:
-    # block_size: Tamaño de la vecindad local. Debe ser impar y > que el marcador.
-    DEFAULT_BLOCK_SIZE = 151 
-    # c_value: Constante restada de la media. Ayuda a eliminar ruido del fondo.
-    DEFAULT_C = 5
+    Detector de marcadores por brillo relativo.
+    Funciona aunque la cámara destruya el color (sobreexposición).
+    Estrategia: los marcadores son siempre los blobs más brillantes
+    con forma aproximadamente rectangular.
+    """
+    DEFAULT_MIN_AREA = 1500   # filtra ruido pequeño (área < 156, 20, 25...)
+    DEFAULT_MAX_AREA = 10000  # filtra ruido grande
+    DEFAULT_BRIGHTNESS_PERCENTILE = 97.0
 
     def __init__(
         self,
         min_area: int | None = None,
         max_area: int | None = None,
-        block_size: int | None = None,
-        c_value: int | None = None,
+        brightness_percentile: float | None = None,
     ) -> None:
-        """Inicializa el MarkerDetector."""
         self.min_area = min_area if min_area is not None else self.DEFAULT_MIN_AREA
         self.max_area = max_area if max_area is not None else self.DEFAULT_MAX_AREA
-        
-        # Validación: block_size DEBE ser impar
-        bs = block_size if block_size is not None else self.DEFAULT_BLOCK_SIZE
-        self.block_size = bs if bs % 2 != 0 else bs + 1
-        
-        self.c_value = c_value if c_value is not None else self.DEFAULT_C
-
-        logger.info(
-            f"MarkerDetector inicializado: area=[{self.min_area}, {self.max_area}], "
-            f"adaptive: block_size={self.block_size}, C={self.c_value}"
+        self.brightness_percentile = (
+            brightness_percentile
+            if brightness_percentile is not None
+            else self.DEFAULT_BRIGHTNESS_PERCENTILE
         )
 
     def detect_markers(self, rgb_frame: np.ndarray) -> list[tuple[int, int]]:
-        """Detecta 4 marcadores blancos en el frame RGB.
-
-        Proceso:
-        1. Convierte a escala de grises.
-        2. Aplica desenfoque Gaussiano (reduce ruido antes del umbral).
-        3. Aplica Umbral Adaptativo (cv2.adaptiveThreshold).
-        4. Encuentra contornos y filtra por área y forma.
-        5. Extrae centroides y ordena.
-        """
-        # --- 1. Pre-procesamiento ---
         gray = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2GRAY)
-        
-        # Desenfoque suave para mejorar el umbral adaptativo
-        gray_smoothed = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        # --- 2. Umbral Adaptativo (Sustituye al umbral global) ---
-        # Se usa GAUSSIAN_C porque es más robusto al ruido que MEAN_C
-        binary = cv2.adaptiveThreshold(
-            gray_smoothed,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            self.block_size,
-            self.c_value
-        )
+        # 1. Threshold por percentil de brillo
+        #    Los marcadores son siempre los píxeles más brillantes del frame
+        thresh_value = np.percentile(gray, self.brightness_percentile)
+        # Piso mínimo: evita activar en frames muy sobreexpuestos globalmente
+        thresh_value = max(thresh_value, 160)
+        _, binary = cv2.threshold(gray, thresh_value, 255, cv2.THRESH_BINARY)
 
-        # =========================================================================
-        # VENTANAS DE DEBUGGING (Mantener tal cual el original)
-        # =========================================================================
-        cv2.namedWindow("Marker Detection - Grayscale", cv2.WINDOW_NORMAL)
-        # Mostramos la imagen binaria resultante del umbral adaptativo
-        cv2.imshow("Marker Detection - Grayscale", binary) 
-        cv2.waitKey()
+        # 2. Morfología: cerrar el hueco central (sobreexposición colapsa a blanco)
+        #    y limpiar píxeles sueltos
+        kernel = np.ones((5, 5), np.uint8)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN,  kernel, iterations=1)
 
-        # Nota: He omitido la ventana "Grayscale Normalized" porque adaptiveThreshold
-        # ya genera una imagen binaria pura (0 o 255), la normalización es redundante aquí.
-        # =========================================================================
+        # --- DEBUG ---
+        cv2.namedWindow("Marker Detection - Binary Mask", cv2.WINDOW_NORMAL)
+        cv2.imshow("Marker Detection - Binary Mask", binary)
+        cv2.waitKey(1)
 
-        # --- 3. Encontrar Contornos ---
-        # Usamos la imagen binaria directamente
-        contours, _ = cv2.findContours(
-            binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        # 3. Filtrado de contornos
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # =========================================================================
-        # VENTANA DE DEBUGGING: Contornos RAW
-        # =========================================================================
-        rgb_with_contours = rgb_frame.copy()
-        cv2.drawContours(rgb_with_contours, contours, -1, (0, 255, 0), 3)
-        cv2.namedWindow(
-            "Marker Detection - Grayscale Normalized With Contours", cv2.WINDOW_NORMAL
-        )
-        cv2.imshow(
-            "Marker Detection - Grayscale Normalized With Contours", rgb_with_contours
-        )
-        cv2.waitKey()
-        # =========================================================================
-
-        logger.info(f"Encontrados {len(contours)} contornos totales.")
-
-        if len(contours) == 0:
-            raise ValueError(
-                f"No se encontraron contornos. Revisa block_size ({self.block_size}) "
-                f"o C ({self.c_value})."
-            )
-
-        # Imagen para dibujar contornos filtrados
-        full_mask = binary.copy() 
-        
-        # --- 4. Filtrar Contornos ---
         valid_markers = []
-        for i, contour in enumerate(contours):
-            area = cv2.contourArea(contour)
+        debug_img = rgb_frame.copy()
 
-            # A. Filtro por área
-            if area < self.min_area or area > self.max_area:
-                logger.debug(f"Contorno {i}: área={area} rechazada.")
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if not (self.min_area < area < self.max_area):
                 continue
 
-            # B. Filtro por relación de aspecto (Comentado como en el original)
-            # x, y, w, h = cv2.boundingRect(contour)
-            # aspect_ratio = float(w) / h if h > 0 else 0
-            # logger.debug(f"Contorno {i}: aspect_ratio={aspect_ratio:.2f}")
+            # Rectangularidad: área del contorno vs área del bounding rect
+            # Un marcador cuadrado/rectangular tendrá ratio alto (>0.5)
+            # El ruido y reflejos irregulares tendrán ratio bajo
+            x, y, w, h = cv2.boundingRect(cnt)
+            rect_area = w * h
+            rectangularity = area / rect_area if rect_area > 0 else 0
+            if rectangularity < 0.55:
+                continue
 
-            # C. Filtro por forma (Aproximación de polígono) - RECOMENDADO ACTIVAR
-            # peri = cv2.arcLength(contour, True)
-            # approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
-            # if len(approx) != 4: # Buscamos cuadriláteros
-            #     continue
+            # Aspect ratio: los marcadores son aproximadamente cuadrados
+            # desde la perspectiva de la cámara, no extremadamente alargados
+            aspect_ratio = max(w, h) / (min(w, h) + 1e-5)
+            if aspect_ratio > 3.0:
+                continue
 
-            # D. Extraer Centroide
-            M = cv2.moments(contour)
+            M = cv2.moments(cnt)
             if M["m00"] == 0:
                 continue
 
-            centroid_x = int(M["m10"] / M["m00"])
-            centroid_y = int(M["m01"] / M["m00"])
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            valid_markers.append({
+                "x": cx, "y": cy, "area": area,
+                "bbox": (x, y, w, h)  # ya lo tienes calculado arriba
+            })
+            cv2.drawContours(debug_img, [cnt], -1, (0, 255, 0), 2)
+            cv2.circle(debug_img, (cx, cy), 6, (255, 0, 0), -1)
 
-            # Dibujar contorno válido en la máscara de debug
-            cv2.drawContours(full_mask, [contour], -1, (255, 255, 255), 2)
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            x, y, w, h = cv2.boundingRect(cnt)
+            rect_area = w * h
+            rectangularity = area / rect_area if rect_area > 0 else 0
+            aspect_ratio = max(w, h) / (min(w, h) + 1e-5)
+            print(f"area={area:.0f} rect={rect_area} rectang={rectangularity:.2f} ar={aspect_ratio:.2f} pos=({x},{y})")
 
-            marker_info = {
-                "x": centroid_x,
-                "y": centroid_y,
-                "area": area,
-            }
-            valid_markers.append(marker_info)
+        cv2.namedWindow("Marker Detection - Visual Debug", cv2.WINDOW_NORMAL)
+        cv2.imshow("Marker Detection - Visual Debug", debug_img)
+        cv2.waitKey(1)
 
-            logger.debug(
-                f"Marcador válido {len(valid_markers)}: ({centroid_x}, {centroid_y}), area={area}"
-            )
+        valid_markers.sort(key=lambda m: m["area"], reverse=True)
 
-        # =========================================================================
-        # VENTANA DE DEBUGGING: Máscara de contornos filtrados
-        # =========================================================================
-        cv2.namedWindow("Marker Detection - Contour Mask", cv2.WINDOW_NORMAL)
-        cv2.imshow("Marker Detection - Contour Mask", full_mask)
-        cv2.waitKey()
-        # =========================================================================
-
-        logger.info(f"Filtrados a {len(valid_markers)} marcadores válidos.")
-
-        # --- 5. Validación y Ordenamiento ---
-        if len(valid_markers) < 4:
-            raise ValueError(
-                f"Solo se detectaron {len(valid_markers)} marcadores válidos. "
-                f"Se necesitan exactamente 4. Ajusta parámetros adaptativos o de área."
-            )
-
-        # Si hay más de 4, tomar los 4 más grandes (más probables)
         if len(valid_markers) > 4:
-            valid_markers.sort(key=lambda m: m["area"], reverse=True)
-            valid_markers = valid_markers[:4]
-            logger.warning("Detectados >4 marcadores. Seleccionados los 4 más grandes.")
+            best_four = self._select_best_four(valid_markers)
+        else:
+            best_four = valid_markers
 
-        # Ordenar: top-left, top-right, bottom-left, bottom-right
-        sorted_markers = self._sort_markers_by_position(valid_markers)
-        camera_corners = [(m["x"], m["y"]) for m in sorted_markers]
+        self._debug_best_four(rgb_frame, valid_markers, best_four)
 
-        logger.info(f"Marcadores ordenados: {camera_corners}")
+        if len(valid_markers) < 4:
+            logger.warning(f"Detección incompleta: {len(valid_markers)}/4 marcadores.")
+            raise ValueError(f"No se detectaron los 4 marcadores ({len(valid_markers)}/4)")
+        
+        return self._sort_markers_by_position(best_four)
+    
+    def _sort_markers_by_position(self, markers: list[dict]) -> list[tuple[int, int]]:
+        assert len(markers) == 4, f"Se esperaban 4 marcadores, llegaron {len(markers)}"
 
-        return camera_corners
+        cx = sum(m["x"] for m in markers) / 4
+        cy = sum(m["y"] for m in markers) / 4
+        # TODO: chequear bottom-left marker, pareciera que no está tomando su bottom-left
+        def quadrant(m):
+            left = m["x"] < cx
+            top  = m["y"] < cy
+            if top  and left:     return 0  # top-left
+            if top  and not left: return 1  # top-right
+            if not top and left:  return 2  # bottom-left
+            return 3                        # bottom-right
 
-    def _sort_markers_by_position(self, markers: list[dict]) -> list[dict]:
-        """Clasifica los 4 marcadores en cuadrantes (igual que el original)."""
-        if len(markers) != 4:
-            raise ValueError(f"Se esperaban 4 marcadores, recibidos {len(markers)}")
+        def vertex(m, q):
+            x, y, w, h = m["bbox"]
+            match q:
+                case 0: return (x,     y    )  # top-left marker     → vértice top-left
+                case 1: return (x + w, y    )  # top-right marker    → vértice top-right
+                case 2: return (x,     y + h)  # bottom-left marker  → vértice bottom-left
+                case 3: return (x + w, y + h)  # bottom-right marker → vértice bottom-right
 
-        avg_x = sum(m["x"] for m in markers) / 4.0
-        avg_y = sum(m["y"] for m in markers) / 4.0
+        sorted_markers = sorted(markers, key=quadrant)
+        return [
+            (int(x), int(y))
+            for m in sorted_markers
+            for x, y in [vertex(m, quadrant(m))]
+        ]
 
-        top_markers = [m for m in markers if m["y"] < avg_y]
-        bottom_markers = [m for m in markers if m["y"] >= avg_y]
+    def _select_best_four(self, markers: list[dict]) -> list[dict]:
+        from itertools import combinations
 
-        top_markers.sort(key=lambda m: m["x"])
-        top_left, top_right = top_markers[0], top_markers[1]
+        best_area = 0
+        best_group = markers[:4]
 
-        bottom_markers.sort(key=lambda m: m["x"])
-        bottom_left, bottom_right = bottom_markers[0], bottom_markers[1]
+        for group in combinations(markers, 4):
+            pts = np.array([(m["x"], m["y"]) for m in group], dtype=np.float32)
+            hull = cv2.convexHull(pts)
+            area = cv2.contourArea(hull)
+            if area > best_area:
+                best_area = area
+                best_group = list(group)
 
-        return [top_left, top_right, bottom_left, bottom_right]
+        return best_group
+
+    def _debug_best_four(self, rgb_frame: np.ndarray, all_markers: list[dict], best_four: list[dict]) -> None:
+        debug_img = rgb_frame.copy()
+        h, w = debug_img.shape[:2]
+        scale = 2
+        debug_img = cv2.resize(debug_img, (w * scale, h * scale))
+
+        # Dibuja todos los candidatos en rojo
+        for m in all_markers:
+            cx, cy = m["x"] * scale, m["y"] * scale
+            cv2.circle(debug_img, (cx, cy), 8, (255, 0, 0), -1)
+            cv2.putText(debug_img, f"a={m['area']:.0f}", (cx + 6, cy - 6),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+
+        # Dibuja los best four en verde con líneas del cuadrilátero
+        best_pts = np.array([(m["x"] * scale, m["y"] * scale) for m in best_four], dtype=np.float32)
+        hull = cv2.convexHull(best_pts.astype(np.int32))
+        cv2.polylines(debug_img, [hull], isClosed=True, color=(0, 255, 0), thickness=2)
+
+        for i, m in enumerate(best_four):
+            cx, cy = m["x"] * scale, m["y"] * scale
+            cv2.circle(debug_img, (cx, cy), 10, (0, 255, 0), -1)
+            cv2.putText(debug_img, f"#{i+1} a={m['area']:.0f}", (cx + 8, cy + 8),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
+
+        cv2.namedWindow("Marker Detection - Best Four", cv2.WINDOW_NORMAL)
+        cv2.imshow("Marker Detection - Best Four", debug_img)
+        cv2.waitKey()
