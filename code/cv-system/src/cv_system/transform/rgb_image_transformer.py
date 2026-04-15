@@ -1,6 +1,6 @@
 """Image transformer for bidirectional camera ↔ projector mapping.
 
-This module provides the ImageTransformer class, a stateless service that
+This module provides the RgbImageTransformer class, a stateless service that
 wraps the homography matrix from CalibrationResult and exposes bidirectional
 image transformations using cv2.warpPerspective.
 """
@@ -12,7 +12,7 @@ from cv_system.config import CameraConfig
 from cv_system.calibration.result import CalibrationResult
 
 
-class ImageTransformer:
+class RgbImageTransformer:
     """Stateless image transformer for camera ↔ projector mapping.
 
     This class wraps the homography matrix H from a CalibrationResult and provides

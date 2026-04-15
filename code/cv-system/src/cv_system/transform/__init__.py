@@ -5,7 +5,8 @@ camera <-> projector coordinate transformations, and the ImageTransformer class
 for bidirectional camera <-> projector image transformations.
 """
 
-from cv_system.transform.coordinate_transformer import CoordinateTransformer
-from cv_system.transform.image_transformer import ImageTransformer
+from cv_system.transform.depth_coordinate_transformer import DepthCoordinateTransformer
+from cv_system.transform.rgb_image_transformer import RgbImageTransformer
+from cv_system.transform.resolution_mapper import ResolutionMapper
 
-__all__ = ["CoordinateTransformer", "ImageTransformer"]
+__all__ = ["DepthCoordinateTransformer", "RgbImageTransformer", "ResolutionMapper"]

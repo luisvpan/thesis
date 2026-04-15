@@ -7,7 +7,7 @@ import pytest
 pytest.importorskip("cv2", exc_type=ImportError)
 
 from cv_system.calibration.result import CalibrationResult
-from cv_system.transform import CoordinateTransformer
+from cv_system.transform import DepthCoordinateTransformer
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def real_calibration() -> CalibrationResult:
 
 def test_transformer_initialization(identity_calibration: CalibrationResult) -> None:
     """Test that transformer initializes correctly and stores H and H_inv."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     assert transformer.H.shape == (3, 3)
     assert transformer.H.dtype == np.float32
@@ -63,7 +63,7 @@ def test_camera_to_projector_single_point(
     identity_calibration: CalibrationResult,
 ) -> None:
     """Test transforming a single point from camera to projector space."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     # Single point with required shape (1,1,2)
     point = np.array([[[100.0, 200.0]]], dtype=np.float32)
@@ -79,7 +79,7 @@ def test_projector_to_camera_single_point(
     identity_calibration: CalibrationResult,
 ) -> None:
     """Test transforming a single point from projector to camera space."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     # Single point with required shape (1,1,2)
     point = np.array([[[960.0, 540.0]]], dtype=np.float32)
@@ -93,7 +93,7 @@ def test_projector_to_camera_single_point(
 
 def test_batch_points(identity_calibration: CalibrationResult) -> None:
     """Test transforming multiple points at once."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     # 5 points with shape (5,1,2)
     points = np.array(
@@ -119,7 +119,7 @@ def test_batch_points_projector_to_camera(
     identity_calibration: CalibrationResult,
 ) -> None:
     """Test transforming multiple points from projector to camera space."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     # 3 projector space points
     points = np.array(
@@ -141,7 +141,7 @@ def test_batch_points_projector_to_camera(
 
 def test_round_trip(identity_calibration: CalibrationResult) -> None:
     """Test that round-trip transformation (camera→projector→camera) is accurate."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     original = np.array([[[256.0, 212.0]]], dtype=np.float32)
 
@@ -156,7 +156,7 @@ def test_round_trip(identity_calibration: CalibrationResult) -> None:
 
 def test_round_trip_real_matrix(real_calibration: CalibrationResult) -> None:
     """Test round-trip with realistic homography matrix."""
-    transformer = CoordinateTransformer(real_calibration)
+    transformer = DepthCoordinateTransformer(real_calibration)
 
     # Test multiple points as a batch
     test_points = np.array(
@@ -177,7 +177,7 @@ def test_round_trip_real_matrix(real_calibration: CalibrationResult) -> None:
 
 def test_boundary_points_camera(real_calibration: CalibrationResult) -> None:
     """Test boundary points in camera space (corners of 512×424 frame)."""
-    transformer = CoordinateTransformer(real_calibration)
+    transformer = DepthCoordinateTransformer(real_calibration)
 
     # Camera space corners: (0,0), (511,0), (0,423), (511,423)
     corners = np.array(
@@ -202,7 +202,7 @@ def test_boundary_points_camera(real_calibration: CalibrationResult) -> None:
 
 def test_boundary_points_projector(real_calibration: CalibrationResult) -> None:
     """Test boundary points in projector space (corners of 1920×1080 frame)."""
-    transformer = CoordinateTransformer(real_calibration)
+    transformer = DepthCoordinateTransformer(real_calibration)
 
     # Projector space corners: (0,0), (1919,0), (0,1079), (1919,1079)
     corners = np.array(
@@ -223,7 +223,7 @@ def test_boundary_points_projector(real_calibration: CalibrationResult) -> None:
 
 def test_invalid_dtype_raises(identity_calibration: CalibrationResult) -> None:
     """Test that passing float64 array raises ValueError with clear message."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     # Float64 should be rejected
     point = np.array([[[100.0, 200.0]]], dtype=np.float64)
@@ -245,7 +245,7 @@ def test_invalid_shape_missing_dimension(
     identity_calibration: CalibrationResult,
 ) -> None:
     """Test that passing shape (1,2) instead of (1,1,2) raises ValueError."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     # Missing middle dimension: shape (1,2) instead of (1,1,2)
     point = np.array([[100.0, 200.0]], dtype=np.float32)
@@ -261,7 +261,7 @@ def test_invalid_shape_wrong_coordinates(
     identity_calibration: CalibrationResult,
 ) -> None:
     """Test that passing wrong number of coordinates raises ValueError."""
-    transformer = CoordinateTransformer(identity_calibration)
+    transformer = DepthCoordinateTransformer(identity_calibration)
 
     # Wrong coordinates: 3 instead of 2 (shape (1,1,3))
     point = np.array([[[100.0, 200.0, 300.0]]], dtype=np.float32)
@@ -274,7 +274,7 @@ def test_invalid_shape_wrong_coordinates(
 
 def test_realistic_transformation(real_calibration: CalibrationResult) -> None:
     """Test that realistic transformation produces expected scale and offset."""
-    transformer = CoordinateTransformer(real_calibration)
+    transformer = DepthCoordinateTransformer(real_calibration)
 
     # Center of camera space
     center = np.array([[[256.0, 212.0]]], dtype=np.float32)

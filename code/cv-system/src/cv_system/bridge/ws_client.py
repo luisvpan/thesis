@@ -7,16 +7,25 @@ from enum import Enum
 from typing import Optional
 
 import websockets
+from websockets import ClientConnection
 
 logger = logging.getLogger(__name__)
 
 
 class ConnectionState(str, Enum):
-    """Connection states for WebSocket lifecycle tracking."""
-
     DISCONNECTED = "DISCONNECTED"
     CONNECTING = "CONNECTING"
     CONNECTED = "CONNECTED"
+
+
+class WebSocketConnectionRefusedError(Exception):
+    """Raised when WebSocket server refuses the connection."""
+    pass
+
+
+class WebSocketConnectionClosedError(Exception):
+    """Raised when WebSocket server closes connection unexpectedly."""
+    pass
 
 
 class WebSocketBridge:
@@ -55,18 +64,16 @@ class WebSocketBridge:
         Raises:
             ValueError: If max_reconnect_delay < base_reconnect_delay.
         """
-        # Get URL from environment variable if not provided
         import os
 
         if url is None:
             url = os.getenv("LANGUAGE_RUNTIME_WS_URL", "ws://localhost:3000/live")
 
         self.url = url
-        self.ws: Optional[websockets.WebSocketClientProtocol] = None
+        self.ws: Optional[ClientConnection] = None
         self.state = ConnectionState.DISCONNECTED
         self.reconnect_enabled = True
 
-        # Validate retry parameters
         if max_reconnect_delay < base_reconnect_delay:
             raise ValueError(
                 f"max_reconnect_delay ({max_reconnect_delay}) must be greater than "
@@ -87,11 +94,10 @@ class WebSocketBridge:
 
     async def connect(self) -> None:
         """
-        Establish WebSocket connection with exponential backoff retry on temporary disconnects.
+        Establish WebSocket connection with exponential backoff retry.
 
         Raises:
-            ConnectionRefusedError: If WebSocket server rejects the connection.
-            ConnectionClosedError: If server closes connection unexpectedly.
+            WebSocketConnectionRefusedError: If server rejects the connection.
         """
         if self.state != ConnectionState.DISCONNECTED:
             logger.warning(
@@ -114,20 +120,17 @@ class WebSocketBridge:
                 self._reconnect_attempts = 0
                 logger.info(f"Connected successfully to {self.url}")
 
-                # Listen for incoming messages (for pings/pongs)
                 asyncio.create_task(self._listen_for_messages())
-
-                return  # Connection successful
+                return
 
             except OSError as e:
-                if e.errno == 111:  # Connection refused
+                if e.errno == 111:
                     logger.error(f"Connection refused to {self.url}")
                     self.state = ConnectionState.DISCONNECTED
-                    raise ConnectionRefusedError(
+                    raise WebSocketConnectionRefusedError(
                         f"WebSocket connection refused to {self.url}"
                     ) from e
 
-                # Other network errors are considered temporary
                 backoff = self._calculate_backoff(self._reconnect_attempts)
                 self.state = ConnectionState.DISCONNECTED
                 self._reconnect_attempts += 1
@@ -147,11 +150,13 @@ class WebSocketBridge:
 
         try:
             async for message in self.ws:
-                logger.debug(
-                    f"Received message: {message[:100]}"
-                )  # Truncate for logging
+                logger.debug(f"Received message: {message[:100]}")
 
-                # Handle different message types
+                if isinstance(message, bytes):
+                    message = message.decode("utf-8")
+
+                assert isinstance(message, str)  # narrow the type for Pylance
+
                 if message == "ping":
                     await self.ws.send("pong")
                     logger.debug("Sent pong")
@@ -163,7 +168,6 @@ class WebSocketBridge:
         except websockets.exceptions.ConnectionClosed:
             logger.info("Server closed connection")
             if self.state == ConnectionState.CONNECTED and self.reconnect_enabled:
-                # Attempt reconnection with exponential backoff
                 asyncio.create_task(self.connect())
 
     def _calculate_backoff(self, attempt: int) -> float:
@@ -176,10 +180,7 @@ class WebSocketBridge:
         Returns:
             Delay in seconds with exponential backoff.
         """
-        # Exponential backoff: delay = base * (factor ^ attempt)
-        delay = self.base_reconnect_delay * (self.backoff_factor**attempt)
-
-        # Cap at maximum
+        delay = self.base_reconnect_delay * (self.backoff_factor ** attempt)
         return min(delay, self.max_reconnect_delay)
 
     async def send_touch_event(self, touch: dict) -> None:
@@ -187,8 +188,7 @@ class WebSocketBridge:
         Send a touch event to the Language Runtime via WebSocket.
 
         Args:
-            touch: Touch event dict with 'position' (x, y in projector space) and
-                   'timestamp' (ISO 8601 format) fields.
+            touch: Touch event dict with 'position' (x, y) and 'timestamp' fields.
 
         Raises:
             RuntimeError: If WebSocket is not connected.
@@ -196,7 +196,6 @@ class WebSocketBridge:
         if self.ws is None or self.state != ConnectionState.CONNECTED:
             raise RuntimeError("WebSocket is not connected. Call connect() first.")
 
-        # Validate touch event structure
         if "position" not in touch:
             raise ValueError("Touch event must have 'position' field")
         if "x" not in touch["position"]:
@@ -204,7 +203,6 @@ class WebSocketBridge:
         if "y" not in touch["position"]:
             raise ValueError("Position must have 'y' coordinate")
 
-        # Construct JSON message
         message = json.dumps(touch)
 
         logger.debug(
@@ -215,33 +213,36 @@ class WebSocketBridge:
 
         await self.ws.send(message)
 
-    async def disconnect(self) -> None:
+    def disconnect(self) -> None:
         """
-        Gracefully disconnect from WebSocket server.
+        Synchronous disconnect for use from non-async contexts (e.g., main finally block).
 
-        Disables automatic reconnection and closes the connection if open.
+        Disables reconnection and clears connection state immediately.
+        The underlying WebSocket socket may not be formally closed with a
+        closing handshake, but the server will detect the dropped connection.
         """
         logger.info("Disconnecting from WebSocket...")
+        self.reconnect_enabled = False
+        self.state = ConnectionState.DISCONNECTED
+        self.ws = None
+        logger.info("WebSocket disconnected")
+
+    async def disconnect_async(self) -> None:
+        """
+        Graceful async disconnect with proper closing handshake.
+
+        Use this when calling from an async context to ensure the server
+        receives a proper WebSocket close frame.
+        """
+        logger.info("Disconnecting from WebSocket (async)...")
         self.reconnect_enabled = False
 
         if self.ws is not None:
             try:
                 await self.ws.close()
-                logger.info(f"WebSocket connection to {self.url} closed")
+                logger.info(f"WebSocket connection to {self.url} closed gracefully")
             except Exception as e:
                 logger.warning(f"Error closing WebSocket connection: {e}")
 
         self.state = ConnectionState.DISCONNECTED
         self.ws = None
-
-
-class ConnectionRefusedError(Exception):
-    """Raised when WebSocket server refuses the connection."""
-
-    pass
-
-
-class ConnectionClosedError(Exception):
-    """Raised when WebSocket server closes connection unexpectedly."""
-
-    pass

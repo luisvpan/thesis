@@ -25,6 +25,7 @@ from cv_system.calibration.marker_projector import MarkerProjector
 from cv_system.calibration.result import CalibrationResult
 from cv_system.config import SessionConfig
 from cv_system.hardware.manager import HardwareManager, HardwareError
+from cv_system.transform import ResolutionMapper
 
 logger = logging.getLogger(__name__)
 
@@ -52,18 +53,21 @@ class Calibrator:
         self,
         config: SessionConfig,
         hardware_manager: HardwareManager,
+        resolution_mapper: ResolutionMapper
     ) -> None:
         """Initialize the calibrator with config and hardware manager.
 
         Args:
             config: SessionConfig instance with calibration parameters.
             hardware_manager: HardwareManager instance for RGB/depth frame capture.
+            resolution_mapper: ResolutionMapper instance for RGB <-> depth coordinates mapping
 
         Raises:
             ValueError: If config or hardware_manager is invalid.
         """
         self.config = config
         self.hardware_manager = hardware_manager
+        self.resolution_mapper = resolution_mapper
 
         # Validate config has required attributes
         if not hasattr(config, "calibration"):
@@ -206,7 +210,7 @@ class Calibrator:
 
             # Step 4: Map RGB centroids to depth coordinates
             logger.info("Mapping RGB corners to depth coordinates")
-            depth_corners = self.hardware_manager.map_rgb_to_depth(rgb_corners)
+            depth_corners = self.resolution_mapper.rgb_to_depth(rgb_corners)
             logger.info(f"Mapped to depth coordinates: {depth_corners}")
 
             # Validate mapped depth_corners are within depth frame bounds
@@ -293,6 +297,7 @@ class Calibrator:
         except Exception as e:
             raise RuntimeError(f"Failed to generate dmax_map: {e}") from e
 
+    # TODO: redefinir esto ya que está especializado para validar la homografía de profundidad nada más
     def _validate_results(
         self,
         H: "np.ndarray",

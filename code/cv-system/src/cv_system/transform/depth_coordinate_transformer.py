@@ -1,6 +1,6 @@
 """Coordinate transformer for bidirectional camera <-> projector mapping.
 
-This module provides the CoordinateTransformer class, a stateless service that
+This module provides the DepthCoordinateTransformer class, a stateless service that
 wraps the homography matrix from CalibrationResult and exposes bidirectional
 point transformations using cv2.perspectiveTransform.
 """
@@ -11,7 +11,7 @@ import numpy as np
 from cv_system.calibration.result import CalibrationResult
 
 
-class CoordinateTransformer:
+class DepthCoordinateTransformer:
     """Stateless coordinate transformer for camera <-> projector mapping.
 
     This class wraps the homography matrix H from a CalibrationResult and provides

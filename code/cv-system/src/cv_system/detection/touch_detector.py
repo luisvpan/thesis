@@ -7,123 +7,166 @@ import time
 from enum import IntEnum, verify, UNIQUE
 from typing import Optional
 
+from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
+
+
 @verify(UNIQUE)
 class HandLandmark(IntEnum):
-  THUMB_TIP = 4
-  INDEX_FINGER_TIP = 8
-  MIDDLE_FINGER_TIP = 12
-  RING_FINGER_TIP = 16
-  PINKY_TIP = 20
+    THUMB_TIP = 4
+    INDEX_FINGER_TIP = 8
+    MIDDLE_FINGER_TIP = 12
+    RING_FINGER_TIP = 16
+    PINKY_TIP = 20
+
 
 class TouchDetector:
+    """
+    Detects touches and returns positions in projector coordinates.
+
+    Internally transforms the RGB frame to bird view (projector space)
+    before running MediaPipe. Detected landmark positions are then mapped
+    back to camera/depth space to validate touch against the dmax_map.
+
+    Coordinate flow:
+        rgb (camera space)
+            -> RgbImageTransformer       -> rgb_bird (projector space)
+            -> MediaPipe                 -> landmarks (projector space, normalized)
+            -> DepthCoordinateTransformer.projector_to_camera
+                                         -> (x, y) in rgb/camera space
+            -> ResolutionMapper.rgb_to_depth
+                                         -> (cx, cy) in depth space
+            -> dmax_map[cy, cx]          -> touch validation
+        touch confirmed -> landmark position (projector space) returned directly
+    """
 
     latest_result: Optional[vision.HandLandmarkerResult] = None
 
-    def __init__(self, dmax_map: np.ndarray, rgb_corners: list[tuple[int, int]], config):
+    def __init__(
+        self,
+        dmax_map: np.ndarray,
+        rgb_image_transformer: RgbImageTransformer,
+        depth_coordinate_transformer: DepthCoordinateTransformer,
+        resolution_mapper: ResolutionMapper,
+        config,
+    ) -> None:
         self._dmax_map = dmax_map
-        self.rgb_corners = rgb_corners
+        self._image_transformer = rgb_image_transformer
+        self._coordinate_transformer = depth_coordinate_transformer
+        self._resolution_mapper = resolution_mapper
         self.touch_threshold = getattr(config, "touch_threshold", 20)
         self.latest_result = None
         self.FINGER_TIPS = [HandLandmark.INDEX_FINGER_TIP.value]
 
-        smallest_x = min(corner[0] for corner in rgb_corners)
-        smallest_y = min(corner[1] for corner in rgb_corners)
-        largest_x = max(corner[0] for corner in rgb_corners)
-        largest_y = max(corner[1] for corner in rgb_corners)
-
-        self.roi_x, self.roi_y, self.roi_w, self.roi_h = smallest_x, smallest_y, largest_x - smallest_x, largest_y - smallest_y
-
-        def result_callback(result: vision.HandLandmarkerResult, _output_image: mp.Image, _timestamp_ms: int):
+        def result_callback(
+            result: vision.HandLandmarkerResult,
+            _output_image: mp.Image,
+            _timestamp_ms: int,
+        ) -> None:
             self.latest_result = result
 
-        base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
+        base_options = python.BaseOptions(model_asset_path="hand_landmarker.task")
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.LIVE_STREAM,
             result_callback=result_callback,
             num_hands=2,
             min_hand_detection_confidence=0.15,
-            min_tracking_confidence=0.5
+            min_tracking_confidence=0.5,
         )
         self.detector = vision.HandLandmarker.create_from_options(options)
 
-    def detect(self, depth_frame: np.ndarray, rgb_frame: np.ndarray) -> list[tuple[int, int]]:
-        rgb_h, rgb_w, _ = rgb_frame.shape
-        depth_h, depth_w = depth_frame.shape
+    def detect(
+        self, depth_frame: np.ndarray, rgb_frame: np.ndarray
+    ) -> list[tuple[float, float]]:
+        """
+        Detect touches from raw frames and return projector coordinates.
 
-        print(self.roi_x, self.roi_y, self.roi_w, self.roi_h)
-        
-        # Enviar al detector (usamos un resize interno para bajar latencia si es necesario)
-        roi_rgb = rgb_frame[self.roi_y : self.roi_y + self.roi_h,
-                            self.roi_x : self.roi_x + self.roi_w]
-        roi_rgb_mp = cv2.cvtColor(roi_rgb, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=roi_rgb_mp)
-        
+        Args:
+            depth_frame: Raw depth frame from HardwareManager (depth space, uint16).
+            rgb_frame: Raw RGB frame from HardwareManager (camera space, uint8 BGR).
+
+        Returns:
+            List of (x, y) touch positions in projector coordinates.
+        """
+        # Transform RGB to bird view (projector space) for MediaPipe
+        rgb_float = rgb_frame.astype(np.float32) / 255.0
+        rgb_bird = self._image_transformer.camera_to_projector(rgb_float)
+        rgb_h, rgb_w = rgb_bird.shape[:2]
+
+        rgb_bird_uint8 = (rgb_bird * 255).astype(np.uint8)
+        rgb_bird_mp = cv2.cvtColor(rgb_bird_uint8, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_bird_mp)
+
         timestamp_ms = int(time.time() * 1000)
         self.detector.detect_async(mp_image, timestamp_ms)
 
-        touches = []
-        debug_img = rgb_frame.copy()
-
-        # Dibujar ROI
-        cv2.rectangle(debug_img, (self.roi_x, self.roi_y), 
-                      (self.roi_x + self.roi_w, self.roi_y + self.roi_h), (255, 255, 0), 1)
+        touches_projector = []
+        debug_img = rgb_bird_uint8.copy()
 
         if self.latest_result and self.latest_result.hand_landmarks:
             for hand_landmarks in self.latest_result.hand_landmarks:
-                # Puntos verdes de tracking
+                # Draw all landmarks for debug
                 for lm in hand_landmarks:
-                    gx = int(lm.x * self.roi_w + self.roi_x)
-                    gy = int(lm.y * self.roi_h + self.roi_y)
+                    gx = int(lm.x * rgb_w)
+                    gy = int(lm.y * rgb_h)
                     cv2.circle(debug_img, (gx, gy), 2, (0, 255, 0), -1)
 
                 for idx in self.FINGER_TIPS:
                     lm = hand_landmarks[idx]
-                    gx_f = lm.x * self.roi_w + self.roi_x
-                    gy_f = lm.y * self.roi_h + self.roi_y
-                    
-                    # Mapeo a espacio de profundidad
-                    cx = int(gx_f * depth_w / rgb_w)
-                    cy = int(gy_f * depth_h / rgb_h)
 
-                    # ... dentro del bucle de puntas de dedos ...
-                    if 0 <= cx < depth_w and 0 <= cy < depth_h:
-                        # 1. Muestreo de área pequeña para promediar el ruido electrónico
-                        # Un bloque de 3x3 píxeles en 512x424 es muy pequeño pero estable
-                        roi_size = 1
-                        z_roi = depth_frame[max(0, cy-roi_size):cy+roi_size+1, 
-                                            max(0, cx-roi_size):cx+roi_size+1]
-                        
-                        # Filtrar ceros y obtener la mediana (mucho más estable que el valor directo)
-                        valid_z = z_roi[z_roi > 0]
-                        current_z = int(np.median(valid_z)) if valid_z.size > 0 else 0
-                        
-                        surface_z = int(self._dmax_map[cy, cx])
-                        diff = surface_z - current_z
-                        
-                        # 2. Umbral con margen de ruido (Histéresis)
-                        # Ajustamos a -10 para absorber fluctuaciones del sensor
-                        is_touching = False
-                        if -10 <= diff <= self.touch_threshold and current_z > 0:
-                            is_touching = True
-                            touches.append((cx, cy))
-    
-                        # --- DEBUG DE VALORES ---
-                        color = (0, 0, 255) if is_touching else (0, 255, 255)
-                        cv2.circle(debug_img, (int(gx_f), int(gy_f)), 4, color, -1)
-                        
-                        # Marcador visual de lectura nula
-                        if current_z == 0:
-                            debug_text = "NO DATA (Z=0)"
-                            color = (0, 165, 255) # Naranja
-                        else:
-                            debug_text = f"Z:{current_z} M:{surface_z} D:{diff}"
-                        
-                        cv2.putText(debug_img, debug_text, (int(gx_f) + 10, int(gy_f)), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
-    
+                    # Landmark in projector space (denormalized)
+                    proj_x = lm.x * rgb_w
+                    proj_y = lm.y * rgb_h
+
+                    # projector -> camera/rgb space
+                    proj_point = np.array([[proj_x, proj_y]], dtype=np.float32)
+                    camera_point = self._coordinate_transformer.projector_to_camera(proj_point)
+                    cam_x = int(camera_point[0, 0])
+                    cam_y = int(camera_point[0, 1])
+
+                    # camera/rgb space -> depth space
+                    depth_points = self._resolution_mapper.rgb_to_depth([(cam_x, cam_y)])
+                    cx, cy = depth_points[0]
+
+                    if not (0 <= cx < self._dmax_map.shape[1] and 0 <= cy < self._dmax_map.shape[0]):
+                        continue
+
+                    # Sample depth with small area to reduce sensor noise
+                    roi_size = 1
+                    z_roi = depth_frame[
+                        max(0, cy - roi_size) : cy + roi_size + 1,
+                        max(0, cx - roi_size) : cx + roi_size + 1,
+                    ]
+                    valid_z = z_roi[z_roi > 0]
+                    current_z = int(np.median(valid_z)) if valid_z.size > 0 else 0
+
+                    surface_z = int(self._dmax_map[cy, cx])
+                    diff = surface_z - current_z
+
+                    is_touching = -10 <= diff <= self.touch_threshold and current_z > 0
+                    if is_touching:
+                        touches_projector.append((proj_x, proj_y))
+
+                    # Debug overlay
+                    color = (0, 0, 255) if is_touching else (0, 255, 255)
+                    cv2.circle(debug_img, (int(proj_x), int(proj_y)), 4, color, -1)
+                    debug_text = (
+                        "NO DATA (Z=0)"
+                        if current_z == 0
+                        else f"Z:{current_z} M:{surface_z} D:{diff}"
+                    )
+                    cv2.putText(
+                        debug_img,
+                        debug_text,
+                        (int(proj_x) + 10, int(proj_y)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.4,
+                        color,
+                        1,
+                    )
+
         cv2.namedWindow("Kinect V2 - Livestream AI Debug", cv2.WINDOW_NORMAL)
         cv2.imshow("Kinect V2 - Livestream AI Debug", debug_img)
         cv2.waitKey(1)
-        
-        return touches
+
+        return touches_projector
