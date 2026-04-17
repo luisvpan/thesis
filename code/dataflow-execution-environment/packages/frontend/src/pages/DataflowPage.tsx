@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ReactFlow,
@@ -18,6 +18,7 @@ import type { MathOperatorType } from '@/types/card-types';
 import type { SocketAddNodePayload, SocketAddEdgePayload } from '@/types/socket-types';
 import { useSocket } from '@/contexts/SocketContext';
 import { useVision } from '@/contexts/VisionContext';
+import { visionLabelToDigit } from '@/utils/visionCardLabel';
 import { VisionDetectedBadge } from '@/components/VisionDetectedBadge';
 import { getLevelConfig } from '@/data/levelConfig';
 import { ArrowLeft, Plus, Minus, Volume2, Play } from 'lucide-react';
@@ -75,21 +76,55 @@ const initialNodes: DataflowNode[] = [];
 
 const initialEdges: Edge[] = [];
 
-/** Área usable en coordenadas de React Flow (mapeo desde posición normalizada en el frame). */
-const VISION_FLOW_BOUNDS = { xMin: 16, xMax: 920, yMin: 16, yMax: 560 } as const;
+/** Mínimo de píxeles del contenedor React Flow para mapear visión (evita medidas 0). */
+const VISION_FLOW_MIN_SIZE = 64;
+
+function getViewportSize(): { w: number; h: number } {
+  if (typeof window === 'undefined') return { w: 1920, h: 1080 };
+  return { w: window.innerWidth, h: window.innerHeight };
+}
 
 /** Aprox. mitad del nodo número (small) para centrar la caja en el punto detectado. */
 const VISION_NODE_HALF_W = 48;
 const VISION_NODE_HALF_H = 40;
 
-function visionNormToFlowPosition(norm: { x: number; y: number }): { x: number; y: number } {
-  const nx = Math.min(1, Math.max(0, norm.x));
-  const ny = Math.min(1, Math.max(0, norm.y));
-  const x =
-    VISION_FLOW_BOUNDS.xMin + nx * (VISION_FLOW_BOUNDS.xMax - VISION_FLOW_BOUNDS.xMin) - VISION_NODE_HALF_W;
-  const y =
-    VISION_FLOW_BOUNDS.yMin + ny * (VISION_FLOW_BOUNDS.yMax - VISION_FLOW_BOUNDS.yMin) - VISION_NODE_HALF_H;
-  return { x: Math.max(0, x), y: Math.max(0, y) };
+function clamp01(v: number): number {
+  return Math.min(1, Math.max(0, v));
+}
+
+/**
+ * Centro normalizado (misma convención que Python: imagen homografiada completa, 0..1) → coordenadas
+ * en el espacio del grafo React Flow.
+ *
+ * Se asume que el navegador en pantalla completa coincide con el plano proyectado: (nx, ny) se escala al
+ * **viewport** (header + lienzo + footer). Luego se resta el offset del contenedor del Flow respecto al
+ * viewport para obtener la posición local del nodo.
+ */
+function visionNormToFlowPosition(
+  norm: { x: number; y: number },
+  viewportW: number,
+  viewportH: number,
+  flowRect: Pick<DOMRectReadOnly, 'left' | 'top' | 'width' | 'height'>,
+): { x: number; y: number } {
+  const nx = clamp01(norm.x);
+  const ny = clamp01(norm.y);
+  if (
+    viewportW < VISION_FLOW_MIN_SIZE ||
+    viewportH < VISION_FLOW_MIN_SIZE ||
+    flowRect.width < VISION_FLOW_MIN_SIZE ||
+    flowRect.height < VISION_FLOW_MIN_SIZE
+  ) {
+    return { x: 0, y: 0 };
+  }
+  const vx = nx * viewportW;
+  const vy = ny * viewportH;
+  let x = vx - flowRect.left - VISION_NODE_HALF_W;
+  let y = vy - flowRect.top - VISION_NODE_HALF_H;
+  const maxX = Math.max(0, flowRect.width - 2 * VISION_NODE_HALF_W);
+  const maxY = Math.max(0, flowRect.height - 2 * VISION_NODE_HALF_H);
+  x = Math.max(0, Math.min(x, maxX));
+  y = Math.max(0, Math.min(y, maxY));
+  return { x, y };
 }
 
 function speakTitle(title: string, subtitle: string) {
@@ -106,13 +141,50 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
   const level = params.level;
   const levelConfig = getLevelConfig(worldId, level, isSandbox);
   const socket = useSocket();
-  const { last: visionLast } = useVision();
+  const { last: visionLast, lastCardFrame } = useVision();
   const lastVisionIngestRef = useRef<number | null>(null);
   const visionLayoutIndexRef = useRef(0);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [viewMode, setViewMode] = useState<ViewMode>('pictorico');
   const [executedResult, setExecutedResult] = useState<number | null>(null);
+
+  const flowContainerRef = useRef<HTMLDivElement>(null);
+  const [viewportSize, setViewportSize] = useState(getViewportSize);
+  /** Incrementa cuando cambia geometría relevante (scroll/resize/flujo) para releer getBoundingClientRect. */
+  const [visionGeomEpoch, setVisionGeomEpoch] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = flowContainerRef.current;
+    const bump = () => {
+      setViewportSize(getViewportSize());
+      setVisionGeomEpoch((n) => n + 1);
+    };
+    bump();
+    window.addEventListener('resize', bump);
+    let scrollQueued = false;
+    const onScroll = () => {
+      if (scrollQueued) return;
+      scrollQueued = true;
+      requestAnimationFrame(() => {
+        scrollQueued = false;
+        bump();
+      });
+    };
+    window.addEventListener('scroll', onScroll, true);
+    const ro =
+      el &&
+      new ResizeObserver(() => {
+        bump();
+      });
+    if (el && ro) ro.observe(el);
+    return () => {
+      window.removeEventListener('resize', bump);
+      window.removeEventListener('scroll', onScroll, true);
+      ro?.disconnect();
+    };
+  }, []);
+
   const backTo = worldId ? (isSandbox ? '/juego' : `/juego/${worldId}`) : '/';
 
   useEffect(() => {
@@ -154,9 +226,20 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
   useEffect(() => {
     if (!visionLast) return;
     if (lastVisionIngestRef.current === visionLast.t) return;
-    lastVisionIngestRef.current = visionLast.t;
 
     if (visionLast.number === undefined || visionLast.number === null) return;
+
+    const flowEl = flowContainerRef.current;
+    const rect = flowEl?.getBoundingClientRect();
+    if (
+      !rect ||
+      rect.width < VISION_FLOW_MIN_SIZE ||
+      rect.height < VISION_FLOW_MIN_SIZE
+    ) {
+      return;
+    }
+
+    lastVisionIngestRef.current = visionLast.t;
 
     const value = visionLast.number;
     const id = `vision-${visionLast.t}`;
@@ -164,7 +247,7 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
     const p = visionLast.position;
     const position =
       p && typeof p.x === 'number' && typeof p.y === 'number'
-        ? visionNormToFlowPosition(p)
+        ? visionNormToFlowPosition(p, viewportSize.w, viewportSize.h, rect)
         : (() => {
             const idx = visionLayoutIndexRef.current++;
             return {
@@ -182,7 +265,47 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
         data: { value },
       },
     ]);
-  }, [visionLast, setNodes]);
+  }, [visionLast, setNodes, viewportSize.w, viewportSize.h, visionGeomEpoch]);
+
+  /**
+   * Lote de cartas desde CV (Python → POST /api/v1/vision/cards → WS): sincroniza nodos
+   * `vision-live-*` con las posiciones normalizadas exactas en el canvas.
+   */
+  useEffect(() => {
+    if (!lastCardFrame) return;
+    const flowEl = flowContainerRef.current;
+    const rect = flowEl?.getBoundingClientRect();
+    if (
+      !rect ||
+      rect.width < VISION_FLOW_MIN_SIZE ||
+      rect.height < VISION_FLOW_MIN_SIZE
+    ) {
+      return;
+    }
+
+    setNodes((prev) => {
+      const withoutLive = prev.filter((n) => !n.id.startsWith('vision-live-'));
+      const additions: DataflowNode[] = lastCardFrame.cards.map((c, i) => {
+        const digit = visionLabelToDigit(c.label);
+        const position = visionNormToFlowPosition(
+          c.position,
+          viewportSize.w,
+          viewportSize.h,
+          rect,
+        );
+        return {
+          id: `vision-live-${i}`,
+          type: 'number' as const,
+          position,
+          data: {
+            value: digit ?? 0,
+            visionSubtitle: digit == null ? c.label : undefined,
+          },
+        };
+      });
+      return [...withoutLive, ...additions];
+    });
+  }, [lastCardFrame, setNodes, viewportSize.w, viewportSize.h, visionGeomEpoch]);
 
   const cycleViewMode = useCallback(() => {
     setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
@@ -367,8 +490,8 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
           </>
         )}
 
-        {/* Área principal: canvas ReactFlow (fondo negro) */}
-        <div className="flex-1 relative min-w-0 bg-black">
+        {/* Área principal: canvas ReactFlow (fondo negro). Ref = tamaño real para alinear con homografía. */}
+        <div ref={flowContainerRef} className="flex-1 relative min-w-0 min-h-0 bg-black h-full">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -376,8 +499,9 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             nodeTypes={nodeTypes}
-            fitView
-            className="bg-black"
+            fitView={false}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            className="bg-black h-full w-full"
             minZoom={1}
             maxZoom={1}
             zoomOnScroll={false}

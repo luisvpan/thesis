@@ -1,6 +1,6 @@
 import type { NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
-import { OperatorCard } from '@/components/cards';
+import { OperatorFlowCard } from '@/components/cards';
 import type { MathOperatorType } from '@/types/card-types';
 
 export type OperatorFlowNodeData = {
@@ -16,12 +16,17 @@ export function OperatorFlowNode({ data }: NodeProps<{ type: 'operator'; data: O
   const showResult = result !== undefined && result !== null;
 
   return (
-    <div className="nopan relative">
+    <div
+      className="nopan relative"
+      style={{
+        transform: 'translate(-50%, -50%)',
+      }}
+    >
       {/* Dos entradas: arriba y abajo del borde izquierdo */}
       <Handle type="target" position={Position.Left} id="a" className="!w-3 !h-3 !border-2 !bg-white !top-1/4" style={{ top: '25%' }} />
       <Handle type="target" position={Position.Left} id="b" className="!w-3 !h-3 !border-2 !bg-white !top-3/4" style={{ top: '75%' }} />
       <div className="relative">
-        <OperatorCard operator={operator} size="small" />
+        <OperatorFlowCard operator={operator} size="small" />
         {showResult && (
           <div
             className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-sm font-bold text-emerald-600 bg-white/95 px-2 py-0.5 rounded shadow"

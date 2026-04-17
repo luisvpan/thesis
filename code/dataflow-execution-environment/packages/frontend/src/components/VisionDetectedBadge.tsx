@@ -2,7 +2,7 @@ import { useVision } from "@/contexts/VisionContext";
 
 /** Muestra el último número detectado por YOLO (Python → Elysia → WebSocket). */
 export function VisionDetectedBadge() {
-  const { last, connected, error } = useVision();
+  const { last, lastCardFrame, connected, error } = useVision();
 
   return (
     <div className="rounded-xl border border-indigo-200/80 bg-white/90 px-3 py-2 text-left shadow-md backdrop-blur-sm max-w-[min(100vw-2rem,20rem)]">
@@ -13,6 +13,12 @@ export function VisionDetectedBadge() {
         WS: {connected ? "conectado" : "desconectado"}
         {error ? ` · ${error}` : null}
       </p>
+      {lastCardFrame != null && lastCardFrame.cards.length > 0 && (
+        <p className="mt-1 text-[11px] text-slate-600">
+          Cartas en mesa:{" "}
+          <span className="font-semibold text-slate-800">{lastCardFrame.cards.length}</span>
+        </p>
+      )}
       {last ? (
         <>
           <p className="mt-0.5 text-[11px] text-slate-600 truncate" title={last.label}>

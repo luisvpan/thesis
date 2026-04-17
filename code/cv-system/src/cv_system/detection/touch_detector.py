@@ -48,8 +48,11 @@ class TouchDetector:
         depth_coordinate_transformer: DepthCoordinateTransformer,
         resolution_mapper: ResolutionMapper,
         config,
+        *,
+        show_debug: bool = False,
     ) -> None:
         self._dmax_map = dmax_map
+        self._show_debug = show_debug
         self._image_transformer = rgb_image_transformer
         self._coordinate_transformer = depth_coordinate_transformer
         self._resolution_mapper = resolution_mapper
@@ -165,8 +168,9 @@ class TouchDetector:
                         1,
                     )
 
-        cv2.namedWindow("Kinect V2 - Livestream AI Debug", cv2.WINDOW_NORMAL)
-        cv2.imshow("Kinect V2 - Livestream AI Debug", debug_img)
-        cv2.waitKey(1)
+        if self._show_debug:
+            cv2.namedWindow("Kinect V2 - Livestream AI Debug", cv2.WINDOW_NORMAL)
+            cv2.imshow("Kinect V2 - Livestream AI Debug", debug_img)
+            cv2.waitKey(1)
 
         return touches_projector

@@ -2,6 +2,8 @@ import { motion } from 'motion/react';
 
 interface NumberCardProps {
   value: number;
+  /** Si se define, sustituye el nombre del número (p. ej. clase YOLO no numérica). */
+  subtitle?: string;
   isDraggable?: boolean;
   onClick?: () => void;
   size?: 'small' | 'medium' | 'large';
@@ -32,8 +34,14 @@ const labelClasses = {
   large: 'text-lg',
 };
 
-export function NumberCard({ value, isDraggable = false, onClick, size = 'medium' }: NumberCardProps) {
-  const label = numberNames[value] ?? String(value);
+export function NumberCard({
+  value,
+  subtitle,
+  isDraggable = false,
+  onClick,
+  size = 'medium',
+}: NumberCardProps) {
+  const label = subtitle ?? numberNames[value] ?? String(value);
 
   return (
     <motion.div

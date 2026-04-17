@@ -1,6 +1,7 @@
 // Export all card components
 export { CardBase } from './CardBase';
 export { OperatorCard } from './OperatorCard';
+export { OperatorFlowCard } from './OperatorFlowCard';
 export { NumberCard } from './NumberCard';
 export { AnimalCard } from './AnimalCard';
 export { CarCard } from './CarCard';

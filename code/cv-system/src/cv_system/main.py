@@ -15,12 +15,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 import cv2
-import numpy as np
 
 from cv_system.bridge import WebSocketBridge, TouchEvent
-from cv_system.calibration.marker_projector import MarkerProjector
+from cv_system.bridge.vision_ingest import post_card_batch_async
 from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
+from cv_system.detection.card_detector import CardDetector
 from cv_system.detection.touch_detector import TouchDetector
 from cv_system.hardware.manager import HardwareManager, HardwareError
 from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
@@ -125,8 +125,28 @@ def main() -> None:
             depth_coordinate_transformer,
             resolution_mapper,
             config.detection,
+            show_debug=False,
         )
         print("  Touch detector initialized")
+
+        model_path = Path(
+            os.getenv(
+                "YOLO_MODEL_PATH",
+                str(
+                    Path(__file__).resolve().parent.parent.parent.parent
+                    / "models"
+                    / "plswork2.pt"
+                ),
+            )
+        )
+        card_detector = CardDetector(rgb_image_transformer, model_path)
+        print(f"  Card detector (YOLO) initialized: {model_path}")
+
+        vision_cards_url = os.getenv(
+            "VISION_CARDS_INGEST_URL",
+            "http://127.0.0.1:3000/api/v1/vision/cards",
+        )
+        print(f"  Vision cards ingest URL: {vision_cards_url}")
 
         # Step 4: Initialize WebSocket bridge
         print("\n[4/5] Initializing WebSocket bridge...")
@@ -154,9 +174,9 @@ def main() -> None:
 
         start_time = time.time()
 
-        cv2.namedWindow("Projector View", cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty("Projector View", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        cv2.moveWindow("Projector View", 1920, 0)
+        cv2.namedWindow("Card Detection", cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty("Card Detection", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.moveWindow("Card Detection", 1920, 0)
 
         while True:
             try:
@@ -166,15 +186,13 @@ def main() -> None:
                 # detect() receives raw frames, returns projector coordinates directly
                 touches = detector.detect(depth_frame, rgb_frame)
 
-                canvas = np.zeros((PROJ_H, PROJ_W, 3), dtype=np.uint8)
+                card_view, card_dets = card_detector.detect(rgb_frame)
+                post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
 
                 if touches:
                     for i, (x, y) in enumerate(touches):
                         if 0 <= x < PROJ_W and 0 <= y < PROJ_H:
                             touch_event = TouchEvent.from_detected_touch(x=x, y=y)
-                            cv2.circle(
-                                canvas, (int(x), int(y)), radius=20, color=(0, 255, 0), thickness=-1
-                            )
                             print(f"  Frame {frame_count}: Touch {i+1} at proj_x={x:.0f}, proj_y={y:.0f}")
 
                             if ws_bridge.state.value == "CONNECTED":
@@ -186,7 +204,14 @@ def main() -> None:
                     if frame_count % 30 == 0:
                         print(f"  Frame {frame_count}: No touches detected")
 
-                cv2.imshow("Projector View", canvas)
+                if card_dets and frame_count % 30 == 0:
+                    for d in card_dets:
+                        print(
+                            f"  Frame {frame_count}: Card {d.label} "
+                            f"{d.confidence * 100:.1f}%"
+                        )
+
+                cv2.imshow("Card Detection", card_view)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
 

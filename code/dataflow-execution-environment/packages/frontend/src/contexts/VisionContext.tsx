@@ -20,8 +20,25 @@ export type DetectedNumberPayload = {
   t: number;
 };
 
+/** Una carta en vista de proyector (POST `/api/v1/vision/cards` → WS `cardDetections`). */
+export type VisionCardItem = {
+  classId: number;
+  label: string;
+  confidence: number;
+  position: { x: number; y: number };
+  bbox?: { x1: number; y1: number; x2: number; y2: number };
+};
+
+export type CardDetectionsPayload = {
+  type: "cardDetections";
+  cards: VisionCardItem[];
+  t: number;
+};
+
 type VisionState = {
   last: DetectedNumberPayload | null;
+  /** Último lote de cartas (tablero físico); posiciones normalizadas 0..1 en imagen de proyección */
+  lastCardFrame: CardDetectionsPayload | null;
   connected: boolean;
   error: string | null;
 };
@@ -38,6 +55,7 @@ function getVisionWsUrl(): string {
 
 export function VisionProvider({ children }: { children: ReactNode }) {
   const [last, setLast] = useState<DetectedNumberPayload | null>(null);
+  const [lastCardFrame, setLastCardFrame] = useState<CardDetectionsPayload | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,11 +79,10 @@ export function VisionProvider({ children }: { children: ReactNode }) {
       try {
         const data = JSON.parse(ev.data as string) as unknown;
         console.log("[ide:vision]", "mensaje parseado:", data);
-        if (
-          typeof data === "object" &&
-          data !== null &&
-          (data as DetectedNumberPayload).type === "detectedNumber"
-        ) {
+        if (typeof data !== "object" || data === null) return;
+
+        const typ = (data as { type?: string }).type;
+        if (typ === "detectedNumber") {
           const det = data as DetectedNumberPayload;
           setLast(det);
           const pos = det.position;
@@ -82,6 +99,18 @@ export function VisionProvider({ children }: { children: ReactNode }) {
               : "",
             posStr.trim() || "(sin posición)",
           );
+          return;
+        }
+
+        if (typ === "cardDetections") {
+          const frame = data as CardDetectionsPayload;
+          setLastCardFrame(frame);
+          console.log(
+            "[ide:vision] cartas:",
+            frame.cards.length,
+            frame.t,
+            frame.cards.map((c) => `${c.label}@${c.position.x.toFixed(2)},${c.position.y.toFixed(2)}`),
+          );
         }
       } catch (e) {
         console.warn("[ide:vision]", "JSON inválido", e);
@@ -95,8 +124,8 @@ export function VisionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    (): VisionState => ({ last, connected, error }),
-    [last, connected, error],
+    (): VisionState => ({ last, lastCardFrame, connected, error }),
+    [last, lastCardFrame, connected, error],
   );
 
   return (
