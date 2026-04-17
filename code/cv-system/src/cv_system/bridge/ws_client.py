@@ -73,6 +73,7 @@ class WebSocketBridge:
         self.ws: Optional[ClientConnection] = None
         self.state = ConnectionState.DISCONNECTED
         self.reconnect_enabled = True
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
 
         if max_reconnect_delay < base_reconnect_delay:
             raise ValueError(
@@ -108,6 +109,7 @@ class WebSocketBridge:
 
         self.state = ConnectionState.CONNECTING
         self._reconnect_attempts = 0
+        self.loop = asyncio.get_running_loop()
 
         while self.reconnect_enabled:
             try:

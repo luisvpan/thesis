@@ -5,6 +5,7 @@ import type { DataflowProgram, ValidationResult } from "@dataflow/shared/types";
 import { DagValidator } from "@dataflow/compiler";
 import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
 import { visionModule } from "./vision";
+import { touchModule } from "./touch";
 
 const startTime = Date.now();
 const validator = new DagValidator();
@@ -187,6 +188,7 @@ export const app = new Elysia()
   .use(healthRoutes)
   .use(compileRoutes)
   .use(executeRoutes)
-  .use(visionModule);
+  .use(visionModule)
+  .use(touchModule);
 
 export type App = typeof app;
