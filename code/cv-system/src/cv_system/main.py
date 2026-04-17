@@ -195,10 +195,10 @@ def main() -> None:
                             touch_event = TouchEvent.from_detected_touch(x=x, y=y)
                             print(f"  Frame {frame_count}: Touch {i+1} at proj_x={x:.0f}, proj_y={y:.0f}")
 
-                            if ws_bridge.state.value == "CONNECTED":
+                            if ws_bridge.state.value == "CONNECTED" and ws_bridge.loop is not None:
                                 asyncio.run_coroutine_threadsafe(
                                     ws_bridge.send_touch_event(touch_event.to_dict()),
-                                    loop=asyncio.get_event_loop(),
+                                    loop=ws_bridge.loop,
                                 )
                 else:
                     if frame_count % 30 == 0:
