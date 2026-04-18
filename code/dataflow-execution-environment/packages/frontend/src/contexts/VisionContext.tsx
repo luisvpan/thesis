@@ -37,7 +37,7 @@ export type CardDetectionsPayload = {
 
 type VisionState = {
   last: DetectedNumberPayload | null;
-  /** Último lote de cartas (tablero físico); posiciones normalizadas 0..1 en imagen de proyección */
+  /** Último lote de cartas (tablero físico); posiciones normalizadas 0-1 */
   lastCardFrame: CardDetectionsPayload | null;
   connected: boolean;
   error: string | null;

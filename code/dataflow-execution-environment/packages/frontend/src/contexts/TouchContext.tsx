@@ -101,8 +101,11 @@ export function TouchProvider({ children }: { children: ReactNode }) {
   const [indicators, setIndicators] = useState<TouchIndicator[]>([]);
   const indicatorIdRef = useRef(0);
 
+  console.log("[touch] TouchProvider mounted");
+
   useEffect(() => {
     const url = getTouchWsUrl();
+    console.log("[touch] useEffect running, connecting to:", url);
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
@@ -111,13 +114,14 @@ export function TouchProvider({ children }: { children: ReactNode }) {
       console.log("[touch] WebSocket connected", url);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       setConnected(false);
-      console.log("[touch] WebSocket disconnected");
+      console.log("[touch] WebSocket disconnected, code:", ev.code, "reason:", ev.reason);
     };
 
-    ws.onerror = () => {
+    ws.onerror = (ev) => {
       setError("Touch WebSocket error");
+      console.error("[touch] WebSocket error:", ev);
     };
 
     ws.onmessage = (ev) => {

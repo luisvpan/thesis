@@ -1,24 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ReactFlow,
-  useNodesState,
-  useEdgesState,
-  addEdge,
-  type Connection,
-  type Edge,
-  type Node,
   Background,
   type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { NumberFlowNode, OperatorFlowNode } from '@/components/dataflow';
-import type { NumberFlowNodeData, OperatorFlowNodeData } from '@/components/dataflow';
-import type { MathOperatorType } from '@/types/card-types';
-import type { SocketAddNodePayload, SocketAddEdgePayload } from '@/types/socket-types';
-import { useSocket } from '@/contexts/SocketContext';
-import { useVision } from '@/contexts/VisionContext';
-import { visionLabelToDigit } from '@/utils/visionCardLabel';
+import { NodeProvider, useNode } from '@/contexts/NodeContext';
 import { VisionDetectedBadge } from '@/components/VisionDetectedBadge';
 import { getLevelConfig } from '@/data/levelConfig';
 import { ArrowLeft, Plus, Minus, Volume2, Play } from 'lucide-react';
@@ -31,101 +20,10 @@ const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   abstracto: 'Abstracto',
 };
 
-type DataflowNode = Node<NumberFlowNodeData, 'number'> | Node<OperatorFlowNodeData, 'operator'>;
-
 const nodeTypes: NodeTypes = {
   number: NumberFlowNode,
   operator: OperatorFlowNode,
 };
-
-/** Valor de salida de un nodo: número tiene value, operador tiene value (resultado) */
-function getNodeValue(node: DataflowNode | null | undefined): number | undefined {
-  if (!node?.data) return undefined;
-  const d = node.data as NumberFlowNodeData & OperatorFlowNodeData;
-  return d.value ?? d.result;
-}
-
-/** Nodo con mayor position.x (el más a la derecha del canvas) */
-function getRightmostNode(nodes: DataflowNode[]): DataflowNode | null {
-  if (nodes.length === 0) return null;
-  return nodes.reduce((rightmost, node) =>
-    node.position.x > rightmost.position.x ? node : rightmost
-  );
-}
-
-function computeOperatorResult(
-  operatorId: string,
-  nodes: DataflowNode[],
-  edges: Edge[]
-): number | undefined {
-  const edgesToOperator = edges.filter((e) => e.target === operatorId);
-  const edgeA = edgesToOperator.find((e) => e.targetHandle === 'a');
-  const edgeB = edgesToOperator.find((e) => e.targetHandle === 'b');
-  const nodeA = edgeA ? nodes.find((n) => n.id === edgeA.source) : null;
-  const nodeB = edgeB ? nodes.find((n) => n.id === edgeB.source) : null;
-  const valA = getNodeValue(nodeA);
-  const valB = getNodeValue(nodeB);
-  if (typeof valA !== 'number' || typeof valB !== 'number') return undefined;
-  const operator = (nodes.find((n) => n.id === operatorId)?.data as OperatorFlowNodeData | undefined)?.operator;
-  if (operator === 'adicion') return valA + valB;
-  if (operator === 'sustraccion') return valA - valB;
-  return undefined;
-}
-
-const initialNodes: DataflowNode[] = [];
-
-const initialEdges: Edge[] = [];
-
-/** Mínimo de píxeles del contenedor React Flow para mapear visión (evita medidas 0). */
-const VISION_FLOW_MIN_SIZE = 64;
-
-function getViewportSize(): { w: number; h: number } {
-  if (typeof window === 'undefined') return { w: 1920, h: 1080 };
-  return { w: window.innerWidth, h: window.innerHeight };
-}
-
-/** Aprox. mitad del nodo número (small) para centrar la caja en el punto detectado. */
-const VISION_NODE_HALF_W = 48;
-const VISION_NODE_HALF_H = 40;
-
-function clamp01(v: number): number {
-  return Math.min(1, Math.max(0, v));
-}
-
-/**
- * Centro normalizado (misma convención que Python: imagen homografiada completa, 0..1) → coordenadas
- * en el espacio del grafo React Flow.
- *
- * Se asume que el navegador en pantalla completa coincide con el plano proyectado: (nx, ny) se escala al
- * **viewport** (header + lienzo + footer). Luego se resta el offset del contenedor del Flow respecto al
- * viewport para obtener la posición local del nodo.
- */
-function visionNormToFlowPosition(
-  norm: { x: number; y: number },
-  viewportW: number,
-  viewportH: number,
-  flowRect: Pick<DOMRectReadOnly, 'left' | 'top' | 'width' | 'height'>,
-): { x: number; y: number } {
-  const nx = clamp01(norm.x);
-  const ny = clamp01(norm.y);
-  if (
-    viewportW < VISION_FLOW_MIN_SIZE ||
-    viewportH < VISION_FLOW_MIN_SIZE ||
-    flowRect.width < VISION_FLOW_MIN_SIZE ||
-    flowRect.height < VISION_FLOW_MIN_SIZE
-  ) {
-    return { x: 0, y: 0 };
-  }
-  const vx = nx * viewportW;
-  const vy = ny * viewportH;
-  let x = vx - flowRect.left - VISION_NODE_HALF_W;
-  let y = vy - flowRect.top - VISION_NODE_HALF_H;
-  const maxX = Math.max(0, flowRect.width - 2 * VISION_NODE_HALF_W);
-  const maxY = Math.max(0, flowRect.height - 2 * VISION_NODE_HALF_H);
-  x = Math.max(0, Math.min(x, maxX));
-  y = Math.max(0, Math.min(y, maxY));
-  return { x, y };
-}
 
 function speakTitle(title: string, subtitle: string) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -135,250 +33,37 @@ function speakTitle(title: string, subtitle: string) {
   window.speechSynthesis.speak(u);
 }
 
-export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
-  const params = useParams();
-  const worldId = params.worldId;
-  const level = params.level;
-  const levelConfig = getLevelConfig(worldId, level, isSandbox);
-  const socket = useSocket();
-  const { last: visionLast, lastCardFrame } = useVision();
-  const lastVisionIngestRef = useRef<number | null>(null);
-  const visionLayoutIndexRef = useRef(0);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+// Inner component that uses NodeContext
+function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
+  isSandbox: boolean;
+  levelConfig: ReturnType<typeof getLevelConfig>;
+  backTo: string;
+  flowContainerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    addNumberNode,
+    addOperatorNode,
+    getExecutionResult,
+  } = useNode();
+
   const [viewMode, setViewMode] = useState<ViewMode>('pictorico');
   const [executedResult, setExecutedResult] = useState<number | null>(null);
-
-  const flowContainerRef = useRef<HTMLDivElement>(null);
-  const [viewportSize, setViewportSize] = useState(getViewportSize);
-  /** Incrementa cuando cambia geometría relevante (scroll/resize/flujo) para releer getBoundingClientRect. */
-  const [visionGeomEpoch, setVisionGeomEpoch] = useState(0);
-
-  useLayoutEffect(() => {
-    const el = flowContainerRef.current;
-    const bump = () => {
-      setViewportSize(getViewportSize());
-      setVisionGeomEpoch((n) => n + 1);
-    };
-    bump();
-    window.addEventListener('resize', bump);
-    let scrollQueued = false;
-    const onScroll = () => {
-      if (scrollQueued) return;
-      scrollQueued = true;
-      requestAnimationFrame(() => {
-        scrollQueued = false;
-        bump();
-      });
-    };
-    window.addEventListener('scroll', onScroll, true);
-    const ro =
-      el &&
-      new ResizeObserver(() => {
-        bump();
-      });
-    if (el && ro) ro.observe(el);
-    return () => {
-      window.removeEventListener('resize', bump);
-      window.removeEventListener('scroll', onScroll, true);
-      ro?.disconnect();
-    };
-  }, []);
-
-  const backTo = worldId ? (isSandbox ? '/juego' : `/juego/${worldId}`) : '/';
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const onAddNode = (payload: SocketAddNodePayload) => {
-      const node: DataflowNode = {
-        id: payload.id,
-        type: payload.type,
-        position: payload.position,
-        data: payload.data as NumberFlowNodeData & OperatorFlowNodeData,
-      };
-      setNodes((nds) => [...nds, node]);
-    };
-
-    const onAddEdge = (payload: SocketAddEdgePayload) => {
-      const edge: Edge = {
-        id: payload.id ?? `e-${payload.source}-${payload.target}-${Date.now()}`,
-        source: payload.source,
-        target: payload.target,
-        sourceHandle: payload.sourceHandle ?? undefined,
-        targetHandle: payload.targetHandle ?? undefined,
-      };
-      setEdges((eds) => [...eds, edge]);
-    };
-
-    socket.on('addNode', onAddNode);
-    socket.on('addEdge', onAddEdge);
-    return () => {
-      socket.off('addNode', onAddNode);
-      socket.off('addEdge', onAddEdge);
-    };
-  }, [socket, setNodes, setEdges]);
-
-  /**
-   * Cada detección de visión con valor semántico (dígito 1..9) añade un nodo número.
-   * Clases que no son one..nine solo actualizan el panel; no crean nodo.
-   */
-  useEffect(() => {
-    if (!visionLast) return;
-    if (lastVisionIngestRef.current === visionLast.t) return;
-
-    if (visionLast.number === undefined || visionLast.number === null) return;
-
-    const flowEl = flowContainerRef.current;
-    const rect = flowEl?.getBoundingClientRect();
-    if (
-      !rect ||
-      rect.width < VISION_FLOW_MIN_SIZE ||
-      rect.height < VISION_FLOW_MIN_SIZE
-    ) {
-      return;
-    }
-
-    lastVisionIngestRef.current = visionLast.t;
-
-    const value = visionLast.number;
-    const id = `vision-${visionLast.t}`;
-    console.log(visionLast);
-    const p = visionLast.position;
-    const position =
-      p && typeof p.x === 'number' && typeof p.y === 'number'
-        ? visionNormToFlowPosition(p, viewportSize.w, viewportSize.h, rect)
-        : (() => {
-            const idx = visionLayoutIndexRef.current++;
-            return {
-              x: 40 + (idx % 5) * 92,
-              y: 300 + Math.floor(idx / 5) * 104,
-            };
-          })();
-
-    setNodes((nds) => [
-      ...nds,
-      {
-        id,
-        type: 'number' as const,
-        position,
-        data: { value },
-      },
-    ]);
-  }, [visionLast, setNodes, viewportSize.w, viewportSize.h, visionGeomEpoch]);
-
-  /**
-   * Lote de cartas desde CV (Python → POST /api/v1/vision/cards → WS): sincroniza nodos
-   * `vision-live-*` con las posiciones normalizadas exactas en el canvas.
-   */
-  useEffect(() => {
-    if (!lastCardFrame) return;
-    const flowEl = flowContainerRef.current;
-    const rect = flowEl?.getBoundingClientRect();
-    if (
-      !rect ||
-      rect.width < VISION_FLOW_MIN_SIZE ||
-      rect.height < VISION_FLOW_MIN_SIZE
-    ) {
-      return;
-    }
-
-    setNodes((prev) => {
-      const withoutLive = prev.filter((n) => !n.id.startsWith('vision-live-'));
-      const additions: DataflowNode[] = lastCardFrame.cards.map((c, i) => {
-        const digit = visionLabelToDigit(c.label);
-        const position = visionNormToFlowPosition(
-          c.position,
-          viewportSize.w,
-          viewportSize.h,
-          rect,
-        );
-        return {
-          id: `vision-live-${i}`,
-          type: 'number' as const,
-          position,
-          data: {
-            value: digit ?? 0,
-            visionSubtitle: digit == null ? c.label : undefined,
-          },
-        };
-      });
-      return [...withoutLive, ...additions];
-    });
-  }, [lastCardFrame, setNodes, viewportSize.w, viewportSize.h, visionGeomEpoch]);
 
   const cycleViewMode = useCallback(() => {
     setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
   }, []);
 
-  const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
-    [setEdges]
-  );
-
-  // Calcular resultados de operadores (varios pasos para cadenas op1 → op2)
-  useEffect(() => {
-    setNodes((nds) => {
-      let current = nds;
-      for (let pass = 0; pass < 10; pass++) {
-        let changed = false;
-        current = current.map((node) => {
-          if (node.type !== 'operator') return node;
-          const result = computeOperatorResult(node.id, current, edges);
-          const prev = (node.data as OperatorFlowNodeData).result;
-          if (result !== prev) changed = true;
-          return {
-            ...node,
-            data: { ...node.data, result, value: result },
-          };
-        });
-        if (!changed) break;
-      }
-      return current;
-    });
-  }, [edges, setNodes]);
-
-  const addNumberNode = useCallback(
-    (value: number) => {
-      const id = `num-${value}-${Date.now()}`;
-      setNodes((nds) => [
-        ...nds,
-        {
-          id,
-          type: 'number',
-          position: { x: 100 + (nds.length % 3) * 60, y: 80 + Math.floor(nds.length / 3) * 100 },
-          data: { value },
-        },
-      ]);
-    },
-    [setNodes]
-  );
-
-  const addOperatorNode = useCallback(
-    (operator: MathOperatorType) => {
-      const id = `op-${operator}-${Date.now()}`;
-      setNodes((nds) => [
-        ...nds,
-        {
-          id,
-          type: 'operator',
-          position: { x: 320 + (nds.filter((n) => n.type === 'operator').length % 2) * 200, y: 120 },
-          data: { operator },
-        },
-      ]);
-    },
-    [setNodes]
-  );
-
   const onExecute = useCallback(() => {
-    const rightmost = getRightmostNode(nodes);
-    const value = rightmost ? getNodeValue(rightmost) : undefined;
-    setExecutedResult(typeof value === 'number' ? value : null);
-  }, [nodes]);
+    setExecutedResult(getExecutionResult());
+  }, [getExecutionResult]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-900">
-      {/* Header: modo oscuro */}
+      {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0 gap-4">
         <Link
           to={backTo}
@@ -428,80 +113,75 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
 
       <div className="flex-1 flex min-h-0">
         {!isSandbox && (
-          <>
-            {/* Sidebar: modo oscuro */}
-            <aside className="w-64 shrink-0 flex flex-col bg-slate-800 border-r border-slate-700 overflow-y-auto">
-              <section className="p-3 border-b border-slate-700">
-                <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                  Mochila
-                </h2>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-base font-medium text-slate-400 mb-2">Añadir número</p>
-                    <div className="flex flex-wrap gap-1">
-                      {levelConfig.numbers.map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => addNumberNode(n)}
-                          className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-teal-500 text-slate-200 hover:text-white font-bold text-lg transition-colors"
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-base font-medium text-slate-400 mb-2">Añadir operador</p>
-                    <div className="flex gap-2">
-                      {levelConfig.operators.includes('adicion') && (
-                        <button
-                          type="button"
-                          onClick={() => addOperatorNode('adicion')}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-bold text-lg transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Suma
-                        </button>
-                      )}
-                      {levelConfig.operators.includes('sustraccion') && (
-                        <button
-                          type="button"
-                          onClick={() => addOperatorNode('sustraccion')}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                          Resta
-                        </button>
-                      )}
-                    </div>
+          <aside className="w-64 shrink-0 flex flex-col bg-slate-800 border-r border-slate-700 overflow-y-auto">
+            <section className="p-3 border-b border-slate-700">
+              <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                Mochila
+              </h2>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-base font-medium text-slate-400 mb-2">Añadir número</p>
+                  <div className="flex flex-wrap gap-1">
+                    {levelConfig.numbers.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => addNumberNode(n)}
+                        className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-teal-500 text-slate-200 hover:text-white font-bold text-lg transition-colors"
+                      >
+                        {n}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </section>
-              <section className="p-3 flex-1">
-                <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                  Reglas para el lenguaje
-                </h2>
-                <p className="text-slate-400 text-base leading-relaxed">
-                  {levelConfig.rule}
-                </p>
-              </section>
-            </aside>
-          </>
+                <div>
+                  <p className="text-base font-medium text-slate-400 mb-2">Añadir operador</p>
+                  <div className="flex gap-2">
+                    {levelConfig.operators.includes('adicion') && (
+                      <button
+                        type="button"
+                        onClick={() => addOperatorNode('adicion')}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-bold text-lg transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Suma
+                      </button>
+                    )}
+                    {levelConfig.operators.includes('sustraccion') && (
+                      <button
+                        type="button"
+                        onClick={() => addOperatorNode('sustraccion')}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg transition-colors"
+                      >
+                        <Minus className="w-4 h-4" />
+                        Resta
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section className="p-3 flex-1">
+              <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                Reglas para el lenguaje
+              </h2>
+              <p className="text-slate-400 text-base leading-relaxed">
+                {levelConfig.rule}
+              </p>
+            </section>
+          </aside>
         )}
 
-        {/* Área principal: canvas ReactFlow (fondo negro). Ref = tamaño real para alinear con homografía. */}
-        <div ref={flowContainerRef} className="flex-1 relative min-w-0 min-h-0 bg-black h-full">
+        {/* Canvas ReactFlow */}
+        <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
           <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
             nodeTypes={nodeTypes}
-            fitView={false}
             defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-            className="bg-black h-full w-full"
+            className="bg-black"
             minZoom={1}
             maxZoom={1}
             zoomOnScroll={false}
@@ -516,7 +196,7 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
         </div>
       </div>
 
-      {/* Footer: modo oscuro */}
+      {/* Footer */}
       <footer className="shrink-0 bg-slate-800 border-t border-slate-700 px-4 py-3">
         <section>
           <p className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-1">
@@ -528,5 +208,27 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
         </section>
       </footer>
     </div>
+  );
+}
+
+// Main component that provides NodeContext
+export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
+  const params = useParams();
+  const worldId = params.worldId;
+  const level = params.level;
+  const levelConfig = getLevelConfig(worldId, level, isSandbox);
+  const backTo = worldId ? (isSandbox ? '/juego' : `/juego/${worldId}`) : '/';
+
+  const flowContainerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <NodeProvider flowContainerRef={flowContainerRef}>
+      <DataflowContent
+        isSandbox={isSandbox}
+        levelConfig={levelConfig}
+        backTo={backTo}
+        flowContainerRef={flowContainerRef}
+      />
+    </NodeProvider>
   );
 }

@@ -1,6 +1,7 @@
 import type { NodeProps } from '@xyflow/react';
-import { Handle, Position } from '@xyflow/react';
+import { Position } from '@xyflow/react';
 import { NumberCard } from '@/components/cards';
+import { ClickableHandle } from './ClickableHandle';
 
 export type NumberFlowNodeData = {
   value: number;
@@ -8,14 +9,18 @@ export type NumberFlowNodeData = {
   visionSubtitle?: string;
 };
 
-export function NumberFlowNode({ data }: NodeProps<{ type: 'number'; data: NumberFlowNodeData }>) {
+export function NumberFlowNode({ id, data }: NodeProps<{ type: 'number'; data: NumberFlowNodeData, id: string }>) {
   const value = data?.value ?? 0;
   const visionSubtitle = data?.visionSubtitle;
   return (
-    <div className="nopan">
-      <Handle type="target" position={Position.Left} id="in" className="!w-3 !h-3 !border-2 !bg-white" />
-      <NumberCard value={value} size="small" subtitle={visionSubtitle} />
-      <Handle type="source" position={Position.Right} id="out" className="!w-3 !h-3 !border-2 !bg-white" />
+    <div className="nopan relative border-2 border-dashed border-yellow-400 w-45 h-45 -translate-y-[35%] -translate-x-[35%]">
+      {/* Debug: muestra el ID del nodo */}
+      <div className="absolute -top-5 left-0 text-xs text-yellow-400 bg-black/50 px-1 rounded">
+        {id}
+      </div>
+      <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} />
+      <NumberCard value={value} size="small" />
+      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
     </div>
   );
 }

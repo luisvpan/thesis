@@ -60,7 +60,7 @@ export type VisionBroadcastPayload = {
   t: number;
 };
 
-/** Una carta detectada en vista de proyector (YOLO); posición normalizada 0..1. */
+/** Una carta detectada en vista de proyector (YOLO); posición normalizada 0-1. */
 export type VisionCardItem = {
   classId: number;
   label: string;
