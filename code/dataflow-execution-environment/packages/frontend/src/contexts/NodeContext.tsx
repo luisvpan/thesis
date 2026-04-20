@@ -18,8 +18,10 @@ import {
   type OnEdgesChange,
 } from "@xyflow/react";
 import { useVision } from "./VisionContext";
-import { visionLabelToDigit } from "@/utils/visionCardLabel";
+import { parseVisionLabel, visionOperatorToMathOperator } from "@/types/vision-card";
+import { executeProgram as executeProgramService } from "@/services/executeProgram";
 import type { NumberFlowNodeData, OperatorFlowNodeData } from "@/components/dataflow";
+import type { MathOperatorType } from "@/types/card-types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -48,6 +50,11 @@ type NodeContextState = {
   edges: Edge[];
   selectedPort: PortIdentifier | null;
 
+  // Estado de ejecución
+  isExecuting: boolean;
+  executionResult: number | null;
+  executionError: string | null;
+
   // Consultas
   getNodePorts: (nodeType: "number" | "operator") => PortDefinition[];
   isPortSelected: (
@@ -65,15 +72,16 @@ type NodeContextState = {
   clearSelection: () => void;
   addNumberNode: (value: number, position?: { x: number; y: number }) => void;
   addOperatorNode: (
-    operator: "adicion" | "sustraccion",
+    operator: MathOperatorType,
     position?: { x: number; y: number }
   ) => void;
+  executeProgram: () => Promise<void>;
 
   // Para React Flow
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
 
-  // Resultado calculado
+  // Resultado calculado (local, sin backend)
   getExecutionResult: () => number | null;
 };
 
@@ -164,9 +172,18 @@ function computeOperatorResult(
   const operator = (
     nodes.find((n) => n.id === operatorId)?.data as OperatorFlowNodeData | undefined
   )?.operator;
-  if (operator === "adicion") return valA + valB;
-  if (operator === "sustraccion") return valA - valB;
-  return undefined;
+  switch (operator) {
+    case "adicion":
+      return valA + valB;
+    case "sustraccion":
+      return valA - valB;
+    case "multiplicacion":
+      return valA * valB;
+    case "division":
+      return valB !== 0 ? valA / valB : undefined;
+    default:
+      return undefined;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -185,6 +202,11 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedPort, setSelectedPort] = useState<PortIdentifier | null>(null);
 
+  // Estado de ejecución
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionResult, setExecutionResult] = useState<number | null>(null);
+  const [executionError, setExecutionError] = useState<string | null>(null);
+
   // Sync vision cards to nodes
   useEffect(() => {
     if (!lastCardFrame) return;
@@ -199,18 +221,41 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     }
 
     setNodes((prev) => {
-      const withoutLive = prev.filter((n) => !n.id.startsWith("vision-live-"));
+      const withoutLive = prev.filter((n) => !n.id.startsWith("visionLive"));
       const additions: DataflowNode[] = lastCardFrame.cards.map((c, i) => {
-        const digit = visionLabelToDigit(c.label);
-        // c.position viene en coordenadas absolutas del viewport (píxeles)
+        const parsed = parseVisionLabel(c.label);
         const position = visionToFlowPosition(c.position, rect);
+
+        if (parsed.type === "number") {
+          return {
+            id: `visionLive${i}`,
+            type: "number" as const,
+            position,
+            data: {
+              value: parsed.value,
+            },
+          };
+        }
+
+        if (parsed.type === "operator") {
+          return {
+            id: `visionLive${i}`,
+            type: "operator" as const,
+            position,
+            data: {
+              operator: visionOperatorToMathOperator(parsed.operator),
+            },
+          };
+        }
+
+        // Tipo desconocido: mostrar como número con subtítulo
         return {
-          id: `vision-live-${i}`,
+          id: `visionLive${i}`,
           type: "number" as const,
           position,
           data: {
-            value: digit ?? 0,
-            visionSubtitle: digit == null ? c.label : undefined,
+            value: 0,
+            visionSubtitle: parsed.label,
           },
         };
       });
@@ -311,7 +356,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
 
   const addNumberNode = useCallback(
     (value: number, position?: { x: number; y: number }) => {
-      const id = `num-${value}-${Date.now()}`;
+      const id = `num${value}_${Date.now()}`;
       setNodes((nds) => [
         ...nds,
         {
@@ -329,8 +374,8 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
   );
 
   const addOperatorNode = useCallback(
-    (operator: "adicion" | "sustraccion", position?: { x: number; y: number }) => {
-      const id = `op-${operator}-${Date.now()}`;
+    (operator: MathOperatorType, position?: { x: number; y: number }) => {
+      const id = `op${operator}_${Date.now()}`;
       setNodes((nds) => [
         ...nds,
         {
@@ -347,6 +392,28 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     [setNodes]
   );
 
+  const executeProgram = useCallback(async () => {
+    setIsExecuting(true);
+    setExecutionError(null);
+
+    try {
+      const result = await executeProgramService(nodes, edges);
+
+      if (result.success && result.result !== undefined) {
+        setExecutionResult(result.result);
+        setExecutionError(null);
+      } else {
+        setExecutionResult(null);
+        setExecutionError(result.error || "Error desconocido");
+      }
+    } catch (err) {
+      setExecutionResult(null);
+      setExecutionError(err instanceof Error ? err.message : "Error de ejecución");
+    } finally {
+      setIsExecuting(false);
+    }
+  }, [nodes, edges]);
+
   const getExecutionResult = useCallback(() => {
     const rightmost = getRightmostNode(nodes);
     const value = rightmost ? getNodeValue(rightmost) : undefined;
@@ -358,12 +425,16 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       nodes,
       edges,
       selectedPort,
+      isExecuting,
+      executionResult,
+      executionError,
       getNodePorts,
       isPortSelected,
       handlePortClick,
       clearSelection,
       addNumberNode,
       addOperatorNode,
+      executeProgram,
       onNodesChange,
       onEdgesChange,
       getExecutionResult,
@@ -372,12 +443,16 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       nodes,
       edges,
       selectedPort,
+      isExecuting,
+      executionResult,
+      executionError,
       getNodePorts,
       isPortSelected,
       handlePortClick,
       clearSelection,
       addNumberNode,
       addOperatorNode,
+      executeProgram,
       onNodesChange,
       onEdgesChange,
       getExecutionResult,

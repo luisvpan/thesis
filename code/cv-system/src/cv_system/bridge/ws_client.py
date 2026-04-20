@@ -227,6 +227,11 @@ class WebSocketBridge:
         self.reconnect_enabled = False
         self.state = ConnectionState.DISCONNECTED
         self.ws = None
+
+        # Stop the event loop if it's running (allows thread to terminate)
+        if self.loop is not None and self.loop.is_running():
+            self.loop.call_soon_threadsafe(self.loop.stop)
+
         logger.info("WebSocket disconnected")
 
     async def disconnect_async(self) -> None:

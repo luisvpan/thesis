@@ -3,3 +3,4 @@ export * from "./parser/index.js";
 export * from "./ast/index.js";
 export * from "./validation/index.js";
 export * from "./compiler.js";
+export * from "./utils/index.js";

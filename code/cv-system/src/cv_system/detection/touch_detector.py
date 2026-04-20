@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 import time
 from enum import IntEnum, verify, UNIQUE
-from typing import Optional
 
 from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
 
@@ -39,8 +38,6 @@ class TouchDetector:
         touch confirmed -> landmark position (projector space) returned directly
     """
 
-    latest_result: Optional[vision.HandLandmarkerResult] = None
-
     def __init__(
         self,
         dmax_map: np.ndarray,
@@ -57,21 +54,12 @@ class TouchDetector:
         self._coordinate_transformer = depth_coordinate_transformer
         self._resolution_mapper = resolution_mapper
         self.touch_threshold = getattr(config, "touch_threshold", 20)
-        self.latest_result = None
         self.FINGER_TIPS = [HandLandmark.INDEX_FINGER_TIP.value]
-
-        def result_callback(
-            result: vision.HandLandmarkerResult,
-            _output_image: mp.Image,
-            _timestamp_ms: int,
-        ) -> None:
-            self.latest_result = result
 
         base_options = python.BaseOptions(model_asset_path="hand_landmarker.task")
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
-            running_mode=vision.RunningMode.LIVE_STREAM,
-            result_callback=result_callback,
+            running_mode=vision.RunningMode.VIDEO,  # VIDEO mode is thread-safe
             num_hands=2,
             min_hand_detection_confidence=0.15,
             min_tracking_confidence=0.5,
@@ -79,35 +67,35 @@ class TouchDetector:
         self.detector = vision.HandLandmarker.create_from_options(options)
 
     def detect(
-        self, depth_frame: np.ndarray, rgb_frame: np.ndarray
-    ) -> list[tuple[float, float]]:
+        self, depth_frame: np.ndarray, rgb_bird_uint8: np.ndarray
+    ) -> tuple[list[tuple[float, float]], bool]:
         """
-        Detect touches from raw frames and return projector coordinates.
+        Detect touches from depth frame and pre-transformed RGB.
 
         Args:
             depth_frame: Raw depth frame from HardwareManager (depth space, uint16).
-            rgb_frame: Raw RGB frame from HardwareManager (camera space, uint8 BGR).
+            rgb_bird_uint8: RGB image already transformed to projector space (uint8 BGR).
 
         Returns:
-            List of (x, y) touch positions in projector coordinates.
+            Tuple of (touches, hands_detected):
+            - touches: List of (x, y) touch positions in projector coordinates.
+            - hands_detected: True if any hands were detected in the frame.
         """
-        # Transform RGB to bird view (projector space) for MediaPipe
-        rgb_float = rgb_frame.astype(np.float32) / 255.0
-        rgb_bird = self._image_transformer.camera_to_projector(rgb_float)
-        rgb_h, rgb_w = rgb_bird.shape[:2]
+        rgb_h, rgb_w = rgb_bird_uint8.shape[:2]
 
-        rgb_bird_uint8 = (rgb_bird * 255).astype(np.uint8)
         rgb_bird_mp = cv2.cvtColor(rgb_bird_uint8, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_bird_mp)
 
+        # VIDEO mode: synchronous detection, thread-safe
         timestamp_ms = int(time.time() * 1000)
-        self.detector.detect_async(mp_image, timestamp_ms)
+        result = self.detector.detect_for_video(mp_image, timestamp_ms)
 
         touches_projector = []
         debug_img = rgb_bird_uint8.copy()
+        hands_detected = bool(result and result.hand_landmarks)
 
-        if self.latest_result and self.latest_result.hand_landmarks:
-            for hand_landmarks in self.latest_result.hand_landmarks:
+        if hands_detected:
+            for hand_landmarks in result.hand_landmarks:
                 # Draw all landmarks for debug
                 for lm in hand_landmarks:
                     gx = int(lm.x * rgb_w)
@@ -173,4 +161,4 @@ class TouchDetector:
             cv2.imshow("Kinect V2 - Livestream AI Debug", debug_img)
             cv2.waitKey(1)
 
-        return touches_projector
+        return touches_projector, hands_detected

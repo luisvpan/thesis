@@ -52,23 +52,24 @@ def post_card_batch_async(
     for d in detections:
         cx = (d.x1 + d.x2) / 2.0
         cy = (d.y1 + d.y2) / 2.0
-        cards.append(
-            {
-                "classId": d.class_id,
-                "label": d.label,
-                "confidence": d.confidence,
-                "position": {
-                    "x": max(0.0, min(1.0, cx / float(proj_w))),
-                    "y": max(0.0, min(1.0, cy / float(proj_h))),
-                },
-                "bbox": {
-                    "x1": max(0.0, min(1.0, d.x1 / float(proj_w))),
-                    "y1": max(0.0, min(1.0, d.y1 / float(proj_h))),
-                    "x2": max(0.0, min(1.0, d.x2 / float(proj_w))),
-                    "y2": max(0.0, min(1.0, d.y2 / float(proj_h))),
-                },
-            }
-        )
+        card_data: dict[str, Any] = {
+            "classId": d.class_id,
+            "label": d.label,
+            "confidence": d.confidence,
+            "position": {
+                "x": max(0.0, min(1.0, cx / float(proj_w))),
+                "y": max(0.0, min(1.0, cy / float(proj_h))),
+            },
+            "bbox": {
+                "x1": max(0.0, min(1.0, d.x1 / float(proj_w))),
+                "y1": max(0.0, min(1.0, d.y1 / float(proj_h))),
+                "x2": max(0.0, min(1.0, d.x2 / float(proj_w))),
+                "y2": max(0.0, min(1.0, d.y2 / float(proj_h))),
+            },
+        }
+        if d.track_id >= 0:
+            card_data["trackId"] = d.track_id
+        cards.append(card_data)
 
     payload = {"cards": cards, "t": int(time.time() * 1000)}
 

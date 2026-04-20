@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
-from ultralytics import YOLO
 
 from cv_system.transform import RgbImageTransformer
+
+if TYPE_CHECKING:
+    import onnxruntime as ort
+    from ultralytics import YOLO
 
 
 @dataclass(frozen=True)
@@ -23,39 +28,125 @@ class CardDetection:
     y1: float
     x2: float
     y2: float
+    track_id: int = -1  # -1 means no tracking (e.g., ONNX backend)
 
 
 class CardDetector:
     """
-    Runs YOLO on the RGB frame warped to projector space (same input space as MediaPipe in TouchDetector).
+    Runs YOLO on the RGB frame warped to projector space.
 
-    Depth is not used.
+    Supports two backends:
+    - PyTorch (.pt): Uses ultralytics YOLO directly (CPU or CUDA if available)
+    - ONNX (.onnx): Uses ONNX Runtime with DirectML for AMD GPU acceleration
     """
 
-    def __init__(self, rgb_image_transformer: RgbImageTransformer, model_path: str | Path) -> None:
+    def __init__(
+        self,
+        rgb_image_transformer: RgbImageTransformer,
+        model_path: str | Path,
+        conf_threshold: float = 0.25,
+        iou_threshold: float = 0.45,
+    ) -> None:
         self._image_transformer = rgb_image_transformer
+        self._conf_threshold = conf_threshold
+        self._iou_threshold = iou_threshold
+
         path = Path(model_path)
         if not path.is_file():
-            raise FileNotFoundError(f"YOLO model not found: {path.resolve()}")
-        self._model = YOLO(str(path))
+            raise FileNotFoundError(f"Model not found: {path.resolve()}")
 
-    def detect(self, rgb_frame: np.ndarray) -> tuple[np.ndarray, list[CardDetection]]:
+        self._use_onnx = path.suffix.lower() == ".onnx"
+
+        if self._use_onnx:
+            self._init_onnx(path)
+        else:
+            self._init_pytorch(path)
+
+    def _init_pytorch(self, path: Path) -> None:
+        """Initialize PyTorch/ultralytics backend."""
+        from ultralytics import YOLO
+
+        self._model: YOLO = YOLO(str(path))
+        self._names: dict[int, str] = self._model.names
+
+    def _init_onnx(self, path: Path) -> None:
+        """Initialize ONNX Runtime with DirectML backend."""
+        import onnxruntime as ort
+
+        # Prefer DirectML (AMD GPU), fallback to CPU
+        providers = [
+            ("DmlExecutionProvider", { "device_id": 0 }),
+        ]
+        self._session: ort.InferenceSession = ort.InferenceSession(
+            str(path), providers=providers
+        )
+
+        # Get input details
+        input_info = self._session.get_inputs()[0]
+        self._input_name: str = input_info.name
+        self._input_shape: tuple[int, ...] = tuple(input_info.shape)  # [1, 3, H, W]
+
+        # Get output details
+        self._output_names: list[str] = [o.name for o in self._session.get_outputs()]
+
+        # Load class names from ONNX metadata
+        self._names = self._load_onnx_class_names(path)
+
+        # Log provider being used
+        active_provider = self._session.get_providers()[0]
+        print(f"  ONNX Runtime using: {active_provider}")
+
+    def _load_onnx_class_names(self, path: Path) -> dict[int, str]:
+        """Load class names from ONNX model metadata."""
+        metadata = self._session.get_modelmeta().custom_metadata_map
+
+        # ultralytics stores names as JSON in metadata
+        if "names" in metadata:
+            names_json = metadata["names"]
+            # Format: "{0: 'class0', 1: 'class1', ...}"
+            # Parse as Python dict (it's actually Python repr, not JSON)
+            try:
+                # Try JSON first
+                names = json.loads(names_json.replace("'", '"'))
+                return {int(k): v for k, v in names.items()}
+            except json.JSONDecodeError:
+                # Fallback: eval (safe for this format)
+                names = eval(names_json)  # noqa: S307
+                return {int(k): v for k, v in names.items()}
+
+        # Fallback: generic class names
+        return {i: f"class_{i}" for i in range(100)}
+
+    def detect(self, rgb_bird_uint8: np.ndarray) -> tuple[np.ndarray, list[CardDetection]]:
         """
+        Detect cards in the pre-transformed bird view image.
+
         Args:
-            rgb_frame: Raw BGR frame from the camera (uint8).
+            rgb_bird_uint8: BGR image already transformed to projector space (uint8).
 
         Returns:
             Annotated BGR image in projector resolution and list of detections.
         """
-        rgb_float = rgb_frame.astype(np.float32) / 255.0
-        rgb_bird = self._image_transformer.camera_to_projector(rgb_float)
-        rgb_bird_uint8 = (np.clip(rgb_bird, 0.0, 1.0) * 255).astype(np.uint8)
+        # Run detection
+        if self._use_onnx:
+            detections = self._detect_onnx(rgb_bird_uint8)
+        else:
+            detections = self._detect_pytorch(rgb_bird_uint8)
 
-        results = self._model.predict(rgb_bird_uint8, verbose=False)
+        # Draw detections
         annotated = rgb_bird_uint8.copy()
+        for d in detections:
+            self._draw_detection(
+                annotated, d.label, d.confidence, d.x1, d.y1, d.x2, d.y2
+            )
+
+        return annotated, detections
+
+    def _detect_pytorch(self, image: np.ndarray) -> list[CardDetection]:
+        """Run detection with tracking using PyTorch/ultralytics backend."""
+        results = self._model.track(image, persist=True, verbose=False)
         detections: list[CardDetection] = []
 
-        names = self._model.names
         for r in results:
             if r.boxes is None or len(r.boxes) == 0:
                 continue
@@ -63,22 +154,105 @@ class CardDetector:
                 xyxy = box.xyxy[0].cpu().numpy()
                 conf = float(box.conf[0])
                 cls_id = int(box.cls[0])
-                label = names.get(cls_id, str(cls_id))
-                x1, y1, x2, y2 = (float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3]))
+                label = self._names.get(cls_id, str(cls_id))
+                track_id = int(box.id[0]) if box.id is not None else -1
                 detections.append(
                     CardDetection(
                         class_id=cls_id,
                         label=label,
                         confidence=conf,
-                        x1=x1,
-                        y1=y1,
-                        x2=x2,
-                        y2=y2,
+                        x1=float(xyxy[0]),
+                        y1=float(xyxy[1]),
+                        x2=float(xyxy[2]),
+                        y2=float(xyxy[3]),
+                        track_id=track_id,
                     )
                 )
-                self._draw_detection(annotated, label, conf, x1, y1, x2, y2)
 
-        return annotated, detections
+        return detections
+
+    def _detect_onnx(self, image: np.ndarray) -> list[CardDetection]:
+        """Run detection using ONNX Runtime with DirectML."""
+        # Get target size from model input shape
+        _, _, target_h, target_w = self._input_shape
+        orig_h, orig_w = image.shape[:2]
+
+        # Preprocess: resize, normalize, transpose to NCHW
+        resized = cv2.resize(image, (target_w, target_h))
+        normalized = resized.astype(np.float32) / 255.0
+        transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
+        batched = np.expand_dims(transposed, axis=0)  # Add batch dim
+
+        # Run inference
+        outputs = self._session.run(self._output_names, {self._input_name: batched})
+
+        # Parse YOLOv8 output format: [1, 4+num_classes, num_predictions]
+        # Transpose to [1, num_predictions, 4+num_classes]
+        output = outputs[0]
+        if output.shape[1] < output.shape[2]:
+            output = output.transpose(0, 2, 1)
+
+        predictions = output[0]  # Remove batch dim: [num_predictions, 4+num_classes]
+
+        # Extract boxes and class scores
+        boxes = predictions[:, :4]  # x_center, y_center, width, height
+        class_scores = predictions[:, 4:]
+
+        # Get best class for each prediction
+        class_ids = np.argmax(class_scores, axis=1)
+        confidences = np.max(class_scores, axis=1)
+
+        # Filter by confidence
+        mask = confidences >= self._conf_threshold
+        boxes = boxes[mask]
+        class_ids = class_ids[mask]
+        confidences = confidences[mask]
+
+        if len(boxes) == 0:
+            return []
+
+        # Convert from center format to corner format
+        x_center, y_center, w, h = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+        x1 = x_center - w / 2
+        y1 = y_center - h / 2
+        x2 = x_center + w / 2
+        y2 = y_center + h / 2
+
+        # Scale boxes back to original image size
+        scale_x = orig_w / target_w
+        scale_y = orig_h / target_h
+        x1 = x1 * scale_x
+        x2 = x2 * scale_x
+        y1 = y1 * scale_y
+        y2 = y2 * scale_y
+
+        # Apply NMS
+        boxes_for_nms = np.stack([x1, y1, x2, y2], axis=1).astype(np.float32)
+        indices = cv2.dnn.NMSBoxes(
+            boxes_for_nms.tolist(),
+            confidences.tolist(),
+            self._conf_threshold,
+            self._iou_threshold,
+        )
+
+        # Build detections
+        detections: list[CardDetection] = []
+        for idx in indices:
+            i = idx[0] if isinstance(idx, (list, np.ndarray)) else idx
+            label = self._names.get(int(class_ids[i]), str(class_ids[i]))
+            detections.append(
+                CardDetection(
+                    class_id=int(class_ids[i]),
+                    label=label,
+                    confidence=float(confidences[i]),
+                    x1=float(x1[i]),
+                    y1=float(y1[i]),
+                    x2=float(x2[i]),
+                    y2=float(y2[i]),
+                )
+            )
+
+        return detections
 
     @staticmethod
     def _draw_detection(

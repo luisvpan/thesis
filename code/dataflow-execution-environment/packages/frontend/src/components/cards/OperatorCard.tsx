@@ -1,5 +1,6 @@
-import { CardBase } from './CardBase';
 import type { OperatorType } from '@/types/card-types';
+import { motion } from 'motion/react';
+
 
 interface OperatorCardProps {
   operator: OperatorType;
@@ -107,19 +108,36 @@ const operatorConfig: Record<OperatorType, OperatorConfig> = {
   },
 };
 
+
+const sizeClasses = {
+  small: 'min-w-[5.5rem] min-h-[4.5rem] px-2 py-2',
+  medium: 'min-w-[7rem] min-h-[5.5rem] px-3 py-3',
+  large: 'min-w-[9rem] min-h-[7rem] px-4 py-4',
+};
+
+const labelClasses = {
+  small: 'text-sm',
+  medium: 'text-base',
+  large: 'text-lg',
+};
+
 export function OperatorCard({ operator, isDraggable = false, onClick, size = 'medium' }: OperatorCardProps) {
-  const config = operatorConfig[operator];
+
 
   return (
-    <CardBase 
-      borderColor="#ef4444" // Rojo
-      isDraggable={isDraggable}
+    <motion.div
+      drag={isDraggable}
+      dragMomentum={false}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      size={size}
-      cardType="OPERADOR"
-      cardName={config.name}
+      className={isDraggable ? 'cursor-grab active:cursor-grabbing' : onClick ? 'cursor-pointer' : ''}
     >
-      {config.symbol}
-    </CardBase>
+      <div
+        className={`${sizeClasses[size]} rounded-lg flex items-center justify-center border-2 border-[#ef4444] bg-transparent`}
+      >
+        <span className={`${labelClasses[size]} font-semibold text-center text-blue-400`}>{operator}</span>
+      </div>
+    </motion.div>
   );
 }

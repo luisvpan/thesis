@@ -47,19 +47,21 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
     onEdgesChange,
     addNumberNode,
     addOperatorNode,
-    getExecutionResult,
+    executeProgram,
+    isExecuting,
+    executionResult,
+    executionError,
   } = useNode();
 
   const [viewMode, setViewMode] = useState<ViewMode>('pictorico');
-  const [executedResult, setExecutedResult] = useState<number | null>(null);
 
   const cycleViewMode = useCallback(() => {
     setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
   }, []);
 
   const onExecute = useCallback(() => {
-    setExecutedResult(getExecutionResult());
-  }, [getExecutionResult]);
+    executeProgram();
+  }, [executeProgram]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-900">
@@ -87,11 +89,12 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
           <button
             type="button"
             onClick={onExecute}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-lg font-medium transition-colors"
+            disabled={isExecuting}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 disabled:bg-teal-700 disabled:cursor-wait text-white text-lg font-medium transition-colors"
             title="Ejecutar"
           >
             <Play className="w-4 h-4" />
-            Ejecutar
+            {isExecuting ? 'Ejecutando...' : 'Ejecutar'}
           </button>
           <button
             type="button"
@@ -202,9 +205,15 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
           <p className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-1">
             El resultado se mostrará acá
           </p>
-          <p className="text-2xl font-semibold text-white min-h-[1.5rem]">
-            {executedResult !== null ? executedResult : '—'}
-          </p>
+          {executionError ? (
+            <p className="text-2xl font-semibold text-red-400 min-h-[1.5rem]">
+              Error: {executionError}
+            </p>
+          ) : (
+            <p className="text-2xl font-semibold text-white min-h-[1.5rem]">
+              {executionResult !== null ? executionResult : '—'}
+            </p>
+          )}
         </section>
       </footer>
     </div>

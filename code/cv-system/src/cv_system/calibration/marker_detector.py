@@ -13,7 +13,7 @@ class MarkerDetector:
     """
     DEFAULT_MIN_AREA = 1500   # filtra ruido pequeño (área < 156, 20, 25...)
     DEFAULT_MAX_AREA = 10000  # filtra ruido grande
-    DEFAULT_BRIGHTNESS_PERCENTILE = 80.0
+    DEFAULT_BRIGHTNESS_PERCENTILE = 99
 
     def __init__(
         self,

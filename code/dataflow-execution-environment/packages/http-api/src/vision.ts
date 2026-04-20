@@ -65,6 +65,7 @@ export type VisionCardItem = {
   classId: number;
   label: string;
   confidence: number;
+  trackId?: number;  // Persistent tracking ID from YOLO tracker
   position: { x: number; y: number };
   bbox?: { x1: number; y1: number; x2: number; y2: number };
 };
@@ -162,6 +163,7 @@ export const visionModule = new Elysia({ name: "vision" })
             classId: t.Number(),
             label: t.String(),
             confidence: t.Number(),
+            trackId: t.Optional(t.Number()),
             position: t.Object({
               x: t.Number(),
               y: t.Number(),

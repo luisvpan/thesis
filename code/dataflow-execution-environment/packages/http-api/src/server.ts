@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { Compiler } from "@dataflow/compiler";
+import { Compiler, programToSource } from "@dataflow/compiler";
 import { Runtime } from "@dataflow/runtime";
 import type { DataflowProgram, ValidationResult } from "@dataflow/shared/types";
 import { DagValidator } from "@dataflow/compiler";
@@ -9,6 +9,7 @@ import { touchModule } from "./touch";
 
 const startTime = Date.now();
 const validator = new DagValidator();
+const compiler = new Compiler();
 
 const rateLimiter = createRateLimiter({
   windowMs: 60000,
@@ -29,7 +30,7 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
   .onBeforeHandle(({ request }) => {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const check = rateLimiter.check(ip);
-    
+
     if (!check.allowed) {
       throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
     }
@@ -38,9 +39,9 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
     const request = body as any;
     const program = request.program as DataflowProgram;
     const programId = program.metadata?.programId || "unknown";
-    
+
     const validationResult = validator.validateProgram(program);
-    
+
     if (!validationResult.success) {
       return {
         success: false,
@@ -49,7 +50,7 @@ const compileRoutes = new Elysia({ prefix: '/api/v1' })
         warnings: validationResult.warnings
       };
     }
-    
+
     return {
       success: true,
       programId,
@@ -64,7 +65,7 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
   .onBeforeHandle(({ request }) => {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const check = rateLimiter.check(ip);
-    
+
     if (!check.allowed) {
       throw new Error(`Rate limit exceeded. Try again after ${Math.ceil((check.resetTime - Date.now()) / 1000)}s`);
     }
@@ -76,38 +77,42 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
     const maxTimesteps = options.maxTimesteps || 100;
     const includeTrace = options.includeTrace || false;
     const traceLevel = options.traceLevel || "medium";
-    
+
     const programId = program.metadata?.programId || "unknown";
-    
-    const validationResult = validator.validateProgram(program);
-    
-    if (!validationResult.success) {
+
+    // Convertir DataflowProgram a source DSL y compilar para validación completa
+    const sourceCode = programToSource(program);
+    console.log("[execute] Source DSL generado:\n", sourceCode);
+    const compilationResult = compiler.compile(sourceCode);
+
+    if (!compilationResult.success) {
       return {
         success: false,
         programId,
-        errors: validationResult.errors,
-        warnings: validationResult.warnings
+        errors: compilationResult.errors,
+        warnings: compilationResult.warnings
       };
     }
-    
+
+    //TODO: adjust typing so if compilationResult.success is true, then compilationResult.program is guaranteed to be defined
     const runtime = new Runtime();
-    runtime.loadProgram(program);
- 
+    runtime.loadProgram(compilationResult.program!);
+
     const execStartTime = performance.now();
     const TIMEOUT_MS = 5000;
-    
+
     const executionPromise = new Promise((resolve) => {
       const outputs = runtime.execute(0);
       resolve(outputs);
     });
-    
+
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Execution timeout')), TIMEOUT_MS);
     });
-    
+
     const outputs = await Promise.race([executionPromise, timeoutPromise]) as unknown[];
     const totalTime = (performance.now() - execStartTime).toFixed(2) + "ms";
- 
+
     const executionTrace: any = includeTrace ? {
       ...runtime.getExecutionTrace(),
       cacheHits: 0,
@@ -121,7 +126,7 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
       executionTrace!.cacheHits = stats.hits;
       executionTrace!.cacheMisses = stats.misses;
     }
-    
+
     return {
       success: true,
       outputs,
@@ -144,7 +149,7 @@ export const app = new Elysia()
         }]
       };
     }
-    
+
     if (code === 'PARSE') {
       set.status = 400;
       return {
@@ -152,7 +157,7 @@ export const app = new Elysia()
         error: 'Invalid JSON format'
       };
     }
-    
+
     if (code === 'NOT_FOUND') {
       set.status = 404;
       return {
@@ -160,7 +165,7 @@ export const app = new Elysia()
         error: 'Not found'
       };
     }
-    
+
     if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
       set.status = 429;
       return {
@@ -169,7 +174,7 @@ export const app = new Elysia()
         message: error.message
       };
     }
-    
+
     if (error instanceof Error && error.message.includes('Execution timeout')) {
       set.status = 408;
       return {
@@ -178,7 +183,7 @@ export const app = new Elysia()
         message: 'Execution took too long'
       };
     }
-    
+
     set.status = 500;
     return {
       success: false,

@@ -13,11 +13,13 @@ export type OperatorFlowNodeData = {
 
 export function OperatorFlowNode({ id, data }: NodeProps<{ type: 'operator'; data: OperatorFlowNodeData }>) {
   const operator = data?.operator ?? 'adicion';
+  console.log("OYE, PASAME ESE DATICOOOO => ", data)
   const result = data?.result ?? data?.value;
+  console.log("RESULTADOOO =>", result)
   const showResult = result !== undefined && result !== null;
 
   return (
-    <div className="nopan relative border-2 border-dashed border-cyan-400">
+    <div className="nopan relative border-2 border-dashed border-red-400 w-60 h-60 -translate-y-[25%] -translate-x-[30%]">
       {/* Debug: muestra el ID del nodo */}
       <div className="absolute -top-5 left-0 text-xs text-cyan-400 bg-black/50 px-1 rounded">
         {id}
@@ -27,14 +29,6 @@ export function OperatorFlowNode({ id, data }: NodeProps<{ type: 'operator'; dat
       <ClickableHandle type="target" position={Position.Left} id="b" nodeId={id} style={{ top: '75%' }} />
       <div className="relative">
         <OperatorCard operator={operator} size="small" />
-        {showResult && (
-          <div
-            className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-sm font-bold text-emerald-600 bg-white/95 px-2 py-0.5 rounded shadow"
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            = {result}
-          </div>
-        )}
       </div>
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
     </div>

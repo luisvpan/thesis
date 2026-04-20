@@ -11,15 +11,18 @@ import os
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from dotenv import load_dotenv
 
 import cv2
+import numpy as np
 
 from cv_system.bridge import WebSocketBridge, TouchEvent
 from cv_system.bridge.vision_ingest import post_card_batch_async
 from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
+from cv_system.calibration.result import CalibrationResult
 from cv_system.detection.card_detector import CardDetector
 from cv_system.detection.touch_detector import TouchDetector
 from cv_system.hardware.manager import HardwareManager, HardwareError
@@ -37,12 +40,12 @@ def run_websocket_client(bridge: WebSocketBridge) -> None:
         bridge: WebSocketBridge instance to connect and manage.
     """
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    bridge.loop = loop  # Set loop before connect so it's available for run_coroutine_threadsafe
     try:
         loop.run_until_complete(bridge.connect())
         logger.info("WebSocket connected successfully")
-        loop.run_until_complete(
-            bridge.ws.wait_closed() if bridge.ws else asyncio.Future()
-        )
+        loop.run_forever()  # Keep loop running to process scheduled coroutines
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
@@ -80,6 +83,9 @@ def main() -> None:
     hardware = None
     ws_bridge = None
     ws_thread = None
+    touch_executor = None
+    card_executor = None
+    frame_executor = None
     frame_count = 0
     start_time = time.time()
 
@@ -94,19 +100,38 @@ def main() -> None:
             print(f"  ERROR: {e}")
             sys.exit(1)
 
-        # Step 2: Run calibration
-        print("\n[2/5] Running calibration...")
+        # Step 2: Load or run calibration
+        print("\n[2/5] Loading or running calibration...")
         resolution_mapper = ResolutionMapper(config.camera)
-        calibrator = Calibrator(config, hardware, resolution_mapper)
-        calibration_result = calibrator.run()
 
-        print("\nCalibration metadata:")
-        print(f"  Frames captured: {calibration_result.metadata['num_frames']}")
-        stats = calibration_result.metadata.get("stats", {})
-        if stats:
-            print(f"  DMax mean: {stats.get('mean', 0):.1f} mm")
-            print(f"  DMax std: {stats.get('std', 0):.1f} mm")
-            print(f"  Valid pixel ratio: {stats.get('valid_pixel_ratio', 0):.2%}")
+        calibration_path = os.getenv("CALIBRATION_PATH")
+        calibration_result = None
+
+        if calibration_path:
+            try:
+                print(f"  Attempting to load calibration from: {calibration_path}")
+                calibration_result = CalibrationResult.load(calibration_path)
+                print("  Calibration loaded successfully from file")
+            except (FileNotFoundError, ValueError) as e:
+                print(f"  WARNING: Could not load calibration: {e}")
+                print("  Falling back to live calibration...")
+
+        if calibration_result is None:
+            calibrator = Calibrator(config, hardware, resolution_mapper)
+            calibration_result = calibrator.run()
+
+            print("\nCalibration metadata:")
+            print(f"  Frames captured: {calibration_result.metadata['num_frames']}")
+            stats = calibration_result.metadata.get("stats", {})
+            if stats:
+                print(f"  DMax mean: {stats.get('mean', 0):.1f} mm")
+                print(f"  DMax std: {stats.get('std', 0):.1f} mm")
+                print(f"  Valid pixel ratio: {stats.get('valid_pixel_ratio', 0):.2%}")
+
+            # Save calibration result if CALIBRATION_PATH was specified
+            if calibration_path:
+                print(f"\n  Saving calibration to: {calibration_path}")
+                calibration_result.save(calibration_path)
 
         # Step 3: Initialize transformers and detector
         print("\n[3/5] Initializing transformers and detector...")
@@ -172,28 +197,66 @@ def main() -> None:
         print("\n[5/5] Starting detection loop...")
         print("  Press Ctrl+C to stop\n")
 
+        # Separate executors to avoid contention between touch and card detection
+        touch_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Touch")
+        card_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Card")
+        frame_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Frame")
+
         start_time = time.time()
 
         cv2.namedWindow("Card Detection", cv2.WINDOW_NORMAL)
         cv2.setWindowProperty("Card Detection", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.moveWindow("Card Detection", 1920, 0)
 
+        # Cache for card detection (Fix 3: run every N frames)
+        CARD_DETECT_INTERVAL = 3
+        last_card_view = None
+        last_card_dets: list = []
+
+        # Helper for frame acquisition (Fix 2: pipeline)
+        def acquire_frames():
+            return hardware.get_depth_frame(), hardware.get_rgb_frame()
+
+        # Initial frame acquisition
+        depth_frame, rgb_frame = acquire_frames()
+
         while True:
             try:
-                depth_frame = hardware.get_depth_frame()
-                rgb_frame = hardware.get_rgb_frame()
+                # Fix 2: Start acquiring next frame while processing current
+                next_frame_future = frame_executor.submit(acquire_frames)
 
-                # detect() receives raw frames, returns projector coordinates directly
-                touches = detector.detect(depth_frame, rgb_frame)
+                # Fix 1: Do warp ONCE and share with both detectors
+                rgb_float = rgb_frame.astype(np.float32) / 255.0
+                rgb_bird = rgb_image_transformer.camera_to_projector(rgb_float)
+                rgb_bird_uint8 = (rgb_bird * 255).astype(np.uint8)
 
-                card_view, card_dets = card_detector.detect(rgb_frame)
-                post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
+                # Run touch detection first (blocks until result)
+                touch_future = touch_executor.submit(detector.detect, depth_frame, rgb_bird_uint8)
+                touches, hands_detected = touch_future.result()
+
+                # Only run card detection if NO hands detected (pause while hand in view)
+                card_future = None
+                if not hands_detected and frame_count % CARD_DETECT_INTERVAL == 0:
+                    card_future = card_executor.submit(card_detector.detect, rgb_bird_uint8)
+
+                # Get card results (or use cache if skipped)
+                if card_future is not None:
+                    card_view, card_dets = card_future.result()
+                    last_card_view = card_view
+                    last_card_dets = card_dets
+                    post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
+                else:
+                    card_view = last_card_view if last_card_view is not None else rgb_bird_uint8
+                    card_dets = last_card_dets
 
                 if touches:
+                    # Process all touches, but limit prints to reduce overhead
+                    touch_printed = frame_count % 15 == 0
                     for i, (x, y) in enumerate(touches):
                         if 0 <= x < PROJ_W and 0 <= y < PROJ_H:
                             touch_event = TouchEvent.from_detected_touch(x=x, y=y)
-                            print(f"  Frame {frame_count}: Touch {i+1} at proj_x={x:.0f}, proj_y={y:.0f}")
+                            if touch_printed:
+                                print(f"  Frame {frame_count}: Touch {i+1} at proj_x={x:.0f}, proj_y={y:.0f}")
 
                             if ws_bridge.state.value == "CONNECTED" and ws_bridge.loop is not None:
                                 asyncio.run_coroutine_threadsafe(
@@ -211,7 +274,9 @@ def main() -> None:
                             f"{d.confidence * 100:.1f}%"
                         )
 
-                cv2.imshow("Card Detection", card_view)
+                # Fix 4: Show only every 2 frames
+                if frame_count % 2 == 0:
+                    cv2.imshow("Card Detection", card_view)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
 
@@ -219,6 +284,9 @@ def main() -> None:
                 if frame_count % 100 == 0:
                     elapsed = time.time() - start_time
                     print(f"  [FPS: {frame_count / elapsed:.1f}]")
+
+                # Fix 2: Get next frame (should be ready by now)
+                depth_frame, rgb_frame = next_frame_future.result()
 
             except KeyboardInterrupt:
                 break
@@ -235,6 +303,17 @@ def main() -> None:
     finally:
         print("\n" + "=" * 60)
         print("Shutting down gracefully...")
+
+        if touch_executor is not None:
+            print("  Shutting down touch executor...")
+            touch_executor.shutdown(wait=False)
+        if card_executor is not None:
+            print("  Shutting down card executor...")
+            card_executor.shutdown(wait=False)
+        if frame_executor is not None:
+            print("  Shutting down frame executor...")
+            frame_executor.shutdown(wait=False)
+        print("  Executors stopped")
 
         if ws_bridge is not None:
             print("  Disconnecting WebSocket...")

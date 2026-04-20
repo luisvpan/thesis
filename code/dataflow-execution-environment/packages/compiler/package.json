@@ -8,6 +8,7 @@
     "./ast": "./src/ast/index.ts",
     "./validation": "./src/validation/index.ts",
     "./compiler": "./src/compiler.ts",
+    "./utils": "./src/utils/index.ts",
     ".": "./src/index.ts"
   },
   "dependencies": {

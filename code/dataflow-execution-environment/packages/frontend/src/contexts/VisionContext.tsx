@@ -25,6 +25,7 @@ export type VisionCardItem = {
   classId: number;
   label: string;
   confidence: number;
+  trackId?: number;  // Persistent tracking ID from YOLO tracker
   position: { x: number; y: number };
   bbox?: { x1: number; y1: number; x2: number; y2: number };
 };
@@ -109,7 +110,7 @@ export function VisionProvider({ children }: { children: ReactNode }) {
             "[ide:vision] cartas:",
             frame.cards.length,
             frame.t,
-            frame.cards.map((c) => `${c.label}@${c.position.x.toFixed(2)},${c.position.y.toFixed(2)}`),
+            frame.cards.map((c) => `${c.label}[${c.trackId ?? "?"}]@${c.position.x.toFixed(2)},${c.position.y.toFixed(2)}`),
           );
         }
       } catch (e) {
