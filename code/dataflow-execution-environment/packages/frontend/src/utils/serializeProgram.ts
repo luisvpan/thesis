@@ -1,9 +1,12 @@
 /**
  * Serializa el programa visual (ReactFlow) al formato DataflowProgram del backend.
+ * Los nodos `resultAnchor` y cualquier arista que los toque son solo UI y no se envían.
+ * Los nodos `programOutput` se serializan como DataSource numéricos (valor tras ejecutar en cliente).
  */
 
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "@/contexts/NodeContext";
+import type { ProgramOutputFlowNodeData } from "@/components/dataflow";
 
 // Tipos del backend (simplificados para evitar dependencia de @dataflow/shared)
 type DataSourceNode = {
@@ -67,15 +70,21 @@ export function serializeProgram(
   const programNodes: ProgramNode[] = [];
   const programEdges: DataflowEdge[] = [];
 
-  if (nodes.length === 0) {
+  const evalNodes = nodes.filter(
+    (n) => n.type === "number" || n.type === "operator"
+  );
+
+  if (evalNodes.length === 0) {
     return {
       metadata: { programId: `canvas-${Date.now()}` },
       graph: { nodes: [], edges: [] },
     };
   }
 
-  // 1. Convertir number nodes → DataSourceNode
+  // 1. DataSource: números y carta de resultado (frontend → número opaco para el runtime)
   for (const node of nodes) {
+    if (node.type === "resultAnchor") continue;
+
     if (node.type === "number") {
       const value = (node.data as { value?: number }).value ?? 0;
       programNodes.push({
@@ -84,36 +93,48 @@ export function serializeProgram(
         dataType: "natural",
         value: { kind: "natural", value },
       });
+      continue;
     }
-  }
 
-  // 2. Convertir operator nodes → TransformationNode
-  for (const node of nodes) {
-    if (node.type === "operator") {
-      const operator = (node.data as { operator?: string }).operator ?? "adicion";
-
-      // Encontrar inputs desde edges (a=puerto 0, b=puerto 1)
-      const inputEdges = edges.filter((e) => e.target === node.id);
-      const inputs: string[] = [];
-
-      const edgeA = inputEdges.find((e) => e.targetHandle === "a");
-      const edgeB = inputEdges.find((e) => e.targetHandle === "b");
-
-      if (edgeA) inputs.push(edgeA.source);
-      if (edgeB) inputs.push(edgeB.source);
-
+    if (node.type === "programOutput") {
+      const value =
+        (node.data as ProgramOutputFlowNodeData).value ?? 0;
       programNodes.push({
         id: node.id,
-        type: "Transformation",
+        type: "DataSource",
         dataType: "natural",
-        operation: OPERATOR_MAP[operator] || "ADD",
-        inputs,
+        value: { kind: "natural", value },
       });
+      continue;
     }
   }
 
-  // 3. Encontrar nodo más a la derecha y crear OutputNode
-  const rightmost = nodes.reduce((r, n) =>
+  // 2. Transformaciones
+  for (const node of nodes) {
+    if (node.type !== "operator") continue;
+
+    const operator = (node.data as { operator?: string }).operator ?? "adicion";
+
+    const inputEdges = edges.filter((e) => e.target === node.id);
+    const inputs: string[] = [];
+
+    const edgeA = inputEdges.find((e) => e.targetHandle === "a");
+    const edgeB = inputEdges.find((e) => e.targetHandle === "b");
+
+    if (edgeA) inputs.push(edgeA.source);
+    if (edgeB) inputs.push(edgeB.source);
+
+    programNodes.push({
+      id: node.id,
+      type: "Transformation",
+      dataType: "natural",
+      operation: OPERATOR_MAP[operator] || "ADD",
+      inputs,
+    });
+  }
+
+  // 3. Output: solo nodos evaluables (no cartas solo-frontend)
+  const rightmost = evalNodes.reduce((r, n) =>
     n.position.x > r.position.x ? n : r
   );
 
@@ -125,15 +146,18 @@ export function serializeProgram(
     input: rightmost.id,
   });
 
-  // 4. Convertir edges (solo los que van a TransformationNodes)
-  // Los DataSource no tienen inputs, así que filtramos edges que apuntan a ellos
   const transformationIds = new Set(
     nodes.filter((n) => n.type === "operator").map((n) => n.id)
   );
 
   for (const edge of edges) {
-    // Solo incluir edges cuyo destino sea un Transformation (operador)
     if (!transformationIds.has(edge.target)) {
+      continue;
+    }
+
+    const src = nodes.find((n) => n.id === edge.source);
+    const tgt = nodes.find((n) => n.id === edge.target);
+    if (src?.type === "resultAnchor" || tgt?.type === "resultAnchor") {
       continue;
     }
 

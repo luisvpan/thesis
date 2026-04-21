@@ -6,15 +6,20 @@ import {
   type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { NumberFlowNode, OperatorFlowNode } from '@/components/dataflow';
+import {
+  NumberFlowNode,
+  OperatorFlowNode,
+  ResultAnchorFlowNode,
+  ProgramOutputFlowNode,
+  type ResultViewMode,
+} from '@/components/dataflow';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
-import { VisionDetectedBadge } from '@/components/VisionDetectedBadge';
+import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
+import { SocketInfoFab } from '@/components/SocketInfoFab';
 import { getLevelConfig } from '@/data/levelConfig';
 import { ArrowLeft, Plus, Minus, Volume2, Play } from 'lucide-react';
 
-type ViewMode = 'pictorico' | 'concreto' | 'abstracto';
-
-const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+const VIEW_MODE_LABELS: Record<ResultViewMode, string> = {
   pictorico: 'Pictórico',
   concreto: 'Concreto',
   abstracto: 'Abstracto',
@@ -23,6 +28,8 @@ const VIEW_MODE_LABELS: Record<ViewMode, string> = {
 const nodeTypes: NodeTypes = {
   number: NumberFlowNode,
   operator: OperatorFlowNode,
+  resultAnchor: ResultAnchorFlowNode,
+  programOutput: ProgramOutputFlowNode,
 };
 
 function speakTitle(title: string, subtitle: string) {
@@ -49,18 +56,18 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
     addOperatorNode,
     executeProgram,
     isExecuting,
-    executionResult,
-    executionError,
   } = useNode();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('pictorico');
+  const [viewMode, setViewMode] = useState<ResultViewMode>('pictorico');
+  const [hasExecuted, setHasExecuted] = useState(false);
 
   const cycleViewMode = useCallback(() => {
     setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
   }, []);
 
-  const onExecute = useCallback(() => {
-    executeProgram();
+  const onExecute = useCallback(async () => {
+    await executeProgram();
+    setHasExecuted(true);
   }, [executeProgram]);
 
   return (
@@ -69,9 +76,9 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
       <header className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0 gap-4">
         <Link
           to={backTo}
-          className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors shrink-0 text-lg"
+          className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors shrink-0 text-2xl font-semibold px-5 py-4 rounded-xl hover:bg-slate-700/50"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-10 h-10 shrink-0" />
           Volver
         </Link>
 
@@ -85,31 +92,31 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-          <VisionDetectedBadge />
           <button
             type="button"
             onClick={onExecute}
             disabled={isExecuting}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 disabled:bg-teal-700 disabled:cursor-wait text-white text-lg font-medium transition-colors"
+            className="flex items-center gap-3 px-8 py-5 min-h-[4.5rem] rounded-xl bg-teal-500 hover:bg-teal-600 disabled:bg-teal-700 disabled:cursor-wait text-white text-2xl font-bold transition-colors shadow-lg"
             title="Ejecutar"
           >
-            <Play className="w-4 h-4" />
+            <Play className="w-10 h-10 shrink-0" fill="currentColor" />
             {isExecuting ? 'Ejecutando...' : 'Ejecutar'}
           </button>
           <button
             type="button"
             onClick={cycleViewMode}
-            className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-lg font-medium transition-colors border border-slate-600"
+            className="px-8 py-5 min-h-[4.5rem] min-w-[14rem] rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-100 text-2xl font-bold transition-colors border-2 border-slate-600 shadow-lg"
+            title="CPA: ciclar Pictórico → Concreto → Abstracto"
           >
-            {VIEW_MODE_LABELS[viewMode]}
+            <span className="block text-center">{VIEW_MODE_LABELS[viewMode]}</span>
           </button>
           <button
             type="button"
             onClick={() => speakTitle(levelConfig.title, levelConfig.subtitle)}
-            className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors border border-slate-600"
+            className="p-5 min-h-[4.5rem] min-w-[4.5rem] rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-colors border-2 border-slate-600 flex items-center justify-center shadow-lg"
             title="Reproducir título"
           >
-            <Volume2 className="w-5 h-5" />
+            <Volume2 className="w-12 h-12" strokeWidth={2} />
           </button>
         </div>
       </header>
@@ -177,45 +184,31 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
 
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            nodeTypes={nodeTypes}
-            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-            className="bg-black"
-            minZoom={1}
-            maxZoom={1}
-            zoomOnScroll={false}
-            zoomOnPinch={false}
-            zoomOnDoubleClick={false}
-            panOnDrag={false}
-            panOnScroll={false}
-            autoPanOnNodeDrag={false}
-          >
-            <Background color="#334155" gap={16} size={0.5} />
-          </ReactFlow>
+          <ResultCardUiProvider viewMode={viewMode} hasExecuted={hasExecuted}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={nodeTypes}
+              defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+              className="bg-black"
+              minZoom={1}
+              maxZoom={1}
+              zoomOnScroll={false}
+              zoomOnPinch={false}
+              zoomOnDoubleClick={false}
+              panOnDrag={false}
+              panOnScroll={false}
+              autoPanOnNodeDrag={false}
+            >
+              <Background color="#334155" gap={16} size={0.5} />
+            </ReactFlow>
+          </ResultCardUiProvider>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="shrink-0 bg-slate-800 border-t border-slate-700 px-4 py-3">
-        <section>
-          <p className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-1">
-            El resultado se mostrará acá
-          </p>
-          {executionError ? (
-            <p className="text-2xl font-semibold text-red-400 min-h-[1.5rem]">
-              Error: {executionError}
-            </p>
-          ) : (
-            <p className="text-2xl font-semibold text-white min-h-[1.5rem]">
-              {executionResult !== null ? executionResult : '—'}
-            </p>
-          )}
-        </section>
-      </footer>
+      <SocketInfoFab />
     </div>
   );
 }
