@@ -67,8 +67,7 @@ def main() -> None:
     config_path = Path(os.getenv("CONFIG_PATH", "config/session.json"))
     config = load_config(config_path)
 
-    # TODO: colocar resolución del proyector en el config
-    PROJ_H, PROJ_W = config.camera.rgb_resolution
+    PROJ_H, PROJ_W = config.camera.projector_resolution
 
     print("=" * 60)
     print("CV System Starting")
@@ -76,6 +75,7 @@ def main() -> None:
     print(f"Config file: {config_path}")
     print(f"Camera depth resolution: {config.camera.depth_resolution}")
     print(f"Camera RGB resolution: {config.camera.rgb_resolution}")
+    print(f"Bird view / projector canvas: {config.camera.projector_resolution} (h, w)")
     print(f"FPS: {config.camera.fps}")
     print(f"DMax frames: {config.calibration.dmax_num_frames}")
     print("=" * 60)

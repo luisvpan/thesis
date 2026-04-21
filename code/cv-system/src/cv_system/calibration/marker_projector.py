@@ -47,7 +47,7 @@ class MarkerProjector:
 
     # TODO: consider if it's needed to move this configuration to config file
     # Position to move the window
-    WINDOW_DISPLAY_POSITION = (-1920, 0)
+    WINDOW_DISPLAY_POSITION = (1920, 0)
 
     def __init__(
         self,

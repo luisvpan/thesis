@@ -290,7 +290,7 @@ class Calibrator:
             dmax_map = generate_dmax_map(
                 capture_frame=capture_frame,
                 num_frames=calibration.dmax_num_frames,
-                depth_shape=(424, 512),  # Kinect V2 depth frame shape
+                depth_shape=tuple(self.config.camera.depth_resolution),
             )
             return dmax_map
 
@@ -337,10 +337,10 @@ class Calibrator:
 
         logger.info("camera_corners validated within depth frame bounds")
 
-        # Validate dmax_map shape
-        if dmax_map.shape != (424, 512):
+        expected_shape = tuple(self.config.camera.depth_resolution)
+        if dmax_map.shape != expected_shape:
             raise ValueError(
-                f"dmax_map has invalid shape {dmax_map.shape}, expected (424, 512)"
+                f"dmax_map has invalid shape {dmax_map.shape}, expected {expected_shape}"
             )
 
         # Check that dmax_map has some valid data (non-zero pixels)

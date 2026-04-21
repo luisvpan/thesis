@@ -19,13 +19,18 @@ class ConfigError(RuntimeError):
 
 
 class CameraConfig(BaseModel):
-    """Hardware parameters for Kinect V2 depth and RGB streams."""
+    """Hardware parameters for depth/RGB streams and the projector output canvas."""
 
     # Depth camera resolution (height, width) as returned by OpenNI2
     depth_resolution: Tuple[int, int] = (424, 512)
 
-    # RGB camera resolution (height, width) from Kinect V2
+    # RGB camera resolution (height, width) from the sensor
     rgb_resolution: Tuple[int, int] = (1080, 1920)
+
+    # Projector / "bird view" output size (height, width) for warpPerspective.
+    # Must match the pixel space of calibration.projector_corners and the
+    # physical display (e.g. 1920×1080), not the Kinect RGB size.
+    projector_resolution: Tuple[int, int] = (1080, 1920)
 
     # Frames per second for both streams
     fps: int = 30
@@ -40,7 +45,7 @@ class CameraConfig(BaseModel):
             raise ValueError("fps must not exceed 60")
         return v
 
-    @field_validator("depth_resolution", "rgb_resolution")
+    @field_validator("depth_resolution", "rgb_resolution", "projector_resolution")
     @classmethod
     def resolution_must_be_positive(cls, v: Tuple[int, int]) -> Tuple[int, int]:
         """Ensure resolution dimensions are positive."""

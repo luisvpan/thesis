@@ -37,8 +37,15 @@ class RgbImageTransformer:
         """
         self._H = calibration_result.rgb_H.copy()
         self._H_inv = np.linalg.inv(self._H)
-        #TODO: considerar 2 resoluciones distintas para cámara y proyector, y usar la adecuada en cada transformación
-        self._rgb_resolution = (config.rgb_resolution[1], config.rgb_resolution[0])  # (width, height) for cv2 warp perspective functions
+        # cv2.warpPerspective dsize is (width, height); config uses (height, width).
+        self._camera_size_cv = (
+            config.rgb_resolution[1],
+            config.rgb_resolution[0],
+        )
+        self._projector_size_cv = (
+            config.projector_resolution[1],
+            config.projector_resolution[0],
+        )
 
     @property
     def H(self) -> np.ndarray:
@@ -68,7 +75,7 @@ class RgbImageTransformer:
         self._validate_image(image)
 
         # Transform using OpenCV's warpPerspective
-        return cv2.warpPerspective(image, self._H, self._rgb_resolution)
+        return cv2.warpPerspective(image, self._H, self._projector_size_cv)
 
     def projector_to_camera(self, image: np.ndarray) -> np.ndarray:
         """Transform image from projector space to camera space.
@@ -88,7 +95,7 @@ class RgbImageTransformer:
         self._validate_image(image)
 
         # Transform using inverse homography
-        return cv2.warpPerspective(image, self._H_inv, self._rgb_resolution)
+        return cv2.warpPerspective(image, self._H_inv, self._camera_size_cv)
 
     def _validate_image(self, image: np.ndarray) -> None:
         """Validate that the input image has the correct shape and dtype.

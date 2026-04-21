@@ -11,9 +11,11 @@ class MarkerDetector:
     Estrategia: los marcadores son siempre los blobs más brillantes
     con forma aproximadamente rectangular.
     """
-    DEFAULT_MIN_AREA = 1500   # filtra ruido pequeño (área < 156, 20, 25...)
-    DEFAULT_MAX_AREA = 10000  # filtra ruido grande
-    DEFAULT_BRIGHTNESS_PERCENTILE = 99
+    # Kinect VGA (640×480): cuadrados de ~100 px en proyector ocupan menos píxeles;
+    # umbrales demasiado altos eliminan todos los blobs antes del convexHull en debug.
+    DEFAULT_MIN_AREA = 400
+    DEFAULT_MAX_AREA = 15000
+    DEFAULT_BRIGHTNESS_PERCENTILE = 98
 
     def __init__(
         self,
@@ -30,7 +32,8 @@ class MarkerDetector:
         )
 
     def detect_markers(self, rgb_frame: np.ndarray) -> list[tuple[int, int]]:
-        gray = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2GRAY)
+        # HardwareManager devuelve BGR (convención OpenCV tras captura OpenNI).
+        gray = cv2.cvtColor(rgb_frame, cv2.COLOR_BGR2GRAY)
 
         # 1. Threshold por percentil de brillo
         #    Los marcadores son siempre los píxeles más brillantes del frame
@@ -117,32 +120,53 @@ class MarkerDetector:
         return self._sort_markers_by_position(best_four)
     
     def _sort_markers_by_position(self, markers: list[dict]) -> list[tuple[int, int]]:
+        """Devuelve 4 vértices en orden TL, TR, BL, BR (coord. imagen).
+
+        El orden debe coincidir con ``calibration.projector_corners`` (TL, TR, BL, BR).
+
+        No usamos cuadrantes respecto al centroide (falla con perspectiva). Tampoco
+        basta ``y`` menor = fila superior si la línea entre marcadores está muy
+        inclinada. Orden tipo escaneo de documento sobre los centroides:
+
+        TL = argmin(x+y), BR = argmax(x+y), TR = argmin(y-x), BL = argmax(y-x).
+        """
         assert len(markers) == 4, f"Se esperaban 4 marcadores, llegaron {len(markers)}"
 
-        cx = sum(m["x"] for m in markers) / 4
-        cy = sum(m["y"] for m in markers) / 4
-        # TODO: chequear bottom-left marker, pareciera que no está tomando su bottom-left
-        def quadrant(m):
-            left = m["x"] < cx
-            top  = m["y"] < cy
-            if top  and left:     return 0  # top-left
-            if top  and not left: return 1  # top-right
-            if not top and left:  return 2  # bottom-left
-            return 3                        # bottom-right
+        pts = np.array([[m["x"], m["y"]] for m in markers], dtype=np.float32)
+        s = pts.sum(axis=1)
+        d = np.diff(pts, axis=1).flatten()
+        tl_i = int(np.argmin(s))
+        br_i = int(np.argmax(s))
+        tr_i = int(np.argmin(d))
+        bl_i = int(np.argmax(d))
 
-        def vertex(m, q):
+        if len({tl_i, tr_i, bl_i, br_i}) < 4:
+            # Caso degenerado: desempatar por filas/columnas
+            indices_by_y = sorted(range(4), key=lambda i: markers[i]["y"])
+            top_idx = sorted(indices_by_y[:2], key=lambda i: markers[i]["x"])
+            bot_idx = sorted(indices_by_y[2:], key=lambda i: markers[i]["x"])
+            tl_i, tr_i, bl_i, br_i = top_idx[0], top_idx[1], bot_idx[0], bot_idx[1]
+
+        tl_m = markers[tl_i]
+        tr_m = markers[tr_i]
+        bl_m = markers[bl_i]
+        br_m = markers[br_i]
+
+        def outer_vertex(m: dict, role: str) -> tuple[int, int]:
             x, y, w, h = m["bbox"]
-            match q:
-                case 0: return (x,     y    )  # top-left marker     → vértice top-left
-                case 1: return (x + w, y    )  # top-right marker    → vértice top-right
-                case 2: return (x,     y + h)  # bottom-left marker  → vértice bottom-left
-                case 3: return (x + w, y + h)  # bottom-right marker → vértice bottom-right
+            if role == "tl":
+                return (int(x), int(y))
+            if role == "tr":
+                return (int(x + w), int(y))
+            if role == "bl":
+                return (int(x), int(y + h))
+            return (int(x + w), int(y + h))
 
-        sorted_markers = sorted(markers, key=quadrant)
         return [
-            (int(x), int(y))
-            for m in sorted_markers
-            for x, y in [vertex(m, quadrant(m))]
+            outer_vertex(tl_m, "tl"),
+            outer_vertex(tr_m, "tr"),
+            outer_vertex(bl_m, "bl"),
+            outer_vertex(br_m, "br"),
         ]
 
     def _select_best_four(self, markers: list[dict]) -> list[dict]:
@@ -174,10 +198,11 @@ class MarkerDetector:
             cv2.putText(debug_img, f"a={m['area']:.0f}", (cx + 6, cy - 6),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
 
-        # Dibuja los best four en verde con líneas del cuadrilátero
+        # Dibuja los best four en verde con líneas del cuadrilátero (convexHull exige ≥3 puntos)
         best_pts = np.array([(m["x"] * scale, m["y"] * scale) for m in best_four], dtype=np.float32)
-        hull = cv2.convexHull(best_pts.astype(np.int32))
-        cv2.polylines(debug_img, [hull], isClosed=True, color=(0, 255, 0), thickness=2)
+        if len(best_four) >= 3:
+            hull = cv2.convexHull(best_pts.astype(np.int32))
+            cv2.polylines(debug_img, [hull], isClosed=True, color=(0, 255, 0), thickness=2)
 
         for i, m in enumerate(best_four):
             cx, cy = m["x"] * scale, m["y"] * scale

@@ -13,11 +13,13 @@ from typing import Callable
 import numpy as np
 from scipy import stats
 
+from cv_system.config import CameraConfig
+
 
 def generate_dmax_map(
     capture_frame: Callable[[], np.ndarray],
     num_frames: int = 500,
-    depth_shape: tuple[int, int] = (424, 512),
+    depth_shape: tuple[int, int] | None = None,
 ) -> np.ndarray:
     """Generate dmax_map by capturing N frames and computing per-pixel mode.
 
@@ -25,6 +27,7 @@ def generate_dmax_map(
         capture_frame: Callable that returns a depth frame as np.ndarray.
         num_frames: Number of frames to capture for mode calculation.
         depth_shape: Expected shape of depth frames (height, width).
+            If omitted, uses ``camera.depth_resolution`` from default ``CameraConfig``.
 
     Returns:
         dmax_map: 2D array of same shape as depth frames, where each pixel
@@ -40,6 +43,9 @@ def generate_dmax_map(
         Memory usage is ~217MB for 500 frames @ 424x512 uint16 (acceptable).
         No depth_range filtering — full depth range is captured without loss.
     """
+    if depth_shape is None:
+        depth_shape = tuple(CameraConfig().depth_resolution)
+
     # Validate inputs
     if len(depth_shape) != 2:
         raise ValueError(f"depth_shape must be 2D, got {len(depth_shape)} dimensions")
