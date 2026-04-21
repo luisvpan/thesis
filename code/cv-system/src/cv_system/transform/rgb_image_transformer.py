@@ -50,61 +50,27 @@ class RgbImageTransformer:
         """Read-only access to the inverse homography matrix (projector -> camera)."""
         return self._H_inv
     
-    def camera_to_projector(self, image: np.ndarray) -> np.ndarray:
+    def camera_to_projector(self, image: cv2.UMat) -> cv2.UMat:
         """Transform image from camera space to projector space.
 
         Args:
-            image: Input image as a numpy array with shape (H, W, 3) where H and W are
-                the height and width of the image. Supports uint8 or float32 dtype.
+            image: Input image as cv2.UMat (GPU memory) with 3 channels (BGR).
 
         Returns:
-            Transformed image with same shape (H, W, 3) and same dtype as input.
-
-        Raises:
-            ValueError: If image.ndim != 3.
-            ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
+            Transformed image as cv2.UMat, stays on GPU for efficient chaining.
         """
-        self._validate_image(image)
-
-        # Transform using OpenCV's warpPerspective (CPU - testing without UMat)
+        # warpPerspective works natively with UMat (GPU accelerated)
         return cv2.warpPerspective(image, self._H, self._rgb_resolution)
 
-    def projector_to_camera(self, image: np.ndarray) -> np.ndarray:
+    def projector_to_camera(self, image: cv2.UMat) -> cv2.UMat:
         """Transform image from projector space to camera space.
 
         Args:
-            image: Input image as a numpy array with shape (H, W, 3) where H and W are
-                the height and width of the image. Supports uint8 or float32 dtype.
+            image: Input image as cv2.UMat (GPU memory) with 3 channels (BGR).
 
         Returns:
-            Transformed image with same shape (H, W, 3) and same dtype as input.
-
-        Raises:
-            ValueError: If image.ndim != 3.
-            ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
+            Transformed image as cv2.UMat, stays on GPU for efficient chaining.
         """
-        self._validate_image(image)
-
-        # Transform using inverse homography (CPU - testing without UMat)
+        # warpPerspective works natively with UMat (GPU accelerated)
         return cv2.warpPerspective(image, self._H_inv, self._rgb_resolution)
-
-    def _validate_image(self, image: np.ndarray) -> None:
-        """Validate that the input image has the correct shape.
-
-        Args:
-            image: Input image as a numpy array.
-        Raises:
-            ValueError: If image.ndim != 3.
-            ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
-        """
-        if image.ndim != 3:
-            raise ValueError(
-                f"Expected 3D array (H, W, 3) for image data, got {image.ndim}D array. "
-                f"Expected shape (H, W, 3), got {image.shape}."
-            )
-        if image.shape[2] != 3:
-            raise ValueError(
-                f"Expected 3-channel RGB image, got {image.shape[2]} channels. "
-                f"Expected shape (H, W, 3), got {image.shape}."
-            )
         

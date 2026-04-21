@@ -197,12 +197,13 @@ class HardwareManager:
         except Exception as e:
             raise HardwareError(f"Failed to capture depth frame: {e}") from e
 
-    def get_rgb_frame(self) -> np.ndarray:
-        """Capture and return an RGB frame as numpy array.
+    def get_rgb_frame(self) -> cv2.UMat:
+        """Capture and return an RGB frame as UMat (GPU memory).
 
         Returns:
-            numpy array with shape (height, width, 3) and dtype uint8 (BGR format).
+            cv2.UMat with shape (height, width, 3) and dtype uint8 (BGR format).
             Frame is mirrored horizontally (left-right flipped).
+            Data stays on GPU for efficient downstream OpenCV operations.
 
         Raises:
             HardwareError: If hardware is not initialized or frame capture fails.
@@ -222,11 +223,12 @@ class HardwareManager:
             )
 
             # Mirror horizontally + convert RGB to BGR (OpenCL accelerated)
+            # Keep as UMat to avoid CPU<->GPU transfer
             rgb_umat = cv2.UMat(rgb_array)
             rgb_umat = cv2.flip(rgb_umat, 1)
             rgb_umat = cv2.cvtColor(rgb_umat, cv2.COLOR_RGB2BGR)
 
-            return rgb_umat.get()
+            return rgb_umat
         except Exception as e:
             raise HardwareError(f"Failed to capture RGB frame: {e}") from e
 

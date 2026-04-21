@@ -15,6 +15,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from dotenv import load_dotenv
 
+#TODO: add ONNX_GPU_ID to .env and use it in card_detector to select GPU (Fix 5: GPU selection)
+load_dotenv()
+
 import cv2
 import numpy as np
 
@@ -27,8 +30,6 @@ from cv_system.detection.card_detector import CardDetector
 from cv_system.detection.touch_detector import TouchDetector
 from cv_system.hardware.manager import HardwareManager, HardwareError
 from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -231,19 +232,19 @@ def main() -> None:
 
                 t1 = time.perf_counter()
 
-                # Fix 1: Do warp ONCE and share with both detectors (uint8 directly, no float conversion)
-                rgb_bird_uint8 = rgb_image_transformer.camera_to_projector(rgb_frame)
+                # Fix 1: Do warp ONCE and share with both detectors (UMat stays on GPU)
+                rgb_bird = rgb_image_transformer.camera_to_projector(rgb_frame)
 
                 t2 = time.perf_counter()
 
                 # Submit BOTH detections in parallel (don't wait for touch before card)
-                touch_future = touch_executor.submit(detector.detect, depth_frame, rgb_bird_uint8)
+                touch_future = touch_executor.submit(detector.detect, depth_frame, rgb_bird)
 
                 card_future = None
                 t_card_submit = t2  # For timing card from submission
                 run_card = frame_count % CARD_DETECT_INTERVAL == 0
                 if run_card:
-                    card_future = card_executor.submit(card_detector.detect, rgb_bird_uint8)
+                    card_future = card_executor.submit(card_detector.detect, rgb_bird)
                     t_card_submit = time.perf_counter()
 
                 # Now wait for results (they run in parallel)
@@ -264,7 +265,7 @@ def main() -> None:
                         last_card_dets = card_dets
                         post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
                 else:
-                    card_view = last_card_view if last_card_view is not None else rgb_bird_uint8
+                    card_view = last_card_view if last_card_view is not None else rgb_bird.get()
                     card_dets = last_card_dets
 
                 if touches:

@@ -67,31 +67,33 @@ class TouchDetector:
         self.detector = vision.HandLandmarker.create_from_options(options)
 
     def detect(
-        self, depth_frame: np.ndarray, rgb_bird_uint8: np.ndarray
+        self, depth_frame: np.ndarray, rgb_bird: cv2.UMat
     ) -> tuple[list[tuple[float, float]], bool]:
         """
         Detect touches from depth frame and pre-transformed RGB.
 
         Args:
             depth_frame: Raw depth frame from HardwareManager (depth space, uint16).
-            rgb_bird_uint8: RGB image already transformed to projector space (uint8 BGR).
+            rgb_bird: RGB image as UMat already transformed to projector space (BGR).
 
         Returns:
             Tuple of (touches, hands_detected):
             - touches: List of (x, y) touch positions in projector coordinates.
             - hands_detected: True if any hands were detected in the frame.
         """
-        rgb_h, rgb_w = rgb_bird_uint8.shape[:2]
-
-        rgb_bird_mp = cv2.cvtColor(cv2.UMat(rgb_bird_uint8), cv2.COLOR_BGR2RGB).get()
+        # GPU: cvtColor, then .get() for MediaPipe (requires numpy)
+        rgb_bird_mp = cv2.cvtColor(rgb_bird, cv2.COLOR_BGR2RGB).get()
+        rgb_h, rgb_w = rgb_bird_mp.shape[:2]
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_bird_mp)
 
         # VIDEO mode: synchronous detection, thread-safe
         timestamp_ms = int(time.time() * 1000)
         result = self.detector.detect_for_video(mp_image, timestamp_ms)
 
+        if self._show_debug:
+            debug_img = cv2.cvtColor(rgb_bird.get().copy(), cv2.COLOR_RGB2BGR)
+        
         touches_projector = []
-        debug_img = rgb_bird_uint8.copy()
         hands_detected = bool(result and result.hand_landmarks)
 
         if hands_detected:

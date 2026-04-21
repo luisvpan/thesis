@@ -126,24 +126,24 @@ class CardDetector:
         # Fallback: generic class names
         return {i: f"class_{i}" for i in range(100)}
 
-    def detect(self, rgb_bird_uint8: np.ndarray) -> tuple[np.ndarray, list[CardDetection]]:
+    def detect(self, rgb_bird: cv2.UMat) -> tuple[np.ndarray, list[CardDetection]]:
         """
         Detect cards in the pre-transformed bird view image.
 
         Args:
-            rgb_bird_uint8: BGR image already transformed to projector space (uint8).
+            rgb_bird: BGR image as UMat already transformed to projector space.
 
         Returns:
-            Annotated BGR image in projector resolution and list of detections.
+            Annotated BGR image (numpy) in projector resolution and list of detections.
         """
         # Run detection
         if self._use_onnx:
-            detections = self._detect_onnx(rgb_bird_uint8)
+            detections = self._detect_onnx(rgb_bird)
         else:
-            detections = self._detect_pytorch(rgb_bird_uint8)
+            detections = self._detect_pytorch(rgb_bird)
 
-        # Draw detections
-        annotated = rgb_bird_uint8.copy()
+        # Draw detections on numpy copy
+        annotated = rgb_bird.get().copy()
         for d in detections:
             self._draw_detection(
                 annotated, d.label, d.confidence, d.x1, d.y1, d.x2, d.y2
@@ -151,9 +151,11 @@ class CardDetector:
 
         return annotated, detections
 
-    def _detect_pytorch(self, image: np.ndarray) -> list[CardDetection]:
+    def _detect_pytorch(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection with tracking using PyTorch/ultralytics backend."""
-        results = self._model.track(image, persist=True, verbose=False)
+        # ultralytics requires numpy array
+        image_np = image.get()
+        results = self._model.track(image_np, persist=True, verbose=False)
         detections: list[CardDetection] = []
 
         for r in results:
@@ -180,15 +182,15 @@ class CardDetector:
 
         return detections
 
-    def _detect_onnx(self, image: np.ndarray) -> list[CardDetection]:
+    def _detect_onnx(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection using ONNX Runtime with DirectML."""
         # Get target size from model input shape
         _, _, target_h, target_w = self._input_shape
-        orig_h, orig_w = image.shape[:2]
+        orig_h, orig_w = image.get().shape[:2]
 
-        # Preprocess: BGR->RGB, resize, normalize, transpose to NCHW
+        # Preprocess on GPU: BGR->RGB, resize, then .get() for ONNX
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        resized = cv2.resize(rgb_image, (target_w, target_h))
+        resized = cv2.resize(rgb_image, (target_w, target_h)).get()
         normalized = resized.astype(np.float32) / 255.0
         transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
         batched = np.expand_dims(transposed, axis=0)  # Add batch dim
