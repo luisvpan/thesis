@@ -89,7 +89,7 @@ type NodeContextState = {
   executeProgram: () => Promise<void>;
 
   // Para React Flow
-  onNodesChange: OnNodesChange;
+  onNodesChange: OnNodesChange<DataflowNode>;
   onEdgesChange: OnEdgesChange;
 
   // Resultado calculado (local, sin backend)
@@ -291,6 +291,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
               trackId: c.trackId,
             },
           });
+          idx++;
           continue;
         }
 
@@ -304,6 +305,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
               trackId: c.trackId,
             },
           });
+          idx++;
           continue;
         }
 
@@ -318,6 +320,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
             trackId: c.trackId,
           },
         });
+        idx++;
       }
 
       if (grapesFlowPos) {
