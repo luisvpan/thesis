@@ -156,6 +156,17 @@ function getRightmostNode(nodes: DataflowNode[]): DataflowNode | null {
   );
 }
 
+/**
+ * Genera un slug válido para el DSL (solo letras y _) a partir del trackId.
+ * Si no hay trackId válido, usa el índice como fallback.
+ */
+function toValidSlug(trackId: number | undefined, fallbackIndex: number): string {
+  if (trackId !== undefined && trackId >= 0) {
+    return `card_${trackId}`;
+  }
+  return `card_${fallbackIndex}`;
+}
+
 function computeOperatorResult(
   operatorId: string,
   nodes: DataflowNode[],
@@ -221,41 +232,45 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     }
 
     setNodes((prev) => {
-      const withoutLive = prev.filter((n) => !n.id.startsWith("visionLive"));
+      const withoutLive = prev.filter((n) => !n.id.startsWith("card_"));
       const additions: DataflowNode[] = lastCardFrame.cards.map((c, i) => {
         const parsed = parseVisionLabel(c.label);
         const position = visionToFlowPosition(c.position, rect);
+        const nodeId = toValidSlug(c.trackId, i);
 
         if (parsed.type === "number") {
           return {
-            id: `visionLive${i}`,
+            id: nodeId,
             type: "number" as const,
             position,
             data: {
               value: parsed.value,
+              trackId: c.trackId,
             },
           };
         }
 
         if (parsed.type === "operator") {
           return {
-            id: `visionLive${i}`,
+            id: nodeId,
             type: "operator" as const,
             position,
             data: {
               operator: visionOperatorToMathOperator(parsed.operator),
+              trackId: c.trackId,
             },
           };
         }
 
         // Tipo desconocido: mostrar como número con subtítulo
         return {
-          id: `visionLive${i}`,
+          id: nodeId,
           type: "number" as const,
           position,
           data: {
             value: 0,
             visionSubtitle: parsed.label,
+            trackId: c.trackId,
           },
         };
       });
