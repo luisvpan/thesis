@@ -259,11 +259,10 @@ def main() -> None:
                     t_card_end = time.perf_counter()
                     card_time_ms = 1000 * (t_card_end - t_card_submit)  # Total card time
                     card_wait_ms = 1000 * (t_card_end - t_card_wait_start)  # Wait after touch done
-                    # Only update cache and POST if no hands detected
-                    if not hands_detected:
-                        last_card_view = card_view
-                        last_card_dets = card_dets
-                        post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
+                    # Always update - ByteTrack handles occlusions from hands
+                    last_card_view = card_view
+                    last_card_dets = card_dets
+                    post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
                 else:
                     card_view = last_card_view if last_card_view is not None else rgb_bird.get()
                     card_dets = last_card_dets
@@ -286,7 +285,7 @@ def main() -> None:
                     if frame_count % 30 == 0:
                         print(f"  Frame {frame_count}: No touches detected")
 
-                if card_dets and frame_count % 30 == 0:
+                if card_dets:
                     for d in card_dets:
                         print(
                             f"  Frame {frame_count}: Card {d.label} "
@@ -306,7 +305,7 @@ def main() -> None:
                 t5 = time.perf_counter()
                 depth_frame, rgb_frame = next_frame_future.result()
                 t6 = time.perf_counter()
-                print(f"  [FPS: {frame_count / elapsed:.1f}] warp={1000*(t2-t1):.1f}ms touch={1000*(t_touch-t2):.1f}ms card={card_time_ms:.1f}ms(wait={card_wait_ms:.1f}ms) acq={1000*(t6-t5):.1f}ms")
+                print(f"  [FPS: {frame_count / elapsed:.1f}] submit={1000*(t1-t0):.1f}ms warp={1000*(t2-t1):.1f}ms touch={1000*(t_touch-t2):.1f}ms card={card_time_ms:.1f}ms(wait={card_wait_ms:.1f}ms) acq={1000*(t6-t5):.1f}ms")
 
             except KeyboardInterrupt:
                 break

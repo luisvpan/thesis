@@ -99,10 +99,11 @@ class TouchDetector:
         if hands_detected:
             for hand_landmarks in result.hand_landmarks:
                 # Draw all landmarks for debug
-                for lm in hand_landmarks:
-                    gx = int(lm.x * rgb_w)
-                    gy = int(lm.y * rgb_h)
-                    cv2.circle(debug_img, (gx, gy), 2, (0, 255, 0), -1)
+                if self._show_debug:
+                    for lm in hand_landmarks:
+                        gx = int(lm.x * rgb_w)
+                        gy = int(lm.y * rgb_h)
+                        cv2.circle(debug_img, (gx, gy), 2, (0, 255, 0), -1)
 
                 for idx in self.FINGER_TIPS:
                     lm = hand_landmarks[idx]
@@ -141,22 +142,23 @@ class TouchDetector:
                         touches_projector.append((proj_x, proj_y))
 
                     # Debug overlay
-                    color = (0, 0, 255) if is_touching else (0, 255, 255)
-                    cv2.circle(debug_img, (int(proj_x), int(proj_y)), 4, color, -1)
-                    debug_text = (
-                        "NO DATA (Z=0)"
-                        if current_z == 0
-                        else f"Z:{current_z} M:{surface_z} D:{diff}"
-                    )
-                    cv2.putText(
-                        debug_img,
-                        debug_text,
-                        (int(proj_x) + 10, int(proj_y)),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.4,
-                        color,
-                        1,
-                    )
+                    if self._show_debug:
+                        color = (0, 0, 255) if is_touching else (0, 255, 255)
+                        cv2.circle(debug_img, (int(proj_x), int(proj_y)), 4, color, -1)
+                        debug_text = (
+                            "NO DATA (Z=0)"
+                            if current_z == 0
+                            else f"Z:{current_z} M:{surface_z} D:{diff}"
+                        )
+                        cv2.putText(
+                            debug_img,
+                            debug_text,
+                            (int(proj_x) + 10, int(proj_y)),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.4,
+                            color,
+                            1,
+                        )
 
         if self._show_debug:
             cv2.namedWindow("Kinect V2 - Livestream AI Debug", cv2.WINDOW_NORMAL)

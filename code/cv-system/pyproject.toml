@@ -17,6 +17,7 @@ dependencies = [
   "ultralytics>=8.0.0",
   "onnxruntime-directml>=1.24.4",
   "lap>=0.5.13",
+  "supervision>=0.27.0.post2",
 ]
 
 [project.scripts]
@@ -26,7 +27,7 @@ cv-system = "cv_system.main:main"
 export = ["onnx>=1.21.0", "onnxruntime>=1.24.4", "onnxslim>=0.1.91"]
 
 [build-system]
-requires = ["uv_build>=0.10.12,<0.11.0"]
+requires = ["uv_build>=0.11.7,<0.12.0"]
 build-backend = "uv_build"
 
 [dependency-groups]

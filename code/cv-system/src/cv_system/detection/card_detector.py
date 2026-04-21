@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
+import supervision as sv
 
 from cv_system.transform import RgbImageTransformer
 
@@ -79,7 +80,7 @@ class CardDetector:
 
         # Request DirectML with CPU fallback
         providers = [
-            ("DmlExecutionProvider", {"device_id": 0}),
+            ("DmlExecutionProvider", {"device_id": 1}),
             "CPUExecutionProvider",
         ]
         self._session: ort.InferenceSession = ort.InferenceSession(
@@ -104,6 +105,15 @@ class CardDetector:
             print("  DirectML GPU acceleration active")
         else:
             print("  WARNING: DirectML not available, using CPU fallback!")
+
+        # Initialize ByteTrack for persistent object IDs
+        # Tuned for card tracking with hand movement
+        self._tracker = sv.ByteTrack(
+            track_activation_threshold=0.20,  # Lower = easier to create tracks
+            lost_track_buffer=45,             # ~1.5s at 30fps to re-find lost tracks
+            minimum_matching_threshold=0.5,   # Lower IoU = tolerate more movement
+            frame_rate=30,
+        )
 
     def _load_onnx_class_names(self, path: Path) -> dict[int, str]:
         """Load class names from ONNX model metadata."""
@@ -247,20 +257,38 @@ class CardDetector:
             self._iou_threshold,
         )
 
-        # Build detections
+        if len(indices) == 0:
+            return []
+
+        # Filter arrays by NMS indices
+        nms_indices = [idx[0] if isinstance(idx, (list, np.ndarray)) else idx for idx in indices]
+        nms_boxes = boxes_for_nms[nms_indices]
+        nms_confidences = confidences[nms_indices]
+        nms_class_ids = class_ids[nms_indices]
+
+        # Create supervision Detections and update tracker
+        sv_detections = sv.Detections(
+            xyxy=nms_boxes,
+            confidence=nms_confidences,
+            class_id=nms_class_ids.astype(int),
+        )
+        tracked = self._tracker.update_with_detections(sv_detections)
+
+        # Build CardDetection objects with track IDs
         detections: list[CardDetection] = []
-        for idx in indices:
-            i = idx[0] if isinstance(idx, (list, np.ndarray)) else idx
-            label = self._names.get(int(class_ids[i]), str(class_ids[i]))
+        for i in range(len(tracked)):
+            label = self._names.get(int(tracked.class_id[i]), str(tracked.class_id[i]))
+            track_id = int(tracked.tracker_id[i]) if tracked.tracker_id is not None else -1
             detections.append(
                 CardDetection(
-                    class_id=int(class_ids[i]),
+                    class_id=int(tracked.class_id[i]),
                     label=label,
-                    confidence=float(confidences[i]),
-                    x1=float(x1[i]),
-                    y1=float(y1[i]),
-                    x2=float(x2[i]),
-                    y2=float(y2[i]),
+                    confidence=float(tracked.confidence[i]),
+                    x1=float(tracked.xyxy[i, 0]),
+                    y1=float(tracked.xyxy[i, 1]),
+                    x2=float(tracked.xyxy[i, 2]),
+                    y2=float(tracked.xyxy[i, 3]),
+                    track_id=track_id,
                 )
             )
 
