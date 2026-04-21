@@ -83,7 +83,7 @@ class TouchDetector:
         """
         rgb_h, rgb_w = rgb_bird_uint8.shape[:2]
 
-        rgb_bird_mp = cv2.cvtColor(rgb_bird_uint8, cv2.COLOR_BGR2RGB)
+        rgb_bird_mp = cv2.cvtColor(cv2.UMat(rgb_bird_uint8), cv2.COLOR_BGR2RGB).get()
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_bird_mp)
 
         # VIDEO mode: synchronous detection, thread-safe

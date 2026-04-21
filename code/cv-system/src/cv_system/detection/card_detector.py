@@ -73,9 +73,14 @@ class CardDetector:
         """Initialize ONNX Runtime with DirectML backend."""
         import onnxruntime as ort
 
-        # Prefer DirectML (AMD GPU), fallback to CPU
+        # Log available providers BEFORE creating session
+        available = ort.get_available_providers()
+        print(f"  ONNX available providers: {available}")
+
+        # Request DirectML with CPU fallback
         providers = [
-            ("DmlExecutionProvider", { "device_id": 0 }),
+            ("DmlExecutionProvider", {"device_id": 0}),
+            "CPUExecutionProvider",
         ]
         self._session: ort.InferenceSession = ort.InferenceSession(
             str(path), providers=providers
@@ -92,9 +97,13 @@ class CardDetector:
         # Load class names from ONNX metadata
         self._names = self._load_onnx_class_names(path)
 
-        # Log provider being used
-        active_provider = self._session.get_providers()[0]
-        print(f"  ONNX Runtime using: {active_provider}")
+        # Log which provider is ACTUALLY being used
+        actual = self._session.get_providers()
+        print(f"  ONNX session providers: {actual}")
+        if "DmlExecutionProvider" in actual:
+            print("  DirectML GPU acceleration active")
+        else:
+            print("  WARNING: DirectML not available, using CPU fallback!")
 
     def _load_onnx_class_names(self, path: Path) -> dict[int, str]:
         """Load class names from ONNX model metadata."""
@@ -177,8 +186,9 @@ class CardDetector:
         _, _, target_h, target_w = self._input_shape
         orig_h, orig_w = image.shape[:2]
 
-        # Preprocess: resize, normalize, transpose to NCHW
-        resized = cv2.resize(image, (target_w, target_h))
+        # Preprocess: BGR->RGB, resize, normalize, transpose to NCHW
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        resized = cv2.resize(rgb_image, (target_w, target_h))
         normalized = resized.astype(np.float32) / 255.0
         transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
         batched = np.expand_dims(transposed, axis=0)  # Add batch dim

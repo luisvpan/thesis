@@ -55,19 +55,18 @@ class RgbImageTransformer:
 
         Args:
             image: Input image as a numpy array with shape (H, W, 3) where H and W are
-                the height and width of the image. Must have dtype float32.
+                the height and width of the image. Supports uint8 or float32 dtype.
 
         Returns:
-            Transformed image with same shape (H, W, 3) and dtype float32.
+            Transformed image with same shape (H, W, 3) and same dtype as input.
 
         Raises:
-            ValueError: If image.dtype is not float32.
             ValueError: If image.ndim != 3.
             ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
         """
         self._validate_image(image)
 
-        # Transform using OpenCV's warpPerspective
+        # Transform using OpenCV's warpPerspective (CPU - testing without UMat)
         return cv2.warpPerspective(image, self._H, self._rgb_resolution)
 
     def projector_to_camera(self, image: np.ndarray) -> np.ndarray:
@@ -75,36 +74,29 @@ class RgbImageTransformer:
 
         Args:
             image: Input image as a numpy array with shape (H, W, 3) where H and W are
-                the height and width of the image. Must have dtype float32.
+                the height and width of the image. Supports uint8 or float32 dtype.
 
         Returns:
-            Transformed image with same shape (H, W, 3) and dtype float32.
+            Transformed image with same shape (H, W, 3) and same dtype as input.
 
         Raises:
-            ValueError: If image.dtype is not float32.
             ValueError: If image.ndim != 3.
             ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
         """
         self._validate_image(image)
 
-        # Transform using inverse homography
+        # Transform using inverse homography (CPU - testing without UMat)
         return cv2.warpPerspective(image, self._H_inv, self._rgb_resolution)
 
     def _validate_image(self, image: np.ndarray) -> None:
-        """Validate that the input image has the correct shape and dtype.
+        """Validate that the input image has the correct shape.
 
         Args:
             image: Input image as a numpy array.
         Raises:
-            ValueError: If image.dtype is not float32.
-            ValueError: If image.ndim != 3. 
+            ValueError: If image.ndim != 3.
             ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
         """
-        if image.dtype != np.float32:
-            raise ValueError(
-                f"Expected dtype float32, got {image.dtype}. "
-                "Use image.astype(np.float32) to convert."
-            )
         if image.ndim != 3:
             raise ValueError(
                 f"Expected 3D array (H, W, 3) for image data, got {image.ndim}D array. "

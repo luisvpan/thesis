@@ -190,8 +190,8 @@ class HardwareManager:
                 self.camera_config.depth_resolution
             )
 
-            # Mirror horizontally
-            depth_array = cv2.flip(depth_array, 1)
+            # Mirror horizontally (OpenCL accelerated)
+            depth_array = cv2.flip(cv2.UMat(depth_array), 1).get()
 
             return depth_array
         except Exception as e:
@@ -221,13 +221,12 @@ class HardwareManager:
                 (*self.camera_config.rgb_resolution, 3)
             )
 
-            # Mirror horizontally
-            rgb_array = cv2.flip(rgb_array, 1)
+            # Mirror horizontally + convert RGB to BGR (OpenCL accelerated)
+            rgb_umat = cv2.UMat(rgb_array)
+            rgb_umat = cv2.flip(rgb_umat, 1)
+            rgb_umat = cv2.cvtColor(rgb_umat, cv2.COLOR_RGB2BGR)
 
-            # Convert RGB to BGR (OpenCV convention)
-            rgb_array = cv2.cvtColor(rgb_array, cv2.COLOR_RGB2BGR)
-
-            return rgb_array
+            return rgb_umat.get()
         except Exception as e:
             raise HardwareError(f"Failed to capture RGB frame: {e}") from e
 
