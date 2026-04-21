@@ -1,4 +1,10 @@
 export { NumberFlowNode } from './NumberFlowNode';
 export { OperatorFlowNode } from './OperatorFlowNode';
+export { ResultAnchorFlowNode } from './ResultAnchorFlowNode';
+export { ProgramOutputFlowNode } from './ProgramOutputFlowNode';
+export type { ResultViewMode } from './dataflowResultCpa';
+export { formatResultCpa } from './dataflowResultCpa';
 export type { NumberFlowNodeData } from './NumberFlowNode';
 export type { OperatorFlowNodeData } from './OperatorFlowNode';
+export type { ResultAnchorFlowNodeData } from './ResultAnchorFlowNode';
+export type { ProgramOutputFlowNodeData } from './ProgramOutputFlowNode';
