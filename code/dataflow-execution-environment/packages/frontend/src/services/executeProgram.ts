@@ -2,7 +2,10 @@
  * Servicio para ejecutar programas dataflow en el backend.
  */
 
-import { serializeProgram } from "@/utils/serializeProgram";
+import {
+  serializeProgram,
+  type DataflowProgram,
+} from "@/utils/serializeProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
 import type { Edge } from "@xyflow/react";
 
@@ -18,13 +21,14 @@ export type ExecuteResult = {
  */
 export async function executeProgram(
   nodes: DataflowNode[],
-  edges: Edge[]
+  edges: Edge[],
+  programOverride?: DataflowProgram
 ): Promise<ExecuteResult> {
-  if (nodes.length === 0) {
+  if (nodes.length === 0 && !programOverride) {
     return { success: false, error: "No hay nodos para ejecutar" };
   }
 
-  const program = serializeProgram(nodes, edges);
+  const program = programOverride ?? serializeProgram(nodes, edges);
 
   console.log("[execute] Programa serializado:", JSON.stringify(program, null, 2));
 

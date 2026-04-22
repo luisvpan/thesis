@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Gamepad2, Settings, ChevronRight } from 'lucide-react';
+import { Gamepad2, Settings, ChevronRight, Terminal } from 'lucide-react';
 import { AnimatedMenuBackground } from '@/components/AnimatedMenuBackground';
 import { ApiHealthBadge } from '@/components/ApiHealthBadge';
 
@@ -24,6 +24,16 @@ const SECTIONS = [
     gradient: 'from-amber-500 to-orange-600',
     border: 'border-amber-400/30',
     shadow: 'shadow-amber-500/25',
+  },
+  {
+    id: 'desarrollador',
+    title: 'Modo desarrollador',
+    description: 'Diseña ejercicios dataflow y prueba el compilador sin visión',
+    to: '/ide/dev',
+    icon: Terminal,
+    gradient: 'from-violet-500 to-indigo-600',
+    border: 'border-violet-400/30',
+    shadow: 'shadow-violet-500/25',
   },
 ] as const;
 
@@ -69,13 +79,13 @@ export default function HomePage() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-6xl"
       >
         <AnimatePresence>
           {SECTIONS.map((section, i) => {
             const Icon = section.icon;
             return (
-              <motion.div key={section.id} variants={item} className="flex-1 min-w-[260px]">
+              <motion.div key={section.id} variants={item} className="min-w-0">
                 <Link to={section.to} className="block h-full">
                   <motion.div
                     whileHover={{ scale: 1.03, y: -8 }}

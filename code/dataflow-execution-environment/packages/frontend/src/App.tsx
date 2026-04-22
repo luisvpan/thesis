@@ -7,6 +7,7 @@ import DataflowPage from './pages/DataflowPage';
 import JuegoMenuPage from './pages/JuegoMenuPage';
 import WorldLevelsPage from './pages/WorldLevelsPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
+import DeveloperDataflowPage from './pages/DeveloperDataflowPage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/configuracion" element={<ConfiguracionPage />} />
           <Route path="/ide" element={<IdeLayout />}>
             <Route path="sandbox" element={<DataflowPage isSandbox={true} />} />
+            <Route path="dev" element={<DeveloperDataflowPage />} />
             <Route path=":worldId/:level" element={<DataflowPage isSandbox={false} />} />
           </Route>
         </Routes>

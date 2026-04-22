@@ -1,15 +1,14 @@
 import { Elysia, t } from "elysia";
-import { Compiler, programToSource } from "@dataflow/compiler";
-import { Runtime } from "@dataflow/runtime";
-import type { DataflowProgram, ValidationResult } from "@dataflow/shared/types";
+import type { DataflowProgram } from "@dataflow/shared/types";
 import { DagValidator } from "@dataflow/compiler";
 import { createRateLimiter } from "@dataflow/shared/security/rate-limiter";
+import { executeDataflowProgram } from "./execute-dataflow";
+import { dataflowWsModule } from "./dataflow-ws";
 import { visionModule } from "./vision";
 import { touchModule } from "./touch";
 
 const startTime = Date.now();
 const validator = new DagValidator();
-const compiler = new Compiler();
 
 const rateLimiter = createRateLimiter({
   windowMs: 60000,
@@ -74,63 +73,53 @@ const executeRoutes = new Elysia({ prefix: '/api/v1' })
     const request = body as any;
     const program = request.program as DataflowProgram;
     const options = request.options || {};
-    const maxTimesteps = options.maxTimesteps || 100;
     const includeTrace = options.includeTrace || false;
-    const traceLevel = options.traceLevel || "medium";
 
-    const programId = program.metadata?.programId || "unknown";
+    const TIMEOUT_MS = 5000;
 
-    // Convertir DataflowProgram a source DSL y compilar para validación completa
-    const sourceCode = programToSource(program);
-    console.log("[execute] Source DSL generado:\n", sourceCode);
-    const compilationResult = compiler.compile(sourceCode);
+    const executionPromise = new Promise<ReturnType<typeof executeDataflowProgram>>(
+      (resolve, reject) => {
+        queueMicrotask(() => {
+          try {
+            resolve(executeDataflowProgram(program));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      },
+    );
 
-    if (!compilationResult.success) {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Execution timeout")), TIMEOUT_MS);
+    });
+
+    let result: ReturnType<typeof executeDataflowProgram>;
+    try {
+      result = await Promise.race([executionPromise, timeoutPromise]);
+    } catch (e) {
+      throw e;
+    }
+
+    if (!result.success) {
       return {
         success: false,
-        programId,
-        errors: compilationResult.errors,
-        warnings: compilationResult.warnings
+        programId: result.programId,
+        errors: result.errors,
       };
     }
 
-    //TODO: adjust typing so if compilationResult.success is true, then compilationResult.program is guaranteed to be defined
-    const runtime = new Runtime();
-    runtime.loadProgram(compilationResult.program!);
-
-    const execStartTime = performance.now();
-    const TIMEOUT_MS = 5000;
-
-    const executionPromise = new Promise((resolve) => {
-      const outputs = runtime.execute(0);
-      resolve(outputs);
-    });
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Execution timeout')), TIMEOUT_MS);
-    });
-
-    const outputs = await Promise.race([executionPromise, timeoutPromise]) as unknown[];
-    const totalTime = (performance.now() - execStartTime).toFixed(2) + "ms";
-
-    const executionTrace: any = includeTrace ? {
-      ...runtime.getExecutionTrace(),
-      cacheHits: 0,
-      cacheMisses: 0,
-      totalTime
-    } : undefined;
-
-    if (includeTrace) {
-      const evaluator = runtime.getEvaluator();
-      const stats = evaluator.getCacheStats();
-      executionTrace!.cacheHits = stats.hits;
-      executionTrace!.cacheMisses = stats.misses;
-    }
+    const executionTrace: any = includeTrace
+      ? {
+          cacheHits: 0,
+          cacheMisses: 0,
+          totalTime: result.totalTimeMs,
+        }
+      : undefined;
 
     return {
       success: true,
-      outputs,
-      trace: executionTrace
+      outputs: result.outputs,
+      trace: executionTrace,
     };
   }, {
     body: t.Any()
@@ -193,6 +182,7 @@ export const app = new Elysia()
   .use(healthRoutes)
   .use(compileRoutes)
   .use(executeRoutes)
+  .use(dataflowWsModule)
   .use(visionModule)
   .use(touchModule);
 

@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -19,19 +20,24 @@ import {
 } from "@xyflow/react";
 import { useVision } from "./VisionContext";
 import { parseVisionLabel, visionOperatorToMathOperator } from "@/types/vision-card";
-import { executeProgram as executeProgramService } from "@/services/executeProgram";
+import {
+  executeProgram as executeProgramHttp,
+  type ExecuteResult,
+} from "@/services/executeProgram";
+import {
+  serializeProgramUpToOperator,
+  type DataflowProgram,
+} from "@/utils/serializeProgram";
+import { executionGraphFingerprint } from "@/utils/executionGraphFingerprint";
+
+const AUTO_EXECUTE_DEBOUNCE_MS = 280;
 import type {
   NumberFlowNodeData,
   OperatorFlowNodeData,
-  ResultAnchorFlowNodeData,
-  ProgramOutputFlowNodeData,
 } from "@/components/dataflow";
+import type { ResultAnchorFlowNodeData } from "@/components/dataflow/ResultAnchorFlowNode";
+import type { ProgramOutputFlowNodeData } from "@/components/dataflow/ProgramOutputFlowNode";
 import type { MathOperatorType } from "@/types/card-types";
-import {
-  VISION_PROGRAM_OUTPUT_ID,
-  VISION_RESULT_ANCHOR_ID,
-} from "@/utils/frontendFlowConstants";
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,6 +47,12 @@ export type DataflowNode =
   | Node<OperatorFlowNodeData, "operator">
   | Node<ResultAnchorFlowNodeData, "resultAnchor">
   | Node<ProgramOutputFlowNodeData, "programOutput">;
+
+export type ExecuteRunner = (
+  nodes: DataflowNode[],
+  edges: Edge[],
+  program?: DataflowProgram
+) => Promise<ExecuteResult>;
 
 export type PortIdentifier = {
   nodeId: string;
@@ -86,6 +98,8 @@ type NodeContextState = {
     operator: MathOperatorType,
     position?: { x: number; y: number }
   ) => void;
+  /** Marcador `grapes` + carta de resultado (lo mismo que detecta visión). */
+  addResultAnchorPair: () => void;
   executeProgram: () => Promise<void>;
 
   // Para React Flow
@@ -289,10 +303,25 @@ function computeOperatorResult(
 type NodeProviderProps = {
   children: ReactNode;
   flowContainerRef: React.RefObject<HTMLDivElement | null>;
+  /**
+   * Si es false, no se aplican detecciones del WebSocket de visión al grafo
+   * (modo desarrollador sin mesa física ni cv-system).
+   */
+  visionSyncEnabled?: boolean;
+  /** Por defecto POST `/api/v1/execute`; en modo desarrollador suele usarse WebSocket. */
+  executeRunner?: ExecuteRunner;
 };
 
-export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) {
+export function NodeProvider({
+  children,
+  flowContainerRef,
+  visionSyncEnabled = true,
+  executeRunner,
+}: NodeProviderProps) {
   const { lastCardFrame } = useVision();
+
+  const executeRunnerRef = useRef<ExecuteRunner>(executeRunner ?? executeProgramHttp);
+  executeRunnerRef.current = executeRunner ?? executeProgramHttp;
 
   const [nodes, setNodes, onNodesChange] = useNodesState<DataflowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -305,7 +334,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
 
   // Sync vision cards to nodes
   useEffect(() => {
-    if (!lastCardFrame) return;
+    if (!visionSyncEnabled || !lastCardFrame) return;
     const flowEl = flowContainerRef.current;
     const rect = flowEl?.getBoundingClientRect();
     if (
@@ -317,29 +346,57 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     }
 
     setNodes((prev) => {
-      const prevOut = prev.find(
-        (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
-      );
-      const preservedValue =
-        prevOut?.type === "programOutput"
-          ? (prevOut.data as ProgramOutputFlowNodeData).value
-          : undefined;
-
+      const prevById = new Map(prev.map((n) => [n.id, n]));
       const withoutLive = prev.filter((n) => !n.id.startsWith("card_"));
 
-      let grapesFlowPos: { x: number; y: number } | null = null;
       const additions: DataflowNode[] = [];
       let idx = 0;
+      let grapeIdx = 0;
 
       for (const c of lastCardFrame.cards) {
         const parsed = parseVisionLabel(c.label);
+        const position = visionToFlowPosition(c.position, rect);
 
         if (parsed.type === "resultAnchor") {
-          grapesFlowPos = visionToFlowPosition(c.position, rect);
+          const base = `card_uva_${grapeIdx}_${toValidSlug(c.trackId, idx)}`;
+          grapeIdx++;
+          const anchorId = `${base}_anchor`;
+          const outputId = `${base}_out`;
+          const prevPo = prevById.get(outputId);
+          const preservedValue =
+            prevPo?.type === "programOutput"
+              ? (prevPo.data as ProgramOutputFlowNodeData).value
+              : undefined;
+          const preservedErr =
+            prevPo?.type === "programOutput"
+              ? (prevPo.data as ProgramOutputFlowNodeData).tapError
+              : undefined;
+
+          additions.push(
+            {
+              id: anchorId,
+              type: "resultAnchor" as const,
+              position,
+              data: { pairedOutputId: outputId },
+            },
+            {
+              id: outputId,
+              type: "programOutput" as const,
+              position: {
+                x: position.x + VISION_CARD_BOX + VISION_RESULT_GAP,
+                y: position.y,
+              },
+              data: {
+                pairedAnchorId: anchorId,
+                value: preservedValue,
+                tapError: preservedErr,
+              },
+            }
+          );
+          idx++;
           continue;
         }
 
-        const position = visionToFlowPosition(c.position, rect);
         const nodeId = toValidSlug(c.trackId, idx);
 
         if (parsed.type === "number") {
@@ -352,6 +409,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
               trackId: c.trackId,
             },
           });
+          idx++;
           continue;
         }
 
@@ -365,10 +423,10 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
               trackId: c.trackId,
             },
           });
+          idx++;
           continue;
         }
 
-        // Tipo desconocido: mostrar como número con subtítulo
         additions.push({
           id: nodeId,
           type: "number" as const,
@@ -379,60 +437,46 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
             trackId: c.trackId,
           },
         });
-      }
-
-      if (grapesFlowPos) {
-        additions.push(
-          {
-            id: VISION_RESULT_ANCHOR_ID,
-            type: "resultAnchor" as const,
-            position: grapesFlowPos,
-            data: {},
-          },
-          {
-            id: VISION_PROGRAM_OUTPUT_ID,
-            type: "programOutput" as const,
-            position: {
-              x: grapesFlowPos.x + VISION_CARD_BOX + VISION_RESULT_GAP,
-              y: grapesFlowPos.y,
-            },
-            data: { value: preservedValue },
-          }
-        );
+        idx++;
       }
 
       return [...withoutLive, ...additions];
     });
-  }, [lastCardFrame, setNodes, flowContainerRef]);
+  }, [visionSyncEnabled, lastCardFrame, setNodes, flowContainerRef]);
 
-  // Arista por defecto: marcador → carta de resultado (solo presentación)
+  /** Cada par marcador ↔ carta resultado debe tener arista saliente → entrada. */
   useEffect(() => {
-    const hasAnchor = nodes.some(
-      (n) => n.id === VISION_RESULT_ANCHOR_ID && n.type === "resultAnchor"
-    );
-    const hasOutput = nodes.some(
-      (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
-    );
-    if (!hasAnchor || !hasOutput) return;
-
     setEdges((eds) => {
-      const exists = eds.some(
-        (e) =>
-          e.source === VISION_RESULT_ANCHOR_ID &&
-          e.sourceHandle === "out" &&
-          e.target === VISION_PROGRAM_OUTPUT_ID &&
-          e.targetHandle === "in"
-      );
-      if (exists) return eds;
-      return addEdge(
-        {
-          source: VISION_RESULT_ANCHOR_ID,
-          sourceHandle: "out",
-          target: VISION_PROGRAM_OUTPUT_ID,
-          targetHandle: "in",
-        },
-        eds
-      );
+      let next = eds;
+      const pairs: { anchor: string; output: string }[] = [];
+      for (const n of nodes) {
+        if (n.type !== "programOutput") continue;
+        const po = n.data as ProgramOutputFlowNodeData;
+        if (po.pairedAnchorId) {
+          pairs.push({ anchor: po.pairedAnchorId, output: n.id });
+        }
+      }
+      for (const { anchor, output } of pairs) {
+        const exists = next.some(
+          (e) =>
+            e.source === anchor &&
+            e.sourceHandle === "out" &&
+            e.target === output &&
+            e.targetHandle === "in"
+        );
+        if (!exists) {
+          next = addEdge(
+            {
+              source: anchor,
+              sourceHandle: "out",
+              target: output,
+              targetHandle: "in",
+            },
+            next
+          );
+        }
+      }
+      return next;
     });
   }, [nodes, setEdges]);
 
@@ -597,11 +641,68 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     [setNodes]
   );
 
+  const addResultAnchorPair = useCallback(() => {
+    setNodes((nds) => {
+      const uvaCount = nds.filter((n) => n.type === "resultAnchor").length;
+      const pairId = `manual_uva_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const anchorId = `${pairId}_anchor`;
+      const outputId = `${pairId}_out`;
+      const grapesFlowPos = {
+        x: 40 + (uvaCount % 5) * 56,
+        y: 120 + Math.floor(uvaCount / 5) * 110,
+      };
+
+      return [
+        ...nds,
+        {
+          id: anchorId,
+          type: "resultAnchor" as const,
+          position: grapesFlowPos,
+          data: { pairedOutputId: outputId },
+        },
+        {
+          id: outputId,
+          type: "programOutput" as const,
+          position: {
+            x: grapesFlowPos.x + VISION_CARD_BOX + VISION_RESULT_GAP,
+            y: grapesFlowPos.y,
+          },
+          data: {
+            pairedAnchorId: anchorId,
+            value: undefined,
+            tapError: undefined,
+          },
+        },
+      ];
+    });
+  }, [setNodes]);
+
   const executeProgram = useCallback(async () => {
     setIsExecuting(true);
     setExecutionError(null);
 
-    const syncProgramOutputValue = (num: number | undefined) => {
+    const syncTapOutput = (
+      outputId: string,
+      value: number | undefined,
+      tapError: string | undefined
+    ) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === outputId && n.type === "programOutput"
+            ? {
+              ...n,
+              data: {
+                ...(n.data as ProgramOutputFlowNodeData),
+                value,
+                tapError,
+              },
+            }
+            : n
+        )
+      );
+    };
+
+    const clearTapErrors = () => {
       setNodes((nds) =>
         nds.map((n) =>
           n.type === "programOutput"
@@ -609,7 +710,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
               ...n,
               data: {
                 ...(n.data as ProgramOutputFlowNodeData),
-                value: num,
+                tapError: undefined,
               },
             }
             : n
@@ -618,25 +719,149 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     };
 
     try {
-      const result = await executeProgramService(nodes, edges);
+      clearTapErrors();
 
-      if (result.success && result.result !== undefined) {
-        setExecutionResult(result.result);
-        setExecutionError(null);
-        syncProgramOutputValue(result.result);
-      } else {
-        setExecutionResult(null);
-        setExecutionError(result.error || "Error desconocido");
-        syncProgramOutputValue(undefined);
+      /** Izquierda → derecha: los taps posteriores suelen usar `programOutput` previos como constantes */
+      const tapOutputs = nodes
+        .filter((n) => n.type === "programOutput")
+        .sort(
+          (a, b) =>
+            a.position.x - b.position.x || a.position.y - b.position.y
+        );
+
+      if (tapOutputs.length === 0) {
+        const result = await executeRunnerRef.current(nodes, edges);
+        if (result.success && result.result !== undefined) {
+          setExecutionResult(result.result);
+          setExecutionError(null);
+        } else {
+          setExecutionResult(null);
+          setExecutionError(result.error || "Error desconocido");
+        }
+        return;
       }
+
+      let lastOk: number | undefined;
+      let aggregateError: string | null = null;
+
+      /** Copia mutable: cada tap puede depender del valor ya calculado en cartas anteriores */
+      let workingNodes = nodes;
+
+      for (const po of tapOutputs) {
+        const poData = po.data as ProgramOutputFlowNodeData;
+        const anchorId = poData.pairedAnchorId;
+
+        if (!anchorId) {
+          syncTapOutput(po.id, undefined, "Emparejá esta carta con un marcador uva.");
+          aggregateError ??= "Falta emparejar marcadores";
+          continue;
+        }
+
+        const anchorOutLinked = edges.some(
+          (e) =>
+            e.source === anchorId &&
+            e.target === po.id &&
+            e.sourceHandle === "out" &&
+            e.targetHandle === "in"
+        );
+        if (!anchorOutLinked) {
+          syncTapOutput(
+            po.id,
+            undefined,
+            "El marcador debe conectar su salida a esta carta."
+          );
+          aggregateError ??= "Marcador → carta incompleto";
+          continue;
+        }
+
+        const feedEdge = edges.find(
+          (e) => e.target === anchorId && e.targetHandle === "in"
+        );
+        if (!feedEdge) {
+          syncTapOutput(
+            po.id,
+            undefined,
+            "Conectá la salida de un operador al marcador (entrada)."
+          );
+          aggregateError ??= "Sin operador en el marcador";
+          continue;
+        }
+
+        const feedNode = workingNodes.find((n) => n.id === feedEdge.source);
+        if (!feedNode || feedNode.type !== "operator") {
+          syncTapOutput(
+            po.id,
+            undefined,
+            "El marcador debe recibir solo la salida de un operador."
+          );
+          aggregateError ??= "Tipo inválido al marcador";
+          continue;
+        }
+
+        const program = serializeProgramUpToOperator(
+          feedNode.id,
+          workingNodes,
+          edges
+        );
+
+        if (
+          !program ||
+          program.graph.nodes.length === 0
+        ) {
+          syncTapOutput(po.id, undefined, "Subgrafo vacío hasta este operador.");
+          aggregateError ??= "Programa vacío";
+          continue;
+        }
+
+        const result = await executeRunnerRef.current(workingNodes, edges, program);
+
+        if (result.success && result.result !== undefined) {
+          syncTapOutput(po.id, result.result, undefined);
+          lastOk = result.result;
+          workingNodes = workingNodes.map((n) =>
+            n.id === po.id && n.type === "programOutput"
+              ? {
+                ...n,
+                data: {
+                  ...(n.data as ProgramOutputFlowNodeData),
+                  value: result.result,
+                  tapError: undefined,
+                },
+              }
+              : n
+          );
+        } else {
+          const msg = result.error ?? "Error de ejecución";
+          syncTapOutput(po.id, undefined, msg);
+          aggregateError ??= msg;
+        }
+      }
+
+      setExecutionResult(lastOk ?? null);
+      setExecutionError(aggregateError);
     } catch (err) {
       setExecutionResult(null);
       setExecutionError(err instanceof Error ? err.message : "Error de ejecución");
-      syncProgramOutputValue(undefined);
     } finally {
       setIsExecuting(false);
     }
   }, [nodes, edges, setNodes]);
+
+  const executeProgramRef = useRef(executeProgram);
+  executeProgramRef.current = executeProgram;
+
+  const executionSig = useMemo(
+    () => executionGraphFingerprint(nodes, edges),
+    [nodes, edges]
+  );
+
+  /** Ejecución continua: mismo criterio que websocket / backend al cambiar el grafo útil */
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      void executeProgramRef.current();
+    }, AUTO_EXECUTE_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [executionSig]);
 
   const getExecutionResult = useCallback(() => {
     const rightmost = getRightmostEvaluableNode(nodes);
@@ -658,6 +883,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       clearSelection,
       addNumberNode,
       addOperatorNode,
+      addResultAnchorPair,
       executeProgram,
       onNodesChange,
       onEdgesChange,
@@ -677,6 +903,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       clearSelection,
       addNumberNode,
       addOperatorNode,
+      addResultAnchorPair,
       executeProgram,
       onNodesChange,
       onEdgesChange,

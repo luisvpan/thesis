@@ -2,8 +2,11 @@ import type { NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
 
-/** Carta física detectada como `grapes`: solo marcador visual en el lienzo (no forma parte del lenguaje). */
-export type ResultAnchorFlowNodeData = Record<string, never>;
+/** Carta física «uvas» / `grapes`: marcador; el valor sale del operador que alimenta este nodo. */
+export type ResultAnchorFlowNodeData = {
+  /** Id de la carta de resultado emparejada (arista marcador.out → carta.in). */
+  pairedOutputId?: string;
+};
 
 export function ResultAnchorFlowNode({ id }: NodeProps<{ type: 'resultAnchor'; data: ResultAnchorFlowNodeData }>) {
   return (
@@ -15,7 +18,8 @@ export function ResultAnchorFlowNode({ id }: NodeProps<{ type: 'resultAnchor'; d
       <div className="flex h-full flex-col items-center justify-center px-3">
         <p className="text-center text-lg font-bold text-violet-200 leading-tight">Marcador</p>
         <p className="mt-2 text-center text-sm text-slate-400 leading-snug">
-          Referencia física para la carta de resultado (no muestra valores del programa).
+          Conectá la salida de un operador aquí; cada par uva tiene su propio resultado en la carta
+          derecha.
         </p>
       </div>
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />

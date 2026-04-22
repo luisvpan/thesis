@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ReactFlow,
@@ -17,7 +17,7 @@ import { NodeProvider, useNode } from '@/contexts/NodeContext';
 import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
 import { SocketInfoFab } from '@/components/SocketInfoFab';
 import { getLevelConfig } from '@/data/levelConfig';
-import { ArrowLeft, Plus, Minus, Volume2, Play } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, X, Divide, Volume2 } from 'lucide-react';
 
 const VIEW_MODE_LABELS: Record<ResultViewMode, string> = {
   pictorico: 'Pictórico',
@@ -40,12 +40,28 @@ function speakTitle(title: string, subtitle: string) {
   window.speechSynthesis.speak(u);
 }
 
-// Inner component that uses NodeContext
-function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
+/** Vista del IDE (cabecera + lateral + canvas). Requiere NodeProvider ancestro. */
+export function DataflowContent({
+  isSandbox,
+  levelConfig,
+  backTo,
+  flowContainerRef,
+  showSocketFab = true,
+  asideClassName = 'w-64',
+  rootClassName = 'h-screen w-screen flex flex-col bg-slate-900',
+  extraAsideSections,
+}: {
   isSandbox: boolean;
   levelConfig: ReturnType<typeof getLevelConfig>;
   backTo: string;
   flowContainerRef: React.RefObject<HTMLDivElement | null>;
+  /** En modo desarrollador suele ocultarse para no depender de Socket.IO / visión. */
+  showSocketFab?: boolean;
+  asideClassName?: string;
+  /** Por defecto ocupa el viewport; en layouts anidados usar p. ej. `flex-1 min-h-0 flex flex-col`. */
+  rootClassName?: string;
+  /** Contenido extra al final del lateral (p. ej. marcador grapes en modo desarrollador). */
+  extraAsideSections?: ReactNode;
 }) {
   const {
     nodes,
@@ -54,24 +70,17 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
     onEdgesChange,
     addNumberNode,
     addOperatorNode,
-    executeProgram,
     isExecuting,
   } = useNode();
 
   const [viewMode, setViewMode] = useState<ResultViewMode>('pictorico');
-  const [hasExecuted, setHasExecuted] = useState(false);
 
   const cycleViewMode = useCallback(() => {
     setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
   }, []);
 
-  const onExecute = useCallback(async () => {
-    await executeProgram();
-    setHasExecuted(true);
-  }, [executeProgram]);
-
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-900">
+    <div className={rootClassName}>
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0 gap-4">
         <Link
@@ -92,16 +101,11 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-          <button
-            type="button"
-            onClick={onExecute}
-            disabled={isExecuting}
-            className="flex items-center gap-3 px-8 py-5 min-h-[4.5rem] rounded-xl bg-teal-500 hover:bg-teal-600 disabled:bg-teal-700 disabled:cursor-wait text-white text-2xl font-bold transition-colors shadow-lg"
-            title="Ejecutar"
-          >
-            <Play className="w-10 h-10 shrink-0" fill="currentColor" />
-            {isExecuting ? 'Ejecutando...' : 'Ejecutar'}
-          </button>
+          {isExecuting ? (
+            <span className="text-sm font-medium text-teal-400 px-4 py-2 rounded-lg bg-slate-800/80 border border-teal-600/40">
+              Actualizando resultado…
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={cycleViewMode}
@@ -123,7 +127,9 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
 
       <div className="flex-1 flex min-h-0">
         {!isSandbox && (
-          <aside className="w-64 shrink-0 flex flex-col bg-slate-800 border-r border-slate-700 overflow-y-auto">
+          <aside
+            className={`${asideClassName} shrink-0 flex flex-col bg-slate-800 border-r border-slate-700 overflow-y-auto`}
+          >
             <section className="p-3 border-b border-slate-700">
               <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Mochila
@@ -146,7 +152,7 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
                 </div>
                 <div>
                   <p className="text-base font-medium text-slate-400 mb-2">Añadir operador</p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {levelConfig.operators.includes('adicion') && (
                       <button
                         type="button"
@@ -167,6 +173,26 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
                         Resta
                       </button>
                     )}
+                    {levelConfig.operators.includes('multiplicacion') && (
+                      <button
+                        type="button"
+                        onClick={() => addOperatorNode('multiplicacion')}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500 hover:bg-violet-600 text-white font-bold text-lg transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        Mult.
+                      </button>
+                    )}
+                    {levelConfig.operators.includes('division') && (
+                      <button
+                        type="button"
+                        onClick={() => addOperatorNode('division')}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg transition-colors"
+                      >
+                        <Divide className="w-4 h-4" />
+                        Div.
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -179,12 +205,13 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
                 {levelConfig.rule}
               </p>
             </section>
+            {extraAsideSections}
           </aside>
         )}
 
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
-          <ResultCardUiProvider viewMode={viewMode} hasExecuted={hasExecuted}>
+          <ResultCardUiProvider viewMode={viewMode} hasExecuted={true}>
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -208,7 +235,7 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
         </div>
       </div>
 
-      <SocketInfoFab />
+      {showSocketFab ? <SocketInfoFab /> : null}
     </div>
   );
 }
@@ -224,7 +251,7 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
   const flowContainerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <NodeProvider flowContainerRef={flowContainerRef}>
+    <NodeProvider flowContainerRef={flowContainerRef} visionSyncEnabled>
       <DataflowContent
         isSandbox={isSandbox}
         levelConfig={levelConfig}
