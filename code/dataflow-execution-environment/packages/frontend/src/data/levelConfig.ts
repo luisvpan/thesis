@@ -106,6 +106,16 @@ const LEVELS: Record<WorldId, Record<LevelId, LevelConfig>> = {
   },
 };
 
+/** Mochila completa: mismos dígitos y operadores que las etiquetas YOLO (`vision-card`). */
+export const DEV_TOOLBOX_CONFIG: LevelConfig = {
+  title: 'Modo desarrollador',
+  subtitle: 'Ejecución por WebSocket · sin visión',
+  rule:
+    'Añade dígitos 0–9, suma/resta/multiplicación/división y, si quieres, el par grapes + carta de resultado. El grafo se re-ejecuta automáticamente por el canal /ws/dataflow.',
+  numbers: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  operators: ['adicion', 'sustraccion', 'multiplicacion', 'division'],
+};
+
 /** Config por defecto para Sandbox (todas las cartas). */
 export const SANDBOX_CONFIG: LevelConfig = {
   title: 'Sandbox',
