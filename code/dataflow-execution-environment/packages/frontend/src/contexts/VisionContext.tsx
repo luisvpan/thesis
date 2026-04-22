@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 
@@ -12,20 +13,18 @@ export type DetectedNumberPayload = {
   type: "detectedNumber";
   classId: number;
   label: string;
-  /** 1..9 solo para clases one..nine en data.yaml; operadores/formas no lo llevan */
   number?: number;
   confidence?: number;
-  /** Centro YOLO normalizado al frame (0..1), para mapear al canvas de React Flow */
   position?: { x: number; y: number };
   t: number;
 };
 
-/** Una carta en vista de proyector (POST `/api/v1/vision/cards` → WS `cardDetections`). */
+/** Una carta en vista de proyector (`POST /api/v1/vision/cards` → WS `cardDetections`). */
 export type VisionCardItem = {
   classId: number;
   label: string;
   confidence: number;
-  trackId?: number;  // Persistent tracking ID from YOLO tracker
+  trackId?: number;
   position: { x: number; y: number };
   bbox?: { x1: number; y1: number; x2: number; y2: number };
 };
@@ -38,7 +37,6 @@ export type CardDetectionsPayload = {
 
 type VisionState = {
   last: DetectedNumberPayload | null;
-  /** Último lote de cartas (tablero físico); posiciones normalizadas 0-1 */
   lastCardFrame: CardDetectionsPayload | null;
   connected: boolean;
   error: string | null;
@@ -46,7 +44,10 @@ type VisionState = {
 
 const VisionContext = createContext<VisionState | null>(null);
 
-/** URL efectiva del WebSocket de visión (misma lógica que la conexión real). */
+const WS_INITIAL_BACKOFF_MS = 800;
+const WS_MAX_BACKOFF_MS = 15000;
+
+/** WebSocket dedicado (`/ws/vision`): lotes YOLO desde el API tras `POST /api/v1/vision/cards`. */
 export function getVisionWebSocketUrl(): string {
   if (import.meta.env.VITE_VISION_WS_URL) {
     return import.meta.env.VITE_VISION_WS_URL;
@@ -61,67 +62,118 @@ export function VisionProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
   useEffect(() => {
-    const url = getVisionWebSocketUrl();
-    const ws = new WebSocket(url);
+    let cancelled = false;
+    let attempt = 0;
 
-    ws.onopen = () => {
-      setConnected(true);
-      setError(null);
-      console.log("[ide:vision]", "WebSocket conectado", url);
-    };
-    ws.onclose = () => {
-      setConnected(false);
-    };
-    ws.onerror = () => {
-      setError("WebSocket visión: error de conexión");
-    };
-    ws.onmessage = (ev) => {
-      console.log("[ide:vision]", "mensaje crudo:", ev.data);
-      try {
-        const data = JSON.parse(ev.data as string) as unknown;
-        console.log("[ide:vision]", "mensaje parseado:", data);
-        if (typeof data !== "object" || data === null) return;
-
-        const typ = (data as { type?: string }).type;
-        if (typ === "detectedNumber") {
-          const det = data as DetectedNumberPayload;
-          setLast(det);
-          const pos = det.position;
-          const posStr =
-            pos != null
-              ? ` pos=(${Number(pos.x).toFixed(3)}, ${Number(pos.y).toFixed(3)})`
-              : "";
-          console.log(
-            "[ide:vision] detección:",
-            det.number != null ? `#${det.number}` : "(sin dígito)",
-            det.label,
-            det.confidence != null
-              ? `${(det.confidence * 100).toFixed(0)}%`
-              : "",
-            posStr.trim() || "(sin posición)",
-          );
-          return;
-        }
-
-        if (typ === "cardDetections") {
-          const frame = data as CardDetectionsPayload;
-          setLastCardFrame(frame);
-          console.log(
-            "[ide:vision] cartas:",
-            frame.cards.length,
-            frame.t,
-            frame.cards.map((c) => `${c.label}[${c.trackId ?? "?"}]@${c.position.x.toFixed(2)},${c.position.y.toFixed(2)}`),
-          );
-        }
-      } catch (e) {
-        console.warn("[ide:vision]", "JSON inválido", e);
-        setError("Mensaje WS inválido");
+    const clearReconnect = () => {
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
     };
 
+    const attachHandlers = (ws: WebSocket, url: string) => {
+      ws.onopen = () => {
+        attempt = 0;
+        setConnected(true);
+        setError(null);
+        console.log("[ide:vision] WebSocket conectado", url);
+      };
+      ws.onclose = () => {
+        setConnected(false);
+        wsRef.current = null;
+        if (cancelled) return;
+        const delay = Math.min(
+          WS_MAX_BACKOFF_MS,
+          WS_INITIAL_BACKOFF_MS * Math.pow(2, attempt),
+        );
+        attempt += 1;
+        clearReconnect();
+        reconnectTimerRef.current = setTimeout(() => connect(), delay);
+      };
+      ws.onerror = () => {
+        setError("WebSocket visión: error de conexión");
+      };
+
+      ws.onmessage = (ev) => {
+        console.log("[ide:vision] mensaje crudo:", ev.data);
+        try {
+          const data = JSON.parse(ev.data as string) as unknown;
+          if (typeof data !== "object" || data === null) return;
+
+          const typ = (data as { type?: string }).type;
+
+          if (typ === "detectedNumber") {
+            const det = data as DetectedNumberPayload;
+            setLast(det);
+            setError(null);
+            const pos = det.position;
+            const posStr =
+              pos != null
+                ? ` pos=(${Number(pos.x).toFixed(3)}, ${Number(pos.y).toFixed(3)})`
+                : "";
+            console.log(
+              "[ide:vision] detección:",
+              det.number != null ? `#${det.number}` : "(sin dígito)",
+              det.label,
+              det.confidence != null ? `${(det.confidence * 100).toFixed(0)}%` : "",
+              posStr.trim() || "(sin posición)",
+            );
+            return;
+          }
+
+          if (typ === "cardDetections") {
+            const frame = data as CardDetectionsPayload;
+            setLastCardFrame(frame);
+            setError(null);
+            console.log(
+              "[ide:vision] cartas:",
+              frame.cards.length,
+              frame.t,
+              frame.cards.map(
+                (c) =>
+                  `${c.label}[${c.trackId ?? "?"}]@${c.position.x.toFixed(2)},${c.position.y.toFixed(2)}`,
+              ),
+            );
+          }
+        } catch (e) {
+          console.warn("[ide:vision] JSON inválido", e);
+          setError("Mensaje WS inválido");
+        }
+      };
+    };
+
+    function connect() {
+      if (cancelled) return;
+      clearReconnect();
+      const url = getVisionWebSocketUrl();
+      try {
+        const ws = new WebSocket(url);
+        wsRef.current = ws;
+        attachHandlers(ws, url);
+      } catch (e) {
+        console.warn("[ide:vision] fallo al crear WebSocket:", e);
+        setError("No se pudo abrir WebSocket de visión");
+        const delay = Math.min(
+          WS_MAX_BACKOFF_MS,
+          WS_INITIAL_BACKOFF_MS * Math.pow(2, attempt),
+        );
+        attempt += 1;
+        reconnectTimerRef.current = setTimeout(() => connect(), delay);
+      }
+    }
+
+    connect();
+
     return () => {
-      ws.close();
+      cancelled = true;
+      clearReconnect();
+      wsRef.current?.close();
+      wsRef.current = null;
     };
   }, []);
 

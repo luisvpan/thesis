@@ -1,5 +1,11 @@
 import { Elysia, t } from "elysia";
-import type { ElysiaWS } from "elysia/ws";
+
+import {
+  broadcastRawToBrowserClients,
+  getBrowserSocketCount,
+  registerBrowserSocket,
+  unregisterBrowserSocket,
+} from "./browser-broadcast";
 
 const touchEventSchema = t.Object({
   type: t.Literal("touch"),
@@ -7,33 +13,22 @@ const touchEventSchema = t.Object({
   timestamp: t.String(),
 });
 
-// Browser clients subscribed to touch events
-const browserSockets = new Set<ElysiaWS<any, any>>();
-
 function broadcastToBrowsers(payload: object) {
   const msg = JSON.stringify(payload);
-  for (const ws of browserSockets) {
-    try {
-      ws.send(msg);
-    } catch {
-      browserSockets.delete(ws);
-    }
-  }
+  broadcastRawToBrowserClients(msg);
 }
 
 export const touchModule = new Elysia({ name: "touch" })
-  // Browser clients connect here
   .ws("/ws/touch", {
     open(ws) {
-      browserSockets.add(ws);
-      console.log("[touch] browser connected:", browserSockets.size);
+      registerBrowserSocket(ws);
+      console.log("[touch] browser connected:", getBrowserSocketCount());
     },
     close(ws) {
-      browserSockets.delete(ws);
-      console.log("[touch] browser disconnected:", browserSockets.size);
+      unregisterBrowserSocket(ws);
+      console.log("[touch] browser disconnected:", getBrowserSocketCount());
     },
   })
-  // CV System connects here
   .ws("/live", {
     body: touchEventSchema,
     open(ws) {
@@ -46,7 +41,7 @@ export const touchModule = new Elysia({ name: "touch" })
       const payload = { ...message, t: Date.now() };
       broadcastToBrowsers(payload);
       console.log(
-        `[touch] (${message.position.x}, ${message.position.y}) → ${browserSockets.size} browsers`
+        `[touch] (${message.position.x}, ${message.position.y}) → relay ok`,
       );
     },
   });

@@ -71,7 +71,7 @@ export function SocketInfoFab() {
 
           <div className="border-b border-slate-700 px-4 py-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-              WebSocket visión (YOLO → API)
+              WebSocket visión (`/ws/vision`, cartas YOLO)
             </h2>
             <p className="mt-1 break-all font-mono text-[11px] text-slate-500">{visionWsUrl}</p>
           </div>

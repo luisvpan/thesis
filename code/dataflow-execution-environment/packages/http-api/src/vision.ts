@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { Elysia, t } from "elysia";
 import type { ElysiaWS } from "elysia/ws";
 
+import { broadcastRawToBrowserClients } from "./browser-broadcast";
+
 /** Misma convención que `CameraConfig`: `rgb_resolution` es `[height, width]` en píxeles. */
 export type RgbResolution = { width: number; height: number };
 
@@ -76,6 +78,7 @@ export type VisionCardDetectionsPayload = {
   t: number;
 };
 
+/** Solo clientes `/ws/vision` (cartas pueden ser payloads grandes → no saturar `/ws/touch`). */
 function broadcastRaw(msg: string) {
   for (const ws of visionSockets) {
     try {
@@ -86,15 +89,12 @@ function broadcastRaw(msg: string) {
   }
 }
 
-function broadcastToBrowsers(payload: VisionBroadcastPayload) {
-  broadcastRaw(JSON.stringify(payload));
-}
-
 /**
  * - `GET /api/v1/vision/projector-resolution`: lee `rgb_resolution` de session.json (CV) para React Flow.
  * - `POST /api/v1/vision/ingest`: Python (YOLO) envía el número detectado; se reenvía por WS.
  * - `POST /api/v1/vision/cards`: Python envía todas las cartas del frame (posiciones en vista proyector).
- * - `WS /ws/vision`: el frontend se suscribe para recibir `detectedNumber` y `cardDetections`.
+ * - `WS /ws/vision`: IDE escucha aquí `cardDetections` (payloads grandes).
+ * - `POST /api/v1/vision/ingest`: además reenvía el JSON pequeño a `/ws/touch` (opcional, badge/UI).
  */
 export const visionModule = new Elysia({ name: "vision" })
   .get("/api/v1/vision/projector-resolution", () => {
@@ -127,7 +127,9 @@ export const visionModule = new Elysia({ name: "vision" })
         position: body.position,
         t: Date.now(),
       };
-      broadcastToBrowsers(payload);
+      const msg = JSON.stringify(payload);
+      broadcastRaw(msg);
+      broadcastRawToBrowserClients(msg);
       return { ok: true as const, forwarded: visionSockets.size };
     },
     {

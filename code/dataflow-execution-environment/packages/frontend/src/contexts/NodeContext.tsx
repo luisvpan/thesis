@@ -94,6 +94,9 @@ type NodeContextState = {
 
   // Resultado calculado (local, sin backend)
   getExecutionResult: () => number | null;
+
+  /** Valor del grafo conectado al marcador uva (entrada del ancla); se actualiza con nodos/aristas. */
+  liveAnchorResult: number | null;
 };
 
 const NodeContext = createContext<NodeContextState | null>(null);
@@ -169,6 +172,16 @@ function getNodeValue(node: DataflowNode | null | undefined): number | undefined
   return d.value ?? d.result;
 }
 
+/** Misma conexión lógica (React Flow puede omitir handles). */
+function edgeMatchesConnection(edge: Edge, c: Connection): boolean {
+  return (
+    edge.source === c.source &&
+    edge.target === c.target &&
+    (edge.sourceHandle ?? null) === (c.sourceHandle ?? null) &&
+    (edge.targetHandle ?? null) === (c.targetHandle ?? null)
+  );
+}
+
 function getRightmostEvaluableNode(nodes: DataflowNode[]): DataflowNode | null {
   const evalNodes = nodes.filter(
     (n): n is Extract<DataflowNode, { type: "number" | "operator" }> =>
@@ -189,6 +202,54 @@ function toValidSlug(trackId: number | undefined, fallbackIndex: number): string
     return `card_${trackId}`;
   }
   return `card_${fallbackIndex}`;
+}
+
+/** Valor numérico en la salida de un nodo número u operador. */
+function computeNodeOutputValue(
+  nodeId: string,
+  nodes: DataflowNode[],
+  edges: Edge[]
+): number | undefined {
+  const node = nodes.find((n) => n.id === nodeId);
+  if (!node) return undefined;
+  if (node.type === "number") {
+    const v = (node.data as NumberFlowNodeData).value;
+    return typeof v === "number" ? v : undefined;
+  }
+  if (node.type === "operator") {
+    return computeOperatorResult(nodeId, nodes, edges);
+  }
+  return undefined;
+}
+
+/**
+ * Valor que llega al flujo de la carta de resultado: cable al `in` del marcador uva,
+ * o directamente al `in` de la carta de resultado (sin pasar por el marcador).
+ */
+function computeLiveValueForVisionChain(
+  nodes: DataflowNode[],
+  edges: Edge[]
+): number | undefined {
+  const toAnchor = edges.find(
+    (e) =>
+      e.target === VISION_RESULT_ANCHOR_ID &&
+      (e.targetHandle ?? "in") === "in"
+  );
+  if (toAnchor) {
+    return computeNodeOutputValue(toAnchor.source, nodes, edges);
+  }
+
+  const directToOutput = edges.find(
+    (e) =>
+      e.target === VISION_PROGRAM_OUTPUT_ID &&
+      (e.targetHandle ?? "in") === "in" &&
+      e.source !== VISION_RESULT_ANCHOR_ID
+  );
+  if (directToOutput) {
+    return computeNodeOutputValue(directToOutput.source, nodes, edges);
+  }
+
+  return undefined;
 }
 
 function computeOperatorResult(
@@ -397,6 +458,30 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     });
   }, [edges, setNodes]);
 
+  const liveAnchorResult = useMemo((): number | null => {
+    const v = computeLiveValueForVisionChain(nodes, edges);
+    return typeof v === "number" && !Number.isNaN(v) ? v : null;
+  }, [nodes, edges]);
+
+  useEffect(() => {
+    const nextVal = liveAnchorResult ?? undefined;
+    setNodes((prev) => {
+      const idx = prev.findIndex(
+        (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
+      );
+      if (idx < 0) return prev;
+      const cur = prev[idx];
+      const data = cur.data as ProgramOutputFlowNodeData;
+      if (data.value === nextVal) return prev;
+      const copy = [...prev];
+      copy[idx] = {
+        ...cur,
+        data: { ...data, value: nextVal },
+      };
+      return copy;
+    });
+  }, [liveAnchorResult, setNodes]);
+
   // Port selection logic
   const isPortSelected = useCallback(
     (nodeId: string, handleId: string, handleType: "source" | "target") => {
@@ -456,7 +541,15 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
         targetHandle: target.handleId,
       };
 
-      setEdges((eds) => addEdge(connection, eds));
+      setEdges((eds) => {
+        const matchingIds = new Set(
+          eds.filter((e) => edgeMatchesConnection(e, connection)).map((e) => e.id)
+        );
+        if (matchingIds.size > 0) {
+          return eds.filter((e) => !matchingIds.has(e.id));
+        }
+        return addEdge(connection, eds);
+      });
       setSelectedPort(null);
     },
     [selectedPort, setEdges]
@@ -569,6 +662,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       onNodesChange,
       onEdgesChange,
       getExecutionResult,
+      liveAnchorResult,
     }),
     [
       nodes,
@@ -587,6 +681,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       onNodesChange,
       onEdgesChange,
       getExecutionResult,
+      liveAnchorResult,
     ]
   );
 

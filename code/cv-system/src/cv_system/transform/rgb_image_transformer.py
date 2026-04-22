@@ -37,8 +37,12 @@ class RgbImageTransformer:
         """
         self._H = calibration_result.rgb_H.copy()
         self._H_inv = np.linalg.inv(self._H)
-        #TODO: considerar 2 resoluciones distintas para cámara y proyector, y usar la adecuada en cada transformación
-        self._rgb_resolution = (config.rgb_resolution[1], config.rgb_resolution[0])  # (width, height) for cv2 warp perspective functions
+        # warpPerspective `dsize` is the destination image size (width, height).
+        # rgb_H maps Kinect RGB pixels → projector pixels (same space as projector_corners).
+        rgb_h, rgb_w = config.rgb_resolution
+        proj_h, proj_w = config.projector_resolution
+        self._camera_wh = (rgb_w, rgb_h)
+        self._projector_wh = (proj_w, proj_h)
 
     @property
     def H(self) -> np.ndarray:
@@ -60,7 +64,7 @@ class RgbImageTransformer:
             Transformed image as cv2.UMat, stays on GPU for efficient chaining.
         """
         # warpPerspective works natively with UMat (GPU accelerated)
-        return cv2.warpPerspective(image, self._H, self._rgb_resolution)
+        return cv2.warpPerspective(image, self._H, self._projector_wh)
 
     def projector_to_camera(self, image: cv2.UMat) -> cv2.UMat:
         """Transform image from projector space to camera space.
@@ -72,5 +76,5 @@ class RgbImageTransformer:
             Transformed image as cv2.UMat, stays on GPU for efficient chaining.
         """
         # warpPerspective works natively with UMat (GPU accelerated)
-        return cv2.warpPerspective(image, self._H_inv, self._rgb_resolution)
+        return cv2.warpPerspective(image, self._H_inv, self._camera_wh)
         

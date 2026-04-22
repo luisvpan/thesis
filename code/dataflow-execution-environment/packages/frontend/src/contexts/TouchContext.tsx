@@ -23,12 +23,17 @@ type TouchState = {
 
 const TouchContext = createContext<TouchState | null>(null);
 
-function getTouchWsUrl(): string {
+/** URL del WebSocket de toques (CV → `/live`, navegador → `/ws/touch`). */
+export function getTouchWebSocketUrl(): string {
   if (import.meta.env.VITE_TOUCH_WS_URL) {
     return import.meta.env.VITE_TOUCH_WS_URL;
   }
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${window.location.host}/ws/touch`;
+}
+
+function getTouchWsUrl(): string {
+  return getTouchWebSocketUrl();
 }
 
 function dispatchSyntheticClick(x: number, y: number): void {
@@ -126,25 +131,24 @@ export function TouchProvider({ children }: { children: ReactNode }) {
 
     ws.onmessage = (ev) => {
       try {
-        const data = JSON.parse(ev.data as string) as TouchEventPayload;
-        if (data.type === "touch") {
-          setLastTouch(data);
-
-          // Add visual indicator
-          const id = indicatorIdRef.current++;
-          setIndicators((prev) => [
-            ...prev,
-            { id, x: data.position.x, y: data.position.y },
-          ]);
-
-          // Remove indicator after animation completes
-          setTimeout(() => {
-            setIndicators((prev) => prev.filter((i) => i.id !== id));
-          }, 500);
-
-          // Fullscreen: projector coords = viewport coords
-          dispatchSyntheticClick(data.position.x, data.position.y);
+        const data = JSON.parse(ev.data as string) as Record<string, unknown> & {
+          type?: string;
+        };
+        const typ = data.type;
+        if (typ !== "touch") {
+          return;
         }
+        const t = data as unknown as TouchEventPayload;
+        setLastTouch(t);
+
+        const id = indicatorIdRef.current++;
+        setIndicators((prev) => [...prev, { id, x: t.position.x, y: t.position.y }]);
+
+        setTimeout(() => {
+          setIndicators((prev) => prev.filter((i) => i.id !== id));
+        }, 500);
+
+        dispatchSyntheticClick(t.position.x, t.position.y);
       } catch (e) {
         console.warn("[touch] Invalid message", e);
       }

@@ -14,16 +14,26 @@ export type ProgramOutputFlowNodeData = {
 export function ProgramOutputFlowNode({
   id,
 }: NodeProps<{ type: 'programOutput'; data: ProgramOutputFlowNodeData }>) {
-  const { executionResult, executionError } = useNode();
+  const { executionResult, executionError, liveAnchorResult } = useNode();
   const { viewMode, hasExecuted } = useResultCardUi();
 
+  const hasLive =
+    liveAnchorResult !== null && typeof liveAnchorResult === 'number' && !Number.isNaN(liveAnchorResult);
+
+  /** Vista previa local del cable al marcador uva (o directo al operador); si no hay, resultado de ejecutar. */
+  const shownNumber = hasLive
+    ? liveAnchorResult
+    : hasExecuted && executionResult !== null
+      ? executionResult
+      : null;
+
   const display =
-    executionError ? (
+    executionError != null && !hasLive ? (
       <p className="text-lg font-semibold text-red-400 text-center leading-snug px-1">{executionError}</p>
-    ) : hasExecuted && executionResult !== null ? (
+    ) : shownNumber !== null ? (
       <div className="flex flex-col items-center gap-1 text-white">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-          Resultado ({viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A'})
+          {hasLive ? 'Resultado (tiempo real)' : `Resultado (${viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A'})`}
         </span>
         <div
           className={
@@ -34,11 +44,18 @@ export function ProgramOutputFlowNode({
                 : 'text-center drop-shadow-md max-w-[14rem]'
           }
         >
-          {formatResultCpa(executionResult, viewMode)}
+          {formatResultCpa(shownNumber, viewMode)}
         </div>
+        {hasLive && (
+          <span className="text-[9px] text-emerald-400/90 font-medium text-center px-1">
+            Grafo conectado al marcador uva
+          </span>
+        )}
       </div>
     ) : (
-      <p className="text-base text-slate-500 text-center italic px-2">Ejecutá para ver el resultado aquí</p>
+      <p className="text-base text-slate-500 text-center italic px-2">
+        Conectá la salida del programa al handle del marcador uva (o ejecutá para ver resultado del servidor)
+      </p>
     );
 
   return (
