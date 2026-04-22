@@ -37,15 +37,8 @@ class RgbImageTransformer:
         """
         self._H = calibration_result.rgb_H.copy()
         self._H_inv = np.linalg.inv(self._H)
-        # cv2.warpPerspective dsize is (width, height); config uses (height, width).
-        self._camera_size_cv = (
-            config.rgb_resolution[1],
-            config.rgb_resolution[0],
-        )
-        self._projector_size_cv = (
-            config.projector_resolution[1],
-            config.projector_resolution[0],
-        )
+        #TODO: considerar 2 resoluciones distintas para cámara y proyector, y usar la adecuada en cada transformación
+        self._rgb_resolution = (config.rgb_resolution[1], config.rgb_resolution[0])  # (width, height) for cv2 warp perspective functions
 
     @property
     def H(self) -> np.ndarray:
@@ -57,69 +50,27 @@ class RgbImageTransformer:
         """Read-only access to the inverse homography matrix (projector -> camera)."""
         return self._H_inv
     
-    def camera_to_projector(self, image: np.ndarray) -> np.ndarray:
+    def camera_to_projector(self, image: cv2.UMat) -> cv2.UMat:
         """Transform image from camera space to projector space.
 
         Args:
-            image: Input image as a numpy array with shape (H, W, 3) where H and W are
-                the height and width of the image. Must have dtype float32.
+            image: Input image as cv2.UMat (GPU memory) with 3 channels (BGR).
 
         Returns:
-            Transformed image with same shape (H, W, 3) and dtype float32.
-
-        Raises:
-            ValueError: If image.dtype is not float32.
-            ValueError: If image.ndim != 3.
-            ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
+            Transformed image as cv2.UMat, stays on GPU for efficient chaining.
         """
-        self._validate_image(image)
+        # warpPerspective works natively with UMat (GPU accelerated)
+        return cv2.warpPerspective(image, self._H, self._rgb_resolution)
 
-        # Transform using OpenCV's warpPerspective
-        return cv2.warpPerspective(image, self._H, self._projector_size_cv)
-
-    def projector_to_camera(self, image: np.ndarray) -> np.ndarray:
+    def projector_to_camera(self, image: cv2.UMat) -> cv2.UMat:
         """Transform image from projector space to camera space.
 
         Args:
-            image: Input image as a numpy array with shape (H, W, 3) where H and W are
-                the height and width of the image. Must have dtype float32.
+            image: Input image as cv2.UMat (GPU memory) with 3 channels (BGR).
 
         Returns:
-            Transformed image with same shape (H, W, 3) and dtype float32.
-
-        Raises:
-            ValueError: If image.dtype is not float32.
-            ValueError: If image.ndim != 3.
-            ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
+            Transformed image as cv2.UMat, stays on GPU for efficient chaining.
         """
-        self._validate_image(image)
-
-        # Transform using inverse homography
-        return cv2.warpPerspective(image, self._H_inv, self._camera_size_cv)
-
-    def _validate_image(self, image: np.ndarray) -> None:
-        """Validate that the input image has the correct shape and dtype.
-
-        Args:
-            image: Input image as a numpy array.
-        Raises:
-            ValueError: If image.dtype is not float32.
-            ValueError: If image.ndim != 3. 
-            ValueError: If image.shape[2] != 3 (expected 3-channel RGB).
-        """
-        if image.dtype != np.float32:
-            raise ValueError(
-                f"Expected dtype float32, got {image.dtype}. "
-                "Use image.astype(np.float32) to convert."
-            )
-        if image.ndim != 3:
-            raise ValueError(
-                f"Expected 3D array (H, W, 3) for image data, got {image.ndim}D array. "
-                f"Expected shape (H, W, 3), got {image.shape}."
-            )
-        if image.shape[2] != 3:
-            raise ValueError(
-                f"Expected 3-channel RGB image, got {image.shape[2]} channels. "
-                f"Expected shape (H, W, 3), got {image.shape}."
-            )
+        # warpPerspective works natively with UMat (GPU accelerated)
+        return cv2.warpPerspective(image, self._H_inv, self._rgb_resolution)
         

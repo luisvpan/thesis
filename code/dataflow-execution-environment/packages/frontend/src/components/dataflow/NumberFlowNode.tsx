@@ -7,6 +7,8 @@ export type NumberFlowNodeData = {
   value: number;
   /** Si no hay dígito mapeado desde YOLO, se muestra esta etiqueta (clase cruda). */
   visionSubtitle?: string;
+  /** ID de tracking persistente desde YOLO. */
+  trackId?: number;
 };
 
 export function NumberFlowNode({ id, data }: NodeProps<{ type: 'number'; data: NumberFlowNodeData, id: string }>) {

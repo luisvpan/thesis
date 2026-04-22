@@ -39,7 +39,7 @@ export function ClickableHandle({
       type={type}
       position={position}
       id={id}
-      className={`!w-15 !h-15 !border-2 ${colorClass} cursor-pointer ${className}`}
+      className={`!w-20 !h-20 !border-2 ${colorClass} cursor-pointer ${className}`}
       style={style}
       onClick={handleClick}
       onMouseDown={handleMouseDown}

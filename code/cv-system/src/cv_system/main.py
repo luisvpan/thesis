@@ -15,6 +15,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from dotenv import load_dotenv
 
+#TODO: add ONNX_GPU_ID to .env and use it in card_detector to select GPU (Fix 5: GPU selection)
+load_dotenv()
+
 import cv2
 import numpy as np
 
@@ -27,8 +30,6 @@ from cv_system.detection.card_detector import CardDetector
 from cv_system.detection.touch_detector import TouchDetector
 from cv_system.hardware.manager import HardwareManager, HardwareError
 from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ def main() -> None:
     print(f"Bird view / projector canvas: {config.camera.projector_resolution} (h, w)")
     print(f"FPS: {config.camera.fps}")
     print(f"DMax frames: {config.calibration.dmax_num_frames}")
+    print(f"OpenCL available: {cv2.ocl.haveOpenCL()}, enabled: {cv2.ocl.useOpenCL()}")
     print("=" * 60)
 
     hardware = None
@@ -153,6 +155,7 @@ def main() -> None:
             show_debug=False,
         )
         print("  Touch detector initialized")
+        print(f"YOLO model path: {os.getenv('YOLO_MODEL_PATH')}")
 
         model_path = Path(
             os.getenv(
@@ -160,7 +163,7 @@ def main() -> None:
                 str(
                     Path(__file__).resolve().parent.parent.parent.parent
                     / "models"
-                    / "plswork2.pt"
+                    / "plswork2.onnx"
                 ),
             )
         )
@@ -209,7 +212,7 @@ def main() -> None:
         cv2.moveWindow("Card Detection", 1920, 0)
 
         # Cache for card detection (Fix 3: run every N frames)
-        CARD_DETECT_INTERVAL = 3
+        CARD_DETECT_INTERVAL = 1  # TEMP: Set to 1 for profiling
         last_card_view = None
         last_card_dets: list = []
 
@@ -222,31 +225,46 @@ def main() -> None:
 
         while True:
             try:
+                t0 = time.perf_counter()
+
                 # Fix 2: Start acquiring next frame while processing current
                 next_frame_future = frame_executor.submit(acquire_frames)
 
-                # Fix 1: Do warp ONCE and share with both detectors
-                rgb_float = rgb_frame.astype(np.float32) / 255.0
-                rgb_bird = rgb_image_transformer.camera_to_projector(rgb_float)
-                rgb_bird_uint8 = (rgb_bird * 255).astype(np.uint8)
+                t1 = time.perf_counter()
 
-                # Run touch detection first (blocks until result)
-                touch_future = touch_executor.submit(detector.detect, depth_frame, rgb_bird_uint8)
-                touches, hands_detected = touch_future.result()
+                # Fix 1: Do warp ONCE and share with both detectors (UMat stays on GPU)
+                rgb_bird = rgb_image_transformer.camera_to_projector(rgb_frame)
 
-                # Only run card detection if NO hands detected (pause while hand in view)
+                t2 = time.perf_counter()
+
+                # Submit BOTH detections in parallel (don't wait for touch before card)
+                touch_future = touch_executor.submit(detector.detect, depth_frame, rgb_bird)
+
                 card_future = None
-                if not hands_detected and frame_count % CARD_DETECT_INTERVAL == 0:
-                    card_future = card_executor.submit(card_detector.detect, rgb_bird_uint8)
+                t_card_submit = t2  # For timing card from submission
+                run_card = frame_count % CARD_DETECT_INTERVAL == 0
+                if run_card:
+                    card_future = card_executor.submit(card_detector.detect, rgb_bird)
+                    t_card_submit = time.perf_counter()
 
-                # Get card results (or use cache if skipped)
+                # Now wait for results (they run in parallel)
+                touches, hands_detected = touch_future.result()
+                t_touch = time.perf_counter()
+
+                card_time_ms = 0.0
+                card_wait_ms = 0.0
                 if card_future is not None:
+                    t_card_wait_start = time.perf_counter()
                     card_view, card_dets = card_future.result()
+                    t_card_end = time.perf_counter()
+                    card_time_ms = 1000 * (t_card_end - t_card_submit)  # Total card time
+                    card_wait_ms = 1000 * (t_card_end - t_card_wait_start)  # Wait after touch done
+                    # Always update - ByteTrack handles occlusions from hands
                     last_card_view = card_view
                     last_card_dets = card_dets
                     post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
                 else:
-                    card_view = last_card_view if last_card_view is not None else rgb_bird_uint8
+                    card_view = last_card_view if last_card_view is not None else rgb_bird.get()
                     card_dets = last_card_dets
 
                 if touches:
@@ -267,26 +285,27 @@ def main() -> None:
                     if frame_count % 30 == 0:
                         print(f"  Frame {frame_count}: No touches detected")
 
-                if card_dets and frame_count % 30 == 0:
+                if card_dets:
                     for d in card_dets:
                         print(
                             f"  Frame {frame_count}: Card {d.label} "
                             f"{d.confidence * 100:.1f}%"
                         )
 
-                # Fix 4: Show only every 2 frames
+                # # Fix 4: Show only every 2 frames
                 if frame_count % 2 == 0:
                     cv2.imshow("Card Detection", card_view)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
 
                 frame_count += 1
-                if frame_count % 100 == 0:
-                    elapsed = time.time() - start_time
-                    print(f"  [FPS: {frame_count / elapsed:.1f}]")
+                elapsed = time.time() - start_time
 
                 # Fix 2: Get next frame (should be ready by now)
+                t5 = time.perf_counter()
                 depth_frame, rgb_frame = next_frame_future.result()
+                t6 = time.perf_counter()
+                print(f"  [FPS: {frame_count / elapsed:.1f}] submit={1000*(t1-t0):.1f}ms warp={1000*(t2-t1):.1f}ms touch={1000*(t_touch-t2):.1f}ms card={card_time_ms:.1f}ms(wait={card_wait_ms:.1f}ms) acq={1000*(t6-t5):.1f}ms")
 
             except KeyboardInterrupt:
                 break

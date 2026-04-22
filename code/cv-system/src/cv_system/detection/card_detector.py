@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
+import supervision as sv
 
 from cv_system.transform import RgbImageTransformer
 
@@ -73,9 +74,14 @@ class CardDetector:
         """Initialize ONNX Runtime with DirectML backend."""
         import onnxruntime as ort
 
-        # Prefer DirectML (AMD GPU), fallback to CPU
+        # Log available providers BEFORE creating session
+        available = ort.get_available_providers()
+        print(f"  ONNX available providers: {available}")
+
+        # Request DirectML with CPU fallback
         providers = [
-            ("DmlExecutionProvider", { "device_id": 0 }),
+            ("DmlExecutionProvider", {"device_id": 1}),
+            "CPUExecutionProvider",
         ]
         self._session: ort.InferenceSession = ort.InferenceSession(
             str(path), providers=providers
@@ -92,9 +98,22 @@ class CardDetector:
         # Load class names from ONNX metadata
         self._names = self._load_onnx_class_names(path)
 
-        # Log provider being used
-        active_provider = self._session.get_providers()[0]
-        print(f"  ONNX Runtime using: {active_provider}")
+        # Log which provider is ACTUALLY being used
+        actual = self._session.get_providers()
+        print(f"  ONNX session providers: {actual}")
+        if "DmlExecutionProvider" in actual:
+            print("  DirectML GPU acceleration active")
+        else:
+            print("  WARNING: DirectML not available, using CPU fallback!")
+
+        # Initialize ByteTrack for persistent object IDs
+        # Tuned for card tracking with hand movement
+        self._tracker = sv.ByteTrack(
+            track_activation_threshold=0.20,  # Lower = easier to create tracks
+            lost_track_buffer=45,             # ~1.5s at 30fps to re-find lost tracks
+            minimum_matching_threshold=0.5,   # Lower IoU = tolerate more movement
+            frame_rate=30,
+        )
 
     def _load_onnx_class_names(self, path: Path) -> dict[int, str]:
         """Load class names from ONNX model metadata."""
@@ -117,24 +136,24 @@ class CardDetector:
         # Fallback: generic class names
         return {i: f"class_{i}" for i in range(100)}
 
-    def detect(self, rgb_bird_uint8: np.ndarray) -> tuple[np.ndarray, list[CardDetection]]:
+    def detect(self, rgb_bird: cv2.UMat) -> tuple[np.ndarray, list[CardDetection]]:
         """
         Detect cards in the pre-transformed bird view image.
 
         Args:
-            rgb_bird_uint8: BGR image already transformed to projector space (uint8).
+            rgb_bird: BGR image as UMat already transformed to projector space.
 
         Returns:
-            Annotated BGR image in projector resolution and list of detections.
+            Annotated BGR image (numpy) in projector resolution and list of detections.
         """
         # Run detection
         if self._use_onnx:
-            detections = self._detect_onnx(rgb_bird_uint8)
+            detections = self._detect_onnx(rgb_bird)
         else:
-            detections = self._detect_pytorch(rgb_bird_uint8)
+            detections = self._detect_pytorch(rgb_bird)
 
-        # Draw detections
-        annotated = rgb_bird_uint8.copy()
+        # Draw detections on numpy copy
+        annotated = rgb_bird.get().copy()
         for d in detections:
             self._draw_detection(
                 annotated, d.label, d.confidence, d.x1, d.y1, d.x2, d.y2
@@ -142,9 +161,11 @@ class CardDetector:
 
         return annotated, detections
 
-    def _detect_pytorch(self, image: np.ndarray) -> list[CardDetection]:
+    def _detect_pytorch(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection with tracking using PyTorch/ultralytics backend."""
-        results = self._model.track(image, persist=True, verbose=False)
+        # ultralytics requires numpy array
+        image_np = image.get()
+        results = self._model.track(image_np, persist=True, verbose=False)
         detections: list[CardDetection] = []
 
         for r in results:
@@ -171,14 +192,15 @@ class CardDetector:
 
         return detections
 
-    def _detect_onnx(self, image: np.ndarray) -> list[CardDetection]:
+    def _detect_onnx(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection using ONNX Runtime with DirectML."""
         # Get target size from model input shape
         _, _, target_h, target_w = self._input_shape
-        orig_h, orig_w = image.shape[:2]
+        orig_h, orig_w = image.get().shape[:2]
 
-        # Preprocess: resize, normalize, transpose to NCHW
-        resized = cv2.resize(image, (target_w, target_h))
+        # Preprocess on GPU: BGR->RGB, resize, then .get() for ONNX
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        resized = cv2.resize(rgb_image, (target_w, target_h)).get()
         normalized = resized.astype(np.float32) / 255.0
         transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
         batched = np.expand_dims(transposed, axis=0)  # Add batch dim
@@ -235,20 +257,38 @@ class CardDetector:
             self._iou_threshold,
         )
 
-        # Build detections
+        if len(indices) == 0:
+            return []
+
+        # Filter arrays by NMS indices
+        nms_indices = [idx[0] if isinstance(idx, (list, np.ndarray)) else idx for idx in indices]
+        nms_boxes = boxes_for_nms[nms_indices]
+        nms_confidences = confidences[nms_indices]
+        nms_class_ids = class_ids[nms_indices]
+
+        # Create supervision Detections and update tracker
+        sv_detections = sv.Detections(
+            xyxy=nms_boxes,
+            confidence=nms_confidences,
+            class_id=nms_class_ids.astype(int),
+        )
+        tracked = self._tracker.update_with_detections(sv_detections)
+
+        # Build CardDetection objects with track IDs
         detections: list[CardDetection] = []
-        for idx in indices:
-            i = idx[0] if isinstance(idx, (list, np.ndarray)) else idx
-            label = self._names.get(int(class_ids[i]), str(class_ids[i]))
+        for i in range(len(tracked)):
+            label = self._names.get(int(tracked.class_id[i]), str(tracked.class_id[i]))
+            track_id = int(tracked.tracker_id[i]) if tracked.tracker_id is not None else -1
             detections.append(
                 CardDetection(
-                    class_id=int(class_ids[i]),
+                    class_id=int(tracked.class_id[i]),
                     label=label,
-                    confidence=float(confidences[i]),
-                    x1=float(x1[i]),
-                    y1=float(y1[i]),
-                    x2=float(x2[i]),
-                    y2=float(y2[i]),
+                    confidence=float(tracked.confidence[i]),
+                    x1=float(tracked.xyxy[i, 0]),
+                    y1=float(tracked.xyxy[i, 1]),
+                    x2=float(tracked.xyxy[i, 2]),
+                    y2=float(tracked.xyxy[i, 3]),
+                    track_id=track_id,
                 )
             )
 

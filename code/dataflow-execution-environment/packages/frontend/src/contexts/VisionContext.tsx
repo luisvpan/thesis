@@ -46,7 +46,8 @@ type VisionState = {
 
 const VisionContext = createContext<VisionState | null>(null);
 
-function getVisionWsUrl(): string {
+/** URL efectiva del WebSocket de visión (misma lógica que la conexión real). */
+export function getVisionWebSocketUrl(): string {
   if (import.meta.env.VITE_VISION_WS_URL) {
     return import.meta.env.VITE_VISION_WS_URL;
   }
@@ -61,7 +62,7 @@ export function VisionProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const url = getVisionWsUrl();
+    const url = getVisionWebSocketUrl();
     const ws = new WebSocket(url);
 
     ws.onopen = () => {

@@ -191,7 +191,7 @@ class Calibrator:
             cv2.waitKey()
             # Step 2: Capture RGB frame
             logger.info("Capturing RGB frame for marker detection")
-            rgb_frame = self.hardware_manager.get_rgb_frame()
+            rgb_frame = self.hardware_manager.get_rgb_frame().get()
             logger.info(
                 f"RGB frame captured: shape={rgb_frame.shape}, dtype={rgb_frame.dtype}"
             )

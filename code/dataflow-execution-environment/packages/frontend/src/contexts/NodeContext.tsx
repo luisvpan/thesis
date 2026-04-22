@@ -20,8 +20,17 @@ import {
 import { useVision } from "./VisionContext";
 import { parseVisionLabel, visionOperatorToMathOperator } from "@/types/vision-card";
 import { executeProgram as executeProgramService } from "@/services/executeProgram";
-import type { NumberFlowNodeData, OperatorFlowNodeData } from "@/components/dataflow";
+import type {
+  NumberFlowNodeData,
+  OperatorFlowNodeData,
+  ResultAnchorFlowNodeData,
+  ProgramOutputFlowNodeData,
+} from "@/components/dataflow";
 import type { MathOperatorType } from "@/types/card-types";
+import {
+  VISION_PROGRAM_OUTPUT_ID,
+  VISION_RESULT_ANCHOR_ID,
+} from "@/utils/frontendFlowConstants";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -29,7 +38,9 @@ import type { MathOperatorType } from "@/types/card-types";
 
 export type DataflowNode =
   | Node<NumberFlowNodeData, "number">
-  | Node<OperatorFlowNodeData, "operator">;
+  | Node<OperatorFlowNodeData, "operator">
+  | Node<ResultAnchorFlowNodeData, "resultAnchor">
+  | Node<ProgramOutputFlowNodeData, "programOutput">;
 
 export type PortIdentifier = {
   nodeId: string;
@@ -110,6 +121,10 @@ const VISION_FLOW_MIN_SIZE = 64;
 const VISION_NODE_HALF_W = 48;
 const VISION_NODE_HALF_H = 40;
 
+/** Coincide con `w-60` del lienzo + margen hasta la carta de resultado */
+const VISION_CARD_BOX = 240;
+const VISION_RESULT_GAP = 24;
+
 /**
  * Convierte coordenadas normalizadas (0-1) a coordenadas del ReactFlow.
  * El CV system envía posiciones normalizadas respecto al viewport del proyector.
@@ -145,15 +160,35 @@ function visionToFlowPosition(
 
 function getNodeValue(node: DataflowNode | null | undefined): number | undefined {
   if (!node?.data) return undefined;
+  if (node.type === "programOutput") {
+    const v = (node.data as ProgramOutputFlowNodeData).value;
+    return typeof v === "number" ? v : undefined;
+  }
+  if (node.type === "resultAnchor") return undefined;
   const d = node.data as NumberFlowNodeData & OperatorFlowNodeData;
   return d.value ?? d.result;
 }
 
-function getRightmostNode(nodes: DataflowNode[]): DataflowNode | null {
-  if (nodes.length === 0) return null;
-  return nodes.reduce((rightmost, node) =>
+function getRightmostEvaluableNode(nodes: DataflowNode[]): DataflowNode | null {
+  const evalNodes = nodes.filter(
+    (n): n is Extract<DataflowNode, { type: "number" | "operator" }> =>
+      n.type === "number" || n.type === "operator"
+  );
+  if (evalNodes.length === 0) return null;
+  return evalNodes.reduce((rightmost, node) =>
     node.position.x > rightmost.position.x ? node : rightmost
   );
+}
+
+/**
+ * Genera un slug válido para el DSL (solo letras y _) a partir del trackId.
+ * Si no hay trackId válido, usa el índice como fallback.
+ */
+function toValidSlug(trackId: number | undefined, fallbackIndex: number): string {
+  if (trackId !== undefined && trackId >= 0) {
+    return `card_${trackId}`;
+  }
+  return `card_${fallbackIndex}`;
 }
 
 function computeOperatorResult(
@@ -221,47 +256,124 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     }
 
     setNodes((prev) => {
-      const withoutLive = prev.filter((n) => !n.id.startsWith("visionLive"));
-      const additions: DataflowNode[] = lastCardFrame.cards.map((c, i) => {
+      const prevOut = prev.find(
+        (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
+      );
+      const preservedValue =
+        prevOut?.type === "programOutput"
+          ? (prevOut.data as ProgramOutputFlowNodeData).value
+          : undefined;
+
+      const withoutLive = prev.filter((n) => !n.id.startsWith("card_"));
+
+      let grapesFlowPos: { x: number; y: number } | null = null;
+      const additions: DataflowNode[] = [];
+      let idx = 0;
+
+      for (const c of lastCardFrame.cards) {
         const parsed = parseVisionLabel(c.label);
+
+        if (parsed.type === "resultAnchor") {
+          grapesFlowPos = visionToFlowPosition(c.position, rect);
+          continue;
+        }
+
         const position = visionToFlowPosition(c.position, rect);
+        const nodeId = toValidSlug(c.trackId, idx);
 
         if (parsed.type === "number") {
-          return {
-            id: `visionLive${i}`,
+          additions.push({
+            id: nodeId,
             type: "number" as const,
             position,
             data: {
               value: parsed.value,
+              trackId: c.trackId,
             },
-          };
+          });
+          continue;
         }
 
         if (parsed.type === "operator") {
-          return {
-            id: `visionLive${i}`,
+          additions.push({
+            id: nodeId,
             type: "operator" as const,
             position,
             data: {
               operator: visionOperatorToMathOperator(parsed.operator),
+              trackId: c.trackId,
             },
-          };
+          });
+          continue;
         }
 
         // Tipo desconocido: mostrar como número con subtítulo
-        return {
-          id: `visionLive${i}`,
+        additions.push({
+          id: nodeId,
           type: "number" as const,
           position,
           data: {
             value: 0,
             visionSubtitle: parsed.label,
+            trackId: c.trackId,
           },
-        };
-      });
+        });
+      }
+
+      if (grapesFlowPos) {
+        additions.push(
+          {
+            id: VISION_RESULT_ANCHOR_ID,
+            type: "resultAnchor" as const,
+            position: grapesFlowPos,
+            data: {},
+          },
+          {
+            id: VISION_PROGRAM_OUTPUT_ID,
+            type: "programOutput" as const,
+            position: {
+              x: grapesFlowPos.x + VISION_CARD_BOX + VISION_RESULT_GAP,
+              y: grapesFlowPos.y,
+            },
+            data: { value: preservedValue },
+          }
+        );
+      }
+
       return [...withoutLive, ...additions];
     });
   }, [lastCardFrame, setNodes, flowContainerRef]);
+
+  // Arista por defecto: marcador → carta de resultado (solo presentación)
+  useEffect(() => {
+    const hasAnchor = nodes.some(
+      (n) => n.id === VISION_RESULT_ANCHOR_ID && n.type === "resultAnchor"
+    );
+    const hasOutput = nodes.some(
+      (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
+    );
+    if (!hasAnchor || !hasOutput) return;
+
+    setEdges((eds) => {
+      const exists = eds.some(
+        (e) =>
+          e.source === VISION_RESULT_ANCHOR_ID &&
+          e.sourceHandle === "out" &&
+          e.target === VISION_PROGRAM_OUTPUT_ID &&
+          e.targetHandle === "in"
+      );
+      if (exists) return eds;
+      return addEdge(
+        {
+          source: VISION_RESULT_ANCHOR_ID,
+          sourceHandle: "out",
+          target: VISION_PROGRAM_OUTPUT_ID,
+          targetHandle: "in",
+        },
+        eds
+      );
+    });
+  }, [nodes, setEdges]);
 
   // Compute operator results when edges change
   useEffect(() => {
@@ -396,26 +508,45 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     setIsExecuting(true);
     setExecutionError(null);
 
+    const syncProgramOutputValue = (num: number | undefined) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.type === "programOutput"
+            ? {
+              ...n,
+              data: {
+                ...(n.data as ProgramOutputFlowNodeData),
+                value: num,
+              },
+            }
+            : n
+        )
+      );
+    };
+
     try {
       const result = await executeProgramService(nodes, edges);
 
       if (result.success && result.result !== undefined) {
         setExecutionResult(result.result);
         setExecutionError(null);
+        syncProgramOutputValue(result.result);
       } else {
         setExecutionResult(null);
         setExecutionError(result.error || "Error desconocido");
+        syncProgramOutputValue(undefined);
       }
     } catch (err) {
       setExecutionResult(null);
       setExecutionError(err instanceof Error ? err.message : "Error de ejecución");
+      syncProgramOutputValue(undefined);
     } finally {
       setIsExecuting(false);
     }
-  }, [nodes, edges]);
+  }, [nodes, edges, setNodes]);
 
   const getExecutionResult = useCallback(() => {
-    const rightmost = getRightmostNode(nodes);
+    const rightmost = getRightmostEvaluableNode(nodes);
     const value = rightmost ? getNodeValue(rightmost) : undefined;
     return typeof value === "number" ? value : null;
   }, [nodes]);

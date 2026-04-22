@@ -9,6 +9,8 @@ export type OperatorFlowNodeData = {
   result?: number;
   /** Valor de salida (igual al resultado) para usar como entrada en otros nodos del dataflow */
   value?: number;
+  /** ID de tracking persistente desde YOLO. */
+  trackId?: number;
 };
 
 export function OperatorFlowNode({ id, data }: NodeProps<{ type: 'operator'; data: OperatorFlowNodeData }>) {

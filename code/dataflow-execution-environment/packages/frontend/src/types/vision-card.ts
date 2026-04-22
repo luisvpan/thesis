@@ -15,6 +15,8 @@ export type VisionCardType = 'number' | 'operator';
 export type ParsedVisionCard =
   | { type: 'number'; value: VisionDigit }
   | { type: 'operator'; operator: VisionOperator }
+  /** Carta física detectada como `grapes`: solo uso en frontend como marcador de salida visual */
+  | { type: 'resultAnchor' }
   | { type: 'unknown'; label: string };
 
 /**
@@ -75,6 +77,11 @@ const OPERATOR_LABELS: Record<string, VisionOperator> = {
  */
 export function parseVisionLabel(label: string): ParsedVisionCard {
   const normalized = label.trim().toLowerCase();
+
+  /** Marcador físico para acoplar la carta de resultado en el lienzo (detalle de UI). */
+  if (normalized === 'grapes') {
+    return { type: 'resultAnchor' };
+  }
 
   // Verificar si es un dígito por nombre
   if (normalized in DIGIT_LABELS) {
