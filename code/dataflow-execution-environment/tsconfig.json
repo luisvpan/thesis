@@ -14,17 +14,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": ".",
-    "paths": {
-      "@dataflow/shared": ["./packages/shared/src"],
-      "@dataflow/shared/*": ["./packages/shared/src/*"],
-      "@dataflow/compiler": ["./packages/compiler/src"],
-      "@dataflow/compiler/*": ["./packages/compiler/src/*"],
-      "@dataflow/runtime": ["./packages/runtime/src"],
-      "@dataflow/runtime/*": ["./packages/runtime/src/*"],
-      "@dataflow/http-api": ["./packages/http-api/src"],
-      "@dataflow/http-api/*": ["./packages/http-api/src/*"]
-    }
   },
   "include": [
     "packages/*/src/**/*"
