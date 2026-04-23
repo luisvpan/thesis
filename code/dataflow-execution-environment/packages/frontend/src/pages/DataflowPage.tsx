@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ReactFlow,
@@ -23,12 +23,6 @@ import { SocketInfoFab } from '@/components/SocketInfoFab';
 import { DataflowValueEdge } from '@/components/dataflow/DataflowValueEdge';
 import { getLevelConfig } from '@/data/levelConfig';
 import { ArrowLeft, Eye, Plus, Minus, X, Divide, Volume2 } from 'lucide-react';
-
-const VIEW_MODE_LABELS: Record<ResultViewMode, string> = {
-  pictorico: 'Pictórico',
-  concreto: 'Concreto',
-  abstracto: 'Abstracto',
-};
 
 /** Oculta la arista corta marcador.out → resultado.in para que la uva sea una sola carta visual. */
 function hideUvaInternalEdges(nodes: DataflowNode[], edges: Edge[]): Edge[] {
@@ -110,12 +104,8 @@ export function DataflowContent({
     [nodes, edges]
   );
 
-  const [viewMode, setViewMode] = useState<ResultViewMode>('pictorico');
+  const [viewMode, setViewMode] = useState<ResultViewMode>('abstracto');
   const [showOperatorResults, setShowOperatorResults] = useState(false);
-
-  const cycleViewMode = useCallback(() => {
-    setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
-  }, []);
 
   return (
     <div className={rootClassName}>
@@ -157,14 +147,51 @@ export function DataflowContent({
             <Eye className="w-9 h-9 shrink-0" strokeWidth={2} aria-hidden />
             Mostrar resultados
           </button>
-          <button
-            type="button"
-            onClick={cycleViewMode}
-            className="px-8 py-5 min-h-[4.5rem] min-w-[14rem] rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-100 text-2xl font-bold transition-colors border-2 border-slate-600 shadow-lg"
-            title="CPA: ciclar Pictórico → Concreto → Abstracto"
+          <div
+            className="mr-8 inline-flex overflow-hidden rounded-xl border-2 border-slate-600 shadow-lg"
+            role="group"
+            aria-label="Modo de visualización"
           >
-            <span className="block text-center">{VIEW_MODE_LABELS[viewMode]}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('concreto')}
+              aria-pressed={viewMode === 'concreto'}
+              className={`px-6 py-5 min-h-[4.5rem] min-w-[4.5rem] text-2xl font-black transition-colors ${
+                viewMode === 'concreto'
+                  ? 'bg-teal-700 text-white'
+                  : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
+              }`}
+              title="Modo concreto"
+            >
+              C
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('pictorico')}
+              aria-pressed={viewMode === 'pictorico'}
+              className={`border-l-2 border-slate-600 px-6 py-5 min-h-[4.5rem] min-w-[4.5rem] text-2xl font-black transition-colors ${
+                viewMode === 'pictorico'
+                  ? 'bg-teal-700 text-white'
+                  : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
+              }`}
+              title="Modo pictórico"
+            >
+              P
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('abstracto')}
+              aria-pressed={viewMode === 'abstracto'}
+              className={`border-l-2 border-slate-600 px-6 py-5 min-h-[4.5rem] min-w-[4.5rem] text-2xl font-black transition-colors ${
+                viewMode === 'abstracto'
+                  ? 'bg-teal-700 text-white'
+                  : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
+              }`}
+              title="Modo abstracto"
+            >
+              A
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => speakTitle(levelConfig.title, levelConfig.subtitle)}
