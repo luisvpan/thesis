@@ -2,6 +2,10 @@ import type { NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
+import {
+  UVA_PAIR_TRANSFORM_CLASS,
+  UVA_RIGHT_PANEL_PX,
+} from '@/utils/uvaCardLayout';
 import { ClickableHandle } from './ClickableHandle';
 import { formatResultCpa } from './dataflowResultCpa';
 
@@ -82,12 +86,16 @@ export function ProgramOutputFlowNode({
     );
 
   return (
-    <div className="nopan relative border-2 border-dashed border-teal-400 w-60 h-60 -translate-y-[25%] -translate-x-[30%]">
-      <div className="absolute -top-5 left-0 text-xs text-teal-300 bg-black/50 px-1 rounded">
+    <div
+      className={`nopan relative flex h-60 flex-col items-center justify-center rounded-r-xl border-y-2 border-r-2 border-l border-dashed border-teal-400 border-l-slate-600 bg-slate-950/95 px-2 shadow-lg ${UVA_PAIR_TRANSFORM_CLASS}`}
+      style={{ width: UVA_RIGHT_PANEL_PX }}
+    >
+      <div className="pointer-events-none absolute -top-5 right-0 max-w-full truncate text-right text-[10px] text-teal-300/90 bg-black/40 px-1 rounded">
         {id}
       </div>
-      <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} />
-      <div className="flex h-full flex-col items-center justify-center px-2 py-1">{display}</div>
+      <div className="flex w-full flex-col items-center justify-center px-1 py-1">
+        {display}
+      </div>
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
     </div>
   );

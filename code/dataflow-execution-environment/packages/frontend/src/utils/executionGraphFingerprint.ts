@@ -2,6 +2,14 @@ import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "@/contexts/NodeContext";
 
 /**
+ * Nodos insertados por visión (`card_*` / `card_uva_*`) mueven posición cada frame.
+ * Si incluimos `position` en la firma, el debounce de auto-ejecutar dispara en bucle y puede tumbar la UI.
+ */
+function includePositionInFingerprint(nodeId: string): boolean {
+  return !nodeId.startsWith("card_");
+}
+
+/**
  * Firma estable del lienzo para auto-ejecutar solo cuando cambia la topología / datos de entrada,
  * no cuando solo se escriben `value`/`tapError` en cartas `programOutput` tras un run.
  */
@@ -10,11 +18,16 @@ export function executionGraphFingerprint(
   edges: Edge[]
 ): string {
   const slimNodes = nodes.map((n) => {
+    const pos =
+      includePositionInFingerprint(n.id) && n.position != null
+        ? n.position
+        : undefined;
+
     if (n.type === "number") {
       return {
         id: n.id,
         type: n.type,
-        position: n.position,
+        ...(pos !== undefined ? { position: pos } : {}),
         value: (n.data as { value?: number }).value,
       };
     }
@@ -22,7 +35,7 @@ export function executionGraphFingerprint(
       return {
         id: n.id,
         type: n.type,
-        position: n.position,
+        ...(pos !== undefined ? { position: pos } : {}),
         operator: (n.data as { operator?: string }).operator,
       };
     }
@@ -33,7 +46,7 @@ export function executionGraphFingerprint(
       return {
         id: n.id,
         type: n.type,
-        position: n.position,
+        ...(pos !== undefined ? { position: pos } : {}),
         pairedAnchorId: d.pairedAnchorId,
       };
     }
@@ -42,11 +55,13 @@ export function executionGraphFingerprint(
       return {
         id: n.id,
         type: n.type,
-        position: n.position,
+        ...(pos !== undefined ? { position: pos } : {}),
         pairedOutputId: d.pairedOutputId,
       };
     }
-    return { id: n.id, type: n.type, position: n.position };
+    const _exhaustive: never = n;
+    void _exhaustive;
+    throw new Error("executionGraphFingerprint: tipo de nodo no contemplado");
   });
 
   const slimEdges = edges.map((e) => ({

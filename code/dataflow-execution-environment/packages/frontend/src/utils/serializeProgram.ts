@@ -273,8 +273,12 @@ export function serializeProgram(
     });
   }
 
+  const flowX = (n: (typeof evalNodes)[number]) => {
+    const x = n.position?.x;
+    return typeof x === "number" && Number.isFinite(x) ? x : 0;
+  };
   const rightmost = evalNodes.reduce((r, n) =>
-    n.position.x > r.position.x ? n : r
+    flowX(n) > flowX(r) ? n : r
   );
 
   const outputId = `output_${rightmost.id}`;

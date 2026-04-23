@@ -152,7 +152,7 @@ def main() -> None:
             depth_coordinate_transformer,
             resolution_mapper,
             config.detection,
-            show_debug=False,
+            show_debug=True,
         )
         print("  Touch detector initialized")
         print(f"YOLO model path: {os.getenv('YOLO_MODEL_PATH')}")
