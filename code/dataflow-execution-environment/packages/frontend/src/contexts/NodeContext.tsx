@@ -29,14 +29,19 @@ import {
   type DataflowProgram,
 } from "@/utils/serializeProgram";
 import { executionGraphFingerprint } from "@/utils/executionGraphFingerprint";
+import {
+  VISION_PROGRAM_OUTPUT_ID,
+  VISION_RESULT_ANCHOR_ID,
+} from "@/utils/frontendFlowConstants";
+import { UVA_LEFT_PANEL_PX } from "@/utils/uvaCardLayout";
 
 const AUTO_EXECUTE_DEBOUNCE_MS = 280;
 import type {
   NumberFlowNodeData,
   OperatorFlowNodeData,
+  ResultAnchorFlowNodeData,
+  ProgramOutputFlowNodeData,
 } from "@/components/dataflow";
-import type { ResultAnchorFlowNodeData } from "@/components/dataflow/ResultAnchorFlowNode";
-import type { ProgramOutputFlowNodeData } from "@/components/dataflow/ProgramOutputFlowNode";
 import type { MathOperatorType } from "@/types/card-types";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -103,14 +108,11 @@ type NodeContextState = {
   executeProgram: () => Promise<void>;
 
   // Para React Flow
-  onNodesChange: OnNodesChange;
-  onEdgesChange: OnEdgesChange;
+  onNodesChange: OnNodesChange<DataflowNode>;
+  onEdgesChange: OnEdgesChange<Edge>;
 
   // Resultado calculado (local, sin backend)
   getExecutionResult: () => number | null;
-
-  /** Valor del grafo conectado al marcador uva (entrada del ancla); se actualiza con nodos/aristas. */
-  liveAnchorResult: number | null;
 };
 
 const NodeContext = createContext<NodeContextState | null>(null);
@@ -138,9 +140,6 @@ const VISION_FLOW_MIN_SIZE = 64;
 const VISION_NODE_HALF_W = 48;
 const VISION_NODE_HALF_H = 40;
 
-/** Coincide con `w-60` del lienzo + margen hasta la carta de resultado */
-const VISION_CARD_BOX = 240;
-const VISION_RESULT_GAP = 24;
 
 /**
  * Convierte coordenadas normalizadas (0-1) a coordenadas del ReactFlow.
@@ -152,6 +151,8 @@ function visionToFlowPosition(
   flowRect: Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">
 ): { x: number; y: number } {
   if (
+    !Number.isFinite(pos.x) ||
+    !Number.isFinite(pos.y) ||
     flowRect.width < VISION_FLOW_MIN_SIZE ||
     flowRect.height < VISION_FLOW_MIN_SIZE
   ) {
@@ -196,6 +197,19 @@ function edgeMatchesConnection(edge: Edge, c: Connection): boolean {
   );
 }
 
+function nodeFlowX(node: DataflowNode): number {
+  const x = node.position?.x;
+  return typeof x === "number" && Number.isFinite(x) ? x : 0;
+}
+
+function nodeFlowSortKey(node: DataflowNode): [number, number] {
+  const x = node.position?.x;
+  const y = node.position?.y;
+  return [
+    typeof x === "number" && Number.isFinite(x) ? x : 0,
+    typeof y === "number" && Number.isFinite(y) ? y : 0,
+  ];
+}
 function getRightmostEvaluableNode(nodes: DataflowNode[]): DataflowNode | null {
   const evalNodes = nodes.filter(
     (n): n is Extract<DataflowNode, { type: "number" | "operator" }> =>
@@ -203,7 +217,7 @@ function getRightmostEvaluableNode(nodes: DataflowNode[]): DataflowNode | null {
   );
   if (evalNodes.length === 0) return null;
   return evalNodes.reduce((rightmost, node) =>
-    node.position.x > rightmost.position.x ? node : rightmost
+    nodeFlowX(node) > nodeFlowX(rightmost) ? node : rightmost
   );
 }
 
@@ -212,8 +226,8 @@ function getRightmostEvaluableNode(nodes: DataflowNode[]): DataflowNode | null {
  * Si no hay trackId válido, usa el índice como fallback.
  */
 function toValidSlug(trackId: number | undefined, fallbackIndex: number): string {
-  if (trackId !== undefined && trackId >= 0) {
-    return `card_${trackId}`;
+  if (typeof trackId === "number" && Number.isFinite(trackId) && trackId >= 0) {
+    return `card_${Math.trunc(trackId)}`;
   }
   return `card_${fallbackIndex}`;
 }
@@ -266,6 +280,37 @@ function computeLiveValueForVisionChain(
   return undefined;
 }
 
+/**
+ * Valor que “sale” del nodo por su puerto `out` (para etiquetas en aristas).
+ * `resultAnchor` propagando el mismo valor que entra por `in`.
+ */
+export function getOutboundFlowValue(
+  nodeId: string,
+  nodes: DataflowNode[],
+  edges: Edge[]
+): number | undefined {
+  const node = nodes.find((n) => n.id === nodeId);
+  if (!node) return undefined;
+  if (node.type === "number") {
+    const v = (node.data as NumberFlowNodeData).value;
+    return typeof v === "number" ? v : undefined;
+  }
+  if (node.type === "operator") {
+    return computeOperatorResult(nodeId, nodes, edges);
+  }
+  if (node.type === "programOutput") {
+    const v = (node.data as ProgramOutputFlowNodeData).value;
+    return typeof v === "number" ? v : undefined;
+  }
+  if (node.type === "resultAnchor") {
+    const inbound = edges.find(
+      (e) => e.target === node.id && (e.targetHandle ?? "in") === "in"
+    );
+    if (!inbound) return undefined;
+    return getOutboundFlowValue(inbound.source, nodes, edges);
+  }
+  return undefined;
+}
 function computeOperatorResult(
   operatorId: string,
   nodes: DataflowNode[],
@@ -354,8 +399,18 @@ export function NodeProvider({
       let grapeIdx = 0;
 
       for (const c of lastCardFrame.cards) {
+        const px = c.position?.x;
+        const py = c.position?.y;
+        if (
+          typeof px !== "number" ||
+          typeof py !== "number" ||
+          !Number.isFinite(px) ||
+          !Number.isFinite(py)
+        ) {
+          continue;
+        }
         const parsed = parseVisionLabel(c.label);
-        const position = visionToFlowPosition(c.position, rect);
+        const position = visionToFlowPosition({ x: px, y: py }, rect);
 
         if (parsed.type === "resultAnchor") {
           const base = `card_uva_${grapeIdx}_${toValidSlug(c.trackId, idx)}`;
@@ -383,7 +438,7 @@ export function NodeProvider({
               id: outputId,
               type: "programOutput" as const,
               position: {
-                x: position.x + VISION_CARD_BOX + VISION_RESULT_GAP,
+                x: position.x + UVA_LEFT_PANEL_PX,
                 y: position.y,
               },
               data: {
@@ -501,30 +556,6 @@ export function NodeProvider({
       return current;
     });
   }, [edges, setNodes]);
-
-  const liveAnchorResult = useMemo((): number | null => {
-    const v = computeLiveValueForVisionChain(nodes, edges);
-    return typeof v === "number" && !Number.isNaN(v) ? v : null;
-  }, [nodes, edges]);
-
-  useEffect(() => {
-    const nextVal = liveAnchorResult ?? undefined;
-    setNodes((prev) => {
-      const idx = prev.findIndex(
-        (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
-      );
-      if (idx < 0) return prev;
-      const cur = prev[idx];
-      const data = cur.data as ProgramOutputFlowNodeData;
-      if (data.value === nextVal) return prev;
-      const copy = [...prev];
-      copy[idx] = {
-        ...cur,
-        data: { ...data, value: nextVal },
-      };
-      return copy;
-    });
-  }, [liveAnchorResult, setNodes]);
 
   // Port selection logic
   const isPortSelected = useCallback(
@@ -664,7 +695,7 @@ export function NodeProvider({
           id: outputId,
           type: "programOutput" as const,
           position: {
-            x: grapesFlowPos.x + VISION_CARD_BOX + VISION_RESULT_GAP,
+            x: grapesFlowPos.x + UVA_LEFT_PANEL_PX,
             y: grapesFlowPos.y,
           },
           data: {
@@ -724,10 +755,11 @@ export function NodeProvider({
       /** Izquierda → derecha: los taps posteriores suelen usar `programOutput` previos como constantes */
       const tapOutputs = nodes
         .filter((n) => n.type === "programOutput")
-        .sort(
-          (a, b) =>
-            a.position.x - b.position.x || a.position.y - b.position.y
-        );
+        .sort((a, b) => {
+          const [ax, ay] = nodeFlowSortKey(a);
+          const [bx, by] = nodeFlowSortKey(b);
+          return ax - bx || ay - by;
+        });
 
       if (tapOutputs.length === 0) {
         const result = await executeRunnerRef.current(nodes, edges);
@@ -864,10 +896,14 @@ export function NodeProvider({
   }, [executionSig]);
 
   const getExecutionResult = useCallback(() => {
+    const liveVisionValue = computeLiveValueForVisionChain(nodes, edges);
+    if (typeof liveVisionValue === "number") {
+      return liveVisionValue;
+    }
     const rightmost = getRightmostEvaluableNode(nodes);
     const value = rightmost ? getNodeValue(rightmost) : undefined;
     return typeof value === "number" ? value : null;
-  }, [nodes]);
+  }, [nodes, edges]);
 
   const value = useMemo(
     (): NodeContextState => ({
@@ -888,7 +924,6 @@ export function NodeProvider({
       onNodesChange,
       onEdgesChange,
       getExecutionResult,
-      liveAnchorResult,
     }),
     [
       nodes,
@@ -908,7 +943,6 @@ export function NodeProvider({
       onNodesChange,
       onEdgesChange,
       getExecutionResult,
-      liveAnchorResult,
     ]
   );
 

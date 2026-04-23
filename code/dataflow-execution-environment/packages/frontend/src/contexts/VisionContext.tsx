@@ -13,18 +13,20 @@ export type DetectedNumberPayload = {
   type: "detectedNumber";
   classId: number;
   label: string;
+  /** 1..9 solo para clases one..nine en data.yaml; operadores/formas no lo llevan */
   number?: number;
   confidence?: number;
+  /** Centro YOLO normalizado al frame (0..1), para mapear al canvas de React Flow */
   position?: { x: number; y: number };
   t: number;
 };
 
-/** Una carta en vista de proyector (`POST /api/v1/vision/cards` → WS `cardDetections`). */
+/** Una carta en vista de proyector (POST `/api/v1/vision/cards` → WS `cardDetections`). */
 export type VisionCardItem = {
   classId: number;
   label: string;
   confidence: number;
-  trackId?: number;
+  trackId?: number;  // Persistent tracking ID from YOLO tracker
   position: { x: number; y: number };
   bbox?: { x1: number; y1: number; x2: number; y2: number };
 };
@@ -37,6 +39,7 @@ export type CardDetectionsPayload = {
 
 type VisionState = {
   last: DetectedNumberPayload | null;
+  /** Último lote de cartas (tablero físico); posiciones normalizadas 0-1 */
   lastCardFrame: CardDetectionsPayload | null;
   connected: boolean;
   error: string | null;
@@ -44,10 +47,7 @@ type VisionState = {
 
 const VisionContext = createContext<VisionState | null>(null);
 
-const WS_INITIAL_BACKOFF_MS = 800;
-const WS_MAX_BACKOFF_MS = 15000;
-
-/** WebSocket dedicado (`/ws/vision`): lotes YOLO desde el API tras `POST /api/v1/vision/cards`. */
+/** URL efectiva del WebSocket de visión (misma lógica que la conexión real). */
 export function getVisionWebSocketUrl(): string {
   if (import.meta.env.VITE_VISION_WS_URL) {
     return import.meta.env.VITE_VISION_WS_URL;
@@ -61,13 +61,14 @@ export function VisionProvider({ children }: { children: ReactNode }) {
   const [lastCardFrame, setLastCardFrame] = useState<CardDetectionsPayload | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const WS_INITIAL_BACKOFF_MS = 300;
+    const WS_MAX_BACKOFF_MS = 5000;
     let attempt = 0;
+    let cancelled = false;
 
     const clearReconnect = () => {
       if (reconnectTimerRef.current !== null) {
@@ -83,18 +84,20 @@ export function VisionProvider({ children }: { children: ReactNode }) {
         setError(null);
         console.log("[ide:vision] WebSocket conectado", url);
       };
+
       ws.onclose = () => {
         setConnected(false);
         wsRef.current = null;
         if (cancelled) return;
         const delay = Math.min(
           WS_MAX_BACKOFF_MS,
-          WS_INITIAL_BACKOFF_MS * Math.pow(2, attempt),
+          WS_INITIAL_BACKOFF_MS * Math.pow(2, attempt)
         );
         attempt += 1;
         clearReconnect();
         reconnectTimerRef.current = setTimeout(() => connect(), delay);
       };
+
       ws.onerror = () => {
         setError("WebSocket visión: error de conexión");
       };
@@ -106,7 +109,6 @@ export function VisionProvider({ children }: { children: ReactNode }) {
           if (typeof data !== "object" || data === null) return;
 
           const typ = (data as { type?: string }).type;
-
           if (typ === "detectedNumber") {
             const det = data as DetectedNumberPayload;
             setLast(det);
@@ -121,7 +123,7 @@ export function VisionProvider({ children }: { children: ReactNode }) {
               det.number != null ? `#${det.number}` : "(sin dígito)",
               det.label,
               det.confidence != null ? `${(det.confidence * 100).toFixed(0)}%` : "",
-              posStr.trim() || "(sin posición)",
+              posStr.trim() || "(sin posición)"
             );
             return;
           }
@@ -134,10 +136,18 @@ export function VisionProvider({ children }: { children: ReactNode }) {
               "[ide:vision] cartas:",
               frame.cards.length,
               frame.t,
-              frame.cards.map(
-                (c) =>
-                  `${c.label}[${c.trackId ?? "?"}]@${c.position.x.toFixed(2)},${c.position.y.toFixed(2)}`,
-              ),
+              frame.cards.map((c) => {
+                const x = c.position?.x;
+                const y = c.position?.y;
+                const xy =
+                  typeof x === "number" &&
+                  typeof y === "number" &&
+                  Number.isFinite(x) &&
+                  Number.isFinite(y)
+                    ? `${x.toFixed(2)},${y.toFixed(2)}`
+                    : "?";
+                return `${c.label}[${c.trackId ?? "?"}]@${xy}`;
+              })
             );
           }
         } catch (e) {
@@ -147,33 +157,23 @@ export function VisionProvider({ children }: { children: ReactNode }) {
       };
     };
 
-    function connect() {
+    const connect = () => {
       if (cancelled) return;
-      clearReconnect();
       const url = getVisionWebSocketUrl();
-      try {
-        const ws = new WebSocket(url);
-        wsRef.current = ws;
-        attachHandlers(ws, url);
-      } catch (e) {
-        console.warn("[ide:vision] fallo al crear WebSocket:", e);
-        setError("No se pudo abrir WebSocket de visión");
-        const delay = Math.min(
-          WS_MAX_BACKOFF_MS,
-          WS_INITIAL_BACKOFF_MS * Math.pow(2, attempt),
-        );
-        attempt += 1;
-        reconnectTimerRef.current = setTimeout(() => connect(), delay);
-      }
-    }
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+      attachHandlers(ws, url);
+    };
 
     connect();
 
     return () => {
       cancelled = true;
       clearReconnect();
-      wsRef.current?.close();
-      wsRef.current = null;
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
   }, []);
 

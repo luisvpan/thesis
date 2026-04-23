@@ -1,8 +1,10 @@
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ReactFlow,
   Background,
+  type Edge,
+  type EdgeTypes,
   type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -13,11 +15,14 @@ import {
   ProgramOutputFlowNode,
   type ResultViewMode,
 } from '@/components/dataflow';
+import type { ProgramOutputFlowNodeData } from '@/components/dataflow/ProgramOutputFlowNode';
+import type { DataflowNode } from '@/contexts/NodeContext';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
 import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
 import { SocketInfoFab } from '@/components/SocketInfoFab';
+import { DataflowValueEdge } from '@/components/dataflow/DataflowValueEdge';
 import { getLevelConfig } from '@/data/levelConfig';
-import { ArrowLeft, Plus, Minus, X, Divide, Volume2 } from 'lucide-react';
+import { ArrowLeft, Eye, Plus, Minus, X, Divide, Volume2 } from 'lucide-react';
 
 const VIEW_MODE_LABELS: Record<ResultViewMode, string> = {
   pictorico: 'Pictórico',
@@ -25,11 +30,39 @@ const VIEW_MODE_LABELS: Record<ResultViewMode, string> = {
   abstracto: 'Abstracto',
 };
 
+/** Oculta la arista corta marcador.out → resultado.in para que la uva sea una sola carta visual. */
+function hideUvaInternalEdges(nodes: DataflowNode[], edges: Edge[]): Edge[] {
+  return edges.map((e) => {
+    const src = nodes.find((n) => n.id === e.source);
+    const tgt = nodes.find((n) => n.id === e.target);
+    if (
+      src?.type === 'resultAnchor' &&
+      tgt?.type === 'programOutput' &&
+      e.sourceHandle === 'out' &&
+      (e.targetHandle ?? 'in') === 'in'
+    ) {
+      const po = tgt.data as ProgramOutputFlowNodeData;
+      if (po.pairedAnchorId === src.id) {
+        return {
+          ...e,
+          style: { ...e.style, opacity: 0, strokeOpacity: 0 },
+          interactionWidth: 0,
+        };
+      }
+    }
+    return e;
+  });
+}
+
 const nodeTypes: NodeTypes = {
   number: NumberFlowNode,
   operator: OperatorFlowNode,
   resultAnchor: ResultAnchorFlowNode,
   programOutput: ProgramOutputFlowNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  dataflowValue: DataflowValueEdge,
 };
 
 function speakTitle(title: string, subtitle: string) {
@@ -70,10 +103,15 @@ export function DataflowContent({
     onEdgesChange,
     addNumberNode,
     addOperatorNode,
-    isExecuting,
   } = useNode();
 
+  const edgesForRender = useMemo(
+    () => hideUvaInternalEdges(nodes, edges),
+    [nodes, edges]
+  );
+
   const [viewMode, setViewMode] = useState<ResultViewMode>('pictorico');
+  const [showOperatorResults, setShowOperatorResults] = useState(false);
 
   const cycleViewMode = useCallback(() => {
     setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
@@ -101,11 +139,24 @@ export function DataflowContent({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-          {isExecuting ? (
-            <span className="text-sm font-medium text-teal-400 px-4 py-2 rounded-lg bg-slate-800/80 border border-teal-600/40">
-              Actualizando resultado…
-            </span>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => setShowOperatorResults((v) => !v)}
+            aria-pressed={showOperatorResults}
+            title={
+              showOperatorResults
+                ? 'Ocultar resultados sobre los operadores'
+                : 'Mostrar resultado encima de cada operador'
+            }
+            className={`flex items-center gap-3 px-5 py-4 min-h-[4.5rem] rounded-xl text-lg font-semibold transition-colors border-2 shadow-lg ${
+              showOperatorResults
+                ? 'bg-teal-800 hover:bg-teal-700 border-teal-500 text-teal-50'
+                : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-100'
+            }`}
+          >
+            <Eye className="w-9 h-9 shrink-0" strokeWidth={2} aria-hidden />
+            Mostrar resultados
+          </button>
           <button
             type="button"
             onClick={cycleViewMode}
@@ -211,13 +262,19 @@ export function DataflowContent({
 
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
-          <ResultCardUiProvider viewMode={viewMode} hasExecuted={true}>
+          <ResultCardUiProvider
+            viewMode={viewMode}
+            hasExecuted={true}
+            showOperatorResults={showOperatorResults}
+          >
             <ReactFlow
               nodes={nodes}
-              edges={edges}
+              edges={edgesForRender}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              defaultEdgeOptions={{ type: 'dataflowValue' }}
               defaultViewport={{ x: 0, y: 0, zoom: 1 }}
               className="bg-black"
               minZoom={1}

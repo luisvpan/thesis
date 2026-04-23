@@ -4,6 +4,8 @@ import type { ResultViewMode } from '@/components/dataflow/dataflowResultCpa';
 export type ResultCardUiState = {
   viewMode: ResultViewMode;
   hasExecuted: boolean;
+  /** Cuando es true, cada operador puede mostrar su resultado local según CPA. */
+  showOperatorResults: boolean;
 };
 
 const ResultCardUiContext = createContext<ResultCardUiState | null>(null);
@@ -11,10 +13,13 @@ const ResultCardUiContext = createContext<ResultCardUiState | null>(null);
 export function ResultCardUiProvider({
   viewMode,
   hasExecuted,
+  showOperatorResults,
   children,
 }: ResultCardUiState & { children: ReactNode }) {
   return (
-    <ResultCardUiContext.Provider value={{ viewMode, hasExecuted }}>
+    <ResultCardUiContext.Provider
+      value={{ viewMode, hasExecuted, showOperatorResults }}
+    >
       {children}
     </ResultCardUiContext.Provider>
   );

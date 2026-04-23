@@ -79,7 +79,7 @@ export function parseVisionLabel(label: string): ParsedVisionCard {
   const normalized = label.trim().toLowerCase();
 
   /** Marcador físico para acoplar la carta de resultado en el lienzo (detalle de UI). */
-  if (normalized === 'grapes') {
+  if (normalized === 'grapes' || normalized === 'grape') {
     return { type: 'resultAnchor' };
   }
 

@@ -126,18 +126,19 @@ class TouchDetector:
                         continue
 
                     # Sample depth with small area to reduce sensor noise
-                    roi_size = 1
+                    roi_size = 0
                     z_roi = depth_frame[
                         max(0, cy - roi_size) : cy + roi_size + 1,
                         max(0, cx - roi_size) : cx + roi_size + 1,
                     ]
                     valid_z = z_roi[z_roi > 0]
-                    current_z = int(np.median(valid_z)) if valid_z.size > 0 else 0
+                    print("valid_z.size > 0", valid_z.size > 0)
+                    current_z = int(np.max(valid_z)) if valid_z.size > 0 else 0
 
                     surface_z = int(self._dmax_map[cy, cx])
                     diff = surface_z - current_z
 
-                    is_touching = -10 <= diff <= self.touch_threshold and current_z > 0
+                    is_touching = 0 <= diff <= self.touch_threshold and current_z > 0
                     if is_touching:
                         touches_projector.append((proj_x, proj_y))
 
