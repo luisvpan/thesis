@@ -53,8 +53,9 @@
   },
   "detection": {
     "ring_buffer_size": 5,
-    "touch_threshold": 5,
-    "min_touch_size": 50,
-    "max_touch_size": 1000
+    "touch_threshold": 25,
+    "min_touch_size": 80,
+    "max_touch_size": 5000,
+    "vibration_threshold": 15
   }
 }

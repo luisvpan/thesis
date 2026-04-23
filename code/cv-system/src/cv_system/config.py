@@ -102,10 +102,14 @@ class DetectionConfig(BaseModel):
     touch_threshold: int = 20
 
     # Minimum touch area (in pixels) to filter out noise
-    min_touch_size: int = 10
+    # Increased from 10 to 50 for ToF sensor noise (Kinect V2)
+    min_touch_size: int = 50
 
     # Maximum touch area (in pixels) to filter out large objects (e.g., hand)
     max_touch_size: int = 5000
+
+    # Vibration threshold (in mm) for filtering frame-to-frame noise
+    vibration_threshold: int = 15
 
     @field_validator("ring_buffer_size")
     @classmethod

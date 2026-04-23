@@ -27,7 +27,7 @@ from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.calibration.result import CalibrationResult
 from cv_system.detection.card_detector import CardDetector
-from cv_system.detection.touch_detector import TouchDetector
+from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
 from cv_system.hardware.manager import HardwareManager, HardwareError
 from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
 
@@ -146,15 +146,15 @@ def main() -> None:
 
         print("  Resolution mapper initialized")
 
-        detector = TouchDetector(
+        detector = DepthOnlyTouchDetector(
             calibration_result.dmax_map,
-            rgb_image_transformer,
             depth_coordinate_transformer,
             resolution_mapper,
             config.detection,
-            show_debug=False,
+            calibration_result.depth_corners,
+            show_debug=True,
         )
-        print("  Touch detector initialized")
+        print(f"  Depth-only touch detector initialized (area corners: {calibration_result.depth_corners})")
         print(f"YOLO model path: {os.getenv('YOLO_MODEL_PATH')}")
 
         model_path = Path(
@@ -238,7 +238,7 @@ def main() -> None:
                 t2 = time.perf_counter()
 
                 # Submit BOTH detections in parallel (don't wait for touch before card)
-                touch_future = touch_executor.submit(detector.detect, depth_frame, rgb_bird)
+                touch_future = touch_executor.submit(detector.detect, depth_frame)
 
                 card_future = None
                 t_card_submit = t2  # For timing card from submission

@@ -1,17 +1,17 @@
 """DMax map generation from depth frames.
 
 This module implements dmax_map generation process which captures N depth
-frames and computes the most frequent depth value (mode) for each pixel.
+frames and computes the median depth value for each pixel.
 
-Refactored from histogram-based approach to direct mode estimation using scipy.stats.mode.
-No depth_range filtering — captures full depth range without quantization loss.
+Uses median instead of mode for better robustness against ToF sensor noise
+(multipath interference, temporal jitter). Median is less sensitive to
+outliers and provides more stable surface estimation.
 """
 
 import time
 from typing import Callable
 
 import numpy as np
-from scipy import stats
 
 
 def generate_dmax_map(
@@ -19,26 +19,27 @@ def generate_dmax_map(
     num_frames: int = 500,
     depth_shape: tuple[int, int] = (424, 512),
 ) -> np.ndarray:
-    """Generate dmax_map by capturing N frames and computing per-pixel mode.
+    """Generate dmax_map by capturing N frames and computing per-pixel median.
 
     Args:
         capture_frame: Callable that returns a depth frame as np.ndarray.
-        num_frames: Number of frames to capture for mode calculation.
+        num_frames: Number of frames to capture for median calculation.
         depth_shape: Expected shape of depth frames (height, width).
 
     Returns:
         dmax_map: 2D array of same shape as depth frames, where each pixel
-            contains the most frequent depth value across captured frames.
-            Pixels with no valid data are set to 0.
+            contains the median depth value across captured frames.
+            Pixels with no valid data (always 0) are set to 0.
 
     Raises:
         ValueError: If depth_shape is not 2D or invalid num_frames.
         RuntimeError: If capture_frame raises an exception or no frames are captured.
 
     Notes:
-        Direct mode estimation uses scipy.stats.mode to compute per-pixel mode.
-        Memory usage is ~217MB for 500 frames @ 424x512 uint16 (acceptable).
-        No depth_range filtering — full depth range is captured without loss.
+        Median is more robust to ToF noise than mode:
+        - Less sensitive to outliers from multipath interference
+        - More stable with temporal jitter
+        - Memory usage is ~217MB for 500 frames @ 424x512 uint16 (acceptable).
     """
     # Validate inputs
     if len(depth_shape) != 2:
@@ -92,22 +93,29 @@ def generate_dmax_map(
     if captured_count == 0:
         raise RuntimeError("Failed to capture any frames")
 
-    # Compute per-pixel mode using scipy.stats.mode
-    # axis=0 computes mode along time axis (frames)
-    # nan_policy='omit' excludes invalid depth readings (NaN, out-of-range)
-    # keepdims=False ensures output is 2D (height, width), not reduced to 1D
-    mode_result = stats.mode(frame_stack, axis=0, nan_policy="omit", keepdims=False)
+    # Compute per-pixel median (more robust to ToF noise than mode)
+    # Replace 0 values with NaN to exclude invalid readings from median
+    print("Computing per-pixel median...")
+    t_median_start = time.perf_counter()
 
-    # Extract mode array
-    dmax_map = mode_result.mode
+    frame_stack_float = frame_stack.astype(np.float32)
+    frame_stack_float[frame_stack_float == 0] = np.nan
+
+    # Compute median along time axis, ignoring NaN values
+    with np.errstate(all='ignore'):  # Suppress warnings for all-NaN slices
+        dmax_map = np.nanmedian(frame_stack_float, axis=0)
+
+    # Replace NaN with 0 for pixels that had no valid readings
+    dmax_map = np.nan_to_num(dmax_map, nan=0.0)
 
     # Convert to uint16 (depth range is 0-65535mm)
     dmax_map = dmax_map.astype(np.uint16)
 
-    mode_time_ms = (elapsed * 1000) if elapsed > 0 else 0
+    t_median_end = time.perf_counter()
+    median_time_ms = (t_median_end - t_median_start) * 1000
 
     print(
-        f"dmax_map generated: shape={dmax_map.shape}, dtype={dmax_map.dtype}, mode computed in {mode_time_ms:.0f}ms"
+        f"dmax_map generated: shape={dmax_map.shape}, dtype={dmax_map.dtype}, median computed in {median_time_ms:.0f}ms"
     )
 
     return dmax_map
