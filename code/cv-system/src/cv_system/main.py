@@ -69,6 +69,7 @@ def main() -> None:
     config = load_config(config_path)
 
     PROJ_H, PROJ_W = config.camera.projector_resolution
+    FULL_PROJ_H, FULL_PROJ_W = PROJ_H, PROJ_W
 
     print("=" * 60)
     print("CV System Starting")
@@ -138,8 +139,20 @@ def main() -> None:
         # Step 3: Initialize transformers and detector
         print("\n[3/5] Initializing transformers and detector...")
 
-        rgb_image_transformer = RgbImageTransformer(calibration_result, config.camera)
+        rgb_image_transformer = RgbImageTransformer(
+            calibration_result,
+            config.camera,
+            projector_corners=config.calibration.projector_corners,
+        )
+        # Use effective projector-space dimensions from calibration ROI.
+        PROJ_W, PROJ_H = rgb_image_transformer.projector_wh
+        xs = [int(p[0]) for p in config.calibration.projector_corners]
+        ys = [int(p[1]) for p in config.calibration.projector_corners]
+        ROI_OFFSET_X = min(xs)
+        ROI_OFFSET_Y = min(ys)
         print("  RGB image transformer initialized")
+        print(f"  Effective projector ROI (w, h): ({PROJ_W}, {PROJ_H})")
+        print(f"  ROI offset in full projector (x, y): ({ROI_OFFSET_X}, {ROI_OFFSET_Y})")
 
         depth_coordinate_transformer = DepthCoordinateTransformer(calibration_result)
         print("  Depth coordinate transformer initialized")
@@ -262,7 +275,14 @@ def main() -> None:
                     # Always update - ByteTrack handles occlusions from hands
                     last_card_view = card_view
                     last_card_dets = card_dets
-                    post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
+                    post_card_batch_async(
+                        vision_cards_url,
+                        card_dets,
+                        FULL_PROJ_W,
+                        FULL_PROJ_H,
+                        offset_x=ROI_OFFSET_X,
+                        offset_y=ROI_OFFSET_Y,
+                    )
                 else:
                     card_view = last_card_view if last_card_view is not None else rgb_bird.get()
                     card_dets = last_card_dets
@@ -271,10 +291,15 @@ def main() -> None:
                     # Process all touches, but limit prints to reduce overhead
                     touch_printed = frame_count % 15 == 0
                     for i, (x, y) in enumerate(touches):
-                        if 0 <= x < PROJ_W and 0 <= y < PROJ_H:
-                            touch_event = TouchEvent.from_detected_touch(x=x, y=y)
+                        full_x = x + ROI_OFFSET_X
+                        full_y = y + ROI_OFFSET_Y
+                        if 0 <= full_x < FULL_PROJ_W and 0 <= full_y < FULL_PROJ_H:
+                            touch_event = TouchEvent.from_detected_touch(x=full_x, y=full_y)
                             if touch_printed:
-                                print(f"  Frame {frame_count}: Touch {i+1} at proj_x={x:.0f}, proj_y={y:.0f}")
+                                print(
+                                    f"  Frame {frame_count}: Touch {i+1} "
+                                    f"at proj_x={full_x:.0f}, proj_y={full_y:.0f}"
+                                )
 
                             if ws_bridge.state.value == "CONNECTED" and ws_bridge.loop is not None:
                                 asyncio.run_coroutine_threadsafe(
@@ -294,7 +319,16 @@ def main() -> None:
 
                 # # Fix 4: Show only every 2 frames
                 if frame_count % 2 == 0:
-                    cv2.imshow("Card Detection", card_view)
+                    full_card_view = np.zeros((FULL_PROJ_H, FULL_PROJ_W, 3), dtype=np.uint8)
+                    y1 = max(0, ROI_OFFSET_Y)
+                    x1 = max(0, ROI_OFFSET_X)
+                    y2 = min(FULL_PROJ_H, y1 + card_view.shape[0])
+                    x2 = min(FULL_PROJ_W, x1 + card_view.shape[1])
+                    src_h = max(0, y2 - y1)
+                    src_w = max(0, x2 - x1)
+                    if src_h > 0 and src_w > 0:
+                        full_card_view[y1:y2, x1:x2] = card_view[:src_h, :src_w]
+                    cv2.imshow("Card Detection", full_card_view)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
 

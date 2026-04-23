@@ -35,6 +35,8 @@ def post_card_batch_async(
     proj_w: int,
     proj_h: int,
     *,
+    offset_x: float = 0.0,
+    offset_y: float = 0.0,
     min_interval_s: float = 0.15,
 ) -> None:
     """
@@ -50,8 +52,12 @@ def post_card_batch_async(
 
     cards: list[dict[str, Any]] = []
     for d in detections:
-        cx = (d.x1 + d.x2) / 2.0
-        cy = (d.y1 + d.y2) / 2.0
+        x1 = d.x1 + offset_x
+        y1 = d.y1 + offset_y
+        x2 = d.x2 + offset_x
+        y2 = d.y2 + offset_y
+        cx = (x1 + x2) / 2.0
+        cy = (y1 + y2) / 2.0
         card_data: dict[str, Any] = {
             "classId": d.class_id,
             "label": d.label,
@@ -61,10 +67,10 @@ def post_card_batch_async(
                 "y": max(0.0, min(1.0, cy / float(proj_h))),
             },
             "bbox": {
-                "x1": max(0.0, min(1.0, d.x1 / float(proj_w))),
-                "y1": max(0.0, min(1.0, d.y1 / float(proj_h))),
-                "x2": max(0.0, min(1.0, d.x2 / float(proj_w))),
-                "y2": max(0.0, min(1.0, d.y2 / float(proj_h))),
+                "x1": max(0.0, min(1.0, x1 / float(proj_w))),
+                "y1": max(0.0, min(1.0, y1 / float(proj_h))),
+                "x2": max(0.0, min(1.0, x2 / float(proj_w))),
+                "y2": max(0.0, min(1.0, y2 / float(proj_h))),
             },
         }
         if d.track_id >= 0:

@@ -26,7 +26,12 @@ class RgbImageTransformer:
     pure mathematical operations using the stored matrices.
     """
 
-    def __init__(self, calibration_result: CalibrationResult, config: CameraConfig) -> None:
+    def __init__(
+        self,
+        calibration_result: CalibrationResult,
+        config: CameraConfig,
+        projector_corners: list[tuple[int, int]] | None = None,
+    ) -> None:
         """Initialize transformer from calibration result.
 
         Args:
@@ -36,13 +41,37 @@ class RgbImageTransformer:
             ValueError: If H is not invertible (determinant is zero or near-zero).
         """
         self._H = calibration_result.rgb_H.copy()
-        self._H_inv = np.linalg.inv(self._H)
         # warpPerspective `dsize` is the destination image size (width, height).
         # rgb_H maps Kinect RGB pixels → projector pixels (same space as projector_corners).
         rgb_h, rgb_w = config.rgb_resolution
         proj_h, proj_w = config.projector_resolution
         self._camera_wh = (rgb_w, rgb_h)
-        self._projector_wh = (proj_w, proj_h)
+
+        # If calibration corners define a smaller projected ROI, normalize the output
+        # space to that ROI so homography dimensions match the projected square area.
+        if projector_corners:
+            xs = [int(p[0]) for p in projector_corners]
+            ys = [int(p[1]) for p in projector_corners]
+            min_x, max_x = min(xs), max(xs)
+            min_y, max_y = min(ys), max(ys)
+
+            roi_w = max_x - min_x
+            roi_h = max_y - min_y
+            if roi_w <= 0 or roi_h <= 0:
+                raise ValueError(
+                    f"Invalid projector ROI from corners: width={roi_w}, height={roi_h}"
+                )
+
+            translate_to_roi = np.array(
+                [[1.0, 0.0, -float(min_x)], [0.0, 1.0, -float(min_y)], [0.0, 0.0, 1.0]],
+                dtype=np.float32,
+            )
+            self._H = (translate_to_roi @ self._H).astype(np.float32)
+            self._projector_wh = (roi_w, roi_h)
+        else:
+            self._projector_wh = (proj_w, proj_h)
+
+        self._H_inv = np.linalg.inv(self._H)
 
     @property
     def H(self) -> np.ndarray:
@@ -53,6 +82,11 @@ class RgbImageTransformer:
     def H_inv(self) -> np.ndarray:
         """Read-only access to the inverse homography matrix (projector -> camera)."""
         return self._H_inv
+
+    @property
+    def projector_wh(self) -> tuple[int, int]:
+        """Read-only output size (width, height) for projector-space images."""
+        return self._projector_wh
     
     def camera_to_projector(self, image: cv2.UMat) -> cv2.UMat:
         """Transform image from camera space to projector space.
