@@ -53,11 +53,21 @@ class CameraConfig(BaseModel):
 class CalibrationConfig(BaseModel):
     """Parameters for the per-session calibration process."""
 
-    # Number of depth frames to capture for dmax_map generation
-    dmax_num_frames: int = 500
+    # Number of depth frames to capture for dsurface_map generation (Wilson algorithm)
+    dsurface_num_frames: int = 500
 
-    # Expected depth range for the table surface (in millimeters)
-    # Values outside this range are excluded from dmax calculation
+    # Minimum count threshold for a histogram bin to be considered valid
+    # Wilson algorithm: scan from near to far, find first bin with count >= threshold
+    histogram_threshold: int = 3
+
+    # Range in mm around the snapshot reference for per-pixel histograms
+    # Each pixel has bins covering [snapshot - range, snapshot + range]
+    histogram_range: int = 20
+
+    # Offset to subtract from dsurface to get dmax (in mm)
+    # dmax = dsurface - surface_offset ensures the table surface is excluded from touch zone
+    # Higher values = touch zone farther from surface (more conservative)
+    surface_offset: int = 2
 
     # Four corner points in camera coordinates (y, x)
     # Format: [(y1, x1), (y2, x2), (y3, x3), (y4, x4)]
@@ -77,12 +87,28 @@ class CalibrationConfig(BaseModel):
         (1920, 1080),
     ]
 
-    @field_validator("dmax_num_frames")
+    @field_validator("dsurface_num_frames")
     @classmethod
     def num_frames_must_be_positive(cls, v: int) -> int:
         """Ensure number of frames is positive."""
         if v <= 0:
-            raise ValueError("dmax_num_frames must be positive")
+            raise ValueError("dsurface_num_frames must be positive")
+        return v
+
+    @field_validator("histogram_threshold")
+    @classmethod
+    def histogram_threshold_must_be_positive(cls, v: int) -> int:
+        """Ensure histogram threshold is positive."""
+        if v <= 0:
+            raise ValueError("histogram_threshold must be positive")
+        return v
+
+    @field_validator("histogram_range")
+    @classmethod
+    def histogram_range_must_be_positive(cls, v: int) -> int:
+        """Ensure histogram range is positive."""
+        if v <= 0:
+            raise ValueError("histogram_range must be positive")
         return v
 
         if len(v) != 4:
@@ -110,6 +136,9 @@ class DetectionConfig(BaseModel):
 
     # Vibration threshold (in mm) for filtering frame-to-frame noise
     vibration_threshold: int = 15
+
+    # Number of frames required to confirm a touch (touch history)
+    touch_history_size: int = 3
 
     @field_validator("ring_buffer_size")
     @classmethod

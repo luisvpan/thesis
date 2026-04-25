@@ -24,7 +24,10 @@ def mock_calibration_config():
             # No longer need camera_corners in config
             # Order must match MarkerDetector sorting: [top-left, top-right, bottom-left, bottom-right]
             self.projector_corners = [(100, 100), (700, 100), (100, 500), (700, 500)]
-            self.dmax_num_frames = 10
+            self.dsurface_num_frames = 10
+            self.histogram_threshold = 3
+            self.histogram_range = 20
+            self.surface_offset = 2
 
     class MockConfig:
         def __init__(self):
@@ -131,7 +134,10 @@ def test_calibrator_initialization_wrong_corner_count(
     class MockCalibration:
         def __init__(self):
             self.projector_corners = [(100, 100), (700, 100)]  # Only 2 corners
-            self.dmax_num_frames = 10
+            self.dsurface_num_frames = 10
+            self.histogram_threshold = 3
+            self.histogram_range = 20
+            self.surface_offset = 2
 
     class MockConfig:
         def __init__(self):

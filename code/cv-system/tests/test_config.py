@@ -15,9 +15,9 @@ def test_default_calibration_config_no_depth_range():
     """Test that default CalibrationConfig has no depth_range fields."""
     calibration = CalibrationConfig()
 
-    # Should have dmax_num_frames
-    assert hasattr(calibration, "dmax_num_frames")
-    assert calibration.dmax_num_frames > 0
+    # Should have dsurface_num_frames
+    assert hasattr(calibration, "dsurface_num_frames")
+    assert calibration.dsurface_num_frames > 0
 
     # Should NOT have depth_range_min/max (removed in T03)
     assert not hasattr(calibration, "depth_range_min")
@@ -38,7 +38,7 @@ def test_calibration_config_load_without_depth_range():
             },
             "calibration": {
                 "projector_corners": [[100, 100], [700, 100], [100, 500], [700, 500]],
-                "dmax_num_frames": 500,
+                "dsurface_num_frames": 500,
             },
         }
 
@@ -57,7 +57,7 @@ def test_calibration_config_load_without_depth_range():
         assert not hasattr(config.calibration, "depth_range_max")
 
         # Verify other fields are present
-        assert config.calibration.dmax_num_frames == 500
+        assert config.calibration.dsurface_num_frames == 500
         assert len(config.calibration.projector_corners) == 4
 
 
@@ -75,7 +75,7 @@ def test_calibration_config_load_with_depth_range_raises_error():
             },
             "calibration": {
                 "projector_corners": [[100, 100], [700, 100], [100, 500], [700, 500]],
-                "dmax_num_frames": 500,
+                "dsurface_num_frames": 500,
                 "depth_range_min": 650,  # Removed field
                 "depth_range_max": 800,  # Removed field
             },

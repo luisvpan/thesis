@@ -18,7 +18,7 @@ import time
 import cv2
 import numpy as np
 
-from cv_system.calibration.dmax import compute_depth_stats, generate_dmax_map
+from cv_system.calibration.dmax import compute_depth_stats, generate_dmax_map_wilson
 from cv_system.calibration.homography import compute_homography, validate_homography
 from cv_system.calibration.marker_detector import MarkerDetector
 from cv_system.calibration.marker_projector import MarkerProjector
@@ -138,9 +138,13 @@ class Calibrator:
 
         # Step 4: Create calibration result
         elapsed = time.time() - start_time
+        calibration = self.config.calibration
         metadata = {
-            "method": "direct",  # Direct mode estimation (no histogram)
-            "num_frames": self.config.calibration.dmax_num_frames,
+            "method": "wilson",  # Wilson 2010 per-pixel histogram algorithm
+            "num_frames": calibration.dsurface_num_frames,
+            "histogram_threshold": calibration.histogram_threshold,
+            "histogram_range": calibration.histogram_range,
+            "surface_offset": calibration.surface_offset,
             "depth_shape": dmax_map.shape,
             "elapsed_seconds": elapsed,
             "dmax_compute_time_ms": dmax_elapsed_ms,
@@ -264,10 +268,10 @@ class Calibrator:
             raise RuntimeError(f"Failed to compute homography: {e}") from e
 
     def _generate_dmax_map(self) -> "np.ndarray":
-        """Generate dmax_map from depth frames using direct mode estimation.
+        """Generate dmax_map from depth frames using Wilson 2010 algorithm.
 
-        Captures N depth frames and computes the per-pixel most frequent
-        depth value (mode) along the time axis. No depth range filtering.
+        Captures N depth frames and uses per-pixel histograms to find
+        dsurface for each pixel, then applies surface_offset to get dmax.
 
         Returns:
             2D dmax_map array (uint16).
@@ -287,10 +291,14 @@ class Calibrator:
                 raise RuntimeError(f"Failed to capture depth frame: {e}") from e
 
         try:
-            dmax_map = generate_dmax_map(
+            dmax_map = generate_dmax_map_wilson(
                 capture_frame=capture_frame,
-                num_frames=calibration.dmax_num_frames,
+                num_frames=calibration.dsurface_num_frames,
                 depth_shape=(424, 512),  # Kinect V2 depth frame shape
+                histogram_threshold=calibration.histogram_threshold,
+                histogram_range=calibration.histogram_range,
+                surface_offset=calibration.surface_offset,
+                show_debug=True,
             )
             return dmax_map
 

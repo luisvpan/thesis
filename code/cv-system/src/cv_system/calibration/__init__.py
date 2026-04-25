@@ -8,7 +8,7 @@ This module provides the calibration layer of the CV system:
 """
 
 from cv_system.calibration.calibrator import Calibrator
-from cv_system.calibration.dmax import compute_depth_stats, generate_dmax_map
+from cv_system.calibration.dmax import compute_depth_stats, generate_dmax_map, generate_dmax_map_wilson
 from cv_system.calibration.homography import (
     apply_homography,
     compute_homography,
@@ -25,6 +25,7 @@ __all__ = [
     "apply_homography",
     "validate_homography",
     "generate_dmax_map",
+    "generate_dmax_map_wilson",
     "compute_depth_stats",
     "MarkerProjector",
     "MarkerDetector",

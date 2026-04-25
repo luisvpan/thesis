@@ -78,7 +78,7 @@ def main() -> None:
     print(f"Camera depth resolution: {config.camera.depth_resolution}")
     print(f"Camera RGB resolution: {config.camera.rgb_resolution}")
     print(f"FPS: {config.camera.fps}")
-    print(f"DMax frames: {config.calibration.dmax_num_frames}")
+    print(f"Dsurface frames: {config.calibration.dsurface_num_frames}")
     print(f"OpenCL available: {cv2.ocl.haveOpenCL()}, enabled: {cv2.ocl.useOpenCL()}")
     print("=" * 60)
 
