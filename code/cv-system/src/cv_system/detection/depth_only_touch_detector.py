@@ -104,9 +104,13 @@ class DepthOnlyTouchDetector:
         self._last_touch: tuple[float, float] | None = None
         self._smoothing_alpha = 0.7  # 0=all history, 1=only new position
 
+        # Position locking to prevent jumps between fingers
+        self._max_jump_distance = 30.0  # Max allowed movement per frame (depth pixels)
+        self._frames_without_touch = 0
+        self._lock_reset_frames = 5  # Frames without touch to reset lock
+
         # Store defects for debug visualization
         self._last_defects: list[tuple[int, int]] = []
-
 
     def detect(
         self, depth_frame: np.ndarray
@@ -125,32 +129,14 @@ class DepthOnlyTouchDetector:
         # Convert to int32 for safe arithmetic
         depth_int = depth_frame.astype(np.int32)
 
-        # 1. Vibration filter - restore pixels that change too abruptly
-        if self._previous_depth is not None:
-            roi_diff = cv2.absdiff(
-                depth_int.astype(np.uint16), self._previous_depth.astype(np.uint16)
-            )
-            _, vibration_mask = cv2.threshold(
-                roi_diff.astype(np.uint8), self._vibration_threshold, 255, cv2.THRESH_BINARY
-            )
-            vibration_mask = cv2.medianBlur(vibration_mask, ksize=5)
-            depth_int[vibration_mask > 0] = self._previous_depth[vibration_mask > 0]
-        self._previous_depth = depth_int.copy()
-
-        # Use depth directly (temporal filtering was adding noise instead of removing it)
+        # Use depth directly (temporal filtering was adding noise)
         depth_filtered = depth_int
 
-        # 2. Create depth shell mask (dmin < z < dmax) - strict inequalities
-        # Objects at dmax or beyond are excluded (surface/table)
-        # Objects at dmin or closer are excluded (hovering too high)
+        # Create depth shell mask (dmin < z < dmax)
         touch_mask = ((depth_filtered > self._dmin_map) & (depth_filtered < self._dmax_map))
         touch_mask = touch_mask.astype(np.uint8) * 255
 
-        # Save RAW mask before filtering (for debug comparison)
-        touch_mask_raw = touch_mask.copy()
-
-        # 3. Noise filtering - simplified (Wilson calibration handles most noise)
-        # Only medianBlur to clean up flying pixels at object boundaries
+        # Simplified noise filtering - just median blur
         touch_mask = cv2.medianBlur(touch_mask, ksize=5)
 
         # 4. Apply area mask to ignore pixels outside calibrated region
@@ -209,15 +195,15 @@ class DepthOnlyTouchDetector:
                             if self._min_touch_size <= stats[i, cv2.CC_STAT_AREA] <= self._max_touch_size)
             print(f"[DepthOnly] Valid components: {valid_count}, best variance: {best_variance:.1f}")
 
-        # Store defect points for debug visualization
-        self._last_defects: list[tuple[int, int]] = []
+        # Clear defects for this frame
+        self._last_defects = []
 
         # Process the best component - detect fingertips using convex hull + defects
         h, w = depth_filtered.shape
         if best_component_idx is not None and best_variance >= 3.0:
             component_mask = (labels == best_component_idx).astype(np.uint8) * 255
 
-            # Find contour of the touch region
+            # Find contour
             contours, _ = cv2.findContours(
                 component_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
             )
@@ -225,67 +211,66 @@ class DepthOnlyTouchDetector:
             if contours and len(contours[0]) >= 5:
                 contour = contours[0]
 
-                # Convex hull with indices (not points)
-                hull_indices = cv2.convexHull(contour, returnPoints=False)
+                # CRITICAL: Smooth the contour to remove noise
+                epsilon = 0.015 * cv2.arcLength(contour, True)  # 1.5% of perimeter
+                contour_smooth = cv2.approxPolyDP(contour, epsilon, True)
 
-                # Find convexity defects (valleys between fingers)
-                if len(hull_indices) > 3:
-                    defects = cv2.convexityDefects(contour, hull_indices)
+                # Need at least 5 points for convex hull
+                if len(contour_smooth) >= 5:
+                    # Convex hull with indices
+                    hull_indices = cv2.convexHull(contour_smooth, returnPoints=False)
 
-                    fingertips: list[tuple[int, int]] = []
+                    # Find convexity defects
+                    if len(hull_indices) > 3:
+                        defects = cv2.convexityDefects(contour_smooth, hull_indices)
 
-                    if defects is not None:
-                        for defect in defects:
-                            start_idx, end_idx, far_idx, distance = defect[0]
+                        fingertips: list[tuple[int, int]] = []
 
-                            start = tuple(contour[start_idx][0])
-                            end = tuple(contour[end_idx][0])
-                            far = tuple(contour[far_idx][0])
+                        if defects is not None:
+                            for defect in defects:
+                                start_idx, end_idx, far_idx, distance = defect[0]
 
-                            # Store defect point for visualization
-                            self._last_defects.append(far)
+                                start = tuple(contour_smooth[start_idx][0])
+                                end = tuple(contour_smooth[end_idx][0])
+                                far = tuple(contour_smooth[far_idx][0])
 
-                            # Calculate angle at the far point (valley)
-                            start_arr = np.array(start, dtype=np.float32)
-                            end_arr = np.array(end, dtype=np.float32)
-                            far_arr = np.array(far, dtype=np.float32)
+                                # Store ALL defect points for visualization
+                                self._last_defects.append(far)
 
-                            a = np.linalg.norm(start_arr - far_arr)
-                            b = np.linalg.norm(end_arr - far_arr)
-                            c = np.linalg.norm(start_arr - end_arr)
+                                # Calculate angle at the far point
+                                start_arr = np.array(start, dtype=np.float32)
+                                end_arr = np.array(end, dtype=np.float32)
+                                far_arr = np.array(far, dtype=np.float32)
 
-                            # Law of cosines to get angle at far point
-                            cos_angle = (a**2 + b**2 - c**2) / (2 * a * b + 1e-6)
-                            cos_angle = np.clip(cos_angle, -1, 1)
-                            angle = np.arccos(cos_angle)
+                                a = np.linalg.norm(start_arr - far_arr)
+                                b = np.linalg.norm(end_arr - far_arr)
+                                c = np.linalg.norm(start_arr - end_arr)
 
-                            # Angle <= 90° indicates finger gap
-                            # distance > 5000 filters small noise (distance is scaled by 256)
-                            if angle <= np.pi / 2 and distance > 5000:
-                                # The START point of each valid defect is a fingertip
-                                fx, fy = start
+                                cos_angle = (a**2 + b**2 - c**2) / (2 * a * b + 1e-6)
+                                cos_angle = np.clip(cos_angle, -1, 1)
+                                angle = np.arccos(cos_angle)
 
-                                # Validate: must be close to surface
-                                if 0 <= fy < h and 0 <= fx < w:
-                                    dist_to_surface = int(self._dmax_map[fy, fx]) - int(depth_filtered[fy, fx])
-                                    if dist_to_surface < 25:  # mm from surface
-                                        fingertips.append((fx, fy))
+                                # INCREASED threshold: distance > 20000 (was 5000)
+                                # 20000/256 ≈ 78 pixels depth = real finger valley
+                                if angle <= np.pi / 2 and distance > 20000:
+                                    fx, fy = start
+                                    if 0 <= fy < h and 0 <= fx < w:
+                                        dist_to_surface = int(self._dmax_map[fy, fx]) - int(depth_filtered[fy, fx])
+                                        if dist_to_surface < 25:
+                                            fingertips.append((fx, fy))
 
-                    # Remove duplicates (fingertips too close together)
-                    unique_fingertips: list[tuple[int, int]] = []
-                    for fp in fingertips:
-                        is_duplicate = False
-                        for ufp in unique_fingertips:
-                            if np.linalg.norm(np.array(fp) - np.array(ufp)) < 20:
-                                is_duplicate = True
-                                break
-                        if not is_duplicate:
-                            unique_fingertips.append(fp)
+                        # Remove duplicates (fingertips too close together)
+                        unique_fingertips: list[tuple[int, int]] = []
+                        for fp in fingertips:
+                            is_dup = any(np.linalg.norm(np.array(fp) - np.array(ufp)) < 25
+                                        for ufp in unique_fingertips)
+                            if not is_dup:
+                                unique_fingertips.append(fp)
 
-                    # Transform to projector coordinates
-                    for fx, fy in unique_fingertips[:5]:
-                        proj_point = self._transform_to_projector(float(fx), float(fy))
-                        touches_projector.append(proj_point)
+                        # Transform to projector coordinates
+                        for fx, fy in unique_fingertips[:5]:
+                            proj_point = self._transform_to_projector(float(fx), float(fy))
+                            touches_projector.append(proj_point)
 
         objects_detected = len(touches_projector) > 0
 
@@ -377,14 +362,14 @@ class DepthOnlyTouchDetector:
         area_contours, _ = cv2.findContours(self._area_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(zones_vis, area_contours, -1, (255, 255, 0), 1)
 
-        # Draw hand silhouette (white contour from touch_mask)
+        # Draw hand silhouette (white contour)
         if np.any(touch_mask > 0):
             hand_contours, _ = cv2.findContours(touch_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             cv2.drawContours(zones_vis, hand_contours, -1, (255, 255, 255), 2)
 
-        # Draw convexity defects (valleys between fingers) as magenta circles
+        # Draw convexity defects (magenta) - valleys between fingers
         for dx, dy in self._last_defects:
-            cv2.circle(zones_vis, (dx, dy), 5, (255, 0, 255), -1)  # Magenta filled
+            cv2.circle(zones_vis, (dx, dy), 6, (255, 0, 255), -1)  # Magenta
 
         # === Original depth visualization ===
         depth_vis = cv2.normalize(
@@ -395,8 +380,8 @@ class DepthOnlyTouchDetector:
         cv2.putText(depth_vis, shell_info, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
         cv2.drawContours(depth_vis, area_contours, -1, (255, 255, 0), 1)
 
-        # Draw all fingertip touches on both visualizations
-        for i, (proj_x, proj_y) in enumerate(touches):
+        # Draw fingertip touches (yellow with white border)
+        for proj_x, proj_y in touches:
             # Transform back to depth space for visualization
             rgb_point = self._coordinate_transformer.projector_to_camera(
                 np.array([[proj_x, proj_y]], dtype=np.float32)
@@ -406,10 +391,10 @@ class DepthOnlyTouchDetector:
             )
             dx, dy = depth_points[0]
 
-            # Yellow filled circle with white border for fingertips
+            # Yellow filled circle with white border
             cv2.circle(zones_vis, (dx, dy), 8, (0, 255, 255), -1)  # Yellow filled
             cv2.circle(zones_vis, (dx, dy), 8, (255, 255, 255), 2)  # White border
-            cv2.circle(depth_vis, (dx, dy), 8, (0, 255, 255), -1)  # Yellow filled
+            cv2.circle(depth_vis, (dx, dy), 8, (0, 255, 255), -1)  # Yellow on depth too
 
             # Show depth info at first touch point only (avoid clutter)
             if i == 0 and 0 <= dy < h and 0 <= dx < w:
@@ -417,7 +402,7 @@ class DepthOnlyTouchDetector:
                 tdmax = int(self._dmax_map[dy, dx])
                 tdmin = int(self._dmin_map[dy, dx])
                 info = f"z={tz} [{tdmin}-{tdmax}]"
-                cv2.putText(depth_vis, info, (dx + 10, dy), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
+                cv2.putText(depth_vis, info, (dx + 10, dy), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
 
         # Touch mask visualization (colorized)
         touch_mask_color = cv2.applyColorMap(touch_mask, cv2.COLORMAP_JET)
