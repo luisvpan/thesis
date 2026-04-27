@@ -211,6 +211,10 @@ def main() -> None:
         cv2.setWindowProperty("Card Detection", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.moveWindow("Card Detection", 1920, 0)
 
+        cv2.namedWindow("Touch Debug", cv2.WINDOW_NORMAL)
+        cv2.moveWindow("Touch Debug", -1920, 0)
+        cv2.setWindowProperty("Touch Debug", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
         # Cache for card detection (Fix 3: run every N frames)
         CARD_DETECT_INTERVAL = 1  # TEMP: Set to 1 for profiling
         last_card_view = None
@@ -295,6 +299,25 @@ def main() -> None:
                 # # Fix 4: Show only every 2 frames
                 if frame_count % 2 == 0:
                     cv2.imshow("Card Detection", card_view)
+
+                # Debug: Show touches on black canvas (avoids infinite reflection)
+                touch_debug = np.zeros((PROJ_H, PROJ_W, 3), dtype=np.uint8)
+                if touches:
+                    print(f"  [TouchDebug] {len(touches)} touches: {[(int(x), int(y)) for x, y in touches]}")
+                for tx, ty in touches:
+                    tx_int, ty_int = int(tx), int(ty)
+                    # Clamp to visible area for debugging
+                    tx_draw = max(30, min(tx_int, PROJ_W - 30))
+                    ty_draw = max(30, min(ty_int, PROJ_H - 30))
+                    # Yellow filled circle with white border
+                    cv2.circle(touch_debug, (tx_draw, ty_draw), 20, (0, 255, 255), -1)
+                    cv2.circle(touch_debug, (tx_draw, ty_draw), 20, (255, 255, 255), 3)
+                    # Show coordinates (original, not clamped)
+                    cv2.putText(touch_debug, f"({tx_int}, {ty_int})",
+                                (tx_draw + 25, ty_draw + 5),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                cv2.imshow("Touch Debug", touch_debug)
+
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
 

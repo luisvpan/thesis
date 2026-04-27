@@ -190,8 +190,8 @@ class HardwareManager:
                 self.camera_config.depth_resolution
             )
 
-            # Mirror horizontally (OpenCL accelerated)
-            depth_array = cv2.flip(cv2.UMat(depth_array), 1).get()
+            # depth_array = cv2.flip(cv2.UMat(depth_array), 1) # Mirror horizontally (OpenCL accelerated)
+            depth_array = cv2.flip(cv2.UMat(depth_array), 0).get() # flip vertically
 
             return depth_array
         except Exception as e:
@@ -225,7 +225,8 @@ class HardwareManager:
             # Mirror horizontally + convert RGB to BGR (OpenCL accelerated)
             # Keep as UMat to avoid CPU<->GPU transfer
             rgb_umat = cv2.UMat(rgb_array)
-            rgb_umat = cv2.flip(rgb_umat, 1)
+            # rgb_umat = cv2.flip(rgb_umat, 1) # Mirror horizontally
+            rgb_umat = cv2.flip(rgb_umat, 0) # flip vertically
             rgb_umat = cv2.cvtColor(rgb_umat, cv2.COLOR_RGB2BGR)
 
             return rgb_umat
