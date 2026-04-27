@@ -1,124 +1,210 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
-import { execute } from "../../index";
-import type { ArrayValue, ShapeValue, FoodValue } from "../../runtime/types";
+import { orderAsc, orderDesc } from "../ordering";
+import type { RationalValue, ShapeValue, FoodValue, ArrayValue } from "../../runtime/types";
 
-describe("Ordering operations", () => {
-  test("order_asc sorts by taxonomical rules", async () => {
-    const result = await execute(`
-      source items = [
-        {type: grape, color: purple, amount: 5},
-        {type: circle, size: large, amount: 3},
-        {type: apple, color: red, amount: 1}
-      ];
-      transform sorted = order_asc(items);
-      sink result = sorted;
-    `);
-
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("array");
-    // Concrete (food) < Pictorial (shape)
-    // So foods come first, then shapes
-    expect((sinkResult.elements[0] as FoodValue).kind).toBe("food");
-    expect((sinkResult.elements[1] as FoodValue).kind).toBe("food");
-    expect((sinkResult.elements[2] as ShapeValue).kind).toBe("shape");
+describe("orderAsc (unit)", () => {
+  test("sorts rationals in ascending order", () => {
+    const values: RationalValue[] = [
+      { kind: "rational", value: new Fraction(5) },
+      { kind: "rational", value: new Fraction(2) },
+      { kind: "rational", value: new Fraction(8) },
+      { kind: "rational", value: new Fraction(1) },
+    ];
+    const result = orderAsc(values) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as RationalValue).value.equals(new Fraction(1))).toBe(true);
+    expect((result.elements[1] as RationalValue).value.equals(new Fraction(2))).toBe(true);
+    expect((result.elements[2] as RationalValue).value.equals(new Fraction(5))).toBe(true);
+    expect((result.elements[3] as RationalValue).value.equals(new Fraction(8))).toBe(true);
   });
 
-  test("order_desc sorts by taxonomical rules in reverse", async () => {
-    const result = await execute(`
-      source items = [
-        {type: grape, color: purple, amount: 5},
-        {type: circle, size: large, amount: 3},
-        {type: apple, color: red, amount: 1}
-      ];
-      transform sorted = order_desc(items);
-      sink result = sorted;
-    `);
-
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("array");
-    // Descending: Abstract > Pictorial > Concrete
-    // So shapes come first, then foods
-    expect((sinkResult.elements[0] as ShapeValue).kind).toBe("shape");
-    expect((sinkResult.elements[1] as FoodValue).kind).toBe("food");
-    expect((sinkResult.elements[2] as FoodValue).kind).toBe("food");
+  test("sorts by category: Concrete < Pictorial < Abstract", () => {
+    const grape: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "grape",
+      color: "purple",
+      amount: new Fraction(5),
+    };
+    const circle: ShapeValue = {
+      kind: "shape",
+      category: "pictorial",
+      subtype: "circle",
+      size: "large",
+      amount: new Fraction(3),
+    };
+    const result = orderAsc([circle, grape]) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as FoodValue).kind).toBe("food");
+    expect((result.elements[1] as ShapeValue).kind).toBe("shape");
   });
 
-  test("order_asc sorts by type alphabetically within category", async () => {
-    const result = await execute(`
-      source items = [
-        {type: pear, color: green, amount: 1},
-        {type: apple, color: red, amount: 2},
-        {type: grape, color: purple, amount: 3}
-      ];
-      transform sorted = order_asc(items);
-      sink result = sorted;
-    `);
-
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    // All concrete/food, sorted by subtype alphabetically
-    expect((sinkResult.elements[0] as FoodValue).subtype).toBe("apple");
-    expect((sinkResult.elements[1] as FoodValue).subtype).toBe("grape");
-    expect((sinkResult.elements[2] as FoodValue).subtype).toBe("pear");
+  test("sorts by type alphabetically within same category", () => {
+    const pear: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "pear",
+      color: "green",
+      amount: new Fraction(1),
+    };
+    const apple: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "apple",
+      color: "red",
+      amount: new Fraction(2),
+    };
+    const grape: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "grape",
+      color: "purple",
+      amount: new Fraction(3),
+    };
+    const result = orderAsc([pear, apple, grape]) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as FoodValue).subtype).toBe("apple");
+    expect((result.elements[1] as FoodValue).subtype).toBe("grape");
+    expect((result.elements[2] as FoodValue).subtype).toBe("pear");
   });
 
-  test("order_asc sorts by quantity within same type", async () => {
-    const result = await execute(`
-      source items = [
-        {type: grape, color: purple, amount: 10},
-        {type: grape, color: purple, amount: 2},
-        {type: grape, color: purple, amount: 5}
-      ];
-      transform sorted = order_asc(items);
-      sink result = sorted;
-    `);
-
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    // Same type, sorted by amount
-    expect((sinkResult.elements[0] as FoodValue).amount.equals(new Fraction(2))).toBe(true);
-    expect((sinkResult.elements[1] as FoodValue).amount.equals(new Fraction(5))).toBe(true);
-    expect((sinkResult.elements[2] as FoodValue).amount.equals(new Fraction(10))).toBe(true);
+  test("sorts by quantity within same type", () => {
+    const grape1: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "grape",
+      color: "purple",
+      amount: new Fraction(10),
+    };
+    const grape2: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "grape",
+      color: "purple",
+      amount: new Fraction(2),
+    };
+    const grape3: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "grape",
+      color: "purple",
+      amount: new Fraction(5),
+    };
+    const result = orderAsc([grape1, grape2, grape3]) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as FoodValue).amount.equals(new Fraction(2))).toBe(true);
+    expect((result.elements[1] as FoodValue).amount.equals(new Fraction(5))).toBe(true);
+    expect((result.elements[2] as FoodValue).amount.equals(new Fraction(10))).toBe(true);
   });
 
-  test("order_desc sorts by quantity in reverse within same type", async () => {
-    const result = await execute(`
-      source items = [
-        {type: circle, size: large, amount: 2},
-        {type: circle, size: large, amount: 10},
-        {type: circle, size: large, amount: 5}
-      ];
-      transform sorted = order_desc(items);
-      sink result = sorted;
-    `);
+  test("returns single element unchanged", () => {
+    const value: RationalValue = { kind: "rational", value: new Fraction(5) };
+    const result = orderAsc([value]) as RationalValue;
+    expect(result.kind).toBe("rational");
+    expect(result.value.equals(new Fraction(5))).toBe(true);
+  });
+});
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    // Same type, sorted by amount descending
-    expect((sinkResult.elements[0] as ShapeValue).amount.equals(new Fraction(10))).toBe(true);
-    expect((sinkResult.elements[1] as ShapeValue).amount.equals(new Fraction(5))).toBe(true);
-    expect((sinkResult.elements[2] as ShapeValue).amount.equals(new Fraction(2))).toBe(true);
+describe("orderDesc (unit)", () => {
+  test("sorts rationals in descending order", () => {
+    const values: RationalValue[] = [
+      { kind: "rational", value: new Fraction(5) },
+      { kind: "rational", value: new Fraction(2) },
+      { kind: "rational", value: new Fraction(8) },
+      { kind: "rational", value: new Fraction(1) },
+    ];
+    const result = orderDesc(values) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as RationalValue).value.equals(new Fraction(8))).toBe(true);
+    expect((result.elements[1] as RationalValue).value.equals(new Fraction(5))).toBe(true);
+    expect((result.elements[2] as RationalValue).value.equals(new Fraction(2))).toBe(true);
+    expect((result.elements[3] as RationalValue).value.equals(new Fraction(1))).toBe(true);
   });
 
-  test("order_desc sorts by type alphabetically in reverse within category", async () => {
-    const result = await execute(`
-      source items = [
-        {type: apple, color: red, amount: 1},
-        {type: pear, color: green, amount: 2},
-        {type: grape, color: purple, amount: 3}
-      ];
-      transform sorted = order_desc(items);
-      sink result = sorted;
-    `);
+  test("sorts by category in reverse: Abstract > Pictorial > Concrete", () => {
+    const grape: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "grape",
+      color: "purple",
+      amount: new Fraction(5),
+    };
+    const circle: ShapeValue = {
+      kind: "shape",
+      category: "pictorial",
+      subtype: "circle",
+      size: "large",
+      amount: new Fraction(3),
+    };
+    const result = orderDesc([grape, circle]) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as ShapeValue).kind).toBe("shape");
+    expect((result.elements[1] as FoodValue).kind).toBe("food");
+  });
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    // All concrete/food, sorted by subtype reverse alphabetically: pear > grape > apple
-    expect((sinkResult.elements[0] as FoodValue).subtype).toBe("pear");
-    expect((sinkResult.elements[1] as FoodValue).subtype).toBe("grape");
-    expect((sinkResult.elements[2] as FoodValue).subtype).toBe("apple");
+  test("sorts by type alphabetically in reverse within same category", () => {
+    const pear: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "pear",
+      color: "green",
+      amount: new Fraction(1),
+    };
+    const apple: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "apple",
+      color: "red",
+      amount: new Fraction(2),
+    };
+    const grape: FoodValue = {
+      kind: "food",
+      category: "concrete",
+      subtype: "grape",
+      color: "purple",
+      amount: new Fraction(3),
+    };
+    const result = orderDesc([apple, pear, grape]) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as FoodValue).subtype).toBe("pear");
+    expect((result.elements[1] as FoodValue).subtype).toBe("grape");
+    expect((result.elements[2] as FoodValue).subtype).toBe("apple");
+  });
+
+  test("sorts by quantity in reverse within same type", () => {
+    const circle1: ShapeValue = {
+      kind: "shape",
+      category: "pictorial",
+      subtype: "circle",
+      size: "large",
+      amount: new Fraction(2),
+    };
+    const circle2: ShapeValue = {
+      kind: "shape",
+      category: "pictorial",
+      subtype: "circle",
+      size: "large",
+      amount: new Fraction(10),
+    };
+    const circle3: ShapeValue = {
+      kind: "shape",
+      category: "pictorial",
+      subtype: "circle",
+      size: "large",
+      amount: new Fraction(5),
+    };
+    const result = orderDesc([circle1, circle2, circle3]) as ArrayValue;
+    expect(result.kind).toBe("array");
+    expect((result.elements[0] as ShapeValue).amount.equals(new Fraction(10))).toBe(true);
+    expect((result.elements[1] as ShapeValue).amount.equals(new Fraction(5))).toBe(true);
+    expect((result.elements[2] as ShapeValue).amount.equals(new Fraction(2))).toBe(true);
+  });
+
+  test("returns single element unchanged", () => {
+    const value: RationalValue = { kind: "rational", value: new Fraction(5) };
+    const result = orderDesc([value]) as RationalValue;
+    expect(result.kind).toBe("rational");
+    expect(result.value.equals(new Fraction(5))).toBe(true);
   });
 });

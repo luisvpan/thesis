@@ -51,7 +51,7 @@ export type Literal = ObjectLiteral | OtherLiteral | ArrayLiteral | NumberLitera
 
 export type NumberLiteral = {
   type: "NumberLiteral";
-  value: number;
+  value: string;
 };
 
 export type ArrayLiteral = {
@@ -74,15 +74,15 @@ export type SimpleObjectLiteral = {
   subtype?: ShapeTypeValue | FoodTypeValue;
   size?: SizeValue;
   color?: ColorValue;
-  amount?: number;
-  value?: number;
+  amount?: string;
+  value?: string;
 };
 
 export type AbstractObjectLiteral = {
   type: "ObjectLiteral";
   category: "abstract";
   objectType: "rational";
-  value: number;
+  value: string;
 };
 
 export type PictorialObjectLiteral = {
@@ -91,7 +91,7 @@ export type PictorialObjectLiteral = {
   objectType: "shape";
   subtype: ShapeTypeValue;
   size: SizeValue;
-  amount: number;
+  amount: string;
 };
 
 export type ConcreteObjectLiteral = {
@@ -100,7 +100,7 @@ export type ConcreteObjectLiteral = {
   objectType: "food";
   subtype: FoodTypeValue;
   color: ColorValue;
-  amount: number;
+  amount: string;
 };
 
 // Value types (v2.1.0: rational instead of integer)

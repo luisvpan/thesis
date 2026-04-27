@@ -6,7 +6,9 @@ import { LazyEvaluator } from "./runtime/evaluator";
 import { diffGraphs } from "./runtime/differ";
 import { RuntimeError } from "./runtime/errors";
 import type { RuntimeValue } from "./runtime/types";
-import type { Program } from "./analyzer/ast";
+import type { Program as ASTProgram } from "./analyzer/ast";
+import type { Program } from "./program";
+import { deserialize } from "./serializer";
 
 export interface ParseError {
   message: string;
@@ -42,9 +44,14 @@ export class Interpreter {
    * Execute a dataflow program. If this is not the first execution,
    * performs incremental re-evaluation by diffing against the previous graph
    * and only invalidating changed nodes and their dependents.
+   *
+   * @param input - Either a dataflow source string or a Program object
    */
-  async execute(input: string): Promise<ExecuteResult> {
-    const parseResult = this.parse(input);
+  async execute(input: string | Program): Promise<ExecuteResult> {
+    // Convert Program to string if needed
+    const sourceCode = typeof input === "string" ? input : deserialize(input);
+
+    const parseResult = this.parse(sourceCode);
 
     if (!parseResult.ast || parseResult.errors.length > 0) {
       return {
@@ -164,7 +171,7 @@ export class Interpreter {
   /**
    * Parse a dataflow program string and return an AST.
    */
-  private parse(input: string): { ast: Program | null; errors: ParseError[] } {
+  private parse(input: string): { ast: ASTProgram | null; errors: ParseError[] } {
     const errors: ParseError[] = [];
 
     // Tokenize
@@ -197,7 +204,7 @@ export class Interpreter {
     }
 
     // Build AST
-    const ast = visitorInstance.visit(cst) as Program;
+    const ast = visitorInstance.visit(cst) as ASTProgram;
 
     return { ast, errors: [] };
   }

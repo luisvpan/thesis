@@ -2,11 +2,11 @@ import Fraction from "fraction.js";
 import { RuntimeError } from "./errors";
 
 /**
- * Converts a JS number to a Fraction.
+ * Converts a JS number or string to a Fraction.
  * CRITICAL: Never use native JS operators (+, -, *, /) on numeric values.
  * Always use Fraction.js methods for all arithmetic.
  */
-export function toFraction(value: number): Fraction {
+export function toFraction(value: number | string): Fraction {
   return new Fraction(value);
 }
 

@@ -1,11 +1,12 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
-import { execute, Interpreter } from "../../index";
+import { Interpreter } from "../../index";
 import type { RationalValue } from "../types";
 
 describe("Lazy evaluation", () => {
   test("memoizes node results", async () => {
-    const result = await execute(`
+    const interpreter = new Interpreter();
+    const result = await interpreter.execute(`
       source x = 5;
       transform a = sum(x, x);
       transform b = sum(a, a);

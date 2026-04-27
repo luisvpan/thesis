@@ -1,12 +1,13 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
-import { execute } from "../index";
+import { Interpreter } from "../index";
 import type { RationalValue, ArrayValue, ShapeValue, FoodValue } from "../runtime/types";
 
 describe("Integration", () => {
   describe("Example 1: Simple Addition", () => {
     test("adds two numbers", async () => {
-      const result = await execute(`
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
         source a = 3;
         source b = 2;
         transform add = sum(a, b);
@@ -22,7 +23,8 @@ describe("Integration", () => {
 
   describe("Example 3: Complex Expression", () => {
     test("computes (3 + 2) * (10 - 6) = 20", async () => {
-      const result = await execute(`
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
         source a = 3;
         source b = 2;
         source c = 10;
@@ -42,7 +44,8 @@ describe("Integration", () => {
 
   describe("CPA aggregation", () => {
     test("sum aggregates matching CPA objects", async () => {
-      const result = await execute(`
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
         source items = [
           {type: grape, color: purple, amount: 5},
           {type: grape, color: purple, amount: 3},
@@ -55,12 +58,12 @@ describe("Integration", () => {
       expect(result.errors).toHaveLength(0);
       const sinkResult = result.results.get("result") as ArrayValue;
       expect(sinkResult.kind).toBe("array");
-      // Should have 2 elements: grape(8) and apple(2)
       expect(sinkResult.elements).toHaveLength(2);
     });
 
     test("multiply aggregates matching CPA objects", async () => {
-      const result = await execute(`
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
         source items = [
           {type: circle, size: large, amount: 2},
           {type: circle, size: large, amount: 3},
@@ -73,7 +76,6 @@ describe("Integration", () => {
       expect(result.errors).toHaveLength(0);
       const sinkResult = result.results.get("result") as ArrayValue;
       expect(sinkResult.kind).toBe("array");
-      // Should have 2 elements: circle(6) and square(4)
       expect(sinkResult.elements).toHaveLength(2);
 
       const circle = sinkResult.elements.find(e => (e as ShapeValue).subtype === "circle") as ShapeValue;
@@ -83,7 +85,8 @@ describe("Integration", () => {
     });
 
     test("substract operates on CPA object amounts", async () => {
-      const result = await execute(`
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
         source a = {type: grape, color: purple, amount: 10};
         source b = {type: apple, color: red, amount: 3};
         transform diff = substract(a, b);
@@ -97,7 +100,8 @@ describe("Integration", () => {
     });
 
     test("divide operates on CPA object amounts", async () => {
-      const result = await execute(`
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
         source a = {type: circle, size: medium, amount: 12};
         source b = 4;
         transform quotient = divide(a, b);
@@ -111,7 +115,8 @@ describe("Integration", () => {
     });
 
     test("multiply scales CPA objects by rational factor", async () => {
-      const result = await execute(`
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
         source myShape = {type: square, size: small, amount: 5};
         source factor = 3;
         transform scaled = multiply(myShape, factor);

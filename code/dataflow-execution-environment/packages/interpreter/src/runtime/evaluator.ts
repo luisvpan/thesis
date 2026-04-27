@@ -211,7 +211,7 @@ export class LazyEvaluator {
         category: "pictorial",
         subtype: obj.subtype as "circle" | "square",
         size: obj.size!,
-        amount: toFraction(obj.amount ?? 1),
+        amount: toFraction(obj.amount ?? "1"),
       } as ShapeValue;
     }
 
@@ -221,7 +221,7 @@ export class LazyEvaluator {
         category: "concrete",
         subtype: obj.subtype as "grape" | "pear" | "apple" | "burger",
         color: obj.color!,
-        amount: toFraction(obj.amount ?? 1),
+        amount: toFraction(obj.amount ?? "1"),
       } as FoodValue;
     }
 
@@ -232,7 +232,7 @@ export class LazyEvaluator {
         category: "pictorial",
         subtype: obj.objectType,
         size: obj.size ?? "medium",
-        amount: toFraction(obj.amount ?? 1),
+        amount: toFraction(obj.amount ?? "1"),
       } as ShapeValue;
     }
 
@@ -248,7 +248,7 @@ export class LazyEvaluator {
         category: "concrete",
         subtype: obj.objectType,
         color: obj.color ?? "green",
-        amount: toFraction(obj.amount ?? 1),
+        amount: toFraction(obj.amount ?? "1"),
       } as FoodValue;
     }
 
@@ -257,7 +257,7 @@ export class LazyEvaluator {
       kind: "abstract",
       category: "abstract",
       objectType: "rational",
-      value: toFraction(obj.value ?? 0),
+      value: toFraction(obj.value ?? "0"),
     } as AbstractValue;
   }
 }

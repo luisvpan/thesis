@@ -1,9 +1,10 @@
 import { describe, test, expect } from "bun:test";
-import { execute } from "../index";
+import { Interpreter } from "../index";
 
 describe("Error handling", () => {
   test("detects circular dependencies", async () => {
-    const result = await execute(`
+    const interpreter = new Interpreter();
+    const result = await interpreter.execute(`
       source x = 1;
       transform a = sum(b, x);
       transform b = sum(a, x);
@@ -14,7 +15,8 @@ describe("Error handling", () => {
   });
 
   test("detects undefined references", async () => {
-    const result = await execute(`
+    const interpreter = new Interpreter();
+    const result = await interpreter.execute(`
       transform a = sum(undefined_var, 1);
       sink result = a;
     `);
@@ -23,7 +25,8 @@ describe("Error handling", () => {
   });
 
   test("division by zero throws error", async () => {
-    const result = await execute(`
+    const interpreter = new Interpreter();
+    const result = await interpreter.execute(`
       source a = 10;
       source b = 0;
       transform bad = divide(a, b);

@@ -348,12 +348,10 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     throw new Error("Unknown literal type");
   }
 
-  // v2.1.0: parseFloat to support decimals
   numberLiteral(ctx: NumberLiteralCstNode["children"]): NumberLiteral {
-    const value = parseFloat(ctx.NumberLiteral[0].image);
     return {
       type: "NumberLiteral",
-      value,
+      value: ctx.NumberLiteral[0].image,
     };
   }
 
@@ -411,7 +409,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     return this.visit(ctx.typeValue[0]);
   }
 
-  valueProperty(ctx: ValuePropertyCstNode["children"]): number {
+  valueProperty(ctx: ValuePropertyCstNode["children"]): string {
     const numLiteral = this.visit(ctx.numberLiteral[0]) as NumberLiteral;
     return numLiteral.value;
   }
@@ -424,7 +422,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     return this.visit(ctx.sizeValue[0]);
   }
 
-  amountProperty(ctx: AmountPropertyCstNode["children"]): number {
+  amountProperty(ctx: AmountPropertyCstNode["children"]): string {
     const numLiteral = this.visit(ctx.numberLiteral[0]) as NumberLiteral;
     return numLiteral.value;
   }
