@@ -9,7 +9,7 @@ Ejecutar desde la carpeta `code/` con el API en marcha:
   cd code && uv sync && uv run python vision_bridge.py
 
 Variables de entorno:
-  VISION_INGEST_URL  (default http://127.0.0.1:3000/api/v1/vision/ingest)
+  VISION_INGEST_URL  (default http://127.0.0.1:8765/api/v1/vision/ingest)
   VISION_DATA_YAML   (default config/dataflow_augmented.yaml)
   VISION_USE_WEBCAM  (default 0) — si 1, usa cv2.VideoCapture en lugar del Kinect
   VISION_CAMERA_ID   (default 0, solo con VISION_USE_WEBCAM=1)
@@ -38,7 +38,7 @@ from vision_class_map import load_class_names, resolve_detection
 ROOT = Path(__file__).resolve().parent
 MODEL_PATH = ROOT / "models" / "plswork2.pt"
 INGEST_URL = os.environ.get(
-    "VISION_INGEST_URL", "http://127.0.0.1:3000/api/v1/vision/ingest"
+    "VISION_INGEST_URL", "http://127.0.0.1:8765/api/v1/vision/ingest"
 )
 USE_WEBCAM = os.environ.get("VISION_USE_WEBCAM", "0").lower() in (
     "1",

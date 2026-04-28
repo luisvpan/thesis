@@ -65,7 +65,7 @@ class TestWebSocketBridgeConnect:
         mock_ws.__aexit__ = AsyncMock()
         mock_websocket.connect = AsyncMock(return_value=mock_ws)
 
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
 
         # Mock _listen_for_messages to avoid hanging
         with patch.object(bridge, "_listen_for_messages") as mock_listen:
@@ -76,7 +76,7 @@ class TestWebSocketBridgeConnect:
 
             assert bridge.state == ConnectionState.CONNECTED
             assert bridge._reconnect_attempts == 0
-            mock_websocket.connect.assert_called_once_with("ws://localhost:3000/live")
+            mock_websocket.connect.assert_called_once_with("ws://localhost:8765/live")
 
     @pytest.mark.asyncio
     async def test_connect_connection_refused(self, mock_websocket, event_loop):
@@ -86,7 +86,7 @@ class TestWebSocketBridgeConnect:
             side_effect=OSError(111, "Connection refused")
         )
 
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
 
         with pytest.raises(ConnectionRefusedError):
             await bridge.connect()
@@ -128,7 +128,7 @@ class TestWebSocketBridgeConnect:
     @pytest.mark.asyncio
     async def test_connect_already_connected(self, mock_websocket, event_loop):
         """Test duplicate connect() calls are ignored."""
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
         bridge.state = ConnectionState.CONNECTED
         bridge.ws = AsyncMock()
 
@@ -147,7 +147,7 @@ class TestSendTouchEvent:
         mock_ws = AsyncMock()
         mock_ws.send = AsyncMock()
 
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
         bridge.ws = mock_ws
         bridge.state = ConnectionState.CONNECTED
 
@@ -166,7 +166,7 @@ class TestSendTouchEvent:
     @pytest.mark.asyncio
     async def test_send_touch_event_not_connected(self, event_loop):
         """Test sending when not connected raises RuntimeError."""
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
         bridge.ws = None
 
         touch_event = {
@@ -180,7 +180,7 @@ class TestSendTouchEvent:
     @pytest.mark.asyncio
     async def test_send_touch_event_missing_position(self, mock_websocket, event_loop):
         """Test touch event without position field raises ValueError."""
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
         bridge.ws = AsyncMock()
         bridge.state = ConnectionState.CONNECTED
 
@@ -194,7 +194,7 @@ class TestSendTouchEvent:
     @pytest.mark.asyncio
     async def test_send_touch_event_missing_x(self, mock_websocket, event_loop):
         """Test touch event without x coordinate raises ValueError."""
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
         bridge.ws = AsyncMock()
         bridge.state = ConnectionState.CONNECTED
 
@@ -209,7 +209,7 @@ class TestSendTouchEvent:
     @pytest.mark.asyncio
     async def test_send_touch_event_missing_y(self, mock_websocket, event_loop):
         """Test touch event without y coordinate raises ValueError."""
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
         bridge.ws = AsyncMock()
         bridge.state = ConnectionState.CONNECTED
 
@@ -223,36 +223,40 @@ class TestSendTouchEvent:
 
 
 class TestDisconnect:
-    """Tests for disconnect() method."""
+    """Tests for disconnect() and graceful shutdown."""
+
+    def test_disconnect_without_running_loop_clears_state(self):
+        """Sync disconnect with no asyncio loop running clears references."""
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
+        bridge.ws = MagicMock()
+        bridge.state = ConnectionState.CONNECTED
+
+        bridge.disconnect()
+
+        assert bridge.ws is None
+        assert bridge.state == ConnectionState.DISCONNECTED
+        assert bridge.reconnect_enabled is False
 
     @pytest.mark.asyncio
-    async def test_disconnect_connected(self, mock_websocket, event_loop):
-        """Test disconnecting when connected."""
+    async def test_graceful_shutdown_calls_ws_close(self):
+        """_graceful_shutdown awaits ws.close() before stopping the loop."""
         mock_ws = AsyncMock()
-        mock_ws.close = AsyncMock()
+        mock_loop = MagicMock()
 
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
+        bridge = WebSocketBridge(url="ws://localhost:8765/live")
         bridge.ws = mock_ws
         bridge.state = ConnectionState.CONNECTED
 
-        await bridge.disconnect()
+        with patch(
+            "cv_system.bridge.ws_client.asyncio.get_running_loop",
+            return_value=mock_loop,
+        ):
+            await bridge._graceful_shutdown()
 
         mock_ws.close.assert_called_once()
         assert bridge.ws is None
         assert bridge.state == ConnectionState.DISCONNECTED
-        assert bridge.reconnect_enabled is False
-
-    @pytest.mark.asyncio
-    async def test_disconnect_not_connected(self, event_loop):
-        """Test disconnecting when not connected is safe."""
-        bridge = WebSocketBridge(url="ws://localhost:3000/live")
-        bridge.ws = None
-
-        await bridge.disconnect()
-
-        assert bridge.ws is None
-        assert bridge.state == ConnectionState.DISCONNECTED
-        assert bridge.reconnect_enabled is False
+        mock_loop.call_soon.assert_called_once()
 
 
 class TestBackoffCalculation:

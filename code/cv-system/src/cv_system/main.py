@@ -27,11 +27,18 @@ from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.calibration.result import CalibrationResult
 from cv_system.detection.card_detector import CardDetector
-from cv_system.detection.touch_detector import TouchDetector
+from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
 from cv_system.hardware.manager import HardwareManager, HardwareError
 from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
 
 logger = logging.getLogger(__name__)
+
+
+def touch_detector_enabled() -> bool:
+    """Depth-only touch pipeline. Off by default; set CV_TOUCH_DETECTOR=1 to enable."""
+    v = os.getenv("CV_TOUCH_DETECTOR", "0").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
 
 def run_websocket_client(bridge: WebSocketBridge) -> None:
     """
@@ -40,6 +47,7 @@ def run_websocket_client(bridge: WebSocketBridge) -> None:
     Args:
         bridge: WebSocketBridge instance to connect and manage.
     """
+    bridge._loop_thread_ident = threading.get_ident()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     bridge.loop = loop  # Set loop before connect so it's available for run_coroutine_threadsafe
@@ -79,8 +87,13 @@ def main() -> None:
     print(f"Camera RGB resolution: {config.camera.rgb_resolution}")
     print(f"Bird view / projector canvas: {config.camera.projector_resolution} (h, w)")
     print(f"FPS: {config.camera.fps}")
-    print(f"DMax frames: {config.calibration.dmax_num_frames}")
+    print(f"Dsurface frames: {config.calibration.dsurface_num_frames}")
     print(f"OpenCL available: {cv2.ocl.haveOpenCL()}, enabled: {cv2.ocl.useOpenCL()}")
+    enable_touch = touch_detector_enabled()
+    print(
+        f"Touch detector: {'ON' if enable_touch else 'OFF'} "
+        "(set CV_TOUCH_DETECTOR=1 to enable depth-only touch)"
+    )
     print("=" * 60)
 
     hardware = None
@@ -159,15 +172,21 @@ def main() -> None:
 
         print("  Resolution mapper initialized")
 
-        detector = TouchDetector(
-            calibration_result.dmax_map,
-            rgb_image_transformer,
-            depth_coordinate_transformer,
-            resolution_mapper,
-            config.detection,
-            show_debug=True,
-        )
-        print("  Touch detector initialized")
+        detector = None
+        if enable_touch:
+            detector = DepthOnlyTouchDetector(
+                calibration_result.dmax_map,
+                depth_coordinate_transformer,
+                resolution_mapper,
+                config.detection,
+                calibration_result.depth_corners,
+                show_debug=True,
+            )
+            print(
+                f"  Depth-only touch detector initialized (area corners: {calibration_result.depth_corners})"
+            )
+        else:
+            print("  Depth-only touch detector: skipped (disabled)")
         print(f"YOLO model path: {os.getenv('YOLO_MODEL_PATH')}")
 
         model_path = Path(
@@ -176,22 +195,27 @@ def main() -> None:
                 str(
                     Path(__file__).resolve().parent.parent.parent.parent
                     / "models"
-                    / "plswork2.onnx"
+                    / "yolo_11s_cards.pt"
                 ),
             )
         )
         card_detector = CardDetector(rgb_image_transformer, model_path)
         print(f"  Card detector (YOLO) initialized: {model_path}")
 
+        ws_url = os.getenv("LANGUAGE_RUNTIME_WS_URL", "ws://localhost:8765/live")
         vision_cards_url = os.getenv(
             "VISION_CARDS_INGEST_URL",
-            "http://127.0.0.1:3000/api/v1/vision/cards",
+            "http://127.0.0.1:8765/api/v1/vision/cards",
         )
         print(f"  Vision cards ingest URL: {vision_cards_url}")
+        print("  IDE relay (FastAPI): either run both in one command:")
+        print("      cd code/cv-system && uv run cv-stack")
+        print("  or start the relay separately:")
+        print("      uv run cv-ide-relay")
+        print(f"      Touch WebSocket: {ws_url}")
 
         # Step 4: Initialize WebSocket bridge
         print("\n[4/5] Initializing WebSocket bridge...")
-        ws_url = os.getenv("LANGUAGE_RUNTIME_WS_URL", "ws://localhost:3000/live")
         ws_bridge = WebSocketBridge(url=ws_url)
         print("  WebSocket bridge initialized")
 
@@ -214,7 +238,11 @@ def main() -> None:
         print("  Press Ctrl+C to stop\n")
 
         # Separate executors to avoid contention between touch and card detection
-        touch_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Touch")
+        touch_executor = (
+            ThreadPoolExecutor(max_workers=1, thread_name_prefix="Touch")
+            if enable_touch
+            else None
+        )
         card_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Card")
         frame_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Frame")
 
@@ -250,8 +278,10 @@ def main() -> None:
 
                 t2 = time.perf_counter()
 
-                # Submit BOTH detections in parallel (don't wait for touch before card)
-                touch_future = touch_executor.submit(detector.detect, depth_frame, rgb_bird)
+                # Touch + card in parallel when touch is enabled; otherwise card only
+                touch_future = None
+                if enable_touch and touch_executor is not None and detector is not None:
+                    touch_future = touch_executor.submit(detector.detect, depth_frame)
 
                 card_future = None
                 t_card_submit = t2  # For timing card from submission
@@ -260,9 +290,13 @@ def main() -> None:
                     card_future = card_executor.submit(card_detector.detect, rgb_bird)
                     t_card_submit = time.perf_counter()
 
-                # Now wait for results (they run in parallel)
-                touches, hands_detected = touch_future.result()
-                t_touch = time.perf_counter()
+                # Wait for touch (if any) then card
+                if touch_future is not None:
+                    touches, hands_detected = touch_future.result()
+                    t_touch = time.perf_counter()
+                else:
+                    touches, hands_detected = [], False
+                    t_touch = t2
 
                 card_time_ms = 0.0
                 card_wait_ms = 0.0
@@ -306,7 +340,7 @@ def main() -> None:
                                     ws_bridge.send_touch_event(touch_event.to_dict()),
                                     loop=ws_bridge.loop,
                                 )
-                else:
+                elif enable_touch:
                     if frame_count % 30 == 0:
                         print(f"  Frame {frame_count}: No touches detected")
 
@@ -372,7 +406,7 @@ def main() -> None:
             print("  Disconnecting WebSocket...")
             ws_bridge.disconnect()
             if ws_thread is not None:
-                ws_thread.join(timeout=2)
+                ws_thread.join(timeout=12)
             print("  WebSocket stopped")
 
         if hardware is not None:

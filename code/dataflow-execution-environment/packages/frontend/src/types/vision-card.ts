@@ -2,7 +2,12 @@
  * Tipos de cartas detectadas por el sistema de visión.
  */
 
-/** Operadores matemáticos soportados */
+import type { OperatorType } from '@/types/card-types';
+import type { ShapeType, ShapeSize, ShapeColor } from '@/types/card-types';
+import type { FoodType } from '@/types/card-types';
+import { spawnActionForYoloClass } from '@/data/yoloDeckCatalog';
+
+/** Operadores matemáticos soportados en el DSL / resultado numérico */
 export type VisionOperator = 'addition' | 'subtraction' | 'multiplication' | 'division';
 
 /** Dígitos soportados (0-9) */
@@ -15,15 +20,23 @@ export type VisionCardType = 'number' | 'operator';
 export type ParsedVisionCard =
   | { type: 'number'; value: VisionDigit }
   | { type: 'operator'; operator: VisionOperator }
-  /** Carta física detectada como `grapes`: solo uso en frontend como marcador de salida visual */
+  /** Carta física `grapes`: marcador + carta resultado (uva). */
   | { type: 'resultAnchor' }
+  /** Carta clase `result`: una sola carta resultado (como modo dev). */
+  | { type: 'programResultCard' }
+  /** Operador no solo matemático (orden, filtro, …). */
+  | { type: 'operatorCanvas'; operator: OperatorType }
+  | {
+      type: 'deckShape';
+      yoloClass: string;
+      shape: ShapeType;
+      size: ShapeSize;
+      color: ShapeColor;
+    }
+  | { type: 'deckFood'; yoloClass: string; food: FoodType }
   | { type: 'unknown'; label: string };
 
-/**
- * Mapeo de etiquetas YOLO a dígitos (inglés y español)
- */
 const DIGIT_LABELS: Record<string, VisionDigit> = {
-  // Inglés
   zero: 0,
   one: 1,
   two: 2,
@@ -34,7 +47,6 @@ const DIGIT_LABELS: Record<string, VisionDigit> = {
   seven: 7,
   eight: 8,
   nine: 9,
-  // Español
   cero: 0,
   uno: 1,
   dos: 2,
@@ -47,11 +59,7 @@ const DIGIT_LABELS: Record<string, VisionDigit> = {
   nueve: 9,
 };
 
-/**
- * Mapeo de etiquetas YOLO a operadores
- */
 const OPERATOR_LABELS: Record<string, VisionOperator> = {
-  // Inglés
   add: 'addition',
   addition: 'addition',
   plus: 'addition',
@@ -63,52 +71,94 @@ const OPERATOR_LABELS: Record<string, VisionOperator> = {
   times: 'multiplication',
   divide: 'division',
   division: 'division',
-  // Español
   suma: 'addition',
   adicion: 'addition',
   resta: 'subtraction',
   sustraccion: 'subtraction',
   multiplicacion: 'multiplication',
-  // 'division' ya está definido arriba (es igual en inglés y español)
 };
 
+function operatorTypeToVision(op: OperatorType): VisionOperator | null {
+  const m: Partial<Record<OperatorType, VisionOperator>> = {
+    adicion: 'addition',
+    sustraccion: 'subtraction',
+    multiplicacion: 'multiplication',
+    division: 'division',
+  };
+  return m[op] ?? null;
+}
+
 /**
- * Parsea una etiqueta de visión YOLO y devuelve el tipo y valor de la carta.
+ * Parsea una etiqueta YOLO / visión y devuelve el tipo de carta para el lienzo.
  */
 export function parseVisionLabel(label: string): ParsedVisionCard {
   const normalized = label.trim().toLowerCase();
 
-  /** Marcador físico para acoplar la carta de resultado en el lienzo (detalle de UI). */
   if (normalized === 'grapes' || normalized === 'grape') {
     return { type: 'resultAnchor' };
   }
 
-  // Verificar si es un dígito por nombre
+  const spawn = spawnActionForYoloClass(normalized);
+  if (spawn) {
+    if (spawn.kind === 'number') {
+      const v = Math.max(0, Math.min(9, spawn.value)) as VisionDigit;
+      return { type: 'number', value: v };
+    }
+    if (spawn.kind === 'resultCard') {
+      return { type: 'programResultCard' };
+    }
+    if (spawn.kind === 'operator') {
+      const vo = operatorTypeToVision(spawn.operator);
+      if (vo) {
+        return { type: 'operator', operator: vo };
+      }
+      return { type: 'operatorCanvas', operator: spawn.operator };
+    }
+    if (spawn.kind === 'shape') {
+      return {
+        type: 'deckShape',
+        yoloClass: spawn.yoloClass,
+        shape: spawn.shape,
+        size: spawn.size,
+        color: spawn.color,
+      };
+    }
+    if (spawn.kind === 'food') {
+      return {
+        type: 'deckFood',
+        yoloClass: spawn.yoloClass,
+        food: spawn.food,
+      };
+    }
+  }
+
   if (normalized in DIGIT_LABELS) {
     return { type: 'number', value: DIGIT_LABELS[normalized] };
   }
 
-  // Verificar si es un dígito numérico directo (0-9)
   const digitMatch = /^(\d)$/.exec(normalized);
   if (digitMatch) {
     const value = Number(digitMatch[1]) as VisionDigit;
     return { type: 'number', value };
   }
 
-  // Verificar si es un operador
   if (normalized in OPERATOR_LABELS) {
     return { type: 'operator', operator: OPERATOR_LABELS[normalized] };
   }
 
-  // Tipo desconocido
   return { type: 'unknown', label };
 }
 
 /**
  * Convierte VisionOperator al tipo de operador usado internamente (MathOperatorType).
  */
-export function visionOperatorToMathOperator(op: VisionOperator): 'adicion' | 'sustraccion' | 'multiplicacion' | 'division' {
-  const mapping: Record<VisionOperator, 'adicion' | 'sustraccion' | 'multiplicacion' | 'division'> = {
+export function visionOperatorToMathOperator(
+  op: VisionOperator
+): 'adicion' | 'sustraccion' | 'multiplicacion' | 'division' {
+  const mapping: Record<
+    VisionOperator,
+    'adicion' | 'sustraccion' | 'multiplicacion' | 'division'
+  > = {
     addition: 'adicion',
     subtraction: 'sustraccion',
     multiplication: 'multiplicacion',

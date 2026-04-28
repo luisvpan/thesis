@@ -13,14 +13,13 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Mismo origen en dev: el cliente Eden usa `window.location.origin` y las rutas /api/* llegan a Elysia (puerto 3000).
+      // Relé FastAPI (cv-ide-relay), por defecto puerto 8765.
       '/api': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://127.0.0.1:8765',
         changeOrigin: true,
       },
-      // WebSocket visión (Python → Elysia → navegador)
       '/ws': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://127.0.0.1:8765',
         changeOrigin: true,
         ws: true,
       },

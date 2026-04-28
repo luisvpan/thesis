@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronUp, RefreshCw } from "lucide-react";
-import { edenClient, type HealthData } from "@/lib/eden";
+import { fetchHealth, type HealthData } from "@/lib/apiHealth";
 
 type LoadState =
   | { kind: "loading" }
@@ -8,8 +8,7 @@ type LoadState =
   | { kind: "error"; message: string };
 
 /**
- * Badge "API OK" con prueba de integración: al pulsar se despliega la respuesta de
- * `GET /api/v1/health` (Eden + Elysia).
+ * Badge "API OK" con prueba de integración: respuesta de `GET /api/v1/health` (relé FastAPI).
  */
 export function ApiHealthBadge() {
   const [open, setOpen] = useState(false);
@@ -18,23 +17,8 @@ export function ApiHealthBadge() {
   const load = useCallback(async () => {
     setState({ kind: "loading" });
     try {
-      const res = await edenClient.api.v1.health.get();
-      console.log("[backend:elysia]", "GET /api/v1/health", res);
-      const { data, error } = res;
-      if (error) {
-        setState({
-          kind: "error",
-          message:
-            typeof error === "object" && error !== null && "value" in error
-              ? String((error as { value?: unknown }).value)
-              : "Error al llamar al API",
-        });
-        return;
-      }
-      if (!data) {
-        setState({ kind: "error", message: "Respuesta vacía" });
-        return;
-      }
+      const data = await fetchHealth();
+      console.log("[backend:relay]", "GET /api/v1/health", data);
       setState({
         kind: "ok",
         data: {
@@ -78,7 +62,7 @@ export function ApiHealthBadge() {
         className="flex items-center gap-2 rounded-full bg-slate-900/85 px-3 py-1.5 text-xs font-medium text-white shadow-md backdrop-blur-sm border border-white/10 hover:bg-slate-900 transition-colors"
         aria-expanded={open}
         aria-controls="api-integration-panel"
-        title="Pulsa para ver la prueba de integración con el backend"
+        title="Pulsa para ver la prueba de integración con el relé CV"
       >
         <span className={`h-2 w-2 rounded-full shrink-0 ${dotClass}`} aria-hidden />
         <span>{label}</span>
@@ -114,13 +98,13 @@ export function ApiHealthBadge() {
 
           <div className="max-h-[min(50vh,20rem)] overflow-auto p-3 text-left text-xs">
             {state.kind === "loading" && (
-              <p className="text-slate-600">Cargando respuesta del backend…</p>
+              <p className="text-slate-600">Cargando respuesta del relé…</p>
             )}
             {state.kind === "error" && (
               <div className="rounded-lg bg-red-50 px-2 py-1.5 text-red-800">
                 <strong className="font-semibold">Error:</strong> {state.message}
                 <p className="mt-1 text-[10px] text-red-600">
-                  ¿API en :3000 y proxy Vite <code>/api</code>?
+                  ¿Relé FastAPI en :8765 y proxy Vite <code>/api</code>?
                 </p>
               </div>
             )}

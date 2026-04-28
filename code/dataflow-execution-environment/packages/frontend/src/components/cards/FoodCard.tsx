@@ -14,11 +14,12 @@ interface FoodConfig {
 }
 
 const foodConfig: Record<FoodType, FoodConfig> = {
-  'manzana': { emoji: '🍎', name: 'Manzana' },
-  'hamburguesa': { emoji: '🍔', name: 'Hamburguesa' },
-  'uvas': { emoji: '🍇', name: 'Uvas' },
-  'pasta': { emoji: '🍝', name: 'Pasta' },
-  'peras': { emoji: '🍐', name: 'Peras' }
+  manzana: { emoji: '🍎', name: 'Manzana' },
+  hamburguesa: { emoji: '🍔', name: 'Hamburguesa' },
+  uvas: { emoji: '🍇', name: 'Uvas' },
+  pasta: { emoji: '🍝', name: 'Pasta' },
+  peras: { emoji: '🍐', name: 'Peras' },
+  naranja: { emoji: '🍊', name: 'Naranja' },
 };
 
 export function FoodCard({ food, isDraggable = false, onClick, size = 'medium' }: FoodCardProps) {

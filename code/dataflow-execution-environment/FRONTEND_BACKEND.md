@@ -1,54 +1,64 @@
-# Integración React (Vite) + Elysia (`@dataflow/http-api`)
+# Frontend (Vite) + relé FastAPI (CV)
+
+## Resumen
+
+- **Ejecución del lenguaje dataflow**: solo en el navegador (`@dataflow/interpreter`), sin backend Node/Bun.
+- **Visión y táctil**: el pipeline Python publica al **relé FastAPI** (`cv-ide-relay`); el IDE en desarrollo usa el **proxy de Vite** para `/api` y `/ws`.
 
 ## Requisitos
 
-- [Bun](https://bun.sh) instalado.
-- Una sola instalación de dependencias en la raíz de este monorepo (`node_modules` hoisted).
+- [Bun](https://bun.sh) para el monorepo JS.
+- Python 3.12+ con `uv` para `cv-system` (relé opcional si solo probás el grafo sin cámara).
 
-## Instalación
+## Instalación (monorepo JS)
 
 ```bash
 cd code/dataflow-execution-environment
 bun install
 ```
 
-## Desarrollo (API Elysia + Vite con proxy)
+## Desarrollo
 
-Levanta **API en el puerto 3000** y **Vite en 5173**; el proxy reenvía `/api/*` al API.
+1. **Relé IDE (recomendado con visión/táctil)** — otro terminal:
+
+   ```bash
+   cd code/cv-system
+   uv sync
+   uv run cv-ide-relay
+   ```
+
+   Por defecto escucha en `http://127.0.0.1:8765` (`IDE_RELAY_PORT` / `IDE_RELAY_HOST`).
+
+2. **Frontend Vite** (puerto 5173):
+
+   ```bash
+   cd code/dataflow-execution-environment
+   bun run dev
+   ```
+
+El proxy en [`packages/frontend/vite.config.ts`](packages/frontend/vite.config.ts) reenvía `/api` y `/ws` a `http://127.0.0.1:8765`.
+
+## Variables útiles
+
+| Variable | Uso |
+|----------|-----|
+| `VITE_API_URL` | Base del relé si no usás mismo origen (opcional). |
+| `VITE_VISION_WS_URL` | WebSocket visión explícito (por defecto `ws(s)://host/ws/vision`). |
+| `VISION_CARDS_INGEST_URL` / `VISION_INGEST_URL` / `LANGUAGE_RUNTIME_WS_URL` | En Python; por defecto apuntan a `:8765`. |
+
+## Producción del frontend
 
 ```bash
-bun run dev
+cd code/dataflow-execution-environment
+bun run build
 ```
 
-## Eden (tipado front ↔ back)
+Sirve `packages/frontend/dist` con cualquier hosting estático; el relé FastAPI puede ir en la misma máquina o detrás de un reverse proxy. Ajustá `VITE_API_URL` / WebSockets según el despliegue.
 
-- Archivo: `packages/frontend/src/lib/eden.ts`.
-- **`treaty<App>(baseUrl)`** de `@elysiajs/eden`, donde **`App`** es `typeof app` del servidor (`@dataflow/http-api/server`).
-- Exporta **`edenClient`** (y alias `apiClient`): las rutas del cliente coinciden con Elysia (`edenClient.api.v1.health.get()`, etc.).
-- Tipos inferidos de ejemplo: **`HealthEdenResult`**, **`HealthData`** para `GET /api/v1/health`.
-- En el navegador, la base URL es por defecto el **mismo origen** que Vite; las peticiones van a `/api/v1/...` y el proxy las envía a Elysia (puerto 3000).
-
-Documentación: [Eden (Elysia)](https://elysiajs.com/eden/overview).
-
-## Producción (un solo proceso)
-
-1. Build del frontend y del bundle del servidor:
-
-   ```bash
-   bun run build
-   ```
-
-2. Arranque: Elysia sirve `/api/v1/*` y los estáticos de `packages/frontend/dist`.
-
-   ```bash
-   bun run start
-   ```
-
-Abre `http://localhost:3000` (o el `PORT` que definas).
-
-## Paquetes implicados
+## Paquetes relevantes
 
 | Paquete | Rol |
 |---------|-----|
-| `packages/frontend` | Vite + React; depende de `@dataflow/http-api` solo para **tipos** + Eden. |
-| `packages/http-api` | Elysia; `src/main.ts` escucha y en prod sirve el build de Vite. |
+| `packages/frontend` | Vite + React; intérprete en cliente; proxy a FastAPI en dev. |
+| `packages/interpreter` | Motor dataflow en TypeScript. |
+| `cv-system` (`cv-ide-relay`) | FastAPI: `/api/v1/vision/*`, `/ws/vision`, `/ws/touch`, `/live`. |

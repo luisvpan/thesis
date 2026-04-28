@@ -1,0 +1,17 @@
+{
+  "name": "@dataflow/interpreter",
+  "version": "2.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "chevrotain": "^12.0.0",
+    "fraction.js": "^4.3.7"
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --outdir=dist --target=bun",
+    "test": "bun test",
+    "dev": "bun run build --hot"
+  }
+}

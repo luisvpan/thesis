@@ -15,7 +15,10 @@
     "fps": 30
   },
   "calibration": {
-    "dmax_num_frames": 500,
+    "dsurface_num_frames": 2000,
+    "histogram_threshold": 2,
+    "histogram_range": 25,
+    "surface_offset": 3,
     "depth_range_min": 650,
     "depth_range_max": 800,
     "camera_corners": [
@@ -56,9 +59,11 @@
     ]
   },
   "detection": {
-    "ring_buffer_size": 5,
-    "touch_threshold": 5,
-    "min_touch_size": 50,
-    "max_touch_size": 1000
+    "ring_buffer_size": 3,
+    "touch_threshold": 25,
+    "min_touch_size": 80,
+    "max_touch_size": 5000,
+    "vibration_threshold": 15,
+    "touch_history_size": 2
   }
 }

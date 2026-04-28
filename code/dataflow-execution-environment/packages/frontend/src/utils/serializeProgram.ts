@@ -7,6 +7,8 @@
 
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "@/contexts/NodeContext";
+import type { OperatorFlowNodeData } from "@/components/dataflow";
+import { isMathOperatorType } from "@/types/card-types";
 
 type DataSourceNode = {
   id: string;
@@ -109,6 +111,8 @@ export function serializeProgramUpToOperator(
     (n) => n.id === terminalOperatorId && n.type === "operator"
   );
   if (!terminal) return null;
+  const termOp = (terminal.data as OperatorFlowNodeData).operator;
+  if (!isMathOperatorType(termOp)) return null;
 
   const reachable = collectUpstreamEvalIds(terminalOperatorId, nodes, edges);
 
@@ -158,7 +162,13 @@ export function serializeProgramUpToOperator(
   }
 
   const transformationIds = new Set(
-    evalIds.filter((id) => nodes.find((n) => n.id === id)?.type === "operator")
+    evalIds.filter((id) => {
+      const n = nodes.find((x) => x.id === id);
+      return (
+        n?.type === "operator" &&
+        isMathOperatorType((n.data as OperatorFlowNodeData).operator)
+      );
+    })
   );
 
   for (const id of transformationIds) {
@@ -166,7 +176,9 @@ export function serializeProgramUpToOperator(
     if (!node || node.type !== "operator") continue;
 
     const operator =
-      (node.data as { operator?: string }).operator ?? "adicion";
+      (node.data as OperatorFlowNodeData).operator ?? "adicion";
+    if (!isMathOperatorType(operator)) continue;
+
     const inputEdges = edges.filter(
       (e) => e.target === node.id && reachable.has(e.source)
     );
@@ -180,7 +192,7 @@ export function serializeProgramUpToOperator(
       id: node.id,
       type: "Transformation",
       dataType: "natural",
-      operation: OPERATOR_MAP[operator] || "ADD",
+      operation: OPERATOR_MAP[operator] ?? "ADD",
       inputs,
     });
   }
@@ -225,9 +237,11 @@ export function serializeProgram(
   const programNodes: ProgramNode[] = [];
   const programEdges: DataflowEdge[] = [];
 
-  const evalNodes = nodes.filter(
-    (n) => n.type === "number" || n.type === "operator"
-  );
+  const evalNodes = nodes.filter((n) => {
+    if (n.type === "number") return true;
+    if (n.type !== "operator") return false;
+    return isMathOperatorType((n.data as OperatorFlowNodeData).operator);
+  });
 
   if (evalNodes.length === 0) {
     return {
@@ -253,7 +267,8 @@ export function serializeProgram(
   for (const node of nodes) {
     if (node.type !== "operator") continue;
 
-    const operator = (node.data as { operator?: string }).operator ?? "adicion";
+    const operator = (node.data as OperatorFlowNodeData).operator ?? "adicion";
+    if (!isMathOperatorType(operator)) continue;
 
     const inputEdges = edges.filter((e) => e.target === node.id);
     const inputs: string[] = [];
@@ -268,7 +283,7 @@ export function serializeProgram(
       id: node.id,
       type: "Transformation",
       dataType: "natural",
-      operation: OPERATOR_MAP[operator] || "ADD",
+      operation: OPERATOR_MAP[operator] ?? "ADD",
       inputs,
     });
   }
@@ -290,7 +305,13 @@ export function serializeProgram(
   });
 
   const transformationIds = new Set(
-    nodes.filter((n) => n.type === "operator").map((n) => n.id)
+    nodes
+      .filter(
+        (n) =>
+          n.type === "operator" &&
+          isMathOperatorType((n.data as OperatorFlowNodeData).operator)
+      )
+      .map((n) => n.id)
   );
 
   for (const edge of edges) {

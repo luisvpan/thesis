@@ -1,5 +1,6 @@
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "@/contexts/NodeContext";
+import type { ProgramOutputFlowNodeData } from "@/components/dataflow/ProgramOutputFlowNode";
 
 /**
  * Nodos insertados por visión (`card_*` / `card_uva_*`) mueven posición cada frame.
@@ -40,14 +41,13 @@ export function executionGraphFingerprint(
       };
     }
     if (n.type === "programOutput") {
-      const d = n.data as {
-        pairedAnchorId?: string;
-      };
+      const d = n.data as ProgramOutputFlowNodeData;
       return {
         id: n.id,
         type: n.type,
         ...(pos !== undefined ? { position: pos } : {}),
         pairedAnchorId: d.pairedAnchorId,
+        displayMode: d.displayMode,
       };
     }
     if (n.type === "resultAnchor") {
@@ -57,6 +57,14 @@ export function executionGraphFingerprint(
         type: n.type,
         ...(pos !== undefined ? { position: pos } : {}),
         pairedOutputId: d.pairedOutputId,
+      };
+    }
+    if (n.type === "deckProp") {
+      return {
+        id: n.id,
+        type: n.type,
+        ...(pos !== undefined ? { position: pos } : {}),
+        variant: n.data.variant,
       };
     }
     const _exhaustive: never = n;

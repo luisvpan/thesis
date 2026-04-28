@@ -1,3 +1,5 @@
+config/calibration.json
+
 # --- Local Config & Secrets ---
 .env
 .env.*

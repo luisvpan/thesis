@@ -13,8 +13,10 @@ import {
   OperatorFlowNode,
   ResultAnchorFlowNode,
   ProgramOutputFlowNode,
+  DeckPropFlowNode,
   type ResultViewMode,
 } from '@/components/dataflow';
+import { ModelDeckSidebar } from '@/components/ModelDeckSidebar';
 import type { ProgramOutputFlowNodeData } from '@/components/dataflow/ProgramOutputFlowNode';
 import type { DataflowNode } from '@/contexts/NodeContext';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
@@ -22,7 +24,7 @@ import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
 import { SocketInfoFab } from '@/components/SocketInfoFab';
 import { DataflowValueEdge } from '@/components/dataflow/DataflowValueEdge';
 import { getLevelConfig } from '@/data/levelConfig';
-import { ArrowLeft, Eye, Plus, Minus, X, Divide, Volume2 } from 'lucide-react';
+import { ArrowLeft, Eye, Volume2 } from 'lucide-react';
 
 /** Oculta la arista corta marcador.out → resultado.in para que la uva sea una sola carta visual. */
 function hideUvaInternalEdges(nodes: DataflowNode[], edges: Edge[]): Edge[] {
@@ -53,6 +55,7 @@ const nodeTypes: NodeTypes = {
   operator: OperatorFlowNode,
   resultAnchor: ResultAnchorFlowNode,
   programOutput: ProgramOutputFlowNode,
+  deckProp: DeckPropFlowNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -90,14 +93,7 @@ export function DataflowContent({
   /** Contenido extra al final del lateral (p. ej. marcador grapes en modo desarrollador). */
   extraAsideSections?: ReactNode;
 }) {
-  const {
-    nodes,
-    edges,
-    onNodesChange,
-    onEdgesChange,
-    addNumberNode,
-    addOperatorNode,
-  } = useNode();
+  const { nodes, edges, onNodesChange, onEdgesChange, nodesDraggable } = useNode();
 
   const edgesForRender = useMemo(
     () => hideUvaInternalEdges(nodes, edges),
@@ -209,71 +205,15 @@ export function DataflowContent({
             className={`${asideClassName} shrink-0 flex flex-col bg-slate-800 border-r border-slate-700 overflow-y-auto`}
           >
             <section className="p-3 border-b border-slate-700">
-              <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
+              <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-2">
                 Mochila
               </h2>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-base font-medium text-slate-400 mb-2">Añadir número</p>
-                  <div className="flex flex-wrap gap-1">
-                    {levelConfig.numbers.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => addNumberNode(n)}
-                        className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-teal-500 text-slate-200 hover:text-white font-bold text-lg transition-colors"
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-base font-medium text-slate-400 mb-2">Añadir operador</p>
-                  <div className="flex flex-wrap gap-2">
-                    {levelConfig.operators.includes('adicion') && (
-                      <button
-                        type="button"
-                        onClick={() => addOperatorNode('adicion')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-bold text-lg transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Suma
-                      </button>
-                    )}
-                    {levelConfig.operators.includes('sustraccion') && (
-                      <button
-                        type="button"
-                        onClick={() => addOperatorNode('sustraccion')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                        Resta
-                      </button>
-                    )}
-                    {levelConfig.operators.includes('multiplicacion') && (
-                      <button
-                        type="button"
-                        onClick={() => addOperatorNode('multiplicacion')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500 hover:bg-violet-600 text-white font-bold text-lg transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                        Mult.
-                      </button>
-                    )}
-                    {levelConfig.operators.includes('division') && (
-                      <button
-                        type="button"
-                        onClick={() => addOperatorNode('division')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg transition-colors"
-                      >
-                        <Divide className="w-4 h-4" />
-                        Div.
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                Todas las clases del modelo YOLO (32): números en azul, operadores en rojo (incluye
+                «Resultado» como la carta de resultado del modo desarrollador), figuras en amarillo y
+                comidas en naranja.
+              </p>
+              <ModelDeckSidebar />
             </section>
             <section className="p-3 flex-1">
               <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
@@ -312,6 +252,7 @@ export function DataflowContent({
               panOnDrag={false}
               panOnScroll={false}
               autoPanOnNodeDrag={false}
+              nodesDraggable={nodesDraggable}
             >
               <Background color="#334155" gap={16} size={0.5} />
             </ReactFlow>
@@ -335,7 +276,7 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
   const flowContainerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <NodeProvider flowContainerRef={flowContainerRef} visionSyncEnabled>
+    <NodeProvider flowContainerRef={flowContainerRef} visionSyncEnabled nodesDraggable={false}>
       <DataflowContent
         isSandbox={isSandbox}
         levelConfig={levelConfig}

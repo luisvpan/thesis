@@ -10,3 +10,9 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Depuración en dev: última ejecución local (`executeProgram`). */
+interface Window {
+  __DATAFLOW_LAST_DSL__?: string;
+  __DATAFLOW_LAST_PROGRAM__?: unknown;
+}

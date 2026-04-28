@@ -92,7 +92,10 @@ class TouchDetector:
 
         if self._show_debug:
             debug_img = cv2.cvtColor(rgb_bird.get().copy(), cv2.COLOR_RGB2BGR)
-        
+            # Prepare depth visualization
+            depth_vis = cv2.normalize(depth_frame, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+            depth_vis = cv2.cvtColor(depth_vis, cv2.COLOR_GRAY2BGR)
+
         touches_projector = []
         hands_detected = bool(result and result.hand_landmarks)
 
@@ -126,11 +129,12 @@ class TouchDetector:
                         continue
 
                     # Sample depth with small area to reduce sensor noise
-                    roi_size = 0
-                    z_roi = depth_frame[
-                        max(0, cy - roi_size) : cy + roi_size + 1,
-                        max(0, cx - roi_size) : cx + roi_size + 1,
-                    ]
+                    roi_size = 1
+                    roi_y1 = max(0, cy - roi_size)
+                    roi_y2 = min(depth_frame.shape[0], cy + roi_size + 1)
+                    roi_x1 = max(0, cx - roi_size)
+                    roi_x2 = min(depth_frame.shape[1], cx + roi_size + 1)
+                    z_roi = depth_frame[roi_y1:roi_y2, roi_x1:roi_x2]
                     valid_z = z_roi[z_roi > 0]
                     print("valid_z.size > 0", valid_z.size > 0)
                     current_z = int(np.max(valid_z)) if valid_z.size > 0 else 0
@@ -161,9 +165,25 @@ class TouchDetector:
                             1,
                         )
 
+                        # Draw ROI rectangle transformed from depth space to projector space
+                        roi_corners_depth = [(roi_x1, roi_y1), (roi_x2, roi_y1),
+                                             (roi_x2, roi_y2), (roi_x1, roi_y2)]
+                        roi_corners_rgb = self._resolution_mapper.depth_to_rgb(roi_corners_depth)
+                        roi_corners_proj = self._coordinate_transformer.camera_to_projector(
+                            np.array(roi_corners_rgb, dtype=np.float32)
+                        )
+                        roi_poly = roi_corners_proj.astype(np.int32).reshape((-1, 1, 2))
+                        cv2.polylines(debug_img, [roi_poly], isClosed=True, color=(255, 0, 255), thickness=1)
+
+                        # Draw ROI directly on depth frame (no transformations)
+                        cv2.rectangle(depth_vis, (roi_x1, roi_y1), (roi_x2, roi_y2), (255, 0, 255), 1)
+                        cv2.circle(depth_vis, (cx, cy), 2, (0, 255, 0), -1)
+
         if self._show_debug:
             cv2.namedWindow("Kinect V2 - Livestream AI Debug", cv2.WINDOW_NORMAL)
             cv2.imshow("Kinect V2 - Livestream AI Debug", debug_img)
+            cv2.namedWindow("Depth Frame Debug", cv2.WINDOW_NORMAL)
+            cv2.imshow("Depth Frame Debug", depth_vis)
             cv2.waitKey(1)
 
         return touches_projector, hands_detected

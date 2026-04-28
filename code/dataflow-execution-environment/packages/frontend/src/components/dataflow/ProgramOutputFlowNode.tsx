@@ -3,18 +3,24 @@ import { Position } from '@xyflow/react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import {
+  UVA_NORMAL_CARD_PX,
   UVA_PAIR_TRANSFORM_CLASS,
   UVA_RIGHT_PANEL_PX,
 } from '@/utils/uvaCardLayout';
 import { ClickableHandle } from './ClickableHandle';
 import { formatResultCpa } from './dataflowResultCpa';
 
-/** Solo frontend: resultado del runtime hasta el operador conectado al marcador uva (como console.log). */
+/** Solo frontend: resultado local hasta el operador que alimenta esta carta. */
 export type ProgramOutputFlowNodeData = {
   value?: number;
   tapError?: string;
-  /** Id del `resultAnchor` emparejado (marcador físico). */
+  /** Id del `resultAnchor` emparejado (marcador físico / par uva). */
   pairedAnchorId?: string;
+  /**
+   * `uvaRight`: mitad derecha del par uva (marcador + resultado).
+   * `result`: una sola carta “Resultado”; conectá `operator.out` → `in`.
+   */
+  displayMode?: 'uvaRight' | 'result';
 };
 
 export function ProgramOutputFlowNode({
@@ -26,6 +32,7 @@ export function ProgramOutputFlowNode({
 
   const tapError = data?.tapError;
   const localVal = data?.value;
+  const displayMode = data?.displayMode ?? 'uvaRight';
   const hasPair = Boolean(data?.pairedAnchorId);
   const showNumeric =
     typeof localVal === "number" && !Number.isNaN(localVal);
@@ -54,7 +61,9 @@ export function ProgramOutputFlowNode({
       <p className="text-base text-slate-500 text-center italic px-2">
         {isExecuting
           ? 'Actualizando resultado…'
-          : 'Sin resultado en este punto (revisá el operador conectado al marcador).'}
+          : displayMode === 'result'
+            ? 'Conectá la salida del operador a la entrada izquierda de esta carta.'
+            : 'Sin resultado en este punto (revisá el operador conectado al marcador).'}
       </p>
     ) : !hasPair &&
       executionResult !== null &&
@@ -81,18 +90,33 @@ export function ProgramOutputFlowNode({
       <p className="text-base text-sky-400 text-center italic px-2">Actualizando resultado…</p>
     ) : (
       <p className="text-base text-slate-500 text-center italic px-2">
-        El resultado aparece aquí cuando el flujo envía datos.
+        {displayMode === 'result'
+          ? 'Conectá la salida del operador al puerto izquierdo de esta carta.'
+          : 'El resultado aparece aquí cuando el flujo envía datos.'}
       </p>
     );
 
+  const isResultCard = displayMode === 'result';
+
   return (
     <div
-      className={`nopan relative flex h-60 flex-col items-center justify-center rounded-r-xl border-y-2 border-r-2 border-l border-dashed border-teal-400 border-l-slate-600 bg-slate-950/95 px-2 shadow-lg ${UVA_PAIR_TRANSFORM_CLASS}`}
-      style={{ width: UVA_RIGHT_PANEL_PX }}
+      className={
+        isResultCard
+          ? 'nopan relative flex h-60 w-60 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-400 bg-slate-950/95 px-3 shadow-lg'
+          : `nopan relative flex h-60 flex-col items-center justify-center rounded-r-xl border-y-2 border-r-2 border-l border-dashed border-teal-400 border-l-slate-600 bg-slate-950/95 px-2 shadow-lg ${UVA_PAIR_TRANSFORM_CLASS}`
+      }
+      style={isResultCard ? { width: UVA_NORMAL_CARD_PX } : { width: UVA_RIGHT_PANEL_PX }}
     >
-      <div className="pointer-events-none absolute -top-5 right-0 max-w-full truncate text-right text-[10px] text-teal-300/90 bg-black/40 px-1 rounded">
-        {id}
+      <div
+        className={`pointer-events-none absolute -top-5 max-w-full truncate text-[10px] bg-black/40 px-1 rounded ${
+          isResultCard
+            ? 'left-0 text-emerald-300'
+            : 'right-0 text-right text-teal-300/90'
+        }`}
+      >
+        {isResultCard ? `Resultado · ${id}` : id}
       </div>
+      <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} />
       <div className="flex w-full flex-col items-center justify-center px-1 py-1">
         {display}
       </div>
