@@ -13,7 +13,7 @@ export type ProgramOutputFlowNodeData = {
 
 export function ProgramOutputFlowNode({
   id,
-}: NodeProps<{ type: 'programOutput'; data: ProgramOutputFlowNodeData }>) {
+}: NodeProps) {
   const { executionResult, executionError } = useNode();
   const { viewMode, hasExecuted } = useResultCardUi();
 

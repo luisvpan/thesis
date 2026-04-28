@@ -18,7 +18,8 @@ const foodConfig: Record<FoodType, FoodConfig> = {
   'hamburguesa': { emoji: '🍔', name: 'Hamburguesa' },
   'uvas': { emoji: '🍇', name: 'Uvas' },
   'pasta': { emoji: '🍝', name: 'Pasta' },
-  'peras': { emoji: '🍐', name: 'Peras' }
+  'peras': { emoji: '🍐', name: 'Peras' },
+  'naranja': { emoji: '🍊', name: 'Naranja' },
 };
 
 export function FoodCard({ food, isDraggable = false, onClick, size = 'medium' }: FoodCardProps) {

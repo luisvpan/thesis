@@ -6,6 +6,8 @@ readme = "README.md"
 authors = [{ name = "DaikoneKisu", email = "eduardoarzolay@gmail.com" }]
 requires-python = ">=3.12"
 dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
   "openni>=2.3.0",
   "pydantic>=2.0.0",
   "opencv-python>=4.0.0",
@@ -22,6 +24,8 @@ dependencies = [
 
 [project.scripts]
 cv-system = "cv_system.main:main"
+cv-ide-relay = "cv_system.bridge.ide_relay_server:run"
+cv-stack = "cv_system.launch_stack:main"
 
 [project.optional-dependencies]
 export = ["onnx>=1.21.0", "onnxruntime>=1.24.4", "onnxslim>=0.1.91"]

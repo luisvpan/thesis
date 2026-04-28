@@ -33,6 +33,13 @@ from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer,
 
 logger = logging.getLogger(__name__)
 
+
+def touch_detector_enabled() -> bool:
+    """Depth-only touch pipeline. Off by default; set CV_TOUCH_DETECTOR=1 to enable."""
+    v = os.getenv("CV_TOUCH_DETECTOR", "0").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
 def run_websocket_client(bridge: WebSocketBridge) -> None:
     """
     Run WebSocket client in async event loop.
@@ -40,6 +47,7 @@ def run_websocket_client(bridge: WebSocketBridge) -> None:
     Args:
         bridge: WebSocketBridge instance to connect and manage.
     """
+    bridge._loop_thread_ident = threading.get_ident()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     bridge.loop = loop  # Set loop before connect so it's available for run_coroutine_threadsafe
@@ -68,8 +76,8 @@ def main() -> None:
     config_path = Path(os.getenv("CONFIG_PATH", "config/session.json"))
     config = load_config(config_path)
 
-    # TODO: colocar resolución del proyector en el config
-    PROJ_H, PROJ_W = config.camera.rgb_resolution
+    PROJ_H, PROJ_W = config.camera.projector_resolution
+    FULL_PROJ_H, FULL_PROJ_W = PROJ_H, PROJ_W
 
     print("=" * 60)
     print("CV System Starting")
@@ -80,6 +88,11 @@ def main() -> None:
     print(f"FPS: {config.camera.fps}")
     print(f"Dsurface frames: {config.calibration.dsurface_num_frames}")
     print(f"OpenCL available: {cv2.ocl.haveOpenCL()}, enabled: {cv2.ocl.useOpenCL()}")
+    enable_touch = touch_detector_enabled()
+    print(
+        f"Touch detector: {'ON' if enable_touch else 'OFF'} "
+        "(set CV_TOUCH_DETECTOR=1 to enable depth-only touch)"
+    )
     print("=" * 60)
 
     hardware = None
@@ -138,23 +151,38 @@ def main() -> None:
         # Step 3: Initialize transformers and detector
         print("\n[3/5] Initializing transformers and detector...")
 
-        rgb_image_transformer = RgbImageTransformer(calibration_result, config.camera)
+        rgb_image_transformer = RgbImageTransformer(
+            calibration_result,
+            config.camera,
+            projector_corners=config.calibration.projector_corners,
+        )
+        PROJ_W, PROJ_H = rgb_image_transformer.projector_wh
+        xs = [int(p[0]) for p in config.calibration.projector_corners]
+        ys = [int(p[1]) for p in config.calibration.projector_corners]
+        ROI_OFFSET_X = min(xs)
+        ROI_OFFSET_Y = min(ys)
         print("  RGB image transformer initialized")
+        print(f"  Effective projector ROI (w, h): ({PROJ_W}, {PROJ_H})")
+        print(f"  ROI offset in full projector (x, y): ({ROI_OFFSET_X}, {ROI_OFFSET_Y})")
 
         depth_coordinate_transformer = DepthCoordinateTransformer(calibration_result)
         print("  Depth coordinate transformer initialized")
 
         print("  Resolution mapper initialized")
 
-        detector = DepthOnlyTouchDetector(
-            calibration_result.dmax_map,
-            depth_coordinate_transformer,
-            resolution_mapper,
-            config.detection,
-            calibration_result.depth_corners,
-            show_debug=True,
-        )
-        print(f"  Depth-only touch detector initialized (area corners: {calibration_result.depth_corners})")
+        detector = None
+        if enable_touch:
+            detector = DepthOnlyTouchDetector(
+                calibration_result.dmax_map,
+                depth_coordinate_transformer,
+                resolution_mapper,
+                config.detection,
+                calibration_result.depth_corners,
+                show_debug=True,
+            )
+            print(f"  Depth-only touch detector initialized (area corners: {calibration_result.depth_corners})")
+        else:
+            print("  Depth-only touch detector: skipped (disabled)")
         print(f"YOLO model path: {os.getenv('YOLO_MODEL_PATH')}")
 
         model_path = Path(
@@ -163,7 +191,7 @@ def main() -> None:
                 str(
                     Path(__file__).resolve().parent.parent.parent.parent
                     / "models"
-                    / "plswork2.onnx"
+                    / "yolo_11s_cards.pt"
                 ),
             )
         )
@@ -172,15 +200,20 @@ def main() -> None:
 
         vision_cards_url = os.getenv(
             "VISION_CARDS_INGEST_URL",
-            "http://127.0.0.1:3000/api/v1/vision/cards",
+            "http://127.0.0.1:8765/api/v1/vision/cards",
         )
         print(f"  Vision cards ingest URL: {vision_cards_url}")
+        print("  IDE relay (FastAPI): either run both in one command:")
+        print("      cd code/cv-system && uv run cv-stack")
+        print("  or start the relay separately:")
+        print("      uv run cv-ide-relay")
 
         # Step 4: Initialize WebSocket bridge
         print("\n[4/5] Initializing WebSocket bridge...")
-        ws_url = os.getenv("LANGUAGE_RUNTIME_WS_URL", "ws://localhost:3000/live")
+        ws_url = os.getenv("LANGUAGE_RUNTIME_WS_URL", "ws://localhost:8765/live")
         ws_bridge = WebSocketBridge(url=ws_url)
         print("  WebSocket bridge initialized")
+        print(f"      Touch WebSocket: {ws_url}")
 
         ws_thread = threading.Thread(
             target=run_websocket_client,
@@ -201,7 +234,11 @@ def main() -> None:
         print("  Press Ctrl+C to stop\n")
 
         # Separate executors to avoid contention between touch and card detection
-        touch_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Touch")
+        touch_executor = (
+            ThreadPoolExecutor(max_workers=1, thread_name_prefix="Touch")
+            if enable_touch
+            else None
+        )
         card_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Card")
         frame_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="Frame")
 
@@ -238,7 +275,9 @@ def main() -> None:
                 t2 = time.perf_counter()
 
                 # Submit BOTH detections in parallel (don't wait for touch before card)
-                touch_future = touch_executor.submit(detector.detect, depth_frame)
+                touch_future = None
+                if enable_touch and touch_executor is not None and detector is not None:
+                    touch_future = touch_executor.submit(detector.detect, depth_frame)
 
                 card_future = None
                 t_card_submit = t2  # For timing card from submission
@@ -248,8 +287,12 @@ def main() -> None:
                     t_card_submit = time.perf_counter()
 
                 # Now wait for results (they run in parallel)
-                touches, hands_detected = touch_future.result()
-                t_touch = time.perf_counter()
+                if touch_future is not None:
+                    touches, hands_detected = touch_future.result()
+                    t_touch = time.perf_counter()
+                else:
+                    touches, hands_detected = [], False
+                    t_touch = t2
 
                 card_time_ms = 0.0
                 card_wait_ms = 0.0
@@ -262,7 +305,14 @@ def main() -> None:
                     # Always update - ByteTrack handles occlusions from hands
                     last_card_view = card_view
                     last_card_dets = card_dets
-                    post_card_batch_async(vision_cards_url, card_dets, PROJ_W, PROJ_H)
+                    post_card_batch_async(
+                        vision_cards_url,
+                        card_dets,
+                        FULL_PROJ_W,
+                        FULL_PROJ_H,
+                        offset_x=ROI_OFFSET_X,
+                        offset_y=ROI_OFFSET_Y,
+                    )
                 else:
                     card_view = last_card_view if last_card_view is not None else rgb_bird.get()
                     card_dets = last_card_dets
@@ -271,19 +321,20 @@ def main() -> None:
                     # Process all touches, but limit prints to reduce overhead
                     touch_printed = frame_count % 15 == 0
                     for i, (x, y) in enumerate(touches):
-                        if 0 <= x < PROJ_W and 0 <= y < PROJ_H:
-                            touch_event = TouchEvent.from_detected_touch(x=x, y=y)
+                        full_x = x + ROI_OFFSET_X
+                        full_y = y + ROI_OFFSET_Y
+                        if 0 <= full_x < FULL_PROJ_W and 0 <= full_y < FULL_PROJ_H:
+                            touch_event = TouchEvent.from_detected_touch(x=full_x, y=full_y)
                             if touch_printed:
-                                print(f"  Frame {frame_count}: Touch {i+1} at proj_x={x:.0f}, proj_y={y:.0f}")
+                                print(f"  Frame {frame_count}: Touch {i+1} at proj_x={full_x:.0f}, proj_y={full_y:.0f}")
 
                             if ws_bridge.state.value == "CONNECTED" and ws_bridge.loop is not None:
                                 asyncio.run_coroutine_threadsafe(
                                     ws_bridge.send_touch_event(touch_event.to_dict()),
                                     loop=ws_bridge.loop,
                                 )
-                else:
-                    if frame_count % 30 == 0:
-                        print(f"  Frame {frame_count}: No touches detected")
+                elif enable_touch and frame_count % 30 == 0:
+                    print(f"  Frame {frame_count}: No touches detected")
 
                 if card_dets:
                     for d in card_dets:
@@ -294,7 +345,16 @@ def main() -> None:
 
                 # # Fix 4: Show only every 2 frames
                 if frame_count % 2 == 0:
-                    cv2.imshow("Card Detection", card_view)
+                    full_card_view = np.zeros((FULL_PROJ_H, FULL_PROJ_W, 3), dtype=np.uint8)
+                    y1 = max(0, ROI_OFFSET_Y)
+                    x1 = max(0, ROI_OFFSET_X)
+                    y2 = min(FULL_PROJ_H, y1 + card_view.shape[0])
+                    x2 = min(FULL_PROJ_W, x1 + card_view.shape[1])
+                    src_h = max(0, y2 - y1)
+                    src_w = max(0, x2 - x1)
+                    if src_h > 0 and src_w > 0:
+                        full_card_view[y1:y2, x1:x2] = card_view[:src_h, :src_w]
+                    cv2.imshow("Card Detection", full_card_view)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
 
@@ -338,7 +398,7 @@ def main() -> None:
             print("  Disconnecting WebSocket...")
             ws_bridge.disconnect()
             if ws_thread is not None:
-                ws_thread.join(timeout=2)
+                ws_thread.join(timeout=12)
             print("  WebSocket stopped")
 
         if hardware is not None:

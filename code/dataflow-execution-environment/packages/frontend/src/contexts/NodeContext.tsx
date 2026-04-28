@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -25,8 +26,10 @@ import type {
   OperatorFlowNodeData,
   ResultAnchorFlowNodeData,
   ProgramOutputFlowNodeData,
+  DeckPropFlowNodeData,
 } from "@/components/dataflow";
-import type { MathOperatorType } from "@/types/card-types";
+import type { OperatorType } from "@/types/card-types";
+import { spawnActionForYoloClass } from "../data/yoloDeckCatalog";
 import {
   VISION_PROGRAM_OUTPUT_ID,
   VISION_RESULT_ANCHOR_ID,
@@ -40,7 +43,10 @@ export type DataflowNode =
   | Node<NumberFlowNodeData, "number">
   | Node<OperatorFlowNodeData, "operator">
   | Node<ResultAnchorFlowNodeData, "resultAnchor">
-  | Node<ProgramOutputFlowNodeData, "programOutput">;
+  | Node<ProgramOutputFlowNodeData, "programOutput">
+  | Node<DeckPropFlowNodeData, "deckProp">;
+
+type ExecuteRunner = typeof executeProgramService;
 
 export type PortIdentifier = {
   nodeId: string;
@@ -83,9 +89,13 @@ type NodeContextState = {
   clearSelection: () => void;
   addNumberNode: (value: number, position?: { x: number; y: number }) => void;
   addOperatorNode: (
-    operator: MathOperatorType,
+    operator: OperatorType,
     position?: { x: number; y: number }
   ) => void;
+  addResultAnchorPair: () => void;
+  addResultCard: () => void;
+  spawnDeckYoloClass: (yoloClass: string) => void;
+  nodesDraggable: boolean;
   executeProgram: () => Promise<void>;
 
   // Para React Flow
@@ -228,10 +238,21 @@ function computeOperatorResult(
 type NodeProviderProps = {
   children: ReactNode;
   flowContainerRef: React.RefObject<HTMLDivElement | null>;
+  visionSyncEnabled?: boolean;
+  executeRunner?: ExecuteRunner;
+  nodesDraggable?: boolean;
 };
 
-export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) {
+export function NodeProvider({
+  children,
+  flowContainerRef,
+  visionSyncEnabled = true,
+  executeRunner,
+  nodesDraggable = false,
+}: NodeProviderProps) {
   const { lastCardFrame } = useVision();
+  const executeRunnerRef = useRef<ExecuteRunner>(executeRunner ?? executeProgramService);
+  executeRunnerRef.current = executeRunner ?? executeProgramService;
 
   const [nodes, setNodes, onNodesChange] = useNodesState<DataflowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -244,7 +265,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
 
   // Sync vision cards to nodes
   useEffect(() => {
-    if (!lastCardFrame) return;
+    if (!visionSyncEnabled || !lastCardFrame) return;
     const flowEl = flowContainerRef.current;
     const rect = flowEl?.getBoundingClientRect();
     if (
@@ -309,6 +330,65 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
           continue;
         }
 
+        if (parsed.type === "operatorCanvas") {
+          additions.push({
+            id: nodeId,
+            type: "operator" as const,
+            position,
+            data: {
+              operator: parsed.operator,
+              trackId: c.trackId,
+            },
+          });
+          idx++;
+          continue;
+        }
+
+        if (parsed.type === "programResultCard") {
+          additions.push({
+            id: nodeId,
+            type: "programOutput" as const,
+            position,
+            data: {},
+          });
+          idx++;
+          continue;
+        }
+
+        if (parsed.type === "deckShape") {
+          additions.push({
+            id: nodeId,
+            type: "deckProp" as const,
+            position,
+            data: {
+              variant: "shape",
+              yoloClass: parsed.yoloClass,
+              shape: parsed.shape,
+              size: parsed.size,
+              color: parsed.color,
+              trackId: c.trackId,
+            },
+          });
+          idx++;
+          continue;
+        }
+
+        if (parsed.type === "deckFood") {
+          additions.push({
+            id: nodeId,
+            type: "deckProp" as const,
+            position,
+            data: {
+              variant: "food",
+              yoloClass: parsed.yoloClass,
+              food: parsed.food,
+              trackId: c.trackId,
+            },
+          });
+          idx++;
+          continue;
+        }
+
         // Tipo desconocido: mostrar como número con subtítulo
         additions.push({
           id: nodeId,
@@ -345,7 +425,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
 
       return [...withoutLive, ...additions];
     });
-  }, [lastCardFrame, setNodes, flowContainerRef]);
+  }, [visionSyncEnabled, lastCardFrame, setNodes, flowContainerRef]);
 
   // Arista por defecto: marcador → carta de resultado (solo presentación)
   useEffect(() => {
@@ -489,7 +569,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
   );
 
   const addOperatorNode = useCallback(
-    (operator: MathOperatorType, position?: { x: number; y: number }) => {
+    (operator: OperatorType, position?: { x: number; y: number }) => {
       const id = `op${operator}_${Date.now()}`;
       setNodes((nds) => [
         ...nds,
@@ -505,6 +585,69 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       ]);
     },
     [setNodes]
+  );
+
+  const addResultAnchorPair = useCallback(() => {
+    setNodes((nds) => {
+      const pairId = `manual_uva_${Date.now()}`;
+      return [
+        ...nds,
+        { id: `${pairId}_anchor`, type: "resultAnchor" as const, position: { x: 40, y: 120 }, data: {} },
+        { id: `${pairId}_out`, type: "programOutput" as const, position: { x: 304, y: 120 }, data: {} },
+      ];
+    });
+  }, [setNodes]);
+
+  const addResultCard = useCallback(() => {
+    setNodes((nds) => [
+      ...nds,
+      {
+        id: `result_${Date.now()}`,
+        type: "programOutput" as const,
+        position: { x: 380 + (nds.length % 4) * 220, y: 140 },
+        data: {},
+      },
+    ]);
+  }, [setNodes]);
+
+  const spawnDeckYoloClass = useCallback(
+    (yoloClass: string) => {
+      const spawn = spawnActionForYoloClass(yoloClass);
+      if (!spawn) return;
+      if (spawn.kind === "number") return addNumberNode(spawn.value);
+      if (spawn.kind === "operator") return addOperatorNode(spawn.operator);
+      if (spawn.kind === "resultCard") return addResultCard();
+      if (spawn.kind === "shape") {
+        setNodes((nds) => [
+          ...nds,
+          {
+            id: `deck_${spawn.yoloClass}_${Date.now()}`,
+            type: "deckProp" as const,
+            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+            data: {
+              variant: "shape",
+              yoloClass: spawn.yoloClass,
+              shape: spawn.shape,
+              size: spawn.size,
+              color: spawn.color,
+            },
+          },
+        ]);
+        return;
+      }
+      if (spawn.kind === "food") {
+        setNodes((nds) => [
+          ...nds,
+          {
+            id: `deck_${spawn.yoloClass}_${Date.now()}`,
+            type: "deckProp" as const,
+            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+            data: { variant: "food", yoloClass: spawn.yoloClass, food: spawn.food },
+          },
+        ]);
+      }
+    },
+    [addNumberNode, addOperatorNode, addResultCard, setNodes]
   );
 
   const executeProgram = useCallback(async () => {
@@ -528,7 +671,7 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
     };
 
     try {
-      const result = await executeProgramService(nodes, edges);
+      const result = await executeRunnerRef.current(nodes, edges);
 
       if (result.success && result.result !== undefined) {
         setExecutionResult(result.result);
@@ -568,6 +711,10 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       clearSelection,
       addNumberNode,
       addOperatorNode,
+      addResultAnchorPair,
+      addResultCard,
+      spawnDeckYoloClass,
+      nodesDraggable,
       executeProgram,
       onNodesChange,
       onEdgesChange,
@@ -586,6 +733,10 @@ export function NodeProvider({ children, flowContainerRef }: NodeProviderProps) 
       clearSelection,
       addNumberNode,
       addOperatorNode,
+      addResultAnchorPair,
+      addResultCard,
+      spawnDeckYoloClass,
+      nodesDraggable,
       executeProgram,
       onNodesChange,
       onEdgesChange,
