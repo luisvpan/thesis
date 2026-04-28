@@ -152,13 +152,13 @@ function astObjectLiteralToObjectLiteral(obj: ASTObjectLiteral): ObjectLiteral {
 
   if (obj.category !== undefined) result.category = obj.category;
   if (obj.objectType !== undefined) result.objectType = obj.objectType;
-  if (obj.subtype !== undefined) result.subtype = obj.subtype;
-  if (obj.size !== undefined) result.size = obj.size;
-  if (obj.color !== undefined) result.color = obj.color;
+  if ("subtype" in obj && obj.subtype !== undefined) result.subtype = obj.subtype;
+  if ("size" in obj && obj.size !== undefined) result.size = obj.size;
+  if ("color" in obj && obj.color !== undefined) result.color = obj.color;
 
   // Convert string numeric values to Fraction
-  if (obj.amount !== undefined) result.amount = new Fraction(obj.amount);
-  if (obj.value !== undefined) result.value = new Fraction(obj.value);
+  if ("amount" in obj && obj.amount !== undefined) result.amount = new Fraction(obj.amount);
+  if ("value" in obj && obj.value !== undefined) result.value = new Fraction(obj.value);
 
   return result as ObjectLiteral;
 }
