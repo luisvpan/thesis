@@ -1,19 +1,22 @@
 import { motion } from 'motion/react';
-import type { MathOperatorType } from '@/types/card-types';
+import type { OperatorType } from '@/types/card-types';
 
 interface OperatorFlowCardProps {
-  operator: MathOperatorType;
+  operator: OperatorType;
   isDraggable?: boolean;
   onClick?: () => void;
   size?: 'small' | 'medium' | 'large';
 }
 
 /** Misma idea que NumberCard: caja fija + borde; rojo en lugar de azul; nombre arriba, símbolo dentro. */
-const MATH_OPERATOR_FLOW: Record<MathOperatorType, { name: string; symbol: string }> = {
+const OPERATOR_FLOW: Partial<Record<OperatorType, { name: string; symbol: string }>> = {
   adicion: { name: 'Adición', symbol: '+' },
   sustraccion: { name: 'Sustracción', symbol: '−' },
   multiplicacion: { name: 'Multiplicación', symbol: '×' },
   division: { name: 'División', symbol: '÷' },
+  'orden-menor-mayor': { name: 'Ascendente', symbol: '↑' },
+  'orden-mayor-menor': { name: 'Descendente', symbol: '↓' },
+  'filtrar-general': { name: 'Filtrar', symbol: '⊲' },
 };
 
 const sizeClasses = {
@@ -43,7 +46,7 @@ export function OperatorFlowCard({
   onClick,
   size = 'medium',
 }: OperatorFlowCardProps) {
-  const { name, symbol } = MATH_OPERATOR_FLOW[operator];
+  const { name, symbol } = OPERATOR_FLOW[operator] ?? { name: operator, symbol: '?' };
 
   return (
     <motion.div

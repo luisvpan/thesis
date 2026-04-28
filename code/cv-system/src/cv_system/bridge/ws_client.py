@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import threading
 from enum import Enum
 from typing import Optional
 
@@ -85,6 +86,8 @@ class WebSocketBridge:
         self.base_reconnect_delay = base_reconnect_delay
         self.backoff_factor = backoff_factor
         self._reconnect_attempts = 0
+        self._shutdown = False
+        self._loop_thread_ident: Optional[int] = None
 
         logger.info(
             f"WebSocketBridge initialized with URL: {self.url}, "
@@ -107,11 +110,14 @@ class WebSocketBridge:
             )
             return
 
+        if self._shutdown or not self.reconnect_enabled:
+            return
+
         self.state = ConnectionState.CONNECTING
         self._reconnect_attempts = 0
         self.loop = asyncio.get_running_loop()
 
-        while self.reconnect_enabled:
+        while self.reconnect_enabled and not self._shutdown:
             try:
                 logger.info(
                     f"Connecting to {self.url} (attempt {self._reconnect_attempts + 1})"
@@ -143,7 +149,12 @@ class WebSocketBridge:
                     f"(attempt {self._reconnect_attempts + 1})"
                 )
 
-                await asyncio.sleep(backoff)
+                try:
+                    await asyncio.sleep(backoff)
+                except asyncio.CancelledError:
+                    break
+
+        self.state = ConnectionState.DISCONNECTED
 
     async def _listen_for_messages(self) -> None:
         """Listen for incoming WebSocket messages (pings, pongs, errors)."""
@@ -169,8 +180,14 @@ class WebSocketBridge:
 
         except websockets.exceptions.ConnectionClosed:
             logger.info("Server closed connection")
-            if self.state == ConnectionState.CONNECTED and self.reconnect_enabled:
-                asyncio.create_task(self.connect())
+            self.state = ConnectionState.DISCONNECTED
+            if self.reconnect_enabled and not self._shutdown:
+                try:
+                    loop = asyncio.get_running_loop()
+                    if loop.is_running():
+                        asyncio.create_task(self.connect())
+                except RuntimeError:
+                    pass
 
     def _calculate_backoff(self, attempt: int) -> float:
         """
@@ -215,22 +232,48 @@ class WebSocketBridge:
 
         await self.ws.send(message)
 
+    async def _graceful_shutdown(self) -> None:
+        try:
+            if self.ws is not None:
+                await self.ws.close()
+        except Exception as e:
+            logger.debug("WebSocket close during shutdown: %s", e)
+        finally:
+            self.ws = None
+            self.state = ConnectionState.DISCONNECTED
+        loop = asyncio.get_running_loop()
+        loop.call_soon(loop.stop)
+
     def disconnect(self) -> None:
-        """
-        Synchronous disconnect for use from non-async contexts (e.g., main finally block).
-
-        Disables reconnection and clears connection state immediately.
-        The underlying WebSocket socket may not be formally closed with a
-        closing handshake, but the server will detect the dropped connection.
-        """
         logger.info("Disconnecting from WebSocket...")
+        self._shutdown = True
         self.reconnect_enabled = False
-        self.state = ConnectionState.DISCONNECTED
-        self.ws = None
 
-        # Stop the event loop if it's running (allows thread to terminate)
-        if self.loop is not None and self.loop.is_running():
-            self.loop.call_soon_threadsafe(self.loop.stop)
+        loop = self.loop
+        if loop is None or not loop.is_running():
+            self.ws = None
+            self.state = ConnectionState.DISCONNECTED
+            logger.info("WebSocket disconnected")
+            return
+
+        loop_tid = self._loop_thread_ident
+        same_thread = loop_tid is not None and threading.get_ident() == loop_tid
+        if same_thread:
+            asyncio.create_task(self._graceful_shutdown())
+            logger.info("WebSocket disconnected (shutdown scheduled on loop thread)")
+            return
+
+        fut = asyncio.run_coroutine_threadsafe(self._graceful_shutdown(), loop)
+        try:
+            fut.result(timeout=15.0)
+        except Exception as e:
+            logger.warning("Graceful WebSocket shutdown failed: %s", e)
+            try:
+                loop.call_soon_threadsafe(loop.stop)
+            except RuntimeError:
+                pass
+            self.ws = None
+            self.state = ConnectionState.DISCONNECTED
 
         logger.info("WebSocket disconnected")
 
@@ -242,6 +285,7 @@ class WebSocketBridge:
         receives a proper WebSocket close frame.
         """
         logger.info("Disconnecting from WebSocket (async)...")
+        self._shutdown = True
         self.reconnect_enabled = False
 
         if self.ws is not None:

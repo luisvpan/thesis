@@ -2,6 +2,9 @@
  * Tipos de cartas detectadas por el sistema de visión.
  */
 
+import type { FoodType, OperatorType, ShapeColor, ShapeSize, ShapeType } from '@/types/card-types';
+import { spawnActionForYoloClass } from '../data/yoloDeckCatalog';
+
 /** Operadores matemáticos soportados */
 export type VisionOperator = 'addition' | 'subtraction' | 'multiplication' | 'division';
 
@@ -15,8 +18,12 @@ export type VisionCardType = 'number' | 'operator';
 export type ParsedVisionCard =
   | { type: 'number'; value: VisionDigit }
   | { type: 'operator'; operator: VisionOperator }
-  /** Carta física detectada como `grapes`: solo uso en frontend como marcador de salida visual */
+  | { type: 'operatorCanvas'; operator: OperatorType }
+  /** Carta física detectada como `grapes`: marcador visual de salida */
   | { type: 'resultAnchor' }
+  | { type: 'programResultCard' }
+  | { type: 'deckShape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor }
+  | { type: 'deckFood'; yoloClass: string; food: FoodType }
   | { type: 'unknown'; label: string };
 
 /**
@@ -78,29 +85,42 @@ const OPERATOR_LABELS: Record<string, VisionOperator> = {
 export function parseVisionLabel(label: string): ParsedVisionCard {
   const normalized = label.trim().toLowerCase();
 
-  /** Marcador físico para acoplar la carta de resultado en el lienzo (detalle de UI). */
-  if (normalized === 'grapes') {
-    return { type: 'resultAnchor' };
+  const spawn = spawnActionForYoloClass(normalized);
+  if (spawn) {
+    if (spawn.kind === 'number') return { type: 'number', value: spawn.value as VisionDigit };
+    if (spawn.kind === 'resultCard') return { type: 'programResultCard' };
+    if (spawn.kind === 'operator') {
+      const op = spawn.operator;
+      if (op === 'adicion') return { type: 'operator', operator: 'addition' };
+      if (op === 'sustraccion') return { type: 'operator', operator: 'subtraction' };
+      if (op === 'multiplicacion') return { type: 'operator', operator: 'multiplication' };
+      if (op === 'division') return { type: 'operator', operator: 'division' };
+      return { type: 'operatorCanvas', operator: op };
+    }
+    if (spawn.kind === 'shape') {
+      return { type: 'deckShape', yoloClass: spawn.yoloClass, shape: spawn.shape, size: spawn.size, color: spawn.color };
+    }
+    if (spawn.kind === 'food') {
+      // `grapes` queda como marcador físico, no como comida en el grafo.
+      if (spawn.yoloClass === 'grapes') return { type: 'resultAnchor' };
+      return { type: 'deckFood', yoloClass: spawn.yoloClass, food: spawn.food };
+    }
   }
 
-  // Verificar si es un dígito por nombre
   if (normalized in DIGIT_LABELS) {
     return { type: 'number', value: DIGIT_LABELS[normalized] };
   }
 
-  // Verificar si es un dígito numérico directo (0-9)
   const digitMatch = /^(\d)$/.exec(normalized);
   if (digitMatch) {
     const value = Number(digitMatch[1]) as VisionDigit;
     return { type: 'number', value };
   }
 
-  // Verificar si es un operador
   if (normalized in OPERATOR_LABELS) {
     return { type: 'operator', operator: OPERATOR_LABELS[normalized] };
   }
 
-  // Tipo desconocido
   return { type: 'unknown', label };
 }
 

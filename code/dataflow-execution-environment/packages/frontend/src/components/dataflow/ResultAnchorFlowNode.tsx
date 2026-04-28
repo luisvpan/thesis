@@ -5,7 +5,7 @@ import { ClickableHandle } from './ClickableHandle';
 /** Carta física detectada como `grapes`: solo marcador visual en el lienzo (no forma parte del lenguaje). */
 export type ResultAnchorFlowNodeData = Record<string, never>;
 
-export function ResultAnchorFlowNode({ id }: NodeProps<{ type: 'resultAnchor'; data: ResultAnchorFlowNodeData }>) {
+export function ResultAnchorFlowNode({ id }: NodeProps) {
   return (
     <div className="nopan relative border-2 border-dashed border-violet-400 w-60 h-60 -translate-y-[25%] -translate-x-[30%]">
       <div className="absolute -top-5 left-0 text-xs text-violet-300 bg-black/50 px-1 rounded">

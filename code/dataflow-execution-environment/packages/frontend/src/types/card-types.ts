@@ -30,9 +30,18 @@ export type SetOperatorType = 'union' | 'interseccion' | 'diferencia' | 'complem
 // Unión de todos los operadores
 export type OperatorType = MathOperatorType | OrderOperatorType | FilterOperatorType | SetOperatorType;
 
+export function isMathOperatorType(op: OperatorType): op is MathOperatorType {
+  return (
+    op === 'adicion' ||
+    op === 'sustraccion' ||
+    op === 'multiplicacion' ||
+    op === 'division'
+  );
+}
+
 export type AnimalType = 'gato' | 'perro' | 'tortuga' | 'elefante' | 'jirafa';
 
-export type FoodType = 'manzana' | 'hamburguesa' | 'uvas' | 'pasta' | 'peras';
+export type FoodType = 'manzana' | 'hamburguesa' | 'uvas' | 'pasta' | 'peras' | 'naranja';
 
 export type PersonAge = 'bebe' | 'niño' | 'joven' | 'adulto';
 

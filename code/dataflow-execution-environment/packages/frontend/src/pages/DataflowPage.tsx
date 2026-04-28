@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ReactFlow,
@@ -11,25 +11,22 @@ import {
   OperatorFlowNode,
   ResultAnchorFlowNode,
   ProgramOutputFlowNode,
+  DeckPropFlowNode,
   type ResultViewMode,
 } from '@/components/dataflow';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
 import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
 import { SocketInfoFab } from '@/components/SocketInfoFab';
 import { getLevelConfig } from '@/data/levelConfig';
-import { ArrowLeft, Plus, Minus, Volume2, Play } from 'lucide-react';
-
-const VIEW_MODE_LABELS: Record<ResultViewMode, string> = {
-  pictorico: 'Pictórico',
-  concreto: 'Concreto',
-  abstracto: 'Abstracto',
-};
+import { ModelDeckSidebar } from '../components/ModelDeckSidebar';
+import { ArrowLeft, Eye, Volume2 } from 'lucide-react';
 
 const nodeTypes: NodeTypes = {
   number: NumberFlowNode,
   operator: OperatorFlowNode,
   resultAnchor: ResultAnchorFlowNode,
   programOutput: ProgramOutputFlowNode,
+  deckProp: DeckPropFlowNode,
 };
 
 function speakTitle(title: string, subtitle: string) {
@@ -40,38 +37,28 @@ function speakTitle(title: string, subtitle: string) {
   window.speechSynthesis.speak(u);
 }
 
-// Inner component that uses NodeContext
-function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
+export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef, showSocketFab = true, rootClassName = 'h-screen w-screen flex flex-col bg-slate-900', extraAsideSections }: {
   isSandbox: boolean;
   levelConfig: ReturnType<typeof getLevelConfig>;
   backTo: string;
   flowContainerRef: React.RefObject<HTMLDivElement | null>;
+  showSocketFab?: boolean;
+  rootClassName?: string;
+  extraAsideSections?: ReactNode;
 }) {
   const {
     nodes,
     edges,
     onNodesChange,
     onEdgesChange,
-    addNumberNode,
-    addOperatorNode,
-    executeProgram,
-    isExecuting,
+    nodesDraggable,
   } = useNode();
 
-  const [viewMode, setViewMode] = useState<ResultViewMode>('pictorico');
-  const [hasExecuted, setHasExecuted] = useState(false);
-
-  const cycleViewMode = useCallback(() => {
-    setViewMode((m) => (m === 'pictorico' ? 'concreto' : m === 'concreto' ? 'abstracto' : 'pictorico'));
-  }, []);
-
-  const onExecute = useCallback(async () => {
-    await executeProgram();
-    setHasExecuted(true);
-  }, [executeProgram]);
+  const [viewMode, setViewMode] = useState<ResultViewMode>('abstracto');
+  const [showOperatorResults, setShowOperatorResults] = useState(false);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-900">
+    <div className={rootClassName}>
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0 gap-4">
         <Link
@@ -94,22 +81,20 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           <button
             type="button"
-            onClick={onExecute}
-            disabled={isExecuting}
-            className="flex items-center gap-3 px-8 py-5 min-h-[4.5rem] rounded-xl bg-teal-500 hover:bg-teal-600 disabled:bg-teal-700 disabled:cursor-wait text-white text-2xl font-bold transition-colors shadow-lg"
-            title="Ejecutar"
+            onClick={() => setShowOperatorResults((v) => !v)}
+            aria-pressed={showOperatorResults}
+            className={`flex items-center gap-3 px-5 py-4 min-h-[4.5rem] rounded-xl text-lg font-semibold transition-colors border-2 shadow-lg ${
+              showOperatorResults ? 'bg-teal-800 hover:bg-teal-700 border-teal-500 text-teal-50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-100'
+            }`}
           >
-            <Play className="w-10 h-10 shrink-0" fill="currentColor" />
-            {isExecuting ? 'Ejecutando...' : 'Ejecutar'}
+            <Eye className="w-9 h-9 shrink-0" strokeWidth={2} aria-hidden />
+            Mostrar resultados
           </button>
-          <button
-            type="button"
-            onClick={cycleViewMode}
-            className="px-8 py-5 min-h-[4.5rem] min-w-[14rem] rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-100 text-2xl font-bold transition-colors border-2 border-slate-600 shadow-lg"
-            title="CPA: ciclar Pictórico → Concreto → Abstracto"
-          >
-            <span className="block text-center">{VIEW_MODE_LABELS[viewMode]}</span>
-          </button>
+          <div className="mr-4 inline-flex overflow-hidden rounded-xl border-2 border-slate-600 shadow-lg" role="group" aria-label="Modo de visualización">
+            <button type="button" onClick={() => setViewMode('concreto')} className={`px-4 py-4 text-xl font-black ${viewMode === 'concreto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>C</button>
+            <button type="button" onClick={() => setViewMode('pictorico')} className={`border-l-2 border-slate-600 px-4 py-4 text-xl font-black ${viewMode === 'pictorico' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>P</button>
+            <button type="button" onClick={() => setViewMode('abstracto')} className={`border-l-2 border-slate-600 px-4 py-4 text-xl font-black ${viewMode === 'abstracto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>A</button>
+          </div>
           <button
             type="button"
             onClick={() => speakTitle(levelConfig.title, levelConfig.subtitle)}
@@ -128,48 +113,10 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
               <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Mochila
               </h2>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-base font-medium text-slate-400 mb-2">Añadir número</p>
-                  <div className="flex flex-wrap gap-1">
-                    {levelConfig.numbers.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => addNumberNode(n)}
-                        className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-teal-500 text-slate-200 hover:text-white font-bold text-lg transition-colors"
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-base font-medium text-slate-400 mb-2">Añadir operador</p>
-                  <div className="flex gap-2">
-                    {levelConfig.operators.includes('adicion') && (
-                      <button
-                        type="button"
-                        onClick={() => addOperatorNode('adicion')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-bold text-lg transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Suma
-                      </button>
-                    )}
-                    {levelConfig.operators.includes('sustraccion') && (
-                      <button
-                        type="button"
-                        onClick={() => addOperatorNode('sustraccion')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                        Resta
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                Números (azul), Operadores (rojo, incluye `result`), Figuras (amarillo), Comidas (naranja).
+              </p>
+              <ModelDeckSidebar />
             </section>
             <section className="p-3 flex-1">
               <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
@@ -179,12 +126,13 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
                 {levelConfig.rule}
               </p>
             </section>
+            {extraAsideSections}
           </aside>
         )}
 
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
-          <ResultCardUiProvider viewMode={viewMode} hasExecuted={hasExecuted}>
+          <ResultCardUiProvider viewMode={viewMode} hasExecuted={true}>
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -201,6 +149,7 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
               panOnDrag={false}
               panOnScroll={false}
               autoPanOnNodeDrag={false}
+              nodesDraggable={nodesDraggable}
             >
               <Background color="#334155" gap={16} size={0.5} />
             </ReactFlow>
@@ -208,7 +157,7 @@ function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef }: {
         </div>
       </div>
 
-      <SocketInfoFab />
+      {showSocketFab ? <SocketInfoFab /> : null}
     </div>
   );
 }
@@ -224,7 +173,7 @@ export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
   const flowContainerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <NodeProvider flowContainerRef={flowContainerRef}>
+    <NodeProvider flowContainerRef={flowContainerRef} visionSyncEnabled nodesDraggable={false}>
       <DataflowContent
         isSandbox={isSandbox}
         levelConfig={levelConfig}
