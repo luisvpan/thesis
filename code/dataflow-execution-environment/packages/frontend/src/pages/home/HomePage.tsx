@@ -1,46 +1,13 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Gamepad2, Settings, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { AnimatedMenuBackground } from '@/components/AnimatedMenuBackground';
 import { ApiHealthBadge } from '@/components/ApiHealthBadge';
-
-const SECTIONS = [
-  {
-    id: 'juego',
-    title: 'Juego',
-    description: 'Mundos 1, 2 y 3 con niveles · Sandbox',
-    to: '/juego',
-    icon: Gamepad2,
-    gradient: 'from-teal-500 to-cyan-600',
-    border: 'border-teal-400/30',
-    shadow: 'shadow-teal-500/25',
-  },
-  {
-    id: 'configuracion',
-    title: 'Configuración',
-    description: 'Desbloquear niveles y borrar datos',
-    to: '/configuracion',
-    icon: Settings,
-    gradient: 'from-amber-500 to-orange-600',
-    border: 'border-amber-400/30',
-    shadow: 'shadow-amber-500/25',
-  },
-] as const;
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 32 },
-  show: { opacity: 1, y: 0 },
-};
+import { useHomePage } from './useHomePage';
 
 export default function HomePage() {
+  const { sections, containerMotion, itemMotion } = useHomePage();
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-100 flex flex-col items-center justify-center p-6 md:p-8">
       <div className="fixed bottom-4 right-4 z-20">
@@ -66,16 +33,16 @@ export default function HomePage() {
       </motion.p>
 
       <motion.nav
-        variants={container}
+        variants={containerMotion}
         initial="hidden"
         animate="show"
         className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl"
       >
         <AnimatePresence>
-          {SECTIONS.map((section, i) => {
+          {sections.map((section, i) => {
             const Icon = section.icon;
             return (
-              <motion.div key={section.id} variants={item} className="flex-1 min-w-[260px]">
+              <motion.div key={section.id} variants={itemMotion} className="flex-1 min-w-[260px]">
                 <Link to={section.to} className="block h-full">
                   <motion.div
                     whileHover={{ scale: 1.03, y: -8 }}

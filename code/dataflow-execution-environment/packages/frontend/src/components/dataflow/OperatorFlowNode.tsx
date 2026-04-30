@@ -1,8 +1,8 @@
-import type { NodeProps } from '@xyflow/react';
+import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
-import { OperatorFlowCard } from '@/components/cards/OperatorFlowCard';
 import { ClickableHandle } from './ClickableHandle';
 import type { OperatorType } from '@/types/card-types';
+import { FlowNodeCard } from './FlowNodeCard';
 
 export type OperatorFlowNodeData = {
   operator: OperatorType;
@@ -11,17 +11,30 @@ export type OperatorFlowNodeData = {
   trackId?: number;
 };
 
-export function OperatorFlowNode({ id, data }: NodeProps) {
+export type OperatorFlowNode = Node<OperatorFlowNodeData, 'operator'>;
+
+function operatorSymbol(operator: OperatorType): string {
+  if (operator === 'adicion') return '+';
+  if (operator === 'sustraccion') return '-';
+  if (operator === 'multiplicacion') return '*';
+  if (operator === 'division') return '/';
+  return operator;
+}
+
+export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
 
   return (
-    <div className="nopan relative border-2 border-dashed border-red-400 w-60 h-60 -translate-y-[25%] -translate-x-[30%]">
+    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
       <ClickableHandle type="target" position={Position.Left} id="a" nodeId={id} style={{ top: '25%' }} />
       <ClickableHandle type="target" position={Position.Left} id="b" nodeId={id} style={{ top: '75%' }} />
-      <div className="relative">
-        <OperatorFlowCard operator={operator} size="small" />
-      </div>
+      <FlowNodeCard
+        family="transformation"
+        title={operator}
+        content={<span className="text-4xl font-black text-slate-100">{operatorSymbol(operator)}</span>}
+        subtitle={d.result !== undefined ? `resultado: ${d.result}` : 'esperando entradas'}
+      />
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
     </div>
   );

@@ -1,6 +1,6 @@
 // Tipos para el sistema de flujo de datos (dataflow)
 
-import { Card } from './card-types';
+import type { Card } from './card-types';
 
 export type VisualizationMode = 'real' | 'pictorico' | 'abstracto';
 

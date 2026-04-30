@@ -1,45 +1,10 @@
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, LockOpen, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { AnimatedMenuBackground } from '@/components/AnimatedMenuBackground';
-
-const OPTIONS = [
-  { id: 'unlock', name: 'Desbloquear Niveles', icon: LockOpen },
-  { id: 'clear', name: 'Borrar Datos', icon: Trash2 },
-] as const;
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, x: -20 },
-  show: { opacity: 1, x: 0 },
-};
+import { useConfiguracionPage } from './useConfiguracionPage';
 
 export default function ConfiguracionPage() {
-  const navigate = useNavigate();
-  const [unlocked, setUnlocked] = useState(false);
-  const [cleared, setCleared] = useState(false);
-
-  const handleUnlock = () => {
-    setUnlocked(true);
-    // Aquí podrías guardar en localStorage o contexto
-    setTimeout(() => setUnlocked(false), 2000);
-  };
-
-  const handleClear = () => {
-    if (window.confirm('¿Borrar todos los datos guardados? Esta acción no se puede deshacer.')) {
-      setCleared(true);
-      // Aquí podrías limpiar localStorage / contexto
-      setTimeout(() => setCleared(false), 2000);
-    }
-  };
+  const { options, unlocked, cleared, handleUnlock, handleClear, goBack, containerMotion, itemMotion } = useConfiguracionPage();
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-100 flex flex-col items-center p-6 md:p-8">
@@ -52,7 +17,7 @@ export default function ConfiguracionPage() {
         >
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={goBack}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -78,19 +43,19 @@ export default function ConfiguracionPage() {
         </motion.p>
 
         <motion.ul
-          variants={container}
+          variants={containerMotion}
           initial="hidden"
           animate="show"
           className="flex flex-col gap-4 w-full"
         >
         <AnimatePresence>
-          {OPTIONS.map((opt, i) => {
+          {options.map((opt, i) => {
             const Icon = opt.icon;
             const isUnlock = opt.id === 'unlock';
             const isClear = opt.id === 'clear';
             const done = (isUnlock && unlocked) || (isClear && cleared);
             return (
-              <motion.li key={opt.id} variants={item}>
+              <motion.li key={opt.id} variants={itemMotion}>
                 <motion.button
                   type="button"
                   whileHover={{ scale: 1.02, x: 8 }}

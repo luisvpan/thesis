@@ -1,28 +1,35 @@
-import type { NodeProps } from '@xyflow/react';
+import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
 import type { ShapeType, ShapeSize, ShapeColor, FoodType } from '@/types/card-types';
+import { FlowNodeCard } from './FlowNodeCard';
 
 export type SourceFlowNodeData =
   | { variant: 'number'; value: number; visionSubtitle?: string; trackId?: number }
   | { variant: 'shape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor; trackId?: number }
   | { variant: 'food'; yoloClass: string; food: FoodType; trackId?: number };
 
-function getBorderColor(variant: string): string {
-  switch (variant) {
-    case 'number': return 'border-blue-400';
-    case 'shape': return 'border-yellow-400';
-    case 'food': return 'border-orange-500';
-    default: return 'border-gray-400';
-  }
+export type SourceFlowNode = Node<SourceFlowNodeData, 'source'>;
+
+function sourceTitle(data: SourceFlowNodeData): string {
+  if (data.variant === 'number') return 'Numero';
+  if (data.variant === 'shape') return 'Forma';
+  return 'Comida';
 }
 
-export function SourceFlowNode({ id, data }: NodeProps) {
+function sourceMain(data: SourceFlowNodeData): string {
+  if (data.variant === 'number') return String(data.value);
+  if (data.variant === 'shape') return `${data.shape} ${data.size}`;
+  return data.food;
+}
+
+export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   const d = (data ?? { variant: 'number', value: 0 }) as SourceFlowNodeData;
-  const borderColor = getBorderColor(d.variant);
+  const subtitle = d.variant === 'number' ? d.visionSubtitle : undefined;
 
   return (
-    <div className={`nopan relative border-2 border-dashed ${borderColor} w-60 h-60 -translate-y-[25%] -translate-x-[30%]`}>
+    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+      <FlowNodeCard family="input" title={sourceTitle(d)} content={<span className="text-4xl font-black text-slate-100">{sourceMain(d)}</span>} subtitle={subtitle} />
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
     </div>
   );

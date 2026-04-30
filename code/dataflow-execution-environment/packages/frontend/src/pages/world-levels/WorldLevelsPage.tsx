@@ -1,41 +1,12 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 import { AnimatedMenuBackground } from '@/components/AnimatedMenuBackground';
-
-const LEVELS = [1, 2, 3, 4] as const;
-const WORLD_NAMES: Record<string, string> = {
-  '1': 'Mundo 1',
-  '2': 'Mundo 2',
-  '3': 'Mundo 3',
-  sandbox: 'Sandbox',
-};
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.15 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, scale: 0.9 },
-  show: { opacity: 1, scale: 1 },
-};
+import { useWorldLevelsPage } from './useWorldLevelsPage';
 
 export default function WorldLevelsPage() {
-  const { worldId } = useParams<{ worldId: string }>();
-  const navigate = useNavigate();
-  const worldName = worldId ? WORLD_NAMES[worldId] ?? `Mundo ${worldId}` : '';
-
-  if (!worldId) {
-    navigate('/juego');
-    return null;
-  }
-
-  if (worldId === 'sandbox') {
-    navigate('/ide/sandbox', { replace: true });
+  const { worldId, worldName, levels, goBack, containerMotion, itemMotion } = useWorldLevelsPage();
+  if (!worldId || worldId === 'sandbox') {
     return null;
   }
 
@@ -50,7 +21,7 @@ export default function WorldLevelsPage() {
         >
           <button
             type="button"
-            onClick={() => navigate('/juego')}
+            onClick={goBack}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -76,14 +47,14 @@ export default function WorldLevelsPage() {
         </motion.p>
 
         <motion.ul
-          variants={container}
+          variants={containerMotion}
           initial="hidden"
           animate="show"
           className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-md mx-auto justify-items-center"
         >
           <AnimatePresence>
-            {LEVELS.map((level, i) => (
-              <motion.li key={level} variants={item} className="w-full max-w-[140px]">
+            {levels.map((level, i) => (
+              <motion.li key={level} variants={itemMotion} className="w-full max-w-[140px]">
                 <Link to={`/ide/${worldId}/${level}`} className="block">
                   <motion.div
                     whileHover={{ scale: 1.05, y: -4 }}

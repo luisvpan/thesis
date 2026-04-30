@@ -16,7 +16,6 @@ interface CardBaseProps {
 export function CardBase({ 
   children, 
   borderColor, 
-  backgroundColor = 'white',
   isDraggable = false,
   onClick,
   size = 'medium',

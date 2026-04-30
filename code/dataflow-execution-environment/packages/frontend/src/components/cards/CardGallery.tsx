@@ -44,7 +44,6 @@ export function CardGallery({ cardSize = 'medium' }: CardGalleryProps) {
   const personGenders: PersonGender[] = ['mujer', 'hombre'];
   const personAges: PersonAge[] = ['bebe', 'niño', 'joven', 'adulto'];
 
-  const shapes: ShapeType[] = ['triangulo', 'cuadrado', 'rectangulo', 'rombo', 'circulo', 'estrella', 'trapecio'];
   const shapeSizes: ShapeSize[] = ['pequeño', 'mediano', 'grande'];
   const shapeColors: ShapeColor[] = ['rojo', 'azul', 'amarillo', 'verde'];
 

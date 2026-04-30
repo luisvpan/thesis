@@ -1,30 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Globe, FlaskConical } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { AnimatedMenuBackground } from '@/components/AnimatedMenuBackground';
-
-const WORLDS = [
-  { id: '1', name: 'Mundo 1', icon: Globe },
-  { id: '2', name: 'Mundo 2', icon: Globe },
-  { id: '3', name: 'Mundo 3', icon: Globe },
-  { id: 'sandbox', name: 'Sandbox', icon: FlaskConical },
-] as const;
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0 },
-};
+import { useJuegoMenuPage } from './useJuegoMenuPage';
 
 export default function JuegoMenuPage() {
-  const navigate = useNavigate();
+  const { worlds, goBack, containerMotion, itemMotion } = useJuegoMenuPage();
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-100 flex flex-col items-center p-6 md:p-8">
@@ -37,7 +18,7 @@ export default function JuegoMenuPage() {
         >
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={goBack}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -63,18 +44,18 @@ export default function JuegoMenuPage() {
         </motion.p>
 
         <motion.ul
-          variants={container}
+          variants={containerMotion}
           initial="hidden"
           animate="show"
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full mx-auto justify-items-center"
         >
           <AnimatePresence>
-            {WORLDS.map((world, i) => {
+            {worlds.map((world, i) => {
               const Icon = world.icon;
               const isSandbox = world.id === 'sandbox';
               const to = isSandbox ? '/ide/sandbox' : `/juego/${world.id}`;
               return (
-                <motion.li key={world.id} variants={item} className="w-full max-w-[220px]">
+                <motion.li key={world.id} variants={itemMotion} className="w-full max-w-[220px]">
                   <Link to={to} className="block h-full">
                     <motion.div
                       whileHover={{ scale: 1.03, y: -6 }}

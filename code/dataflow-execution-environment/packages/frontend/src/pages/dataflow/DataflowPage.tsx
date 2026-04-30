@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useState, type ReactNode } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ReactFlow,
   Background,
@@ -16,8 +16,10 @@ import { NodeProvider, useNode } from '@/contexts/NodeContext';
 import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
 import { SocketInfoFab } from '@/components/SocketInfoFab';
 import { getLevelConfig } from '@/data/levelConfig';
-import { ModelDeckSidebar } from '../components/ModelDeckSidebar';
+import { DECK_SECTION_ITEMS } from '@/data/yoloDeckCatalog';
+import { ModelDeckSidebar } from '@/components/ModelDeckSidebar';
 import { ArrowLeft, Eye, Volume2 } from 'lucide-react';
+import { useDataflowPage } from './useDataflowPage';
 
 const nodeTypes: NodeTypes = {
   source: SourceFlowNode,
@@ -33,7 +35,7 @@ function speakTitle(title: string, subtitle: string) {
   window.speechSynthesis.speak(u);
 }
 
-export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef, showSocketFab = true, rootClassName = 'h-screen w-screen flex flex-col bg-slate-900', extraAsideSections }: {
+export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef, showSocketFab = true, rootClassName = 'h-screen w-screen flex flex-col bg-slate-900', extraAsideSections, enableDeveloperTools = false }: {
   isSandbox: boolean;
   levelConfig: ReturnType<typeof getLevelConfig>;
   backTo: string;
@@ -41,6 +43,7 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
   showSocketFab?: boolean;
   rootClassName?: string;
   extraAsideSections?: ReactNode;
+  enableDeveloperTools?: boolean;
 }) {
   const {
     nodes,
@@ -48,10 +51,17 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
     onNodesChange,
     onEdgesChange,
     nodesDraggable,
+    spawnDeckYoloClass,
   } = useNode();
 
   const [viewMode, setViewMode] = useState<ResultViewMode>('abstracto');
   const [showOperatorResults, setShowOperatorResults] = useState(false);
+
+  const spawnAllCards = () => {
+    Object.values(DECK_SECTION_ITEMS).flat().forEach((yoloClass) => {
+      spawnDeckYoloClass(yoloClass);
+    });
+  };
 
   return (
     <div className={rootClassName}>
@@ -122,6 +132,20 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
                 {levelConfig.rule}
               </p>
             </section>
+            {enableDeveloperTools ? (
+              <section className="border-t border-slate-700 p-3">
+                <h2 className="mb-2 text-base font-semibold uppercase tracking-wider text-slate-400">
+                  Modo desarrollador
+                </h2>
+                <button
+                  type="button"
+                  onClick={spawnAllCards}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-600"
+                >
+                  Agregar todas las cartas
+                </button>
+              </section>
+            ) : null}
             {extraAsideSections}
           </aside>
         )}
@@ -160,21 +184,23 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
 
 // Main component that provides NodeContext
 export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
-  const params = useParams();
-  const worldId = params.worldId;
-  const level = params.level;
-  const levelConfig = getLevelConfig(worldId, level, isSandbox);
-  const backTo = worldId ? (isSandbox ? '/juego' : `/juego/${worldId}`) : '/';
-
-  const flowContainerRef = useRef<HTMLDivElement>(null);
+  const [searchParams] = useSearchParams();
+  const isDevMode = searchParams.get('dev') === '1';
+  const { levelConfig, backTo, flowContainerRef } = useDataflowPage(isSandbox);
 
   return (
-    <NodeProvider flowContainerRef={flowContainerRef} visionSyncEnabled nodesDraggable={false}>
+    <NodeProvider
+      flowContainerRef={flowContainerRef}
+      visionSyncEnabled={!isDevMode}
+      nodesDraggable={isDevMode}
+    >
       <DataflowContent
         isSandbox={isSandbox}
         levelConfig={levelConfig}
         backTo={backTo}
         flowContainerRef={flowContainerRef}
+        showSocketFab={!isDevMode}
+        enableDeveloperTools={isDevMode}
       />
     </NodeProvider>
   );

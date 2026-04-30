@@ -1,9 +1,10 @@
-import type { NodeProps } from '@xyflow/react';
+import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
 import { formatResultCpa } from './dataflowResultCpa';
+import { FlowNodeCard } from './FlowNodeCard';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = {
@@ -13,10 +14,12 @@ export type ProgramOutputFlowNodeData = {
   description?: string;
 };
 
+export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
+
 export function ProgramOutputFlowNode({
   id,
   data,
-}: NodeProps<ProgramOutputFlowNodeData>) {
+}: NodeProps<ProgramOutputFlowNode>) {
   const { executionError } = useNode();
   const { viewMode } = useResultCardUi();
 
@@ -59,12 +62,12 @@ export function ProgramOutputFlowNode({
     );
 
   return (
-    <div className="nopan relative border-2 border-dashed border-teal-400 w-60 h-60 -translate-y-[25%] -translate-x-[30%]">
-      <div className="absolute -top-5 left-0 text-xs text-teal-300 bg-black/50 px-1 rounded">
+    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+      <div className="absolute -top-5 left-0 rounded bg-black/50 px-1 text-xs text-teal-300">
         {id}
       </div>
       <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} />
-      <div className="flex h-full flex-col items-center justify-center px-2 py-1">{display}</div>
+      <FlowNodeCard family="sink" title="Salida" content={display} />
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
     </div>
   );

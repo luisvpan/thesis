@@ -28,10 +28,6 @@ export function ClickableHandle({
     handlePortClick(nodeId, id, type);
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   const colorClass = selected ? "!bg-green-500 !border-green-300" : "!bg-white !border-slate-400";
 
   return (
@@ -39,10 +35,9 @@ export function ClickableHandle({
       type={type}
       position={position}
       id={id}
-      className={`!w-20 !h-20 !border-2 ${colorClass} cursor-pointer ${className}`}
+      className={`nodrag nopan !h-20 !w-20 !border-2 ${colorClass} cursor-pointer ${className}`}
       style={style}
       onClick={handleClick}
-      onMouseDown={handleMouseDown}
     />
   );
 }

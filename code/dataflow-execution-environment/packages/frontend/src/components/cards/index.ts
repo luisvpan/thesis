@@ -22,7 +22,8 @@ export type {
   OperatorType,
   AnimalType,
   CarColor,
-  PersonType,
+  PersonGender,
+  PersonAge,
   ShapeType,
   ShapeSize,
   ShapeColor
