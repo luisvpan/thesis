@@ -7,7 +7,7 @@ import type {
   AbstractValue,
   ExecutionNode,
 } from "./types";
-import type { Statement, Expression, Literal, ObjectLiteral } from "../analyzer/ast";
+import type { Statement, Expression, Literal, ObjectLiteral, ShapeTypeValue, FoodTypeValue } from "../analyzer/ast";
 import { executeOperation } from "../operations";
 import { toFraction } from "./rational";
 import { RuntimeError } from "./errors";
@@ -167,7 +167,7 @@ export class LazyEvaluator {
     switch (literal.type) {
       case "NumberLiteral":
         return {
-          kind: "rational",
+          kind: "racional",
           value: toFraction(literal.value),
         };
 
@@ -176,11 +176,11 @@ export class LazyEvaluator {
 
       case "ArrayLiteral":
         return {
-          kind: "array",
+          kind: "arreglo",
           elements: literal.elements.map((el) => {
             if (el.type === "Identifier") {
-              // Identifiers in array literals are treated as "other" values
-              return { kind: "other" as const, value: el.name };
+              // Identifiers in array literals are treated as "otro" values
+              return { kind: "otro" as const, value: el.name };
             }
             return this.evaluateLiteral(el as Literal);
           }),
@@ -188,7 +188,7 @@ export class LazyEvaluator {
 
       case "OtherLiteral":
         return {
-          kind: "other",
+          kind: "otro",
           value: literal.value,
         };
     }
@@ -196,67 +196,76 @@ export class LazyEvaluator {
 
   private evaluateObjectLiteral(obj: ObjectLiteral): CPAObject {
     // Handle explicit category
-    if (obj.category === "abstract") {
+    if (obj.category === "abstracto") {
       return {
-        kind: "abstract",
-        category: "abstract",
-        objectType: "rational",
+        kind: "abstracto",
+        category: "abstracto",
+        objectType: "racional",
         value: toFraction(obj.value!),
       } as AbstractValue;
     }
 
-    if (obj.category === "pictorial" || obj.objectType === "shape") {
+    if (obj.category === "pictorico" || obj.objectType === "forma") {
       return {
-        kind: "shape",
-        category: "pictorial",
-        subtype: obj.subtype as "circle" | "square",
+        kind: "forma",
+        category: "pictorico",
+        subtype: obj.subtype as ShapeTypeValue,
         size: obj.size!,
         amount: toFraction(obj.amount ?? "1"),
       } as ShapeValue;
     }
 
-    if (obj.category === "concrete" || obj.objectType === "food") {
+    if (obj.category === "concreto" || obj.objectType === "comida") {
       return {
-        kind: "food",
-        category: "concrete",
-        subtype: obj.subtype as "grape" | "pear" | "apple" | "burger",
+        kind: "comida",
+        category: "concreto",
+        subtype: obj.subtype as FoodTypeValue,
         color: obj.color!,
         amount: toFraction(obj.amount ?? "1"),
       } as FoodValue;
     }
 
     // Infer from objectType if it's a shape subtype
-    if (obj.objectType === "circle" || obj.objectType === "square") {
+    if (
+      obj.objectType === "circulo" ||
+      obj.objectType === "cuadrado" ||
+      obj.objectType === "triangulo" ||
+      obj.objectType === "rectangulo" ||
+      obj.objectType === "rombo" ||
+      obj.objectType === "estrella" ||
+      obj.objectType === "trapecio"
+    ) {
       return {
-        kind: "shape",
-        category: "pictorial",
+        kind: "forma",
+        category: "pictorico",
         subtype: obj.objectType,
-        size: obj.size ?? "medium",
+        size: obj.size ?? "mediano",
         amount: toFraction(obj.amount ?? "1"),
       } as ShapeValue;
     }
 
     // Infer from objectType if it's a food subtype
     if (
-      obj.objectType === "grape" ||
-      obj.objectType === "pear" ||
-      obj.objectType === "apple" ||
-      obj.objectType === "burger"
+      obj.objectType === "manzana" ||
+      obj.objectType === "hamburguesa" ||
+      obj.objectType === "uva" ||
+      obj.objectType === "pasta" ||
+      obj.objectType === "pera"
     ) {
       return {
-        kind: "food",
-        category: "concrete",
+        kind: "comida",
+        category: "concreto",
         subtype: obj.objectType,
-        color: obj.color ?? "green",
+        color: obj.color ?? "verde",
         amount: toFraction(obj.amount ?? "1"),
       } as FoodValue;
     }
 
     // Default to abstract with value 0
     return {
-      kind: "abstract",
-      category: "abstract",
-      objectType: "rational",
+      kind: "abstracto",
+      category: "abstracto",
+      objectType: "racional",
       value: toFraction(obj.value ?? "0"),
     } as AbstractValue;
   }

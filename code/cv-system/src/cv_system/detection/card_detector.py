@@ -74,7 +74,7 @@ class CardDetector:
         """Initialize ONNX Runtime with DirectML backend."""
         import onnxruntime as ort
 
-        # Log available providers BEFORE creating session
+        # Log available providers
         available = ort.get_available_providers()
         print(f"  ONNX available providers: {available}")
 

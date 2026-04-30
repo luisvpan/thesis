@@ -7,17 +7,17 @@ describe("Filter operation (integration)", () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
       source shapes = [
-        {type: circle, size: large, amount: 1},
-        {type: square, size: small, amount: 1},
-        {type: square, size: large, amount: 1}
+        {type: circulo, size: grande, amount: 1},
+        {type: cuadrado, size: pequeño, amount: 1},
+        {type: cuadrado, size: grande, amount: 1}
       ];
-      transform large_shapes = filter(shapes, large);
+      transform large_shapes = filter(shapes, grande);
       sink result = large_shapes;
     `);
 
     expect(result.errors).toHaveLength(0);
     const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("array");
+    expect(sinkResult.kind).toBe("arreglo");
     expect(sinkResult.elements).toHaveLength(2);
   });
 });

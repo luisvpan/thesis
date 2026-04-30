@@ -20,33 +20,24 @@ import {
 } from "@xyflow/react";
 import { useVision } from "./VisionContext";
 import { parseVisionLabel, visionOperatorToMathOperator } from "@/types/vision-card";
-import { executeProgram as executeProgramService } from "@/services/executeProgram";
+import { createProgramExecutor, type ProgramExecutor, type ResultValue } from "@/services/executeProgram";
 import type {
-  NumberFlowNodeData,
+  SourceFlowNodeData,
   OperatorFlowNodeData,
-  ResultAnchorFlowNodeData,
   ProgramOutputFlowNodeData,
-  DeckPropFlowNodeData,
 } from "@/components/dataflow";
 import type { OperatorType } from "@/types/card-types";
 import { spawnActionForYoloClass } from "../data/yoloDeckCatalog";
-import {
-  VISION_PROGRAM_OUTPUT_ID,
-  VISION_RESULT_ANCHOR_ID,
-} from "@/utils/frontendFlowConstants";
+import { VISION_PROGRAM_OUTPUT_ID } from "@/utils/frontendFlowConstants";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type DataflowNode =
-  | Node<NumberFlowNodeData, "number">
+  | Node<SourceFlowNodeData, "source">
   | Node<OperatorFlowNodeData, "operator">
-  | Node<ResultAnchorFlowNodeData, "resultAnchor">
-  | Node<ProgramOutputFlowNodeData, "programOutput">
-  | Node<DeckPropFlowNodeData, "deckProp">;
-
-type ExecuteRunner = typeof executeProgramService;
+  | Node<ProgramOutputFlowNodeData, "programOutput">;
 
 export type PortIdentifier = {
   nodeId: string;
@@ -73,7 +64,7 @@ type NodeContextState = {
   executionError: string | null;
 
   // Consultas
-  getNodePorts: (nodeType: "number" | "operator") => PortDefinition[];
+  getNodePorts: (nodeType: "source" | "operator") => PortDefinition[];
   isPortSelected: (
     nodeId: string,
     handleId: string,
@@ -112,8 +103,7 @@ const NodeContext = createContext<NodeContextState | null>(null);
 // Port Definitions
 // ─────────────────────────────────────────────────────────────────────────────
 
-const NUMBER_PORTS: PortDefinition[] = [
-  { handleId: "in", handleType: "target", position: "left" },
+const SOURCE_PORTS: PortDefinition[] = [
   { handleId: "out", handleType: "source", position: "right" },
 ];
 
@@ -174,15 +164,18 @@ function getNodeValue(node: DataflowNode | null | undefined): number | undefined
     const v = (node.data as ProgramOutputFlowNodeData).value;
     return typeof v === "number" ? v : undefined;
   }
-  if (node.type === "resultAnchor") return undefined;
-  const d = node.data as NumberFlowNodeData & OperatorFlowNodeData;
-  return d.value ?? d.result;
+  if (node.type === "source") {
+    const d = node.data as SourceFlowNodeData;
+    return d.variant === "number" ? d.value : undefined;
+  }
+  const d = node.data as OperatorFlowNodeData;
+  return d.result;
 }
 
 function getRightmostEvaluableNode(nodes: DataflowNode[]): DataflowNode | null {
   const evalNodes = nodes.filter(
-    (n): n is Extract<DataflowNode, { type: "number" | "operator" }> =>
-      n.type === "number" || n.type === "operator"
+    (n): n is Extract<DataflowNode, { type: "source" | "operator" }> =>
+      n.type === "source" || n.type === "operator"
   );
   if (evalNodes.length === 0) return null;
   return evalNodes.reduce((rightmost, node) =>
@@ -201,35 +194,6 @@ function toValidSlug(trackId: number | undefined, fallbackIndex: number): string
   return `card_${fallbackIndex}`;
 }
 
-function computeOperatorResult(
-  operatorId: string,
-  nodes: DataflowNode[],
-  edges: Edge[]
-): number | undefined {
-  const edgesToOperator = edges.filter((e) => e.target === operatorId);
-  const edgeA = edgesToOperator.find((e) => e.targetHandle === "a");
-  const edgeB = edgesToOperator.find((e) => e.targetHandle === "b");
-  const nodeA = edgeA ? nodes.find((n) => n.id === edgeA.source) : null;
-  const nodeB = edgeB ? nodes.find((n) => n.id === edgeB.source) : null;
-  const valA = getNodeValue(nodeA);
-  const valB = getNodeValue(nodeB);
-  if (typeof valA !== "number" || typeof valB !== "number") return undefined;
-  const operator = (
-    nodes.find((n) => n.id === operatorId)?.data as OperatorFlowNodeData | undefined
-  )?.operator;
-  switch (operator) {
-    case "adicion":
-      return valA + valB;
-    case "sustraccion":
-      return valA - valB;
-    case "multiplicacion":
-      return valA * valB;
-    case "division":
-      return valB !== 0 ? valA / valB : undefined;
-    default:
-      return undefined;
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider
@@ -239,7 +203,6 @@ type NodeProviderProps = {
   children: ReactNode;
   flowContainerRef: React.RefObject<HTMLDivElement | null>;
   visionSyncEnabled?: boolean;
-  executeRunner?: ExecuteRunner;
   nodesDraggable?: boolean;
 };
 
@@ -247,12 +210,24 @@ export function NodeProvider({
   children,
   flowContainerRef,
   visionSyncEnabled = true,
-  executeRunner,
   nodesDraggable = false,
 }: NodeProviderProps) {
   const { lastCardFrame } = useVision();
-  const executeRunnerRef = useRef<ExecuteRunner>(executeRunner ?? executeProgramService);
-  executeRunnerRef.current = executeRunner ?? executeProgramService;
+
+  // Program executor with lifecycle management
+  const executorRef = useRef<ProgramExecutor | null>(null);
+
+  // Create executor on mount, reset on unmount
+  useEffect(() => {
+    executorRef.current = createProgramExecutor();
+    console.log("[NodeProvider] Interpreter created");
+
+    return () => {
+      executorRef.current?.reset();
+      executorRef.current = null;
+      console.log("[NodeProvider] Interpreter destroyed");
+    };
+  }, []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<DataflowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -305,9 +280,10 @@ export function NodeProvider({
         if (parsed.type === "number") {
           additions.push({
             id: nodeId,
-            type: "number" as const,
+            type: "source" as const,
             position,
             data: {
+              variant: "number",
               value: parsed.value,
               trackId: c.trackId,
             },
@@ -358,7 +334,7 @@ export function NodeProvider({
         if (parsed.type === "deckShape") {
           additions.push({
             id: nodeId,
-            type: "deckProp" as const,
+            type: "source" as const,
             position,
             data: {
               variant: "shape",
@@ -376,7 +352,7 @@ export function NodeProvider({
         if (parsed.type === "deckFood") {
           additions.push({
             id: nodeId,
-            type: "deckProp" as const,
+            type: "source" as const,
             position,
             data: {
               variant: "food",
@@ -392,9 +368,10 @@ export function NodeProvider({
         // Tipo desconocido: mostrar como número con subtítulo
         additions.push({
           id: nodeId,
-          type: "number" as const,
+          type: "source" as const,
           position,
           data: {
+            variant: "number",
             value: 0,
             visionSubtitle: parsed.label,
             trackId: c.trackId,
@@ -404,81 +381,90 @@ export function NodeProvider({
       }
 
       if (grapesFlowPos) {
-        additions.push(
-          {
-            id: VISION_RESULT_ANCHOR_ID,
-            type: "resultAnchor" as const,
-            position: grapesFlowPos,
-            data: {},
+        additions.push({
+          id: VISION_PROGRAM_OUTPUT_ID,
+          type: "programOutput" as const,
+          position: {
+            x: grapesFlowPos.x + VISION_CARD_BOX + VISION_RESULT_GAP,
+            y: grapesFlowPos.y,
           },
-          {
-            id: VISION_PROGRAM_OUTPUT_ID,
-            type: "programOutput" as const,
-            position: {
-              x: grapesFlowPos.x + VISION_CARD_BOX + VISION_RESULT_GAP,
-              y: grapesFlowPos.y,
-            },
-            data: { value: preservedValue },
-          }
-        );
+          data: { value: preservedValue },
+        });
       }
 
       return [...withoutLive, ...additions];
     });
   }, [visionSyncEnabled, lastCardFrame, setNodes, flowContainerRef]);
 
-  // Arista por defecto: marcador → carta de resultado (solo presentación)
+  // Clean up orphan edges when nodes change
   useEffect(() => {
-    const hasAnchor = nodes.some(
-      (n) => n.id === VISION_RESULT_ANCHOR_ID && n.type === "resultAnchor"
-    );
-    const hasOutput = nodes.some(
-      (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
-    );
-    if (!hasAnchor || !hasOutput) return;
+    const nodeIds = new Set(nodes.map((n) => n.id));
 
     setEdges((eds) => {
-      const exists = eds.some(
-        (e) =>
-          e.source === VISION_RESULT_ANCHOR_ID &&
-          e.sourceHandle === "out" &&
-          e.target === VISION_PROGRAM_OUTPUT_ID &&
-          e.targetHandle === "in"
+      const validEdges = eds.filter(
+        (e) => nodeIds.has(e.source) && nodeIds.has(e.target)
       );
-      if (exists) return eds;
-      return addEdge(
-        {
-          source: VISION_RESULT_ANCHOR_ID,
-          sourceHandle: "out",
-          target: VISION_PROGRAM_OUTPUT_ID,
-          targetHandle: "in",
-        },
-        eds
-      );
+      // Only update if something was removed
+      return validEdges.length === eds.length ? eds : validEdges;
     });
   }, [nodes, setEdges]);
 
-  // Compute operator results when edges change
+
+  // Automatic interpreter execution when nodes/edges change
   useEffect(() => {
-    setNodes((nds) => {
-      let current = nds;
-      for (let pass = 0; pass < 10; pass++) {
-        let changed = false;
-        current = current.map((node) => {
-          if (node.type !== "operator") return node;
-          const result = computeOperatorResult(node.id, current, edges);
-          const prev = (node.data as OperatorFlowNodeData).result;
-          if (result !== prev) changed = true;
-          return {
-            ...node,
-            data: { ...node.data, result, value: result },
-          };
+    const evalNodes = nodes.filter(
+      (n) => n.type === "source" || n.type === "operator"
+    );
+
+    // No ejecutar si no hay nodos evaluables o no hay executor
+    if (evalNodes.length === 0 || !executorRef.current) return;
+
+    // Ejecutar el programa con el interpreter
+    executorRef.current.execute(nodes, edges).then((result) => {
+      if (result.success && result.results) {
+        setExecutionError(null);
+
+        // Actualizar cada programOutput con su resultado específico
+        setNodes((nds) => {
+          let changed = false;
+          const updated = nds.map((n) => {
+            if (n.type !== "programOutput") return n;
+            const resultValue = result.results!.get(n.id);
+            if (resultValue === undefined) return n;
+
+            // Extraer value y description según el tipo de resultado
+            const currentData = n.data as ProgramOutputFlowNodeData;
+            let newData: ProgramOutputFlowNodeData;
+
+            if (resultValue.kind === "number") {
+              newData = { value: resultValue.value, description: undefined };
+            } else {
+              // kind === "semantic"
+              newData = {
+                value: resultValue.result.totalAmount,
+                description: resultValue.result.description,
+              };
+            }
+
+            // Solo actualizar si cambió
+            if (
+              currentData.value === newData.value &&
+              currentData.description === newData.description
+            ) {
+              return n;
+            }
+
+            changed = true;
+            return { ...n, data: { ...n.data, ...newData } };
+          });
+          return changed ? updated : nds;
         });
-        if (!changed) break;
+      } else if (result.error) {
+        setExecutionResult(null);
+        setExecutionError(result.error);
       }
-      return current;
     });
-  }, [edges, setNodes]);
+  }, [nodes, edges, setNodes]);
 
   // Port selection logic
   const isPortSelected = useCallback(
@@ -545,8 +531,8 @@ export function NodeProvider({
     [selectedPort, setEdges]
   );
 
-  const getNodePorts = useCallback((nodeType: "number" | "operator") => {
-    return nodeType === "number" ? NUMBER_PORTS : OPERATOR_PORTS;
+  const getNodePorts = useCallback((nodeType: "source" | "operator") => {
+    return nodeType === "source" ? SOURCE_PORTS : OPERATOR_PORTS;
   }, []);
 
   const addNumberNode = useCallback(
@@ -556,12 +542,12 @@ export function NodeProvider({
         ...nds,
         {
           id,
-          type: "number" as const,
+          type: "source" as const,
           position: position ?? {
             x: 100 + (nds.length % 3) * 60,
             y: 80 + Math.floor(nds.length / 3) * 100,
           },
-          data: { value },
+          data: { variant: "number", value },
         },
       ]);
     },
@@ -589,11 +575,10 @@ export function NodeProvider({
 
   const addResultAnchorPair = useCallback(() => {
     setNodes((nds) => {
-      const pairId = `manual_uva_${Date.now()}`;
+      const pairId = `manual_out_${Date.now()}`;
       return [
         ...nds,
-        { id: `${pairId}_anchor`, type: "resultAnchor" as const, position: { x: 40, y: 120 }, data: {} },
-        { id: `${pairId}_out`, type: "programOutput" as const, position: { x: 304, y: 120 }, data: {} },
+        { id: `${pairId}`, type: "programOutput" as const, position: { x: 304, y: 120 }, data: {} },
       ];
     });
   }, [setNodes]);
@@ -622,7 +607,7 @@ export function NodeProvider({
           ...nds,
           {
             id: `deck_${spawn.yoloClass}_${Date.now()}`,
-            type: "deckProp" as const,
+            type: "source" as const,
             position: { x: 120, y: 200 + (nds.length % 6) * 28 },
             data: {
               variant: "shape",
@@ -640,7 +625,7 @@ export function NodeProvider({
           ...nds,
           {
             id: `deck_${spawn.yoloClass}_${Date.now()}`,
-            type: "deckProp" as const,
+            type: "source" as const,
             position: { x: 120, y: 200 + (nds.length % 6) * 28 },
             data: { variant: "food", yoloClass: spawn.yoloClass, food: spawn.food },
           },
@@ -651,6 +636,11 @@ export function NodeProvider({
   );
 
   const executeProgram = useCallback(async () => {
+    if (!executorRef.current) {
+      console.error("[executeProgram] No executor available");
+      return;
+    }
+
     setIsExecuting(true);
     setExecutionError(null);
 
@@ -671,12 +661,16 @@ export function NodeProvider({
     };
 
     try {
-      const result = await executeRunnerRef.current(nodes, edges);
+      const result = await executorRef.current.execute(nodes, edges);
 
       if (result.success && result.result !== undefined) {
         setExecutionResult(result.result);
         setExecutionError(null);
         syncProgramOutputValue(result.result);
+
+        // Log stats for debugging
+        const stats = executorRef.current.getStats();
+        console.log("[executeProgram] Stats:", stats);
       } else {
         setExecutionResult(null);
         setExecutionError(result.error || "Error desconocido");

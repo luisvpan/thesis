@@ -52,7 +52,7 @@ describe("Parser v2.1.0", () => {
   });
 
   test("parses rational type in objects", () => {
-    const result = parse("source x = {category: abstract, type: rational, value: 42};");
+    const result = parse("source x = {category: abstracto, type: racional, value: 42};");
     expect(result.errors).toHaveLength(0);
   });
 });

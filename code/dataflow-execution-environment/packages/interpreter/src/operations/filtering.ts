@@ -1,23 +1,7 @@
 import type { RuntimeValue } from "../runtime/types";
-import { isArray, isOther, isShape, isFood } from "../runtime/types";
+import { isOther, isShape, isFood } from "../runtime/types";
 import { RuntimeError } from "../runtime/errors";
-
-/**
- * Flattens nested arrays recursively.
- */
-function flattenArrays(values: RuntimeValue[]): RuntimeValue[] {
-  const result: RuntimeValue[] = [];
-
-  for (const val of values) {
-    if (isArray(val)) {
-      result.push(...flattenArrays(val.elements));
-    } else {
-      result.push(val);
-    }
-  }
-
-  return result;
-}
+import { flattenArrays } from "./utils";
 
 /**
  * Checks if a value matches the criterion.
@@ -88,5 +72,5 @@ export function filter(args: RuntimeValue[]): RuntimeValue {
     return filtered[0];
   }
 
-  return { kind: "array", elements: filtered };
+  return { kind: "arreglo", elements: filtered };
 }

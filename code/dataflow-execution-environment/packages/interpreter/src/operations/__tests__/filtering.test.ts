@@ -6,103 +6,103 @@ import type { ShapeValue, FoodValue, ArrayValue, OtherValue } from "../../runtim
 describe("filter (unit)", () => {
   test("filters shapes by size", () => {
     const shapes: ShapeValue[] = [
-      { kind: "shape", category: "pictorial", subtype: "circle", size: "large", amount: new Fraction(1) },
-      { kind: "shape", category: "pictorial", subtype: "square", size: "small", amount: new Fraction(1) },
-      { kind: "shape", category: "pictorial", subtype: "square", size: "large", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "circulo", size: "grande", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "cuadrado", size: "pequeño", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "cuadrado", size: "grande", amount: new Fraction(1) },
     ];
-    const criterion: OtherValue = { kind: "other", value: "large" };
+    const criterion: OtherValue = { kind: "otro", value: "grande" };
     const result = filter([...shapes, criterion]) as ArrayValue;
-    expect(result.kind).toBe("array");
+    expect(result.kind).toBe("arreglo");
     expect(result.elements).toHaveLength(2);
-    expect((result.elements[0] as ShapeValue).subtype).toBe("circle");
-    expect((result.elements[1] as ShapeValue).subtype).toBe("square");
+    expect((result.elements[0] as ShapeValue).subtype).toBe("circulo");
+    expect((result.elements[1] as ShapeValue).subtype).toBe("cuadrado");
   });
 
   test("filters shapes by subtype", () => {
     const shapes: ShapeValue[] = [
-      { kind: "shape", category: "pictorial", subtype: "circle", size: "large", amount: new Fraction(1) },
-      { kind: "shape", category: "pictorial", subtype: "square", size: "small", amount: new Fraction(1) },
-      { kind: "shape", category: "pictorial", subtype: "circle", size: "medium", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "circulo", size: "grande", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "cuadrado", size: "pequeño", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "circulo", size: "mediano", amount: new Fraction(1) },
     ];
-    const criterion: OtherValue = { kind: "other", value: "circle" };
+    const criterion: OtherValue = { kind: "otro", value: "circulo" };
     const result = filter([...shapes, criterion]) as ArrayValue;
-    expect(result.kind).toBe("array");
+    expect(result.kind).toBe("arreglo");
     expect(result.elements).toHaveLength(2);
   });
 
   test("filters foods by color", () => {
     const foods: FoodValue[] = [
-      { kind: "food", category: "concrete", subtype: "grape", color: "purple", amount: new Fraction(5) },
-      { kind: "food", category: "concrete", subtype: "apple", color: "red", amount: new Fraction(3) },
-      { kind: "food", category: "concrete", subtype: "grape", color: "purple", amount: new Fraction(2) },
+      { kind: "comida", category: "concreto", subtype: "uva", color: "morado", amount: new Fraction(5) },
+      { kind: "comida", category: "concreto", subtype: "manzana", color: "rojo", amount: new Fraction(3) },
+      { kind: "comida", category: "concreto", subtype: "uva", color: "morado", amount: new Fraction(2) },
     ];
-    const criterion: OtherValue = { kind: "other", value: "purple" };
+    const criterion: OtherValue = { kind: "otro", value: "morado" };
     const result = filter([...foods, criterion]) as ArrayValue;
-    expect(result.kind).toBe("array");
+    expect(result.kind).toBe("arreglo");
     expect(result.elements).toHaveLength(2);
   });
 
   test("filters foods by subtype", () => {
     const foods: FoodValue[] = [
-      { kind: "food", category: "concrete", subtype: "grape", color: "purple", amount: new Fraction(5) },
-      { kind: "food", category: "concrete", subtype: "apple", color: "red", amount: new Fraction(3) },
-      { kind: "food", category: "concrete", subtype: "pear", color: "green", amount: new Fraction(2) },
+      { kind: "comida", category: "concreto", subtype: "uva", color: "morado", amount: new Fraction(5) },
+      { kind: "comida", category: "concreto", subtype: "manzana", color: "rojo", amount: new Fraction(3) },
+      { kind: "comida", category: "concreto", subtype: "pera", color: "verde", amount: new Fraction(2) },
     ];
-    const criterion: OtherValue = { kind: "other", value: "apple" };
+    const criterion: OtherValue = { kind: "otro", value: "manzana" };
     const result = filter([...foods, criterion]) as FoodValue;
-    expect(result.kind).toBe("food");
-    expect(result.subtype).toBe("apple");
+    expect(result.kind).toBe("comida");
+    expect(result.subtype).toBe("manzana");
   });
 
   test("returns single element when only one matches", () => {
     const shapes: ShapeValue[] = [
-      { kind: "shape", category: "pictorial", subtype: "circle", size: "large", amount: new Fraction(1) },
-      { kind: "shape", category: "pictorial", subtype: "square", size: "small", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "circulo", size: "grande", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "cuadrado", size: "pequeño", amount: new Fraction(1) },
     ];
-    const criterion: OtherValue = { kind: "other", value: "small" };
+    const criterion: OtherValue = { kind: "otro", value: "pequeño" };
     const result = filter([...shapes, criterion]) as ShapeValue;
-    expect(result.kind).toBe("shape");
-    expect(result.subtype).toBe("square");
+    expect(result.kind).toBe("forma");
+    expect(result.subtype).toBe("cuadrado");
   });
 
   test("returns empty array when nothing matches", () => {
     const shapes: ShapeValue[] = [
-      { kind: "shape", category: "pictorial", subtype: "circle", size: "large", amount: new Fraction(1) },
-      { kind: "shape", category: "pictorial", subtype: "square", size: "large", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "circulo", size: "grande", amount: new Fraction(1) },
+      { kind: "forma", category: "pictorico", subtype: "cuadrado", size: "grande", amount: new Fraction(1) },
     ];
-    const criterion: OtherValue = { kind: "other", value: "small" };
+    const criterion: OtherValue = { kind: "otro", value: "pequeño" };
     const result = filter([...shapes, criterion]) as ArrayValue;
-    expect(result.kind).toBe("array");
+    expect(result.kind).toBe("arreglo");
     expect(result.elements).toHaveLength(0);
   });
 
   test("filters by category", () => {
     const grape: FoodValue = {
-      kind: "food",
-      category: "concrete",
-      subtype: "grape",
-      color: "purple",
+      kind: "comida",
+      category: "concreto",
+      subtype: "uva",
+      color: "morado",
       amount: new Fraction(5),
     };
     const circle: ShapeValue = {
-      kind: "shape",
-      category: "pictorial",
-      subtype: "circle",
-      size: "large",
+      kind: "forma",
+      category: "pictorico",
+      subtype: "circulo",
+      size: "grande",
       amount: new Fraction(3),
     };
-    const criterion: OtherValue = { kind: "other", value: "concrete" };
+    const criterion: OtherValue = { kind: "otro", value: "concreto" };
     const result = filter([grape, circle, criterion]) as FoodValue;
-    expect(result.kind).toBe("food");
-    expect(result.category).toBe("concrete");
+    expect(result.kind).toBe("comida");
+    expect(result.category).toBe("concreto");
   });
 
   test("throws error for insufficient arguments", () => {
     const shape: ShapeValue = {
-      kind: "shape",
-      category: "pictorial",
-      subtype: "circle",
-      size: "large",
+      kind: "forma",
+      category: "pictorico",
+      subtype: "circulo",
+      size: "grande",
       amount: new Fraction(1),
     };
     expect(() => filter([shape])).toThrow();
@@ -110,13 +110,13 @@ describe("filter (unit)", () => {
 
   test("throws error for non-keyword criterion", () => {
     const shape: ShapeValue = {
-      kind: "shape",
-      category: "pictorial",
-      subtype: "circle",
-      size: "large",
+      kind: "forma",
+      category: "pictorico",
+      subtype: "circulo",
+      size: "grande",
       amount: new Fraction(1),
     };
-    const badCriterion = { kind: "rational", value: new Fraction(5) };
+    const badCriterion = { kind: "racional", value: new Fraction(5) };
     expect(() => filter([shape, badCriterion as any])).toThrow();
   });
 });

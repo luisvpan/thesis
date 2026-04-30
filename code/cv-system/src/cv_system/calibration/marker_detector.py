@@ -11,7 +11,7 @@ class MarkerDetector:
     Estrategia: los marcadores son siempre los blobs más brillantes
     con forma aproximadamente rectangular.
     """
-    DEFAULT_MIN_AREA = 1500   # filtra ruido pequeño (área < 156, 20, 25...)
+    DEFAULT_MIN_AREA = 1000   # filtra ruido pequeño (área < 156, 20, 25...)
     DEFAULT_MAX_AREA = 10000  # filtra ruido grande
     DEFAULT_BRIGHTNESS_PERCENTILE = 99
 

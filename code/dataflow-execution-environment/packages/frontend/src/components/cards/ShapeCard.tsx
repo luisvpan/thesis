@@ -28,8 +28,8 @@ const shapeNames: Record<ShapeType, string> = {
 };
 
 const sizeNames: Record<ShapeSize, string> = {
-  'pequeña': 'Pequeño',
-  'mediana': 'Mediano',
+  'pequeño': 'Pequeño',
+  'mediano': 'Mediano',
   'grande': 'Grande'
 };
 
@@ -43,9 +43,9 @@ export function ShapeCard({ shape, size, color, isDraggable = false, onClick, ca
 
   const renderShape = () => {
     const sizes = {
-      small: { pequeña: 24, mediana: 32, grande: 40 },
-      medium: { pequeña: 32, mediana: 48, grande: 64 },
-      large: { pequeña: 48, mediana: 64, grande: 80 }
+      small: { pequeño: 24, mediano: 32, grande: 40 },
+      medium: { pequeño: 32, mediano: 48, grande: 64 },
+      large: { pequeño: 48, mediano: 64, grande: 80 }
     };
 
     const shapeSize = sizes[cardSize][size];

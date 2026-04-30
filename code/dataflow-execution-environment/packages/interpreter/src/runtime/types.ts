@@ -1,56 +1,56 @@
 import type Fraction from "fraction.js";
-import type { Statement } from "../analyzer/ast";
+import type { Statement, ShapeTypeValue, SizeValue, FoodTypeValue, ColorValue } from "../analyzer/ast";
 
 // Category enum for taxonomical ordering (lower = higher priority)
 export enum Category {
-  Concrete = 0,
-  Pictorial = 1,
-  Abstract = 2,
+  Concreto = 0,
+  Pictorico = 1,
+  Abstracto = 2,
 }
 
 // Runtime value types
 export type RationalValue = {
-  kind: "rational";
+  kind: "racional";
   value: Fraction;
 };
 
 export type BooleanValue = {
-  kind: "boolean";
+  kind: "booleano";
   value: boolean;
 };
 
 export type ShapeValue = {
-  kind: "shape";
-  category: "pictorial";
-  subtype: "circle" | "square";
-  size: "small" | "medium" | "large";
+  kind: "forma";
+  category: "pictorico";
+  subtype: ShapeTypeValue;
+  size: SizeValue;
   amount: Fraction;
 };
 
 export type FoodValue = {
-  kind: "food";
-  category: "concrete";
-  subtype: "grape" | "pear" | "apple" | "burger";
-  color: "purple" | "green" | "red" | "orange";
+  kind: "comida";
+  category: "concreto";
+  subtype: FoodTypeValue;
+  color: ColorValue;
   amount: Fraction;
 };
 
 export type AbstractValue = {
-  kind: "abstract";
-  category: "abstract";
-  objectType: "rational";
+  kind: "abstracto";
+  category: "abstracto";
+  objectType: "racional";
   value: Fraction;
 };
 
 export type CPAObject = ShapeValue | FoodValue | AbstractValue;
 
 export type ArrayValue = {
-  kind: "array";
+  kind: "arreglo";
   elements: RuntimeValue[];
 };
 
 export type OtherValue = {
-  kind: "other";
+  kind: "otro";
   value: string;
 };
 
@@ -76,72 +76,64 @@ export interface ExecutionNode {
 
 // Type guards
 export function isRational(val: RuntimeValue): val is RationalValue {
-  return val.kind === "rational";
+  return val.kind === "racional";
 }
 
 export function isArray(val: RuntimeValue): val is ArrayValue {
-  return val.kind === "array";
+  return val.kind === "arreglo";
 }
 
 export function isCPAObject(val: RuntimeValue): val is CPAObject {
-  return val.kind === "shape" || val.kind === "food" || val.kind === "abstract";
+  return val.kind === "forma" || val.kind === "comida" || val.kind === "abstracto";
 }
 
 export function isShape(val: RuntimeValue): val is ShapeValue {
-  return val.kind === "shape";
+  return val.kind === "forma";
 }
 
 export function isFood(val: RuntimeValue): val is FoodValue {
-  return val.kind === "food";
+  return val.kind === "comida";
 }
 
 export function isAbstract(val: RuntimeValue): val is AbstractValue {
-  return val.kind === "abstract";
+  return val.kind === "abstracto";
 }
 
 export function isOther(val: RuntimeValue): val is OtherValue {
-  return val.kind === "other";
+  return val.kind === "otro";
 }
 
 export function isBoolean(val: RuntimeValue): val is BooleanValue {
-  return val.kind === "boolean";
-}
-
-// Get the comparable quantity from a CPA object
-export function getQuantity(val: CPAObject): Fraction {
-  if (val.kind === "abstract") {
-    return val.value;
-  }
-  return val.amount;
+  return val.kind === "booleano";
 }
 
 // Get a unique key for CPA aggregation (category + type + subtype)
 export function getCPAKey(val: CPAObject): string {
-  if (val.kind === "abstract") {
-    return `abstract:rational`;
+  if (val.kind === "abstracto") {
+    return `abstracto:racional`;
   }
-  if (val.kind === "shape") {
-    return `pictorial:shape:${val.subtype}:${val.size}`;
+  if (val.kind === "forma") {
+    return `pictorico:forma:${val.subtype}:${val.size}`;
   }
-  if (val.kind === "food") {
-    return `concrete:food:${val.subtype}:${val.color}`;
+  if (val.kind === "comida") {
+    return `concreto:comida:${val.subtype}:${val.color}`;
   }
   return "unknown";
 }
 
 // Get category enum value from a runtime value
 export function getCategoryOrder(val: RuntimeValue): Category {
-  if (val.kind === "food") return Category.Concrete;
-  if (val.kind === "shape") return Category.Pictorial;
-  if (val.kind === "abstract" || val.kind === "rational") return Category.Abstract;
-  return Category.Abstract;
+  if (val.kind === "comida") return Category.Concreto;
+  if (val.kind === "forma") return Category.Pictorico;
+  if (val.kind === "abstracto" || val.kind === "racional") return Category.Abstracto;
+  return Category.Abstracto;
 }
 
 // Get type key for sorting
 export function getTypeKey(val: RuntimeValue): string {
-  if (val.kind === "food") return `food:${val.subtype}`;
-  if (val.kind === "shape") return `shape:${val.subtype}`;
-  if (val.kind === "abstract") return "rational";
-  if (val.kind === "rational") return "rational";
-  return "other";
+  if (val.kind === "comida") return `comida:${val.subtype}`;
+  if (val.kind === "forma") return `forma:${val.subtype}`;
+  if (val.kind === "abstracto") return "racional";
+  if (val.kind === "racional") return "racional";
+  return "otro";
 }

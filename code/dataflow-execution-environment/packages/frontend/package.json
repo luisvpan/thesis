@@ -11,16 +11,17 @@
   },
   "dependencies": {
     "@dataflow/http-api": "workspace:*",
+    "@dataflow/interpreter": "workspace:^",
     "@elysiajs/eden": "^1.4.8",
     "@xyflow/react": "^12.10.1",
     "axios": "^1.13.6",
+    "fraction.js": "^5.3.4",
     "lucide-react": "^0.575.0",
     "motion": "^12.34.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.1",
-    "socket.io-client": "^4.8.3",
-    "@dataflow/interpreter": "workspace:^"
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -36,6 +37,7 @@
     "tailwindcss": "^4.2.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vite-plugin-terminal": "^1.4.0"
   }
 }

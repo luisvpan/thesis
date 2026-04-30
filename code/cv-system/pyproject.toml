@@ -26,6 +26,8 @@ dependencies = [
 cv-system = "cv_system.main:main"
 cv-ide-relay = "cv_system.bridge.ide_relay_server:run"
 cv-stack = "cv_system.launch_stack:main"
+capture = "cv_system.capture:main"
+predict = "cv_system.predict:main"
 
 [project.optional-dependencies]
 export = ["onnx>=1.21.0", "onnxruntime>=1.24.4", "onnxslim>=0.1.91"]

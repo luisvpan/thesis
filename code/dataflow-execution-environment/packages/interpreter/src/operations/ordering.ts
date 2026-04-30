@@ -1,31 +1,10 @@
-import type Fraction from "fraction.js";
 import * as rational from "../runtime/rational";
-import type { RuntimeValue, CPAObject } from "../runtime/types";
+import type { RuntimeValue } from "../runtime/types";
 import {
-  isRational,
-  isArray,
-  isCPAObject,
   getCategoryOrder,
   getTypeKey,
-  Category,
 } from "../runtime/types";
-import { RuntimeError } from "../runtime/errors";
-
-/**
- * Gets the quantity (value for abstract, amount for pictorial/concrete).
- */
-function getQuantity(val: RuntimeValue): Fraction {
-  if (isRational(val)) {
-    return val.value;
-  }
-  if (isCPAObject(val)) {
-    if (val.kind === "abstract") {
-      return val.value;
-    }
-    return val.amount;
-  }
-  return rational.zero();
-}
+import { flattenArrays, getQuantityOrZero } from "./utils";
 
 /**
  * Taxonomical comparison:
@@ -49,26 +28,9 @@ function taxonomicalCompare(a: RuntimeValue, b: RuntimeValue): number {
   }
 
   // 3. Quantity comparison
-  const qtyA = getQuantity(a);
-  const qtyB = getQuantity(b);
+  const qtyA = getQuantityOrZero(a);
+  const qtyB = getQuantityOrZero(b);
   return rational.compare(qtyA, qtyB);
-}
-
-/**
- * Flattens nested arrays recursively.
- */
-function flattenArrays(values: RuntimeValue[]): RuntimeValue[] {
-  const result: RuntimeValue[] = [];
-
-  for (const val of values) {
-    if (isArray(val)) {
-      result.push(...flattenArrays(val.elements));
-    } else {
-      result.push(val);
-    }
-  }
-
-  return result;
 }
 
 /**
@@ -84,7 +46,7 @@ export function orderAsc(args: RuntimeValue[]): RuntimeValue {
     return sorted[0];
   }
 
-  return { kind: "array", elements: sorted };
+  return { kind: "arreglo", elements: sorted };
 }
 
 /**
@@ -100,5 +62,5 @@ export function orderDesc(args: RuntimeValue[]): RuntimeValue {
     return sorted[0];
   }
 
-  return { kind: "array", elements: sorted };
+  return { kind: "arreglo", elements: sorted };
 }

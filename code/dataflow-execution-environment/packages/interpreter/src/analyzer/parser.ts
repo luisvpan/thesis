@@ -12,10 +12,16 @@ import {
   FoodType,
   Circle,
   Square,
+  Triangle,
+  Rectangle,
+  Diamond,
+  Star,
+  Trapezoid,
   Grape,
   Pear,
   Apple,
   Burger,
+  Pasta,
   Small,
   Medium,
   Large,
@@ -23,6 +29,8 @@ import {
   Green,
   Red,
   Orange,
+  Blue,
+  Yellow,
   Sum,
   Substract,
   Multiply,
@@ -256,28 +264,44 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(RationalType) },
       { ALT: () => this.CONSUME(ShapeType) },
       { ALT: () => this.CONSUME(FoodType) },
+      // Shape subtypes
       { ALT: () => this.CONSUME(Circle) },
       { ALT: () => this.CONSUME(Square) },
+      { ALT: () => this.CONSUME(Triangle) },
+      { ALT: () => this.CONSUME(Rectangle) },
+      { ALT: () => this.CONSUME(Diamond) },
+      { ALT: () => this.CONSUME(Star) },
+      { ALT: () => this.CONSUME(Trapezoid) },
+      // Food subtypes
       { ALT: () => this.CONSUME(Grape) },
       { ALT: () => this.CONSUME(Pear) },
       { ALT: () => this.CONSUME(Apple) },
       { ALT: () => this.CONSUME(Burger) },
+      { ALT: () => this.CONSUME(Pasta) },
     ]);
   });
 
   // subtypeValue ::= shapeType | foodType
   private subtypeValue = this.RULE("subtypeValue", () => {
     this.OR([
+      // Shape subtypes
       { ALT: () => this.CONSUME(Circle) },
       { ALT: () => this.CONSUME(Square) },
+      { ALT: () => this.CONSUME(Triangle) },
+      { ALT: () => this.CONSUME(Rectangle) },
+      { ALT: () => this.CONSUME(Diamond) },
+      { ALT: () => this.CONSUME(Star) },
+      { ALT: () => this.CONSUME(Trapezoid) },
+      // Food subtypes
       { ALT: () => this.CONSUME(Grape) },
       { ALT: () => this.CONSUME(Pear) },
       { ALT: () => this.CONSUME(Apple) },
       { ALT: () => this.CONSUME(Burger) },
+      { ALT: () => this.CONSUME(Pasta) },
     ]);
   });
 
-  // size_value ::= "small" | "medium" | "large"
+  // size_value ::= "pequeño" | "mediano" | "grande"
   private sizeValue = this.RULE("sizeValue", () => {
     this.OR([
       { ALT: () => this.CONSUME(Small) },
@@ -286,13 +310,15 @@ export class DataflowParser extends CstParser {
     ]);
   });
 
-  // color_value ::= "purple" | "green" | "red" | "orange"
+  // color_value ::= "morado" | "verde" | "rojo" | "naranja" | "azul" | "amarillo"
   private colorValue = this.RULE("colorValue", () => {
     this.OR([
       { ALT: () => this.CONSUME(Purple) },
       { ALT: () => this.CONSUME(Green) },
       { ALT: () => this.CONSUME(Red) },
       { ALT: () => this.CONSUME(Orange) },
+      { ALT: () => this.CONSUME(Blue) },
+      { ALT: () => this.CONSUME(Yellow) },
     ]);
   });
 
@@ -307,23 +333,31 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(RationalType) },
       { ALT: () => this.CONSUME(ShapeType) },
       { ALT: () => this.CONSUME(FoodType) },
-      // Shape types
+      // Shape subtypes
       { ALT: () => this.CONSUME(Circle) },
       { ALT: () => this.CONSUME(Square) },
+      { ALT: () => this.CONSUME(Triangle) },
+      { ALT: () => this.CONSUME(Rectangle) },
+      { ALT: () => this.CONSUME(Diamond) },
+      { ALT: () => this.CONSUME(Star) },
+      { ALT: () => this.CONSUME(Trapezoid) },
       // Size values
       { ALT: () => this.CONSUME(Small) },
       { ALT: () => this.CONSUME(Medium) },
       { ALT: () => this.CONSUME(Large) },
-      // Food types
+      // Food subtypes
       { ALT: () => this.CONSUME(Grape) },
       { ALT: () => this.CONSUME(Pear) },
       { ALT: () => this.CONSUME(Apple) },
       { ALT: () => this.CONSUME(Burger) },
+      { ALT: () => this.CONSUME(Pasta) },
       // Color values
       { ALT: () => this.CONSUME(Purple) },
       { ALT: () => this.CONSUME(Green) },
       { ALT: () => this.CONSUME(Red) },
       { ALT: () => this.CONSUME(Orange) },
+      { ALT: () => this.CONSUME(Blue) },
+      { ALT: () => this.CONSUME(Yellow) },
     ]);
   });
 }

@@ -33,7 +33,7 @@ describe("serialize", () => {
   });
 
   test("parses object literal with amount as Fraction", () => {
-    const input = "source shapes = {category: pictorial, type: shape, subtype: circle, size: large, amount: 3};";
+    const input = "source shapes = {category: pictorico, type: forma, subtype: circulo, size: grande, amount: 3};";
     const result = serialize(input);
 
     expect(result.errors).toHaveLength(0);
@@ -46,7 +46,7 @@ describe("serialize", () => {
   });
 
   test("parses abstract object with value as Fraction", () => {
-    const input = "source num = {category: abstract, type: rational, value: 42};";
+    const input = "source num = {category: abstracto, type: racional, value: 42};";
     const result = serialize(input);
 
     expect(result.errors).toHaveLength(0);
@@ -140,10 +140,10 @@ describe("deserialize", () => {
           identifier: "shapes",
           value: {
             type: "ObjectLiteral",
-            category: "pictorial",
-            objectType: "shape",
-            subtype: "circle",
-            size: "large",
+            category: "pictorico",
+            objectType: "forma",
+            subtype: "circulo",
+            size: "grande",
             amount: new Fraction(3),
           },
         },
@@ -151,7 +151,7 @@ describe("deserialize", () => {
     };
 
     const result = deserialize(program);
-    expect(result).toBe("source shapes = {category: pictorial, type: shape, subtype: circle, size: large, amount: 3};");
+    expect(result).toBe("source shapes = {category: pictorico, type: forma, subtype: circulo, size: grande, amount: 3};");
   });
 
   test("deserializes transform statement", () => {
@@ -220,13 +220,13 @@ describe("deserialize", () => {
         {
           type: "SourceStatement",
           identifier: "size",
-          value: { type: "OtherLiteral", value: "large" },
+          value: { type: "OtherLiteral", value: "grande" },
         },
       ],
     };
 
     const result = deserialize(program);
-    expect(result).toBe("source size = large;");
+    expect(result).toBe("source size = grande;");
   });
 });
 

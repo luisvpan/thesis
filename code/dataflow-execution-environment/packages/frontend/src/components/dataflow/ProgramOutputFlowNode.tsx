@@ -5,22 +5,39 @@ import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
 import { formatResultCpa } from './dataflowResultCpa';
 
-/** Solo frontend: muestra salida tras ejecutar; valor numérico para el grafo oculto al backend como DataSource. */
+/** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = {
-  /** Copia del último resultado ejecutado para propagación local del grafo */
+  /** Valor numérico para resultados racionales */
   value?: number;
+  /** Descripción semántica para resultados de arreglo */
+  description?: string;
 };
 
 export function ProgramOutputFlowNode({
   id,
-}: NodeProps) {
-  const { executionResult, executionError } = useNode();
-  const { viewMode, hasExecuted } = useResultCardUi();
+  data,
+}: NodeProps<ProgramOutputFlowNodeData>) {
+  const { executionError } = useNode();
+  const { viewMode } = useResultCardUi();
+
+  const value = data.value;
+  const description = data.description;
 
   const display =
     executionError ? (
       <p className="text-lg font-semibold text-red-400 text-center leading-snug px-1">{executionError}</p>
-    ) : hasExecuted && executionResult !== null ? (
+    ) : description ? (
+      // Resultado semántico (arreglo de objetos)
+      <div className="flex flex-col items-center gap-1 text-white">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          Resultado
+        </span>
+        <p className="text-lg text-center text-teal-200 leading-snug px-1">
+          {description}
+        </p>
+      </div>
+    ) : value !== undefined ? (
+      // Resultado numérico
       <div className="flex flex-col items-center gap-1 text-white">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           Resultado ({viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A'})
@@ -34,11 +51,11 @@ export function ProgramOutputFlowNode({
                 : 'text-center drop-shadow-md max-w-[14rem]'
           }
         >
-          {formatResultCpa(executionResult, viewMode)}
+          {formatResultCpa(value, viewMode)}
         </div>
       </div>
     ) : (
-      <p className="text-base text-slate-500 text-center italic px-2">Ejecutá para ver el resultado aquí</p>
+      <p className="text-base text-slate-500 text-center italic px-2">Ejecuta para ver el resultado aqui</p>
     );
 
   return (

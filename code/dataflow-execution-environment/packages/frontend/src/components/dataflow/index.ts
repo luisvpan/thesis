@@ -1,12 +1,8 @@
-export { NumberFlowNode } from './NumberFlowNode';
+export { SourceFlowNode } from './SourceFlowNode';
 export { OperatorFlowNode } from './OperatorFlowNode';
-export { ResultAnchorFlowNode } from './ResultAnchorFlowNode';
 export { ProgramOutputFlowNode } from './ProgramOutputFlowNode';
-export { DeckPropFlowNode } from './DeckPropFlowNode';
 export type { ResultViewMode } from './dataflowResultCpa';
 export { formatResultCpa } from './dataflowResultCpa';
-export type { NumberFlowNodeData } from './NumberFlowNode';
+export type { SourceFlowNodeData } from './SourceFlowNode';
 export type { OperatorFlowNodeData } from './OperatorFlowNode';
-export type { ResultAnchorFlowNodeData } from './ResultAnchorFlowNode';
 export type { ProgramOutputFlowNodeData } from './ProgramOutputFlowNode';
-export type { DeckPropFlowNodeData } from './DeckPropFlowNode';

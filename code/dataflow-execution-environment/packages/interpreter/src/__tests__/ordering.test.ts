@@ -8,9 +8,9 @@ describe("Ordering operations (integration)", () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
       source items = [
-        {type: grape, color: purple, amount: 5},
-        {type: circle, size: large, amount: 3},
-        {type: apple, color: red, amount: 1}
+        {type: uva, color: morado, amount: 5},
+        {type: circulo, size: grande, amount: 3},
+        {type: manzana, color: rojo, amount: 1}
       ];
       transform sorted = order_asc(items);
       sink result = sorted;
@@ -18,20 +18,20 @@ describe("Ordering operations (integration)", () => {
 
     expect(result.errors).toHaveLength(0);
     const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("array");
+    expect(sinkResult.kind).toBe("arreglo");
     // Concrete (food) < Pictorial (shape)
-    expect((sinkResult.elements[0] as FoodValue).kind).toBe("food");
-    expect((sinkResult.elements[1] as FoodValue).kind).toBe("food");
-    expect((sinkResult.elements[2] as ShapeValue).kind).toBe("shape");
+    expect((sinkResult.elements[0] as FoodValue).kind).toBe("comida");
+    expect((sinkResult.elements[1] as FoodValue).kind).toBe("comida");
+    expect((sinkResult.elements[2] as ShapeValue).kind).toBe("forma");
   });
 
   test("order_desc sorts by taxonomical rules in reverse", async () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
       source items = [
-        {type: grape, color: purple, amount: 5},
-        {type: circle, size: large, amount: 3},
-        {type: apple, color: red, amount: 1}
+        {type: uva, color: morado, amount: 5},
+        {type: circulo, size: grande, amount: 3},
+        {type: manzana, color: rojo, amount: 1}
       ];
       transform sorted = order_desc(items);
       sink result = sorted;
@@ -39,20 +39,20 @@ describe("Ordering operations (integration)", () => {
 
     expect(result.errors).toHaveLength(0);
     const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("array");
+    expect(sinkResult.kind).toBe("arreglo");
     // Descending: Abstract > Pictorial > Concrete
-    expect((sinkResult.elements[0] as ShapeValue).kind).toBe("shape");
-    expect((sinkResult.elements[1] as FoodValue).kind).toBe("food");
-    expect((sinkResult.elements[2] as FoodValue).kind).toBe("food");
+    expect((sinkResult.elements[0] as ShapeValue).kind).toBe("forma");
+    expect((sinkResult.elements[1] as FoodValue).kind).toBe("comida");
+    expect((sinkResult.elements[2] as FoodValue).kind).toBe("comida");
   });
 
   test("order_asc sorts by type alphabetically within category", async () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
       source items = [
-        {type: pear, color: green, amount: 1},
-        {type: apple, color: red, amount: 2},
-        {type: grape, color: purple, amount: 3}
+        {type: pera, color: verde, amount: 1},
+        {type: manzana, color: rojo, amount: 2},
+        {type: uva, color: morado, amount: 3}
       ];
       transform sorted = order_asc(items);
       sink result = sorted;
@@ -60,18 +60,18 @@ describe("Ordering operations (integration)", () => {
 
     expect(result.errors).toHaveLength(0);
     const sinkResult = result.results.get("result") as ArrayValue;
-    expect((sinkResult.elements[0] as FoodValue).subtype).toBe("apple");
-    expect((sinkResult.elements[1] as FoodValue).subtype).toBe("grape");
-    expect((sinkResult.elements[2] as FoodValue).subtype).toBe("pear");
+    expect((sinkResult.elements[0] as FoodValue).subtype).toBe("manzana");
+    expect((sinkResult.elements[1] as FoodValue).subtype).toBe("pera");
+    expect((sinkResult.elements[2] as FoodValue).subtype).toBe("uva");
   });
 
   test("order_asc sorts by quantity within same type", async () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
       source items = [
-        {type: grape, color: purple, amount: 10},
-        {type: grape, color: purple, amount: 2},
-        {type: grape, color: purple, amount: 5}
+        {type: uva, color: morado, amount: 10},
+        {type: uva, color: morado, amount: 2},
+        {type: uva, color: morado, amount: 5}
       ];
       transform sorted = order_asc(items);
       sink result = sorted;
@@ -88,9 +88,9 @@ describe("Ordering operations (integration)", () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
       source items = [
-        {type: circle, size: large, amount: 2},
-        {type: circle, size: large, amount: 10},
-        {type: circle, size: large, amount: 5}
+        {type: circulo, size: grande, amount: 2},
+        {type: circulo, size: grande, amount: 10},
+        {type: circulo, size: grande, amount: 5}
       ];
       transform sorted = order_desc(items);
       sink result = sorted;
@@ -107,9 +107,9 @@ describe("Ordering operations (integration)", () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
       source items = [
-        {type: apple, color: red, amount: 1},
-        {type: pear, color: green, amount: 2},
-        {type: grape, color: purple, amount: 3}
+        {type: manzana, color: rojo, amount: 1},
+        {type: pera, color: verde, amount: 2},
+        {type: uva, color: morado, amount: 3}
       ];
       transform sorted = order_desc(items);
       sink result = sorted;
@@ -117,8 +117,8 @@ describe("Ordering operations (integration)", () => {
 
     expect(result.errors).toHaveLength(0);
     const sinkResult = result.results.get("result") as ArrayValue;
-    expect((sinkResult.elements[0] as FoodValue).subtype).toBe("pear");
-    expect((sinkResult.elements[1] as FoodValue).subtype).toBe("grape");
-    expect((sinkResult.elements[2] as FoodValue).subtype).toBe("apple");
+    expect((sinkResult.elements[0] as FoodValue).subtype).toBe("uva");
+    expect((sinkResult.elements[1] as FoodValue).subtype).toBe("pera");
+    expect((sinkResult.elements[2] as FoodValue).subtype).toBe("manzana");
   });
 });

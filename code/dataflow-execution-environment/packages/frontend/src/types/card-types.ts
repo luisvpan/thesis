@@ -51,7 +51,7 @@ export type CarColor = 'rojo' | 'negro' | 'amarillo' | 'azul-oscuro' | 'gris';
 
 export type ShapeType = 'triangulo' | 'cuadrado' | 'rectangulo' | 'rombo' | 'circulo' | 'estrella' | 'trapecio';
 
-export type ShapeSize = 'pequeña' | 'mediana' | 'grande';
+export type ShapeSize = 'pequeño' | 'mediano' | 'grande';
 
 export type ShapeColor = 'rojo' | 'azul' | 'amarillo' | 'verde';
 

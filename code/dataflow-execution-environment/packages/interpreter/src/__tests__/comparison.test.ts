@@ -16,7 +16,7 @@ describe("Comparison operations (integration)", () => {
 
     expect(result.errors).toHaveLength(0);
     const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("array");
+    expect(sinkResult.kind).toBe("arreglo");
     expect(sinkResult.elements).toHaveLength(2); // 1 and 3 are < 4
   });
 
@@ -33,7 +33,7 @@ describe("Comparison operations (integration)", () => {
 
     expect(result.errors).toHaveLength(0);
     const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("array");
+    expect(sinkResult.kind).toBe("arreglo");
     expect(sinkResult.elements).toHaveLength(2); // 5 and 3 are > 2
   });
 });

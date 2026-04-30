@@ -96,15 +96,15 @@ export type SimpleObjectLiteral = {
 
 export type AbstractObjectLiteral = {
   type: "ObjectLiteral";
-  category: "abstract";
-  objectType: "rational";
+  category: "abstracto";
+  objectType: "racional";
   value: Fraction;
 };
 
 export type PictorialObjectLiteral = {
   type: "ObjectLiteral";
-  category: "pictorial";
-  objectType: "shape";
+  category: "pictorico";
+  objectType: "forma";
   subtype: import("./analyzer/ast").ShapeTypeValue;
   size: import("./analyzer/ast").SizeValue;
   amount: Fraction;
@@ -112,8 +112,8 @@ export type PictorialObjectLiteral = {
 
 export type ConcreteObjectLiteral = {
   type: "ObjectLiteral";
-  category: "concrete";
-  objectType: "food";
+  category: "concreto";
+  objectType: "comida";
   subtype: import("./analyzer/ast").FoodTypeValue;
   color: import("./analyzer/ast").ColorValue;
   amount: Fraction;

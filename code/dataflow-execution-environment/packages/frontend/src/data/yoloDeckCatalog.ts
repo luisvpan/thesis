@@ -45,15 +45,15 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   if (x in op) return { kind: 'operator', operator: op[x] };
 
   const fig: Record<string, { shape: ShapeType; size: ShapeSize; color: ShapeColor }> = {
-    sm_circle: { shape: 'circulo', size: 'pequeña', color: 'amarillo' },
-    md_circle: { shape: 'circulo', size: 'mediana', color: 'amarillo' },
+    sm_circle: { shape: 'circulo', size: 'pequeño', color: 'amarillo' },
+    md_circle: { shape: 'circulo', size: 'mediano', color: 'amarillo' },
     lg_circle: { shape: 'circulo', size: 'grande', color: 'amarillo' },
-    sm_square: { shape: 'cuadrado', size: 'pequeña', color: 'amarillo' },
-    md_square: { shape: 'cuadrado', size: 'mediana', color: 'amarillo' },
+    sm_square: { shape: 'cuadrado', size: 'pequeño', color: 'amarillo' },
+    md_square: { shape: 'cuadrado', size: 'mediano', color: 'amarillo' },
     lg_square: { shape: 'cuadrado', size: 'grande', color: 'amarillo' },
-    green: { shape: 'circulo', size: 'mediana', color: 'verde' },
-    purple: { shape: 'circulo', size: 'mediana', color: 'azul' },
-    red: { shape: 'circulo', size: 'mediana', color: 'rojo' },
+    green: { shape: 'circulo', size: 'mediano', color: 'verde' },
+    purple: { shape: 'circulo', size: 'mediano', color: 'azul' },
+    red: { shape: 'circulo', size: 'mediano', color: 'rojo' },
   };
   if (x in fig) return { kind: 'shape', yoloClass: x, ...fig[x] };
 

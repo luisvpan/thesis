@@ -1,48 +1,7 @@
-import type Fraction from "fraction.js";
 import * as rational from "../runtime/rational";
-import type { RuntimeValue, RationalValue, CPAObject } from "../runtime/types";
-import { isRational, isArray, isCPAObject } from "../runtime/types";
+import type { RuntimeValue } from "../runtime/types";
 import { RuntimeError } from "../runtime/errors";
-
-/**
- * Gets the quantity (value for abstract, amount for pictorial/concrete).
- */
-function getQuantity(obj: CPAObject): Fraction {
-  if (obj.kind === "abstract") {
-    return obj.value;
-  }
-  return obj.amount;
-}
-
-/**
- * Flattens nested arrays recursively.
- */
-function flattenArrays(values: RuntimeValue[]): RuntimeValue[] {
-  const result: RuntimeValue[] = [];
-
-  for (const val of values) {
-    if (isArray(val)) {
-      result.push(...flattenArrays(val.elements));
-    } else {
-      result.push(val);
-    }
-  }
-
-  return result;
-}
-
-/**
- * Gets the comparable value from a runtime value.
- */
-function getComparableValue(val: RuntimeValue): Fraction | null {
-  if (isRational(val)) {
-    return val.value;
-  }
-  if (isCPAObject(val)) {
-    return getQuantity(val);
-  }
-  return null;
-}
+import { flattenArrays, getComparableValue } from "./utils";
 
 /**
  * Less than operation (variadic):
@@ -81,7 +40,7 @@ export function lessThan(args: RuntimeValue[]): RuntimeValue {
     return filtered[0];
   }
 
-  return { kind: "array", elements: filtered };
+  return { kind: "arreglo", elements: filtered };
 }
 
 /**
@@ -121,5 +80,5 @@ export function greaterThan(args: RuntimeValue[]): RuntimeValue {
     return filtered[0];
   }
 
-  return { kind: "array", elements: filtered };
+  return { kind: "arreglo", elements: filtered };
 }

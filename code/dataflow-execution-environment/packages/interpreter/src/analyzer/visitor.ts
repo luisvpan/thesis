@@ -185,23 +185,39 @@ interface TypeValueCstNode extends CstNode {
     RationalType?: IToken[];
     ShapeType?: IToken[];
     FoodType?: IToken[];
+    // Shape subtypes
     Circle?: IToken[];
     Square?: IToken[];
+    Triangle?: IToken[];
+    Rectangle?: IToken[];
+    Diamond?: IToken[];
+    Star?: IToken[];
+    Trapezoid?: IToken[];
+    // Food subtypes
     Grape?: IToken[];
     Pear?: IToken[];
     Apple?: IToken[];
     Burger?: IToken[];
+    Pasta?: IToken[];
   };
 }
 
 interface SubtypeValueCstNode extends CstNode {
   children: {
+    // Shape subtypes
     Circle?: IToken[];
     Square?: IToken[];
+    Triangle?: IToken[];
+    Rectangle?: IToken[];
+    Diamond?: IToken[];
+    Star?: IToken[];
+    Trapezoid?: IToken[];
+    // Food subtypes
     Grape?: IToken[];
     Pear?: IToken[];
     Apple?: IToken[];
     Burger?: IToken[];
+    Pasta?: IToken[];
   };
 }
 
@@ -219,30 +235,46 @@ interface ColorValueCstNode extends CstNode {
     Green?: IToken[];
     Red?: IToken[];
     Orange?: IToken[];
+    Blue?: IToken[];
+    Yellow?: IToken[];
   };
 }
 
 interface OtherLiteralCstNode extends CstNode {
   children: {
+    // Categories
     Abstract?: IToken[];
     Pictorial?: IToken[];
     Concrete?: IToken[];
+    // Types
     RationalType?: IToken[];
     ShapeType?: IToken[];
     FoodType?: IToken[];
+    // Shape subtypes
     Circle?: IToken[];
     Square?: IToken[];
+    Triangle?: IToken[];
+    Rectangle?: IToken[];
+    Diamond?: IToken[];
+    Star?: IToken[];
+    Trapezoid?: IToken[];
+    // Size values
     Small?: IToken[];
     Medium?: IToken[];
     Large?: IToken[];
+    // Food subtypes
     Grape?: IToken[];
     Pear?: IToken[];
     Apple?: IToken[];
     Burger?: IToken[];
+    Pasta?: IToken[];
+    // Color values
     Purple?: IToken[];
     Green?: IToken[];
     Red?: IToken[];
     Orange?: IToken[];
+    Blue?: IToken[];
+    Yellow?: IToken[];
   };
 }
 
@@ -432,48 +464,66 @@ export class DataflowAstVisitor extends BaseCstVisitor {
   }
 
   categoryValue(ctx: CategoryValueCstNode["children"]): CategoryValue {
-    if (ctx.Abstract) return "abstract";
-    if (ctx.Pictorial) return "pictorial";
-    if (ctx.Concrete) return "concrete";
+    if (ctx.Abstract) return "abstracto";
+    if (ctx.Pictorial) return "pictorico";
+    if (ctx.Concrete) return "concreto";
     throw new Error("Unknown category value");
   }
 
-  // v2.1.0: rational instead of integer
+  // v2.1.0: Spanish types
   typeValue(ctx: TypeValueCstNode["children"]): TypeValue | ShapeTypeValue | FoodTypeValue {
-    if (ctx.RationalType) return "rational";
-    if (ctx.ShapeType) return "shape";
-    if (ctx.FoodType) return "food";
-    if (ctx.Circle) return "circle";
-    if (ctx.Square) return "square";
-    if (ctx.Grape) return "grape";
-    if (ctx.Pear) return "pear";
-    if (ctx.Apple) return "apple";
-    if (ctx.Burger) return "burger";
+    if (ctx.RationalType) return "racional";
+    if (ctx.ShapeType) return "forma";
+    if (ctx.FoodType) return "comida";
+    // Shape subtypes
+    if (ctx.Circle) return "circulo";
+    if (ctx.Square) return "cuadrado";
+    if (ctx.Triangle) return "triangulo";
+    if (ctx.Rectangle) return "rectangulo";
+    if (ctx.Diamond) return "rombo";
+    if (ctx.Star) return "estrella";
+    if (ctx.Trapezoid) return "trapecio";
+    // Food subtypes
+    if (ctx.Grape) return "uva";
+    if (ctx.Pear) return "pera";
+    if (ctx.Apple) return "manzana";
+    if (ctx.Burger) return "hamburguesa";
+    if (ctx.Pasta) return "pasta";
     throw new Error("Unknown type value");
   }
 
   subtypeValue(ctx: SubtypeValueCstNode["children"]): ShapeTypeValue | FoodTypeValue {
-    if (ctx.Circle) return "circle";
-    if (ctx.Square) return "square";
-    if (ctx.Grape) return "grape";
-    if (ctx.Pear) return "pear";
-    if (ctx.Apple) return "apple";
-    if (ctx.Burger) return "burger";
+    // Shape subtypes
+    if (ctx.Circle) return "circulo";
+    if (ctx.Square) return "cuadrado";
+    if (ctx.Triangle) return "triangulo";
+    if (ctx.Rectangle) return "rectangulo";
+    if (ctx.Diamond) return "rombo";
+    if (ctx.Star) return "estrella";
+    if (ctx.Trapezoid) return "trapecio";
+    // Food subtypes
+    if (ctx.Grape) return "uva";
+    if (ctx.Pear) return "pera";
+    if (ctx.Apple) return "manzana";
+    if (ctx.Burger) return "hamburguesa";
+    if (ctx.Pasta) return "pasta";
     throw new Error("Unknown subtype value");
   }
 
   sizeValue(ctx: SizeValueCstNode["children"]): SizeValue {
-    if (ctx.Small) return "small";
-    if (ctx.Medium) return "medium";
-    if (ctx.Large) return "large";
+    if (ctx.Small) return "pequeño";
+    if (ctx.Medium) return "mediano";
+    if (ctx.Large) return "grande";
     throw new Error("Unknown size value");
   }
 
   colorValue(ctx: ColorValueCstNode["children"]): ColorValue {
-    if (ctx.Purple) return "purple";
-    if (ctx.Green) return "green";
-    if (ctx.Red) return "red";
-    if (ctx.Orange) return "orange";
+    if (ctx.Purple) return "morado";
+    if (ctx.Green) return "verde";
+    if (ctx.Red) return "rojo";
+    if (ctx.Orange) return "naranja";
+    if (ctx.Blue) return "azul";
+    if (ctx.Yellow) return "amarillo";
     throw new Error("Unknown color value");
   }
 
@@ -481,30 +531,38 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     let value: OtherLiteral["value"];
 
     // Categories
-    if (ctx.Abstract) value = "abstract";
-    else if (ctx.Pictorial) value = "pictorial";
-    else if (ctx.Concrete) value = "concrete";
-    // Types (v2.1.0: rational)
-    else if (ctx.RationalType) value = "rational";
-    else if (ctx.ShapeType) value = "shape";
-    else if (ctx.FoodType) value = "food";
-    // Shape types
-    else if (ctx.Circle) value = "circle";
-    else if (ctx.Square) value = "square";
+    if (ctx.Abstract) value = "abstracto";
+    else if (ctx.Pictorial) value = "pictorico";
+    else if (ctx.Concrete) value = "concreto";
+    // Types (Spanish)
+    else if (ctx.RationalType) value = "racional";
+    else if (ctx.ShapeType) value = "forma";
+    else if (ctx.FoodType) value = "comida";
+    // Shape subtypes
+    else if (ctx.Circle) value = "circulo";
+    else if (ctx.Square) value = "cuadrado";
+    else if (ctx.Triangle) value = "triangulo";
+    else if (ctx.Rectangle) value = "rectangulo";
+    else if (ctx.Diamond) value = "rombo";
+    else if (ctx.Star) value = "estrella";
+    else if (ctx.Trapezoid) value = "trapecio";
     // Size values
-    else if (ctx.Small) value = "small";
-    else if (ctx.Medium) value = "medium";
-    else if (ctx.Large) value = "large";
-    // Food types
-    else if (ctx.Grape) value = "grape";
-    else if (ctx.Pear) value = "pear";
-    else if (ctx.Apple) value = "apple";
-    else if (ctx.Burger) value = "burger";
+    else if (ctx.Small) value = "pequeño";
+    else if (ctx.Medium) value = "mediano";
+    else if (ctx.Large) value = "grande";
+    // Food subtypes
+    else if (ctx.Grape) value = "uva";
+    else if (ctx.Pear) value = "pera";
+    else if (ctx.Apple) value = "manzana";
+    else if (ctx.Burger) value = "hamburguesa";
+    else if (ctx.Pasta) value = "pasta";
     // Color values
-    else if (ctx.Purple) value = "purple";
-    else if (ctx.Green) value = "green";
-    else if (ctx.Red) value = "red";
-    else if (ctx.Orange) value = "orange";
+    else if (ctx.Purple) value = "morado";
+    else if (ctx.Green) value = "verde";
+    else if (ctx.Red) value = "rojo";
+    else if (ctx.Orange) value = "naranja";
+    else if (ctx.Blue) value = "azul";
+    else if (ctx.Yellow) value = "amarillo";
     else throw new Error("Unknown other literal value");
 
     return {

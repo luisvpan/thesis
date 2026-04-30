@@ -27,6 +27,9 @@ class CameraConfig(BaseModel):
     # RGB camera resolution (height, width) from Kinect V2
     rgb_resolution: Tuple[int, int] = (1080, 1920)
 
+    # Projector resolution (height, width) - used for touch debug window
+    projector_resolution: Tuple[int, int] = (1080, 1920)
+
     # Frames per second for both streams
     fps: int = 30
 
@@ -40,7 +43,7 @@ class CameraConfig(BaseModel):
             raise ValueError("fps must not exceed 60")
         return v
 
-    @field_validator("depth_resolution", "rgb_resolution")
+    @field_validator("depth_resolution", "rgb_resolution", "projector_resolution")
     @classmethod
     def resolution_must_be_positive(cls, v: Tuple[int, int]) -> Tuple[int, int]:
         """Ensure resolution dimensions are positive."""

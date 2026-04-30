@@ -7,11 +7,9 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
-  NumberFlowNode,
+  SourceFlowNode,
   OperatorFlowNode,
-  ResultAnchorFlowNode,
   ProgramOutputFlowNode,
-  DeckPropFlowNode,
   type ResultViewMode,
 } from '@/components/dataflow';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
@@ -22,11 +20,9 @@ import { ModelDeckSidebar } from '../components/ModelDeckSidebar';
 import { ArrowLeft, Eye, Volume2 } from 'lucide-react';
 
 const nodeTypes: NodeTypes = {
-  number: NumberFlowNode,
+  source: SourceFlowNode,
   operator: OperatorFlowNode,
-  resultAnchor: ResultAnchorFlowNode,
   programOutput: ProgramOutputFlowNode,
-  deckProp: DeckPropFlowNode,
 };
 
 function speakTitle(title: string, subtitle: string) {

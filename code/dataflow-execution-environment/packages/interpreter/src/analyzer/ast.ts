@@ -80,15 +80,15 @@ export type SimpleObjectLiteral = {
 
 export type AbstractObjectLiteral = {
   type: "ObjectLiteral";
-  category: "abstract";
-  objectType: "rational";
+  category: "abstracto";
+  objectType: "racional";
   value: string;
 };
 
 export type PictorialObjectLiteral = {
   type: "ObjectLiteral";
-  category: "pictorial";
-  objectType: "shape";
+  category: "pictorico";
+  objectType: "forma";
   subtype: ShapeTypeValue;
   size: SizeValue;
   amount: string;
@@ -96,22 +96,22 @@ export type PictorialObjectLiteral = {
 
 export type ConcreteObjectLiteral = {
   type: "ObjectLiteral";
-  category: "concrete";
-  objectType: "food";
+  category: "concreto";
+  objectType: "comida";
   subtype: FoodTypeValue;
   color: ColorValue;
   amount: string;
 };
 
-// Value types (v2.1.0: rational instead of integer)
-export type CategoryValue = "abstract" | "pictorial" | "concrete";
+// Value types (v2.1.0 - Spanish)
+export type CategoryValue = "abstracto" | "pictorico" | "concreto";
 
-export type TypeValue = "rational" | "shape" | "food";
+export type TypeValue = "racional" | "forma" | "comida";
 
-export type ShapeTypeValue = "circle" | "square";
+export type ShapeTypeValue = "circulo" | "cuadrado" | "triangulo" | "rectangulo" | "rombo" | "estrella" | "trapecio";
 
-export type SizeValue = "small" | "medium" | "large";
+export type SizeValue = "pequeño" | "mediano" | "grande";
 
-export type FoodTypeValue = "grape" | "pear" | "apple" | "burger";
+export type FoodTypeValue = "manzana" | "hamburguesa" | "uva" | "pasta" | "pera";
 
-export type ColorValue = "purple" | "green" | "red" | "orange";
+export type ColorValue = "morado" | "verde" | "rojo" | "naranja" | "azul" | "amarillo";

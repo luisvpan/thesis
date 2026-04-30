@@ -14,9 +14,10 @@ export const Comment = createToken({
 });
 
 // Identifier (defined first, referenced by keywords via longer_alt)
+// Updated pattern to support Spanish characters (á, é, í, ó, ú, ñ, ü)
 export const Identifier = createToken({
   name: "Identifier",
-  pattern: /[a-zA-Z][a-zA-Z0-9_-]*/,
+  pattern: /[a-zA-ZáéíóúñüÁÉÍÓÚÑÜ][a-zA-Z0-9_\-áéíóúñüÁÉÍÓÚÑÜ]*/,
 });
 
 // Statement keywords
@@ -24,36 +25,44 @@ export const Source = createToken({ name: "Source", pattern: /source/, longer_al
 export const Transform = createToken({ name: "Transform", pattern: /transform/, longer_alt: Identifier });
 export const Sink = createToken({ name: "Sink", pattern: /sink/, longer_alt: Identifier });
 
-// Category keywords
-export const Abstract = createToken({ name: "Abstract", pattern: /abstract/, longer_alt: Identifier });
-export const Pictorial = createToken({ name: "Pictorial", pattern: /pictorial/, longer_alt: Identifier });
-export const Concrete = createToken({ name: "Concrete", pattern: /concrete/, longer_alt: Identifier });
+// Category keywords (Spanish)
+export const Abstract = createToken({ name: "Abstract", pattern: /abstracto/, longer_alt: Identifier });
+export const Pictorial = createToken({ name: "Pictorial", pattern: /pictorico/, longer_alt: Identifier });
+export const Concrete = createToken({ name: "Concrete", pattern: /concreto/, longer_alt: Identifier });
 
-// Type keywords (v2.1.0: rational instead of integer)
-export const RationalType = createToken({ name: "RationalType", pattern: /rational/, longer_alt: Identifier });
-export const ShapeType = createToken({ name: "ShapeType", pattern: /shape/, longer_alt: Identifier });
-export const FoodType = createToken({ name: "FoodType", pattern: /food/, longer_alt: Identifier });
+// Type keywords (Spanish)
+export const RationalType = createToken({ name: "RationalType", pattern: /racional/, longer_alt: Identifier });
+export const ShapeType = createToken({ name: "ShapeType", pattern: /forma/, longer_alt: Identifier });
+export const FoodType = createToken({ name: "FoodType", pattern: /comida/, longer_alt: Identifier });
 
-// Shape subtypes
-export const Circle = createToken({ name: "Circle", pattern: /circle/, longer_alt: Identifier });
-export const Square = createToken({ name: "Square", pattern: /square/, longer_alt: Identifier });
+// Shape subtypes (Spanish)
+export const Circle = createToken({ name: "Circle", pattern: /circulo/, longer_alt: Identifier });
+export const Square = createToken({ name: "Square", pattern: /cuadrado/, longer_alt: Identifier });
+export const Triangle = createToken({ name: "Triangle", pattern: /triangulo/, longer_alt: Identifier });
+export const Rectangle = createToken({ name: "Rectangle", pattern: /rectangulo/, longer_alt: Identifier });
+export const Diamond = createToken({ name: "Diamond", pattern: /rombo/, longer_alt: Identifier });
+export const Star = createToken({ name: "Star", pattern: /estrella/, longer_alt: Identifier });
+export const Trapezoid = createToken({ name: "Trapezoid", pattern: /trapecio/, longer_alt: Identifier });
 
-// Food subtypes
-export const Grape = createToken({ name: "Grape", pattern: /grape/, longer_alt: Identifier });
-export const Pear = createToken({ name: "Pear", pattern: /pear/, longer_alt: Identifier });
-export const Apple = createToken({ name: "Apple", pattern: /apple/, longer_alt: Identifier });
-export const Burger = createToken({ name: "Burger", pattern: /burger/, longer_alt: Identifier });
+// Food subtypes (Spanish)
+export const Grape = createToken({ name: "Grape", pattern: /uva/, longer_alt: Identifier });
+export const Pear = createToken({ name: "Pear", pattern: /pera/, longer_alt: Identifier });
+export const Apple = createToken({ name: "Apple", pattern: /manzana/, longer_alt: Identifier });
+export const Burger = createToken({ name: "Burger", pattern: /hamburguesa/, longer_alt: Identifier });
+export const Pasta = createToken({ name: "Pasta", pattern: /pasta/, longer_alt: Identifier });
 
-// Size values
-export const Small = createToken({ name: "Small", pattern: /small/, longer_alt: Identifier });
-export const Medium = createToken({ name: "Medium", pattern: /medium/, longer_alt: Identifier });
-export const Large = createToken({ name: "Large", pattern: /large/, longer_alt: Identifier });
+// Size values (Spanish)
+export const Small = createToken({ name: "Small", pattern: /pequeño/, longer_alt: Identifier });
+export const Medium = createToken({ name: "Medium", pattern: /mediano/, longer_alt: Identifier });
+export const Large = createToken({ name: "Large", pattern: /grande/, longer_alt: Identifier });
 
-// Color values
-export const Purple = createToken({ name: "Purple", pattern: /purple/, longer_alt: Identifier });
-export const Green = createToken({ name: "Green", pattern: /green/, longer_alt: Identifier });
-export const Red = createToken({ name: "Red", pattern: /red/, longer_alt: Identifier });
-export const Orange = createToken({ name: "Orange", pattern: /orange/, longer_alt: Identifier });
+// Color values (Spanish)
+export const Purple = createToken({ name: "Purple", pattern: /morado/, longer_alt: Identifier });
+export const Green = createToken({ name: "Green", pattern: /verde/, longer_alt: Identifier });
+export const Red = createToken({ name: "Red", pattern: /rojo/, longer_alt: Identifier });
+export const Orange = createToken({ name: "Orange", pattern: /naranja/, longer_alt: Identifier });
+export const Blue = createToken({ name: "Blue", pattern: /azul/, longer_alt: Identifier });
+export const Yellow = createToken({ name: "Yellow", pattern: /amarillo/, longer_alt: Identifier });
 
 // Operation keywords
 export const Sum = createToken({ name: "Sum", pattern: /sum/, longer_alt: Identifier });
@@ -104,36 +113,43 @@ export const allTokens = [
   Transform,
   Sink,
 
-  // Category keywords
-  Abstract,
-  Pictorial,
-  Concrete,
+  // Category keywords (Spanish)
+  Abstract,    // abstracto
+  Pictorial,   // pictorico
+  Concrete,    // concreto
 
-  // Type keywords
-  RationalType,
-  ShapeType,
-  FoodType,
+  // Type keywords (Spanish)
+  RationalType, // racional
+  ShapeType,    // forma
+  FoodType,     // comida
 
-  // Shape subtypes
-  Circle,
-  Square,
+  // Shape subtypes (Spanish)
+  Circle,       // circulo
+  Square,       // cuadrado
+  Triangle,     // triangulo
+  Rectangle,    // rectangulo
+  Diamond,      // rombo
+  Star,         // estrella
+  Trapezoid,    // trapecio
 
-  // Food subtypes
-  Grape,
-  Pear,
-  Apple,
-  Burger,
+  // Food subtypes (Spanish)
+  Grape,        // uva
+  Pear,         // pera
+  Apple,        // manzana
+  Burger,       // hamburguesa
+  Pasta,        // pasta
 
-  // Size values
-  Small,
-  Medium,
-  Large,
+  // Size values (Spanish)
+  Small,        // pequeño
+  Medium,       // mediano
+  Large,        // grande
 
-  // Color values
-  Purple,
-  Green,
-  Red,
-  Orange,
+  Purple,       // morado
+  Green,        // verde
+  Red,          // rojo
+  Orange,       // naranja (also food)
+  Blue,         // azul
+  Yellow,       // amarillo
 
   // Operations
   Sum,

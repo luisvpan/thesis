@@ -1,4 +1,8 @@
 /**
+ * @deprecated Este archivo usa el formato antiguo DataflowProgram para http-api.
+ * Usar flowToProgram.ts en su lugar, que genera el formato Program del interpreter
+ * para ejecución client-side.
+ *
  * Serializa el programa visual (ReactFlow) al formato DataflowProgram del backend.
  * Los nodos `resultAnchor` y cualquier arista que los toque son solo UI y no se envían.
  * Los nodos `programOutput` se serializan como DataSource numéricos (valor tras ejecutar en cliente).

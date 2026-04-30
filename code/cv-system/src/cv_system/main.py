@@ -154,13 +154,14 @@ def main() -> None:
         rgb_image_transformer = RgbImageTransformer(
             calibration_result,
             config.camera,
-            projector_corners=config.calibration.projector_corners,
         )
-        PROJ_W, PROJ_H = rgb_image_transformer.projector_wh
+        # Calculate projector ROI dimensions from projector_corners
         xs = [int(p[0]) for p in config.calibration.projector_corners]
         ys = [int(p[1]) for p in config.calibration.projector_corners]
         ROI_OFFSET_X = min(xs)
         ROI_OFFSET_Y = min(ys)
+        PROJ_W = max(xs) - min(xs)
+        PROJ_H = max(ys) - min(ys)
         print("  RGB image transformer initialized")
         print(f"  Effective projector ROI (w, h): ({PROJ_W}, {PROJ_H})")
         print(f"  ROI offset in full projector (x, y): ({ROI_OFFSET_X}, {ROI_OFFSET_Y})")
@@ -310,8 +311,6 @@ def main() -> None:
                         card_dets,
                         FULL_PROJ_W,
                         FULL_PROJ_H,
-                        offset_x=ROI_OFFSET_X,
-                        offset_y=ROI_OFFSET_Y,
                     )
                 else:
                     card_view = last_card_view if last_card_view is not None else rgb_bird.get()

@@ -45,7 +45,7 @@ export function CardGallery({ cardSize = 'medium' }: CardGalleryProps) {
   const personAges: PersonAge[] = ['bebe', 'niño', 'joven', 'adulto'];
 
   const shapes: ShapeType[] = ['triangulo', 'cuadrado', 'rectangulo', 'rombo', 'circulo', 'estrella', 'trapecio'];
-  const shapeSizes: ShapeSize[] = ['pequeña', 'mediana', 'grande'];
+  const shapeSizes: ShapeSize[] = ['pequeño', 'mediano', 'grande'];
   const shapeColors: ShapeColor[] = ['rojo', 'azul', 'amarillo', 'verde'];
 
   // Formas con variantes de tamaño y color
