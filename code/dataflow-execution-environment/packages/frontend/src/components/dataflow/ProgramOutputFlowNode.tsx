@@ -67,7 +67,7 @@ export function ProgramOutputFlowNode({
         {id}
       </div>
       <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} />
-      <FlowNodeCard family="sink" title="Salida" content={display} />
+      <FlowNodeCard family="sink" title="Salida" content={<span className="text-xs font-black text-slate-100">{display}</span>} />
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
     </div>
   );

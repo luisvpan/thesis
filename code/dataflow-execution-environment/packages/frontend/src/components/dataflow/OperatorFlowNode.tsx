@@ -32,7 +32,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
       <FlowNodeCard
         family="transformation"
         title={operator}
-        content={<span className="text-4xl font-black text-slate-100">{operatorSymbol(operator)}</span>}
+        content={<span className="text-xs font-black text-slate-100">{operatorSymbol(operator)}</span>}
         subtitle={d.result !== undefined ? `resultado: ${d.result}` : 'esperando entradas'}
       />
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />

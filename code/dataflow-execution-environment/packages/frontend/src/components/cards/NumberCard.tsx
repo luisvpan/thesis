@@ -55,6 +55,7 @@ export function NumberCard({
       <div
         className={`${sizeClasses[size]} rounded-lg flex items-center justify-center border-2 border-[#3b82f6] bg-transparent`}
       >
+      dasdasdsadasdasdasdas
         <span className={`${labelClasses[size]} font-semibold text-center text-blue-400`}>{label}</span>
       </div>
     </motion.div>
