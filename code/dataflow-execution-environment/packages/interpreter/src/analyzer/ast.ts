@@ -106,7 +106,7 @@ export type ConcreteObjectLiteral = {
 // Value types (v2.1.0 - Spanish)
 export type CategoryValue = "abstracto" | "pictorico" | "concreto";
 
-export type TypeValue = "racional" | "forma" | "comida";
+export type TypeValue = "racional" | "forma" | "comida" | "montessori";
 
 export type ShapeTypeValue = "circulo" | "cuadrado" | "triangulo" | "rectangulo" | "rombo" | "estrella" | "trapecio";
 

@@ -123,6 +123,10 @@ class DepthOnlyTouchDetector:
             - touches: List of (x, y) touch positions in projector coordinates.
             - objects_detected: True if any objects were detected in the touch zone.
         """
+        # Convert UMat to numpy if needed
+        if isinstance(depth_frame, cv2.UMat):
+            depth_frame = depth_frame.get()
+
         # Convert to int32 for safe arithmetic
         depth_int = depth_frame.astype(np.int32)
 

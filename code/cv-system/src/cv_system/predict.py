@@ -1,26 +1,29 @@
 """
-Predicciones en vivo con opción de guardar para entrenamiento.
+Predicciones en vivo con opción de guardar para entrenamiento YOLO.
 
 Uso:
-    predict                     # Solo muestra predicciones
-    predict --save              # Guarda imágenes anotadas
-    predict --save --count 50   # Guarda 50 imágenes y sale
+    predict                          # Solo muestra predicciones
+    predict --save                   # Guarda imágenes y labels
+    predict --save --count 50        # Guarda 50 y sale
+    predict --save --readable        # También genera labels con nombres
 
 Estructura de salida (con --save):
-    images/annotated/
-        predict_20240101_120000_123456/
-            raw.jpg                      # Imagen sin anotaciones
-            full_annotated.jpg           # Con labels y confianza
-            bounding_box_only.jpg        # Solo bounding boxes
+    output_dir/
+        images/
+            predict_000000.jpg
+        labels/
+            predict_000000.txt       # class_id cx cy w h (YOLO format)
+        labels_readable/             # solo con --readable
+            predict_000000.txt       # class_name cx cy w h (legible)
+        debug/
+            predict_000000.jpg       # full_annotated con labels y confianza
 """
 import os
 import time
 import argparse
 from pathlib import Path
-from datetime import datetime
 
 import cv2
-import numpy as np
 from dotenv import load_dotenv
 
 from cv_system.config import load_config
@@ -32,16 +35,45 @@ from cv_system.detection.card_detector import CardDetector, CardDetection
 PREDICT_OUTPUT_DIR = os.getenv("PREDICT_OUTPUT_DIR", "images/annotated")
 
 
-def draw_bounding_boxes_only(
-    image: np.ndarray, detections: list[CardDetection]
-) -> np.ndarray:
-    """Draw only bounding boxes without labels or confidence."""
-    result = image.copy()
-    for d in detections:
-        p1 = (int(d.x1), int(d.y1))
-        p2 = (int(d.x2), int(d.y2))
-        cv2.rectangle(result, p1, p2, (0, 220, 0), 2)
-    return result
+def get_next_index(output_dir: Path) -> int:
+    """Encuentra el siguiente índice disponible para no sobreescribir archivos."""
+    images_dir = output_dir / "images"
+    if not images_dir.exists():
+        return 0
+
+    existing = list(images_dir.glob("predict_*.jpg"))
+    if not existing:
+        return 0
+
+    # Extraer índices de archivos existentes
+    indices = []
+    for f in existing:
+        try:
+            # predict_000042.jpg -> 42
+            idx = int(f.stem.split("_")[1])
+            indices.append(idx)
+        except (IndexError, ValueError):
+            continue
+
+    return max(indices) + 1 if indices else 0
+
+
+def detection_to_yolo_line(d: CardDetection, img_w: int, img_h: int) -> str:
+    """Convierte una detección al formato YOLO: class_id cx cy w h (normalizado)."""
+    cx = ((d.x1 + d.x2) / 2) / img_w
+    cy = ((d.y1 + d.y2) / 2) / img_h
+    w = (d.x2 - d.x1) / img_w
+    h = (d.y2 - d.y1) / img_h
+    return f"{d.class_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}"
+
+
+def detection_to_readable_line(d: CardDetection, img_w: int, img_h: int) -> str:
+    """Convierte una detección a formato legible: nombre cx cy w h (normalizado)."""
+    cx = ((d.x1 + d.x2) / 2) / img_w
+    cy = ((d.y1 + d.y2) / 2) / img_h
+    w = (d.x2 - d.x1) / img_w
+    h = (d.y2 - d.y1) / img_h
+    return f"{d.label} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}"
 
 
 def main():
@@ -49,7 +81,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Predicciones en vivo")
     parser.add_argument(
-        "--save", action="store_true", help="Guardar imágenes anotadas"
+        "--save", action="store_true", help="Guardar imágenes y labels YOLO"
     )
     parser.add_argument(
         "--count", type=int, default=0, help="Número de imágenes (0=infinito)"
@@ -66,12 +98,19 @@ def main():
     parser.add_argument(
         "--conf", type=float, default=0.5, help="Threshold de confianza"
     )
+    parser.add_argument(
+        "--readable", action="store_true", help="Generar labels legibles (con nombres de clase)"
+    )
     args = parser.parse_args()
 
-    # Crear directorio si guardamos
+    # Crear subdirectorios si guardamos
     output_dir = Path(args.output) if args.save else None
     if output_dir:
-        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "images").mkdir(parents=True, exist_ok=True)
+        (output_dir / "labels").mkdir(parents=True, exist_ok=True)
+        (output_dir / "debug").mkdir(parents=True, exist_ok=True)
+        if args.readable:
+            (output_dir / "labels_readable").mkdir(parents=True, exist_ok=True)
 
     # Cargar configuración y calibración
     config_path = Path(os.getenv("CONFIG_PATH", "config/session.json"))
@@ -92,12 +131,18 @@ def main():
     )
 
     try:
+        # Encontrar siguiente índice disponible para no sobreescribir
+        start_index = get_next_index(output_dir) if output_dir else 0
+        current_index = start_index
         saved = 0
         last_save = 0.0
+
         print("Ejecutando predicciones en vivo...")
         print("Presiona 'q' para salir")
         if args.save:
-            print(f"Guardando anotaciones en: {output_dir}")
+            print(f"Guardando en formato YOLO: {output_dir}")
+            if start_index > 0:
+                print(f"Continuando desde índice {start_index} (archivos existentes detectados)")
 
         while True:
             # Capturar y transformar
@@ -117,25 +162,32 @@ def main():
 
             # Guardar si corresponde
             if args.save and (time.time() - last_save >= args.interval):
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                filename = f"predict_{current_index:06d}"
+                img_h, img_w = bird_np.shape[:2]
 
-                # Crear carpeta para esta captura
-                capture_dir = output_dir / f"predict_{timestamp}"
-                capture_dir.mkdir(parents=True, exist_ok=True)
+                # Guardar imagen raw en images/
+                cv2.imwrite(str(output_dir / "images" / f"{filename}.jpg"), bird_np)
 
-                # Guardar imagen raw (sin anotaciones)
-                cv2.imwrite(str(capture_dir / "raw.jpg"), bird_np)
+                # Guardar labels en formato YOLO
+                labels_path = output_dir / "labels" / f"{filename}.txt"
+                with open(labels_path, "w") as f:
+                    for d in detections:
+                        f.write(detection_to_yolo_line(d, img_w, img_h) + "\n")
 
-                # Guardar full_annotated (con labels y confianza)
-                cv2.imwrite(str(capture_dir / "full_annotated.jpg"), full_annotated)
+                # Guardar labels legibles si se pidió
+                if args.readable:
+                    readable_path = output_dir / "labels_readable" / f"{filename}.txt"
+                    with open(readable_path, "w") as f:
+                        for d in detections:
+                            f.write(detection_to_readable_line(d, img_w, img_h) + "\n")
 
-                # Guardar bounding_box_only (solo cajas)
-                bbox_only = draw_bounding_boxes_only(bird_np, detections)
-                cv2.imwrite(str(capture_dir / "bounding_box_only.jpg"), bbox_only)
+                # Guardar debug (full_annotated)
+                cv2.imwrite(str(output_dir / "debug" / f"{filename}.jpg"), full_annotated)
 
+                current_index += 1
                 saved += 1
                 last_save = time.time()
-                print(f"[{saved}] Guardado: {capture_dir.name}/")
+                print(f"[{saved}] Guardado: {filename}")
 
                 if args.count > 0 and saved >= args.count:
                     break

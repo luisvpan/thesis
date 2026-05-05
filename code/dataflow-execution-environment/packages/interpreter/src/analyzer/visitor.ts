@@ -185,6 +185,7 @@ interface TypeValueCstNode extends CstNode {
     RationalType?: IToken[];
     ShapeType?: IToken[];
     FoodType?: IToken[];
+    MontessoriType?: IToken[];
     // Shape subtypes
     Circle?: IToken[];
     Square?: IToken[];
@@ -250,6 +251,7 @@ interface OtherLiteralCstNode extends CstNode {
     RationalType?: IToken[];
     ShapeType?: IToken[];
     FoodType?: IToken[];
+    MontessoriType?: IToken[];
     // Shape subtypes
     Circle?: IToken[];
     Square?: IToken[];
@@ -475,6 +477,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     if (ctx.RationalType) return "racional";
     if (ctx.ShapeType) return "forma";
     if (ctx.FoodType) return "comida";
+    if (ctx.MontessoriType) return "montessori";
     // Shape subtypes
     if (ctx.Circle) return "circulo";
     if (ctx.Square) return "cuadrado";
@@ -538,6 +541,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     else if (ctx.RationalType) value = "racional";
     else if (ctx.ShapeType) value = "forma";
     else if (ctx.FoodType) value = "comida";
+    else if (ctx.MontessoriType) value = "montessori";
     // Shape subtypes
     else if (ctx.Circle) value = "circulo";
     else if (ctx.Square) value = "cuadrado";
