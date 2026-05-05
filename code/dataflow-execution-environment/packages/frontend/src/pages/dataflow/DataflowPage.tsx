@@ -4,12 +4,17 @@ import {
   ReactFlow,
   Background,
   type NodeTypes,
+  type EdgeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
   SourceFlowNode,
   OperatorFlowNode,
   ProgramOutputFlowNode,
+  ArrayOpenNode,
+  ArrayCloseNode,
+  DataflowEdge,
+  ArrayZoneEdge,
   type ResultViewMode,
 } from '@/components/dataflow';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
@@ -25,6 +30,13 @@ const nodeTypes: NodeTypes = {
   source: SourceFlowNode,
   operator: OperatorFlowNode,
   programOutput: ProgramOutputFlowNode,
+  arrayOpen: ArrayOpenNode,
+  arrayClose: ArrayCloseNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  default: DataflowEdge,
+  arrayZoneEdge: ArrayZoneEdge,
 };
 
 function speakTitle(title: string, subtitle: string) {
@@ -52,6 +64,8 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
     onEdgesChange,
     nodesDraggable,
     spawnDeckYoloClass,
+    addArrayOpenNode,
+    addArrayCloseNode,
   } = useNode();
 
   const [viewMode, setViewMode] = useState<ResultViewMode>('abstracto');
@@ -144,6 +158,24 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
                 >
                   Agregar todas las cartas
                 </button>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={addArrayOpenNode}
+                    className="flex-1 rounded-lg border border-teal-700 bg-teal-900/50 px-3 py-2 text-sm font-black text-teal-300 hover:bg-teal-800/60 font-mono"
+                    title="Abrir arreglo"
+                  >
+                    [
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addArrayCloseNode}
+                    className="flex-1 rounded-lg border border-teal-700 bg-teal-900/50 px-3 py-2 text-sm font-black text-teal-300 hover:bg-teal-800/60 font-mono"
+                    title="Cerrar arreglo"
+                  >
+                    ]
+                  </button>
+                </div>
               </section>
             ) : null}
             {extraAsideSections}
@@ -159,6 +191,7 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               defaultViewport={{ x: 0, y: 0, zoom: 1 }}
               className="bg-black"
               minZoom={1}

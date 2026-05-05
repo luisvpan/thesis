@@ -1,5 +1,6 @@
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
+import { Equal, LayoutList, Hourglass } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
@@ -26,15 +27,15 @@ export function ProgramOutputFlowNode({
   const value = data.value;
   const description = data.description;
 
+  const modeLabel = viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A';
+
   const display =
     executionError ? (
       <p className="text-lg font-semibold text-red-400 text-center leading-snug px-1">{executionError}</p>
     ) : description ? (
       // Resultado semántico (arreglo de objetos)
       <div className="flex flex-col items-center gap-1 text-white">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-          Resultado
-        </span>
+        <LayoutList className="w-5 h-5 text-slate-400" strokeWidth={2} />
         <p className="text-lg text-center text-teal-200 leading-snug px-1">
           {description}
         </p>
@@ -42,9 +43,10 @@ export function ProgramOutputFlowNode({
     ) : value !== undefined ? (
       // Resultado numérico
       <div className="flex flex-col items-center gap-1 text-white">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-          Resultado ({viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A'})
-        </span>
+        <div className="flex items-center gap-1 text-slate-400">
+          <Equal className="w-4 h-4" strokeWidth={2.5} />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
+        </div>
         <div
           className={
             viewMode === 'abstracto'
@@ -58,7 +60,10 @@ export function ProgramOutputFlowNode({
         </div>
       </div>
     ) : (
-      <p className="text-base text-slate-500 text-center italic px-2">Ejecuta para ver el resultado aqui</p>
+      <div className="flex flex-col items-center gap-2 text-slate-500">
+        <Hourglass className="w-6 h-6" strokeWidth={1.5} />
+        <p className="text-sm text-center italic px-2">Sin resultado</p>
+      </div>
     );
 
   return (

@@ -55,6 +55,8 @@ export type ShapeSize = 'pequeño' | 'mediano' | 'grande';
 
 export type ShapeColor = 'rojo' | 'azul' | 'amarillo' | 'verde';
 
+export type MontessoriColor = 'azul' | 'verde' | 'naranja' | 'morado' | 'rojo' | 'amarillo';
+
 export interface BaseCard {
   id: string;
   category: CardCategory;

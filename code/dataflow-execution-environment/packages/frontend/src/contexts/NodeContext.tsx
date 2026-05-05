@@ -61,7 +61,8 @@ export function NodeProvider({
   const { isPortSelected, clearSelection, handlePortClick } = usePortSelection(
     selectedPort,
     setSelectedPort,
-    setEdges
+    setEdges,
+    nodes
   );
 
   const {
@@ -71,6 +72,8 @@ export function NodeProvider({
     addResultAnchorPair,
     addResultCard,
     spawnDeckYoloClass,
+    addArrayOpenNode,
+    addArrayCloseNode,
   } = useNodeSpawning(setNodes);
 
   const executeProgram = useManualExecuteProgram(
@@ -106,6 +109,8 @@ export function NodeProvider({
       addResultAnchorPair,
       addResultCard,
       spawnDeckYoloClass,
+      addArrayOpenNode,
+      addArrayCloseNode,
       nodesDraggable,
       executeProgram,
       onNodesChange,
@@ -128,6 +133,8 @@ export function NodeProvider({
       addResultAnchorPair,
       addResultCard,
       spawnDeckYoloClass,
+      addArrayOpenNode,
+      addArrayCloseNode,
       nodesDraggable,
       executeProgram,
       onNodesChange,
