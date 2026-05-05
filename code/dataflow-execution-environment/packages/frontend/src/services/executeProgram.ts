@@ -65,7 +65,7 @@ function getAmount(elem: unknown): number {
   if (obj.kind === "abstracto" && obj.value) {
     return Number((obj.value as { valueOf(): number }).valueOf());
   }
-  if ((obj.kind === "forma" || obj.kind === "comida") && obj.amount) {
+  if ((obj.kind === "forma" || obj.kind === "comida" || obj.kind === "montessori") && obj.amount) {
     return Number((obj.amount as { valueOf(): number }).valueOf());
   }
   return 1;
@@ -77,7 +77,7 @@ function getCategory(elem: unknown): "abstracto" | "pictorico" | "concreto" {
 
   if (obj.kind === "racional" || obj.kind === "abstracto") return "abstracto";
   if (obj.kind === "forma") return "pictorico";
-  if (obj.kind === "comida") return "concreto";
+  if (obj.kind === "comida" || obj.kind === "montessori") return "concreto";
   return "abstracto";
 }
 
@@ -88,6 +88,7 @@ function getType(elem: unknown): string {
   if (obj.kind === "racional" || obj.kind === "abstracto") return "racional";
   if (obj.kind === "forma") return "forma";
   if (obj.kind === "comida") return "comida";
+  if (obj.kind === "montessori") return "montessori";
   return "racional";
 }
 
@@ -108,6 +109,7 @@ function getSubtype(elem: unknown): string | null {
 const PLURALS: Record<string, string> = {
   forma: "formas",
   comida: "comidas",
+  montessori: "montessoris",
   racional: "racionales",
   cuadrado: "cuadrados",
   circulo: "círculos",
@@ -168,19 +170,23 @@ function groupElements(elements: unknown[]): SemanticResult {
       typeGroup.rationalValue = (typeGroup.rationalValue ?? 0) + amount;
     }
 
-    // Crear o actualizar subtipo (solo para forma/comida)
-    if (subtype) {
-      let subtypeGroup = typeGroup.subtypes.find((s) => s.subtype === subtype);
+    // Crear o actualizar subtipo (para forma/comida/montessori)
+    const obj = elem as Record<string, unknown>;
+
+    // Montessori no tiene subtype, pero agrupamos por color
+    const effectiveSubtype = subtype ?? (obj.kind === "montessori" ? (obj.color as string) : null);
+
+    if (effectiveSubtype) {
+      let subtypeGroup = typeGroup.subtypes.find((s) => s.subtype === effectiveSubtype);
       if (!subtypeGroup) {
-        subtypeGroup = { subtype, items: [], totalAmount: 0 };
+        subtypeGroup = { subtype: effectiveSubtype, items: [], totalAmount: 0 };
         typeGroup.subtypes.push(subtypeGroup);
       }
       subtypeGroup.totalAmount += amount;
 
-      const obj = elem as Record<string, unknown>;
       subtypeGroup.items.push({
         size: obj.kind === "forma" ? (obj.size as string) : undefined,
-        color: obj.kind === "comida" ? (obj.color as string) : undefined,
+        color: (obj.kind === "comida" || obj.kind === "montessori") ? (obj.color as string) : undefined,
         amount,
       });
     }
