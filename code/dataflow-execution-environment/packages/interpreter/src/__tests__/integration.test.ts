@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { Interpreter } from "../index";
-import type { RationalValue, ArrayValue, ShapeValue, FoodValue } from "../runtime/types";
+import type { RationalValue, ArrayValue, ShapeValue, FoodValue, MontessoriValue } from "../runtime/types";
 
 describe("Integration", () => {
   describe("Example 1: Simple Addition", () => {
@@ -128,6 +128,44 @@ describe("Integration", () => {
       expect(sinkResult.kind).toBe("forma");
       expect(sinkResult.subtype).toBe("cuadrado");
       expect(sinkResult.amount.equals(new Fraction(15))).toBe(true);
+    });
+  });
+
+  describe("Montessori cubes", () => {
+    test("sum aggregates montessori cubes by color", async () => {
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
+        source rojos = { type: montessori, color: rojo, amount: 3 };
+        source azules = { type: montessori, color: azul, amount: 5 };
+        transform total = sum(rojos, azules);
+        sink resultado = total;
+      `);
+
+      expect(result.errors).toHaveLength(0);
+      const sinkResult = result.results.get("resultado") as ArrayValue;
+      expect(sinkResult.kind).toBe("arreglo");
+      expect(sinkResult.elements).toHaveLength(2);
+
+      const rojos = sinkResult.elements.find(e => (e as MontessoriValue).color === "rojo") as MontessoriValue;
+      const azules = sinkResult.elements.find(e => (e as MontessoriValue).color === "azul") as MontessoriValue;
+      expect(rojos.kind).toBe("montessori");
+      expect(rojos.amount.equals(new Fraction(3))).toBe(true);
+      expect(azules.kind).toBe("montessori");
+      expect(azules.amount.equals(new Fraction(5))).toBe(true);
+    });
+
+    test("montessori cubes are concrete category", async () => {
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
+        source cubo = { type: montessori, color: verde, amount: 1 };
+        sink resultado = cubo;
+      `);
+
+      expect(result.errors).toHaveLength(0);
+      const sinkResult = result.results.get("resultado") as MontessoriValue;
+      expect(sinkResult.kind).toBe("montessori");
+      expect(sinkResult.category).toBe("concreto");
+      expect(sinkResult.color).toBe("verde");
     });
   });
 });

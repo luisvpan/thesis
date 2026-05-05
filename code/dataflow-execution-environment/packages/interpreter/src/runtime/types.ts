@@ -35,6 +35,13 @@ export type FoodValue = {
   amount: Fraction;
 };
 
+export type MontessoriValue = {
+  kind: "montessori";
+  category: "concreto";
+  color: ColorValue;
+  amount: Fraction;
+};
+
 export type AbstractValue = {
   kind: "abstracto";
   category: "abstracto";
@@ -42,7 +49,7 @@ export type AbstractValue = {
   value: Fraction;
 };
 
-export type CPAObject = ShapeValue | FoodValue | AbstractValue;
+export type CPAObject = ShapeValue | FoodValue | MontessoriValue | AbstractValue;
 
 export type ArrayValue = {
   kind: "arreglo";
@@ -84,7 +91,7 @@ export function isArray(val: RuntimeValue): val is ArrayValue {
 }
 
 export function isCPAObject(val: RuntimeValue): val is CPAObject {
-  return val.kind === "forma" || val.kind === "comida" || val.kind === "abstracto";
+  return val.kind === "forma" || val.kind === "comida" || val.kind === "montessori" || val.kind === "abstracto";
 }
 
 export function isShape(val: RuntimeValue): val is ShapeValue {
@@ -93,6 +100,10 @@ export function isShape(val: RuntimeValue): val is ShapeValue {
 
 export function isFood(val: RuntimeValue): val is FoodValue {
   return val.kind === "comida";
+}
+
+export function isMontessori(val: RuntimeValue): val is MontessoriValue {
+  return val.kind === "montessori";
 }
 
 export function isAbstract(val: RuntimeValue): val is AbstractValue {
@@ -118,12 +129,15 @@ export function getCPAKey(val: CPAObject): string {
   if (val.kind === "comida") {
     return `concreto:comida:${val.subtype}:${val.color}`;
   }
+  if (val.kind === "montessori") {
+    return `concreto:montessori:${val.color}`;
+  }
   return "unknown";
 }
 
 // Get category enum value from a runtime value
 export function getCategoryOrder(val: RuntimeValue): Category {
-  if (val.kind === "comida") return Category.Concreto;
+  if (val.kind === "comida" || val.kind === "montessori") return Category.Concreto;
   if (val.kind === "forma") return Category.Pictorico;
   if (val.kind === "abstracto" || val.kind === "racional") return Category.Abstracto;
   return Category.Abstracto;
@@ -133,6 +147,7 @@ export function getCategoryOrder(val: RuntimeValue): Category {
 export function getTypeKey(val: RuntimeValue): string {
   if (val.kind === "comida") return `comida:${val.subtype}`;
   if (val.kind === "forma") return `forma:${val.subtype}`;
+  if (val.kind === "montessori") return `montessori:${val.color}`;
   if (val.kind === "abstracto") return "racional";
   if (val.kind === "racional") return "racional";
   return "otro";

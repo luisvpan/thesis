@@ -34,6 +34,7 @@ export const Concrete = createToken({ name: "Concrete", pattern: /concreto/, lon
 export const RationalType = createToken({ name: "RationalType", pattern: /racional/, longer_alt: Identifier });
 export const ShapeType = createToken({ name: "ShapeType", pattern: /forma/, longer_alt: Identifier });
 export const FoodType = createToken({ name: "FoodType", pattern: /comida/, longer_alt: Identifier });
+export const MontessoriType = createToken({ name: "MontessoriType", pattern: /montessori/, longer_alt: Identifier });
 
 // Shape subtypes (Spanish)
 export const Circle = createToken({ name: "Circle", pattern: /circulo/, longer_alt: Identifier });
@@ -119,9 +120,10 @@ export const allTokens = [
   Concrete,    // concreto
 
   // Type keywords (Spanish)
-  RationalType, // racional
-  ShapeType,    // forma
-  FoodType,     // comida
+  RationalType,   // racional
+  ShapeType,      // forma
+  FoodType,       // comida
+  MontessoriType, // montessori
 
   // Shape subtypes (Spanish)
   Circle,       // circulo

@@ -4,6 +4,7 @@ import type {
   CPAObject,
   ShapeValue,
   FoodValue,
+  MontessoriValue,
   AbstractValue,
   ExecutionNode,
 } from "./types";
@@ -213,6 +214,15 @@ export class LazyEvaluator {
         size: obj.size!,
         amount: toFraction(obj.amount ?? "1"),
       } as ShapeValue;
+    }
+
+    if (obj.objectType === "montessori") {
+      return {
+        kind: "montessori",
+        category: "concreto",
+        color: obj.color ?? "verde",
+        amount: toFraction(obj.amount ?? "1"),
+      } as MontessoriValue;
     }
 
     if (obj.category === "concreto" || obj.objectType === "comida") {

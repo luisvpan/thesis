@@ -10,6 +10,7 @@ import {
   RationalType,
   ShapeType,
   FoodType,
+  MontessoriType,
   Circle,
   Square,
   Triangle,
@@ -264,6 +265,7 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(RationalType) },
       { ALT: () => this.CONSUME(ShapeType) },
       { ALT: () => this.CONSUME(FoodType) },
+      { ALT: () => this.CONSUME(MontessoriType) },
       // Shape subtypes
       { ALT: () => this.CONSUME(Circle) },
       { ALT: () => this.CONSUME(Square) },
@@ -333,6 +335,7 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(RationalType) },
       { ALT: () => this.CONSUME(ShapeType) },
       { ALT: () => this.CONSUME(FoodType) },
+      { ALT: () => this.CONSUME(MontessoriType) },
       // Shape subtypes
       { ALT: () => this.CONSUME(Circle) },
       { ALT: () => this.CONSUME(Square) },
