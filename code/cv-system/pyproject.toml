@@ -20,6 +20,7 @@ dependencies = [
   "onnxruntime-directml>=1.24.4",
   "lap>=0.5.13",
   "supervision>=0.27.0.post2",
+  "roboflow>=1.3.7",
 ]
 
 [project.scripts]
@@ -28,6 +29,7 @@ cv-ide-relay = "cv_system.bridge.ide_relay_server:run"
 cv-stack = "cv_system.launch_stack:main"
 capture = "cv_system.capture:main"
 predict = "cv_system.predict:main"
+upload-roboflow = "cv_system.upload_to_roboflow:main"
 
 [project.optional-dependencies]
 export = ["onnx>=1.21.0", "onnxruntime>=1.24.4", "onnxslim>=0.1.91"]

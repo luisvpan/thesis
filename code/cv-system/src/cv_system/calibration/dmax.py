@@ -73,6 +73,9 @@ def generate_dmax_map(
     for i in range(num_frames):
         try:
             frame = capture_frame()
+            # Convert UMat to numpy if needed
+            if isinstance(frame, cv2.UMat):
+                frame = frame.get()
 
             # Validate frame shape
             if frame.shape != depth_shape:
@@ -198,6 +201,9 @@ def generate_dmax_map_wilson(
     # Step 1: Capture snapshot frame as reference
     print("Capturing snapshot frame as reference...")
     snapshot = capture_frame()
+    # Convert UMat to numpy if needed
+    if isinstance(snapshot, cv2.UMat):
+        snapshot = snapshot.get()
     if snapshot.shape != depth_shape:
         raise ValueError(f"Snapshot shape mismatch: expected {depth_shape}, got {snapshot.shape}")
     snapshot = snapshot.astype(np.int32)
@@ -215,6 +221,9 @@ def generate_dmax_map_wilson(
     for i in range(num_frames):
         try:
             frame = capture_frame()
+            # Convert UMat to numpy if needed
+            if isinstance(frame, cv2.UMat):
+                frame = frame.get()
             if frame.shape != depth_shape:
                 raise ValueError(f"Frame shape mismatch: expected {depth_shape}, got {frame.shape}")
 
