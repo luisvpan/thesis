@@ -6,7 +6,16 @@ against a calibrated dmax_map using temporal filtering via a ring buffer.
 """
 
 from cv_system.detection.card_detector import CardDetector, CardDetection
+from cv_system.detection.e2e_card_detector import E2ECardDetector
+from cv_system.detection.rfdetr_card_detector import RFDETRCardDetector
 from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
 from cv_system.detection.touch_detector import TouchDetector
 
-__all__ = ["CardDetector", "CardDetection", "DepthOnlyTouchDetector", "TouchDetector"]
+__all__ = [
+    "CardDetector",
+    "CardDetection",
+    "E2ECardDetector",
+    "RFDETRCardDetector",
+    "DepthOnlyTouchDetector",
+    "TouchDetector",
+]

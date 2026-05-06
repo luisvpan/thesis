@@ -26,7 +26,7 @@ from cv_system.bridge.vision_ingest import post_card_batch_async
 from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.calibration.result import CalibrationResult
-from cv_system.detection.card_detector import CardDetector
+from cv_system.detection import E2ECardDetector
 from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
 from cv_system.hardware.manager import HardwareManager, HardwareError
 from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
@@ -196,7 +196,7 @@ def main() -> None:
                 ),
             )
         )
-        card_detector = CardDetector(rgb_image_transformer, model_path)
+        card_detector = E2ECardDetector(rgb_image_transformer, model_path)
         print(f"  Card detector (YOLO) initialized: {model_path}")
 
         vision_cards_url = os.getenv(

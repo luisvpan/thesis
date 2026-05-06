@@ -194,13 +194,21 @@ class CardDetector:
 
     def _detect_onnx(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection using ONNX Runtime with DirectML."""
-        # Get target size from model input shape
+        # Get target size from model input shape (handle dynamic shapes)
         _, _, target_h, target_w = self._input_shape
-        orig_h, orig_w = image.get().shape[:2]
+        # ONNX models may have dynamic shapes (-1 or strings), default to 640
+        if not isinstance(target_h, int) or target_h <= 0:
+            target_h = 640
+        if not isinstance(target_w, int) or target_w <= 0:
+            target_w = 640
 
-        # Preprocess on GPU: BGR->RGB, resize, then .get() for ONNX
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        resized = cv2.resize(rgb_image, (target_w, target_h)).get()
+        # Convert UMat to numpy for ONNX preprocessing
+        image_np = image.get() if isinstance(image, cv2.UMat) else image
+        orig_h, orig_w = image_np.shape[:2]
+
+        # Preprocess: BGR->RGB, resize, normalize
+        rgb_image = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+        resized = cv2.resize(rgb_image, (int(target_w), int(target_h)))
         normalized = resized.astype(np.float32) / 255.0
         transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
         batched = np.expand_dims(transposed, axis=0)  # Add batch dim
@@ -211,6 +219,11 @@ class CardDetector:
         # Parse YOLOv8 output format: [1, 4+num_classes, num_predictions]
         # Transpose to [1, num_predictions, 4+num_classes]
         output = outputs[0]
+        # Debug: print output shape on first call
+        if not hasattr(self, "_debug_printed"):
+            print(f"  ONNX output shape: {output.shape}")
+            self._debug_printed = True
+
         if output.shape[1] < output.shape[2]:
             output = output.transpose(0, 2, 1)
 
@@ -220,9 +233,25 @@ class CardDetector:
         boxes = predictions[:, :4]  # x_center, y_center, width, height
         class_scores = predictions[:, 4:]
 
+        # Debug: check if scores are already probabilities or raw logits
+        if not hasattr(self, "_debug_scores"):
+            print(f"  Class scores range: min={class_scores.min():.3f}, max={class_scores.max():.3f}")
+            self._debug_scores = True
+
+        # Only apply sigmoid if scores look like logits (outside 0-1 range)
+        if class_scores.min() < 0 or class_scores.max() > 1:
+            class_scores = 1 / (1 + np.exp(-class_scores))
+
         # Get best class for each prediction
         class_ids = np.argmax(class_scores, axis=1)
         confidences = np.max(class_scores, axis=1)
+
+        # Debug: print max confidence on first few frames
+        if not hasattr(self, "_debug_count"):
+            self._debug_count = 0
+        if self._debug_count < 5:
+            print(f"  Max confidence: {confidences.max():.3f}, threshold: {self._conf_threshold}")
+            self._debug_count += 1
 
         # Filter by confidence
         mask = confidences >= self._conf_threshold

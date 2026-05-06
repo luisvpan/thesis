@@ -30,7 +30,7 @@ from cv_system.config import load_config
 from cv_system.hardware.manager import HardwareManager
 from cv_system.calibration.result import CalibrationResult
 from cv_system.transform.rgb_image_transformer import RgbImageTransformer
-from cv_system.detection.card_detector import CardDetector, CardDetection
+from cv_system.detection import CardDetector, CardDetection, E2ECardDetector, RFDETRCardDetector
 
 PREDICT_OUTPUT_DIR = os.getenv("PREDICT_OUTPUT_DIR", "images/annotated")
 
@@ -101,6 +101,12 @@ def main():
     parser.add_argument(
         "--readable", action="store_true", help="Generar labels legibles (con nombres de clase)"
     )
+    parser.add_argument(
+        "--e2e", action="store_true", help="Usar E2ECardDetector para modelos con NMS integrado"
+    )
+    parser.add_argument(
+        "--rfdetr", action="store_true", help="Usar RFDETRCardDetector para modelos RF-DETR"
+    )
     args = parser.parse_args()
 
     # Crear subdirectorios si guardamos
@@ -124,7 +130,13 @@ def main():
     hw = HardwareManager()
     hw.initialize(config.camera)
     transformer = RgbImageTransformer(calibration, config.camera)
-    detector = CardDetector(
+    if args.rfdetr:
+        DetectorClass = RFDETRCardDetector
+    elif args.e2e:
+        DetectorClass = E2ECardDetector
+    else:
+        DetectorClass = CardDetector
+    detector = DetectorClass(
         rgb_image_transformer=transformer,
         model_path=model_path,
         conf_threshold=args.conf,
@@ -193,6 +205,7 @@ def main():
                     break
 
             # Preview
+            cv2.namedWindow("Predictions", cv2.WINDOW_NORMAL)
             cv2.imshow("Predictions", full_annotated)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
