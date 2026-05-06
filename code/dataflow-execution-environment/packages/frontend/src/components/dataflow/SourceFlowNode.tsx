@@ -30,7 +30,7 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   return (
     <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
       <FlowNodeCard family="input" title={sourceTitle(d)} content={<span className="text-xs font-black text-slate-100">{sourceMain(d)}</span>} subtitle={subtitle} />
-      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} />
+      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(20px)' }} />
     </div>
   );
 }
