@@ -77,6 +77,30 @@ export function useNodeSpawning(setNodes: SetNodes) {
     ]);
   }, [setNodes]);
 
+  const addArrayOpenNode = useCallback(() => {
+    setNodes((nds) => [
+      ...nds,
+      {
+        id: `arr_open_${Date.now()}`,
+        type: "arrayOpen" as const,
+        position: { x: 80, y: 100 + (nds.length % 4) * 120 },
+        data: {},
+      },
+    ]);
+  }, [setNodes]);
+
+  const addArrayCloseNode = useCallback(() => {
+    setNodes((nds) => [
+      ...nds,
+      {
+        id: `arr_close_${Date.now()}`,
+        type: "arrayClose" as const,
+        position: { x: 500, y: 100 + (nds.length % 4) * 120 },
+        data: {},
+      },
+    ]);
+  }, [setNodes]);
+
   const spawnDeckYoloClass = useCallback(
     (yoloClass: string) => {
       const spawn = spawnActionForYoloClass(yoloClass);
@@ -124,5 +148,7 @@ export function useNodeSpawning(setNodes: SetNodes) {
     addResultAnchorPair,
     addResultCard,
     spawnDeckYoloClass,
+    addArrayOpenNode,
+    addArrayCloseNode,
   };
 }

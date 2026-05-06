@@ -4,13 +4,17 @@ import type {
   OperatorFlowNodeData,
   ProgramOutputFlowNodeData,
   SourceFlowNodeData,
+  ArrayOpenNodeData,
+  ArrayCloseNodeData,
 } from "@/components/dataflow";
 import type { OperatorType } from "@/types/card-types";
 
 export type DataflowNode =
   | Node<SourceFlowNodeData, "source">
   | Node<OperatorFlowNodeData, "operator">
-  | Node<ProgramOutputFlowNodeData, "programOutput">;
+  | Node<ProgramOutputFlowNodeData, "programOutput">
+  | Node<ArrayOpenNodeData, "arrayOpen">
+  | Node<ArrayCloseNodeData, "arrayClose">;
 
 export type PortIdentifier = {
   nodeId: string;
@@ -55,6 +59,8 @@ export type NodeContextState = {
   addResultAnchorPair: () => void;
   addResultCard: () => void;
   spawnDeckYoloClass: (yoloClass: string) => void;
+  addArrayOpenNode: () => void;
+  addArrayCloseNode: () => void;
   nodesDraggable: boolean;
   executeProgram: () => Promise<void>;
 

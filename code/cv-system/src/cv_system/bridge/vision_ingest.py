@@ -56,6 +56,7 @@ def post_card_batch_async(
             "classId": d.class_id,
             "label": d.label,
             "confidence": d.confidence,
+            "status": d.status,
             "position": {
                 "x": max(0.0, min(1.0, cx / float(proj_w))),
                 "y": max(0.0, min(1.0, cy / float(proj_h))),

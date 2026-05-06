@@ -30,6 +30,7 @@ class CardDetection:
     x2: float
     y2: float
     track_id: int = -1  # -1 means no tracking (e.g., ONNX backend)
+    status: str = "active"  # "active" | "lost" (lost = ByteTrack retains but detector missed)
 
 
 class CardDetector:
@@ -114,6 +115,7 @@ class CardDetector:
             minimum_matching_threshold=0.5,   # Lower IoU = tolerate more movement
             frame_rate=30,
         )
+        self._warned_no_lost_tracks = False
 
     def _load_onnx_class_names(self, path: Path) -> dict[int, str]:
         """Load class names from ONNX model metadata."""
@@ -152,11 +154,12 @@ class CardDetector:
         else:
             detections = self._detect_pytorch(rgb_bird)
 
-        # Draw detections on numpy copy
+        # Draw detections on numpy copy (lost tracks in amber, active in green)
         annotated = rgb_bird.get().copy()
         for d in detections:
+            color = (0, 165, 255) if d.status == "lost" else (0, 220, 0)  # BGR
             self._draw_detection(
-                annotated, d.label, d.confidence, d.x1, d.y1, d.x2, d.y2
+                annotated, d.label, d.confidence, d.x1, d.y1, d.x2, d.y2, color=color
             )
 
         return annotated, detections
@@ -260,7 +263,9 @@ class CardDetector:
         confidences = confidences[mask]
 
         if len(boxes) == 0:
-            return []
+            # Update tracker with empty frame so it can age lost tracks properly
+            self._tracker.update_with_detections(sv.Detections.empty())
+            return self._collect_lost_detections()
 
         # Convert from center format to corner format
         x_center, y_center, w, h = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
@@ -321,7 +326,49 @@ class CardDetector:
                 )
             )
 
+        detections.extend(self._collect_lost_detections())
         return detections
+
+    def _collect_lost_detections(self) -> list[CardDetection]:
+        """Return CardDetection entries for tracks ByteTrack considers lost (occluded)."""
+        raw_lost = getattr(self._tracker, "lost_tracks", None)
+        if raw_lost is None:
+            if not self._warned_no_lost_tracks:
+                print(
+                    "  WARNING: supervision.ByteTrack.lost_tracks not available — "
+                    "lost track emission disabled (upgrade supervision to enable)"
+                )
+                self._warned_no_lost_tracks = True
+            return []
+
+        lost: list[CardDetection] = []
+        for st in raw_lost:
+            tlbr = getattr(st, "tlbr", None)
+            if tlbr is None or len(tlbr) < 4:
+                continue
+            # supervision STrack stores cls (int); fall back to class_ids array
+            cls_raw = getattr(st, "cls", None)
+            if cls_raw is None:
+                class_ids_attr = getattr(st, "class_ids", None)
+                if class_ids_attr is None or len(class_ids_attr) == 0:
+                    continue
+                cls_raw = class_ids_attr[0]
+            cid = int(cls_raw)
+            lbl = self._names.get(cid, str(cid))
+            lost.append(
+                CardDetection(
+                    class_id=cid,
+                    label=lbl,
+                    confidence=float(getattr(st, "score", 0.0)),
+                    x1=float(tlbr[0]),
+                    y1=float(tlbr[1]),
+                    x2=float(tlbr[2]),
+                    y2=float(tlbr[3]),
+                    track_id=int(getattr(st, "track_id", -1)),
+                    status="lost",
+                )
+            )
+        return lost
 
     @staticmethod
     def _draw_detection(
@@ -332,10 +379,11 @@ class CardDetector:
         y1: float,
         x2: float,
         y2: float,
+        color: tuple[int, int, int] = (0, 220, 0),
     ) -> None:
         p1 = (int(x1), int(y1))
         p2 = (int(x2), int(y2))
-        cv2.rectangle(img, p1, p2, (0, 220, 0), 2)
+        cv2.rectangle(img, p1, p2, color, 2)
         pct = conf * 100.0
         text = f"{label} {pct:.1f}%"
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -352,7 +400,7 @@ class CardDetector:
             img,
             (x1i, y_text_baseline - th - baseline - 2),
             (x1i + tw + pad, y_text_baseline + 2),
-            (0, 220, 0),
+            color,
             -1,
         )
         cv2.putText(

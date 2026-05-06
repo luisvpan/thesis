@@ -9,6 +9,7 @@ import type {
   TransformStatement,
   SinkStatement,
   Operation,
+  ArrayLiteral,
 } from "@dataflow/interpreter";
 import type { DataflowNode } from "@/contexts/NodeContext";
 import type { Edge } from "@xyflow/react";
@@ -34,6 +35,10 @@ function normalizeSize(size: string | undefined): string {
   if (!size) return "mediano";
   return SIZE_MAP[size] ?? size;
 }
+
+// Approximate rendered size of the bracket nodes (px, in XYFlow coordinates)
+const BRACKET_NODE_W = 64;
+const BRACKET_NODE_H = 80;
 
 /**
  * Converts ReactFlow nodes and edges to a Program object for the interpreter.
@@ -84,7 +89,51 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
     }
   }
 
-  // 2. Transforms: "operator" nodes
+  // 2a. Array pairs: each edge from arrayOpen → arrayClose (zone-in) defines an array.
+  //     The bounding box of the two bracket nodes determines which source/operator nodes
+  //     are elements of the array.
+  for (const edge of edges) {
+    if (edge.targetHandle !== "zone-in") continue;
+
+    const openNode = nodes.find(
+      (n) => n.id === edge.source && n.type === "arrayOpen"
+    );
+    const closeNode = nodes.find(
+      (n) => n.id === edge.target && n.type === "arrayClose"
+    );
+    if (!openNode || !closeNode) continue;
+
+    const left   = Math.min(openNode.position.x, closeNode.position.x);
+    const right  = Math.max(openNode.position.x, closeNode.position.x) + BRACKET_NODE_W;
+    const top    = Math.min(openNode.position.y, closeNode.position.y);
+    const bottom = Math.max(openNode.position.y, closeNode.position.y) + BRACKET_NODE_H;
+
+    const inner = nodes
+      .filter((n) => n.type === "source" || n.type === "operator")
+      .filter((n) => {
+        const nx = n.position.x;
+        const ny = n.position.y;
+        return nx >= left && nx <= right && ny >= top && ny <= bottom;
+      })
+      .sort((a, b) =>
+        a.position.x !== b.position.x
+          ? a.position.x - b.position.x
+          : a.position.y - b.position.y
+      );
+
+    if (inner.length === 0) continue;
+
+    const elements = inner.map((n) => ({ type: "Identifier" as const, name: n.id }));
+    const arrayLiteral: ArrayLiteral = { type: "ArrayLiteral", elements };
+
+    statements.push({
+      type: "SourceStatement",
+      identifier: closeNode.id,
+      value: arrayLiteral,
+    });
+  }
+
+  // 2b. Transforms: "operator" nodes
   for (const node of nodes) {
     if (node.type === "operator") {
       const data = node.data as OperatorFlowNodeData;
@@ -123,11 +172,13 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
     if (!inputEdge) continue;
 
-    // Verify the source is an evaluable node (source or operator)
+    // Verify the source is an evaluable node (source, operator, or arrayClose)
     const sourceNode = nodes.find((n) => n.id === inputEdge.source);
     if (
       !sourceNode ||
-      (sourceNode.type !== "source" && sourceNode.type !== "operator")
+      (sourceNode.type !== "source" &&
+        sourceNode.type !== "operator" &&
+        sourceNode.type !== "arrayClose")
     ) {
       continue;
     }

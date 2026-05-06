@@ -2,7 +2,7 @@
  * Tipos de cartas detectadas por el sistema de visión.
  */
 
-import type { FoodType, OperatorType, ShapeColor, ShapeSize, ShapeType } from '@/types/card-types';
+import type { FoodType, MontessoriColor, OperatorType, ShapeColor, ShapeSize, ShapeType } from '@/types/card-types';
 import { spawnActionForYoloClass } from '../data/yoloDeckCatalog';
 
 /** Operadores matemáticos soportados */
@@ -24,6 +24,7 @@ export type ParsedVisionCard =
   | { type: 'programResultCard' }
   | { type: 'deckShape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor }
   | { type: 'deckFood'; yoloClass: string; food: FoodType }
+  | { type: 'deckMontessori'; yoloClass: string; color: MontessoriColor }
   | { type: 'unknown'; label: string };
 
 /**
@@ -104,6 +105,9 @@ export function parseVisionLabel(label: string): ParsedVisionCard {
       // `grapes` queda como marcador físico, no como comida en el grafo.
       if (spawn.yoloClass === 'grapes') return { type: 'resultAnchor' };
       return { type: 'deckFood', yoloClass: spawn.yoloClass, food: spawn.food };
+    }
+    if (spawn.kind === 'montessori') {
+      return { type: 'deckMontessori', yoloClass: spawn.yoloClass, color: spawn.color };
     }
   }
 

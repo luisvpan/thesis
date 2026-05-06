@@ -26,6 +26,8 @@ export type VisionCardItem = {
   label: string;
   confidence: number;
   trackId?: number;  // Persistent tracking ID from YOLO tracker
+  /** "active" = detectada este frame; "lost" = ByteTrack la retiene aunque no esté visible */
+  status?: "active" | "lost";
   position: { x: number; y: number };
   bbox?: { x1: number; y1: number; x2: number; y2: number };
 };

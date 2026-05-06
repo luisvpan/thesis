@@ -1,6 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { addEdge, type Connection, type Edge } from "@xyflow/react";
-import type { PortIdentifier } from "./types";
+import type { DataflowNode, PortIdentifier } from "./types";
 
 type SetEdges = Dispatch<SetStateAction<Edge[]>>;
 type SetSelectedPort = Dispatch<SetStateAction<PortIdentifier | null>>;
@@ -8,7 +8,8 @@ type SetSelectedPort = Dispatch<SetStateAction<PortIdentifier | null>>;
 export function usePortSelection(
   selectedPort: PortIdentifier | null,
   setSelectedPort: SetSelectedPort,
-  setEdges: SetEdges
+  setEdges: SetEdges,
+  nodes: DataflowNode[]
 ) {
   const isPortSelected = useCallback(
     (nodeId: string, handleId: string, handleType: "source" | "target") =>
@@ -61,10 +62,18 @@ export function usePortSelection(
         targetHandle: target.handleId,
       };
 
-      setEdges((eds) => addEdge(connection, eds));
+      // Use zone edge type when connecting [ → ]
+      const sourceNodeType = nodes.find((n) => n.id === source.nodeId)?.type;
+      const targetNodeType = nodes.find((n) => n.id === target.nodeId)?.type;
+      const edgeType =
+        sourceNodeType === "arrayOpen" && targetNodeType === "arrayClose"
+          ? "arrayZoneEdge"
+          : undefined;
+
+      setEdges((eds) => addEdge({ ...connection, type: edgeType }, eds));
       setSelectedPort(null);
     },
-    [selectedPort, setEdges, setSelectedPort]
+    [selectedPort, setEdges, setSelectedPort, nodes]
   );
 
   return { isPortSelected, clearSelection, handlePortClick };
