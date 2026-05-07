@@ -215,17 +215,26 @@ def detect_hand_mediapipe(color_frame_rgb, landmarker, timestamp_ms):
     return fingertips, palm_points, all_landmarks
 
 
-def map_color_to_depth(kinect, color_points, depth_frame):
+def map_color_to_depth(kinect, color_points, depth_frame, return_indexed=False):
     """
     Mapea puntos de coordenadas de color a depth y obtiene la profundidad.
 
+    Args:
+        kinect: PyKinectRuntime instance
+        color_points: Lista de (cx, cy) coordenadas en color space
+        depth_frame: Frame de profundidad actual
+        return_indexed: Si True, retorna dict {idx: data} en lugar de lista
+
     Returns:
-        results: Lista de (cx, cy, dx, dy, depth_mm) para puntos válidos
+        Si return_indexed=False (default):
+            results: Lista de (cx, cy, dx, dy, depth_mm) para puntos válidos
+        Si return_indexed=True:
+            results: Dict {idx: (cx, cy, dx, dy, depth_mm)} preservando índices
         stats: Dict con {total, valid, ratio} para medir confianza
     """
     empty_stats = {'total': 0, 'valid': 0, 'ratio': 0.0}
     if not color_points:
-        return [], empty_stats
+        return ({} if return_indexed else []), empty_stats
 
     color_width = 1920
     color_height = 1080
@@ -239,6 +248,7 @@ def map_color_to_depth(kinect, color_points, depth_frame):
     # Crear array de salida
     depth_space_points = (PyKinectV2._DepthSpacePoint * (color_width * color_height))()
 
+    use_fallback = False
     try:
         kinect._mapper.MapColorFrameToDepthSpace(
             depth_width * depth_height,
@@ -247,35 +257,23 @@ def map_color_to_depth(kinect, color_points, depth_frame):
             depth_space_points
         )
     except Exception as e:
-        # Fallback: aproximación simple
-        results = []
-        for cx, cy in color_points:
-            dx = int(cx * depth_width / color_width)
-            dy = int(cy * depth_height / color_height)
-            if 0 <= dx < depth_width and 0 <= dy < depth_height:
-                depth_mm = depth_frame[dy, dx]
-                if depth_mm > 0:
-                    results.append((cx, cy, dx, dy, int(depth_mm)))
-        stats = {
-            'total': len(color_points),
-            'valid': len(results),
-            'ratio': len(results) / len(color_points) if color_points else 0.0
-        }
-        return results, stats
+        use_fallback = True
 
-    # Extraer los puntos
-    results = []
-    for cx, cy in color_points:
-        idx = cy * color_width + cx
+    # Extraer los puntos, preservando índices si se solicita
+    results = {} if return_indexed else []
+    valid_count = 0
+
+    for point_idx, (cx, cy) in enumerate(color_points):
         dx, dy = None, None
 
-        if 0 <= idx < len(depth_space_points):
-            dp = depth_space_points[idx]
-
-            # Si el mapeo SDK es válido, usarlo
-            if not (np.isinf(dp.x) or np.isinf(dp.y) or dp.x < 0 or dp.y < 0):
-                dx = int(dp.x)
-                dy = int(dp.y)
+        if not use_fallback:
+            pixel_idx = cy * color_width + cx
+            if 0 <= pixel_idx < len(depth_space_points):
+                dp = depth_space_points[pixel_idx]
+                # Si el mapeo SDK es válido, usarlo
+                if not (np.isinf(dp.x) or np.isinf(dp.y) or dp.x < 0 or dp.y < 0):
+                    dx = int(dp.x)
+                    dy = int(dp.y)
 
         # Fallback: aproximación por escala si el mapeo SDK falla
         if dx is None or dy is None:
@@ -285,57 +283,156 @@ def map_color_to_depth(kinect, color_points, depth_frame):
         if 0 <= dx < depth_width and 0 <= dy < depth_height:
             depth_mm = depth_frame[dy, dx]
             if depth_mm > 0:
-                results.append((cx, cy, dx, dy, int(depth_mm)))
+                valid_count += 1
+                data = (cx, cy, dx, dy, int(depth_mm))
+                if return_indexed:
+                    results[point_idx] = data
+                else:
+                    results.append(data)
 
     stats = {
         'total': len(color_points),
-        'valid': len(results),
-        'ratio': len(results) / len(color_points) if color_points else 0.0
+        'valid': valid_count,
+        'ratio': valid_count / len(color_points) if color_points else 0.0
     }
     return results, stats
 
 
-def filter_depth_outliers(fingertips_with_depth, palm_depth_mm=None, max_behind_palm_mm=80):
+def fit_hand_plane(points_3d):
     """
-    Filtra fingertips con profundidad incorrecta usando la palma como referencia.
-    Los dedos no deberían estar significativamente detrás de la palma.
+    Ajusta un plano a un conjunto de puntos 3D usando SVD.
+
+    Plano: ax + by + cz + d = 0, normalizado como (a,b,c) vector unitario.
 
     Args:
-        fingertips_with_depth: Lista de (cx, cy, dx, dy, depth_mm)
-        palm_depth_mm: Profundidad de la palma como referencia (None = usar mediana)
-        max_behind_palm_mm: Máxima distancia permitida detrás de la palma
+        points_3d: Lista de (x, y, z) con al menos 3 puntos
 
     Returns:
-        filtered: Lista de fingertips válidos
-        avg_depth_mm: Profundidad promedio de los válidos
-        palm_depth_mm: Profundidad de referencia usada
+        plane: (a, b, c, d) coeficientes del plano, o None si no hay suficientes puntos
     """
-    if not fingertips_with_depth:
-        return [], 0, palm_depth_mm or 0
+    if len(points_3d) < 3:
+        return None
 
-    depths = np.array([tip[4] for tip in fingertips_with_depth])
+    points = np.array(points_3d)
 
-    # Usar palma como referencia, o mediana si no hay palma
-    reference_depth = palm_depth_mm if palm_depth_mm else np.median(depths)
+    # Centroide
+    centroid = np.mean(points, axis=0)
 
-    # Filtrar: dedos pueden estar delante de la palma (menor depth) o ligeramente detrás
-    # Rechazar si están muy detrás (depth >> palm_depth = MPI error)
-    filtered = []
-    for tip in fingertips_with_depth:
-        tip_depth = tip[4]
-        # tip_depth > reference_depth significa que el dedo está "detrás" de la palma
-        if tip_depth <= reference_depth + max_behind_palm_mm:
-            filtered.append(tip)
+    # Centrar los puntos
+    centered = points - centroid
 
-    # Calcular promedio de los válidos
-    if filtered:
-        avg_depth_mm = np.mean([tip[4] for tip in filtered])
-    else:
-        # Si todos son outliers, usar la referencia
-        avg_depth_mm = reference_depth
-        filtered = fingertips_with_depth
+    # SVD para encontrar el vector normal (menor valor singular)
+    _, _, vh = np.linalg.svd(centered)
+    normal = vh[-1]  # Último vector = dirección de menor varianza = normal del plano
 
-    return filtered, avg_depth_mm, reference_depth
+    # Normalizar
+    normal = normal / np.linalg.norm(normal)
+
+    # d = -normal · centroid
+    d = -np.dot(normal, centroid)
+
+    return (normal[0], normal[1], normal[2], d)
+
+
+def estimate_depth_from_plane(plane, x, y):
+    """
+    Estima la profundidad z dado (x, y) y la ecuación del plano.
+
+    Plano: ax + by + cz + d = 0
+    Despejando: z = -(ax + by + d) / c
+
+    Args:
+        plane: (a, b, c, d) coeficientes del plano
+        x, y: Coordenadas del punto
+
+    Returns:
+        z: Profundidad estimada, o None si c ≈ 0
+    """
+    a, b, c, d = plane
+
+    if abs(c) < 1e-6:
+        return None  # Plano vertical, no se puede estimar z
+
+    z = -(a * x + b * y + d) / c
+    return z
+
+
+def interpolate_missing_depths(all_landmarks, landmarks_with_depth, kinect, depth_frame):
+    """
+    Interpola profundidades faltantes usando un plano ajustado a los landmarks válidos.
+
+    Args:
+        all_landmarks: Lista de (x, y) para todos los 21 landmarks de la mano
+        landmarks_with_depth: Dict {index: (cx, cy, dx, dy, depth_mm)} para landmarks con depth válido
+        kinect: PyKinectRuntime instance
+        depth_frame: Depth frame actual
+
+    Returns:
+        interpolated: Dict {index: (cx, cy, depth_mm, is_interpolated)} para todos los landmarks
+        plane: Coeficientes del plano ajustado
+    """
+    if not landmarks_with_depth:
+        return {}, None
+
+    if len(landmarks_with_depth) < 3:
+        # No hay suficientes puntos para ajustar un plano
+        result = {}
+        for idx, data in landmarks_with_depth.items():
+            cx, cy, dx, dy, depth_mm = data
+            result[idx] = (cx, cy, depth_mm, False)
+        return result, None
+
+    # Construir puntos 3D a partir de landmarks con depth válido
+    # Normalizar coordenadas para evitar problemas numéricos
+    points_3d = []
+    depths = []
+    for idx, data in landmarks_with_depth.items():
+        cx, cy, dx, dy, depth_mm = data
+        # Normalizar: x,y a [0,1], depth a [0,1] basado en rango típico
+        points_3d.append((cx / 1920.0, cy / 1080.0, depth_mm / 1000.0))
+        depths.append(depth_mm)
+
+    # Calcular rango de depths válidos para filtrar estimaciones
+    min_depth = min(depths)
+    max_depth = max(depths)
+    depth_range = max(max_depth - min_depth, 100)  # Mínimo 100mm de rango
+    # Permitir un margen generoso fuera del rango observado
+    valid_min = max(100, min_depth - depth_range - 100)  # Mínimo 100mm, nunca negativo
+    valid_max = max_depth + depth_range + 100  # +100mm extra
+
+    # Ajustar plano en coordenadas normalizadas
+    plane = fit_hand_plane(points_3d)
+
+    if plane is None:
+        result = {}
+        for idx, data in landmarks_with_depth.items():
+            cx, cy, dx, dy, depth_mm = data
+            result[idx] = (cx, cy, depth_mm, False)
+        return result, None
+
+    # Crear resultado con todos los landmarks
+    result = {}
+
+    # Primero, agregar los que tienen depth válido
+    for idx, data in landmarks_with_depth.items():
+        cx, cy, dx, dy, depth_mm = data
+        result[idx] = (cx, cy, depth_mm, False)  # False = no interpolado
+
+    # Luego, interpolar los faltantes
+    missing_indices = [idx for idx in range(len(all_landmarks)) if idx not in landmarks_with_depth]
+
+    for idx, (cx, cy) in enumerate(all_landmarks):
+        if idx not in landmarks_with_depth:
+            # Estimar en coordenadas normalizadas
+            estimated_norm = estimate_depth_from_plane(plane, cx / 1920.0, cy / 1080.0)
+            if estimated_norm is not None:
+                # Desnormalizar
+                estimated_depth = estimated_norm * 1000.0
+                # Validar que esté en rango razonable
+                if valid_min < estimated_depth < valid_max:
+                    result[idx] = (cx, cy, estimated_depth, True)  # True = interpolado
+
+    return result, plane
 
 
 def main():
@@ -442,33 +539,56 @@ def main():
             t_map_start = time.perf_counter()
 
             fingertips_with_depth = []
+            fingertips_interpolated = []  # Fingertips con depth interpolado
             palm_with_depth = []
             palm_depth_mm = None
-            finger_stats = {'total': 0, 'valid': 0, 'ratio': 0.0}
-            palm_stats = {'total': 0, 'valid': 0, 'ratio': 0.0}
+            all_stats = {'total': 0, 'valid': 0, 'ratio': 0.0}
+            hand_plane = None
 
-            if last_depth_frame is not None and fingertips:
-                fingertips_with_depth, finger_stats = map_color_to_depth(kinect, fingertips, last_depth_frame)
-                # Map palm points to get reference depth
+            if last_depth_frame is not None and use_mediapipe and landmarks:
+                # Mapear TODOS los 21 landmarks para ajustar el plano
+                for hand_points in landmarks:
+                    # Mapear todos los landmarks preservando índices
+                    landmarks_with_depth, all_stats = map_color_to_depth(
+                        kinect, hand_points, last_depth_frame, return_indexed=True
+                    )
+
+                    # Interpolar depths faltantes usando el plano
+                    interpolated_landmarks, hand_plane = interpolate_missing_depths(
+                        hand_points, landmarks_with_depth, kinect, last_depth_frame
+                    )
+
+                    # Extraer fingertips (índices 4, 8, 12, 16, 20)
+                    tip_indices = [4, 8, 12, 16, 20]
+                    for idx in tip_indices:
+                        if idx in interpolated_landmarks:
+                            cx, cy, depth_mm, is_interp = interpolated_landmarks[idx]
+                            if is_interp:
+                                fingertips_interpolated.append((cx, cy, 0, 0, depth_mm))
+                            else:
+                                fingertips_with_depth.append((cx, cy, 0, 0, depth_mm))
+
+                    # Extraer wrist (índice 0)
+                    if 0 in interpolated_landmarks:
+                        cx, cy, depth_mm, is_interp = interpolated_landmarks[0]
+                        palm_with_depth.append((cx, cy, 0, 0, depth_mm))
+                        palm_depth_mm = depth_mm
+
+            elif last_depth_frame is not None and fingertips:
+                # Modo skin detection (sin interpolación)
+                fingertips_with_depth, all_stats = map_color_to_depth(kinect, fingertips, last_depth_frame)
                 if palm_points:
-                    palm_with_depth, palm_stats = map_color_to_depth(kinect, palm_points, last_depth_frame)
+                    palm_with_depth, _ = map_color_to_depth(kinect, palm_points, last_depth_frame)
                     if palm_with_depth:
                         palm_depth_mm = palm_with_depth[0][4]
-
-            # Calculate depth confidence
-            total_points = finger_stats['total'] + palm_stats['total']
-            valid_points = finger_stats['valid'] + palm_stats['valid']
-            depth_confidence = valid_points / total_points if total_points > 0 else 0.0
-            is_low_confidence = depth_confidence < 0.6
 
             t_map_end = time.perf_counter()
             mapping_time_ms = (t_map_end - t_map_start) * 1000
             mapping_times.append(mapping_time_ms)
 
-            # Filter outliers using palm as reference
-            fingertips_with_depth, avg_hand_depth_mm, ref_depth = filter_depth_outliers(
-                fingertips_with_depth, palm_depth_mm=palm_depth_mm, max_behind_palm_mm=80
-            )
+            # Calcular profundidad promedio de la mano
+            all_depths = [tip[4] for tip in fingertips_with_depth + fingertips_interpolated]
+            avg_hand_depth_mm = np.mean(all_depths) if all_depths else 0
 
             # --- Visualization ---
             display_frame = cv2.resize(color_bgr, (960, 540))
@@ -495,12 +615,12 @@ def main():
                 scaled_contour = (contour / 2).astype(np.int32)
                 cv2.drawContours(display_frame, [scaled_contour], -1, (255, 255, 255), 2)
 
-            # Draw fingertips with depth
+            # Draw fingertips with depth (green = measured directly)
             for tip_data in fingertips_with_depth:
                 cx, cy, dx, dy, depth_mm = tip_data
                 sx, sy = cx // 2, cy // 2
 
-                cv2.circle(display_frame, (sx, sy), 8, (0, 255, 0), -1)
+                cv2.circle(display_frame, (sx, sy), 8, (0, 255, 0), -1)  # Green
                 cv2.circle(display_frame, (sx, sy), 10, (255, 255, 255), 2)
 
                 depth_text = f"{depth_mm/1000:.2f}m"
@@ -508,6 +628,20 @@ def main():
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                 cv2.putText(display_frame, depth_text, (sx + 12, sy - 5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+            # Draw interpolated fingertips (orange = estimated from plane)
+            for tip_data in fingertips_interpolated:
+                cx, cy, dx, dy, depth_mm = tip_data
+                sx, sy = cx // 2, cy // 2
+
+                cv2.circle(display_frame, (sx, sy), 8, (0, 165, 255), -1)  # Orange
+                cv2.circle(display_frame, (sx, sy), 10, (255, 255, 255), 2)
+
+                depth_text = f"~{depth_mm/1000:.2f}m"  # ~ indica interpolado
+                cv2.putText(display_frame, depth_text, (sx + 12, sy - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                cv2.putText(display_frame, depth_text, (sx + 12, sy - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 1)
 
             # Draw wrist with depth (cyan color to distinguish from fingertips)
             for palm_data in palm_with_depth:
@@ -529,14 +663,14 @@ def main():
             avg_map = np.mean(mapping_times[-30:]) if mapping_times else 0
 
             mode_text = "MediaPipe" if use_mediapipe else "Skin Color"
-            wrist_text = f"{ref_depth/1000:.3f}m" if ref_depth else "N/A"
-            confidence_text = f"Valid: {valid_points}/{total_points} ({depth_confidence*100:.0f}%)"
+            wrist_text = f"{palm_depth_mm/1000:.3f}m" if palm_depth_mm else "N/A"
+            measured_tips = len(fingertips_with_depth)
+            interp_tips = len(fingertips_interpolated)
             info_lines = [
                 f"Mode: {mode_text}",
-                f"Fingertips: {len(fingertips_with_depth)}",
-                f"Wrist Ref: {wrist_text}",
+                f"Tips: {measured_tips} measured + {interp_tips} interp",
+                f"Wrist: {wrist_text}",
                 f"Hand Depth: {avg_hand_depth_mm/1000:.3f}m",
-                confidence_text,
                 f"Detection: {avg_detect:.1f}ms",
             ]
 
@@ -547,13 +681,6 @@ def main():
             for i, line in enumerate(info_lines):
                 cv2.putText(display_frame, line, (10, 25 + i * 25),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-
-            # Show LOW CONFIDENCE warning in red
-            if is_low_confidence and total_points > 0:
-                cv2.putText(display_frame, "LOW CONFIDENCE", (10, 25 + len(info_lines) * 25),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 4)
-                cv2.putText(display_frame, "LOW CONFIDENCE", (10, 25 + len(info_lines) * 25),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
             cv2.imshow('Kinect Hand Detection', display_frame)
 
