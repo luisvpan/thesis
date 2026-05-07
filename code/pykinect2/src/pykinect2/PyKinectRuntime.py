@@ -62,8 +62,24 @@ class PyKinectRuntime(object):
 
         #initialize sensor
         self._sensor = ctypes.POINTER(PyKinectV2.IKinectSensor)()
-        hres = ctypes.windll.kinect20.GetDefaultKinectSensor(ctypes.byref(self._sensor)) 
-        hres = self._sensor.Open() 
+        ctypes.windll.kinect20.GetDefaultKinectSensor(ctypes.byref(self._sensor))
+        self._sensor.Open()
+
+        # Esperar a que el sensor esté disponible (puede tardar un momento)
+        max_wait = 1.0
+        wait_interval = 0.1
+        waited = 0
+        while not self._sensor.IsAvailable and waited < max_wait:
+            time.sleep(wait_interval)
+            waited += wait_interval
+
+        if not self._sensor.IsAvailable:
+            self._sensor.Close()
+            self._sensor = None
+            raise RuntimeError(
+                "Kinect v2 no disponible. "
+                "Verifique que el sensor esté conectado y el adaptador USB tenga alimentación."
+            )
 
         self._mapper = self._sensor.CoordinateMapper
 
