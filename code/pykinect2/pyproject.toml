@@ -1,0 +1,28 @@
+[project]
+name = "pykinect2"
+version = "0.1.0"
+description = "Wrapper to expose Kinect for Windows v2 API in Python"
+license = "MIT"
+authors = [{ name = "Microsoft Corporation", email = "k4w@microsoft.com" }]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.0.0",
+    "comtypes>=1.4.0",
+    "mediapipe>=0.10.35",
+]
+
+[project.optional-dependencies]
+examples = ["pygame>=2.0.0"]
+opencv = ["opencv-python>=4.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/Kinect/PyKinect2/"
+Repository = "https://github.com/Kinect/PyKinect2/"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
