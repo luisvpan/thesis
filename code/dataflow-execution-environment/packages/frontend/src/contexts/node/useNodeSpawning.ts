@@ -136,6 +136,22 @@ export function useNodeSpawning(setNodes: SetNodes) {
             data: { variant: "food", yoloClass: spawn.yoloClass, food: spawn.food },
           },
         ]);
+        return;
+      }
+      if (spawn.kind === "montessori") {
+        setNodes((nds) => [
+          ...nds,
+          {
+            id: `deck_${spawn.yoloClass}_${Date.now()}`,
+            type: "source" as const,
+            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+            data: {
+              variant: "montessori",
+              yoloClass: spawn.yoloClass,
+              color: spawn.color,
+            },
+          },
+        ]);
       }
     },
     [addNumberNode, addOperatorNode, addResultCard, setNodes]

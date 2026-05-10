@@ -71,9 +71,9 @@ export function ProgramOutputFlowNode({
       <div className="absolute -top-5 left-0 rounded bg-black/50 px-1 text-xs text-teal-300">
         {id}
       </div>
-      <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} style={{ transform: 'translateX(-20px)' }} />
+      <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} style={{ transform: 'translateX(-100px)' }} />
       <FlowNodeCard family="sink" title="Salida" content={<span className="text-xs font-black text-slate-100">{display}</span>} />
-      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(20px)' }} />
+      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} />
     </div>
   );
 }

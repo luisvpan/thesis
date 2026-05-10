@@ -85,6 +85,17 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
             amount: new Fraction(1),
           },
         });
+      } else if (data.variant === "montessori") {
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: {
+            type: "ObjectLiteral",
+            objectType: "montessori",
+            color: data.color,
+            amount: new Fraction(1),
+          },
+        });
       }
     }
   }

@@ -27,15 +27,15 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
 
   return (
     <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
-      <ClickableHandle type="target" position={Position.Left} id="a" nodeId={id} style={{ top: '25%', transform: 'translateX(-20px)' }} />
-      <ClickableHandle type="target" position={Position.Left} id="b" nodeId={id} style={{ top: '75%', transform: 'translateX(-20px)' }} />
+      <ClickableHandle type="target" position={Position.Left} id="a" nodeId={id} style={{ top: '25%', transform: 'translateX(-100px)' }} />
+      <ClickableHandle type="target" position={Position.Left} id="b" nodeId={id} style={{ top: '75%', transform: 'translateX(-100px)' }} />
       <FlowNodeCard
         family="transformation"
         title={operator}
         content={<span className="text-xs font-black text-slate-100">{operatorSymbol(operator)}</span>}
         subtitle={d.result !== undefined ? `resultado: ${d.result}` : 'esperando entradas'}
       />
-      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(20px)' }} />
+      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} />
     </div>
   );
 }

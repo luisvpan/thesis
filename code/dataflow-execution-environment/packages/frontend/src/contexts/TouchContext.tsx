@@ -9,10 +9,10 @@ import {
 } from "react";
 
 export type TouchEventPayload = {
-  type: "touch";
+  type: "touch" | "touch_down" | "touch_move" | "touch_up";
+  touch_id: number;
   position: { x: number; y: number };
   timestamp: string;
-  t: number;
 };
 
 type TouchState = {
@@ -94,12 +94,18 @@ function TouchIndicatorOverlay({ indicators }: { indicators: TouchIndicator[] })
   );
 }
 
+// Maximum distance (px) between touch_down and touch_up to count as a tap
+const TAP_DISTANCE_THRESHOLD = 50;
+
 export function TouchProvider({ children }: { children: ReactNode }) {
   const [lastTouch, setLastTouch] = useState<TouchEventPayload | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [indicators, setIndicators] = useState<TouchIndicator[]>([]);
   const indicatorIdRef = useRef(0);
+
+  // Track active touches: touch_id -> start position
+  const activeTouchesRef = useRef<Map<number, { x: number; y: number }>>(new Map());
 
   console.log("[touch] TouchProvider mounted");
 
@@ -127,23 +133,71 @@ export function TouchProvider({ children }: { children: ReactNode }) {
     ws.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data as string) as TouchEventPayload;
-        if (data.type === "touch") {
-          setLastTouch(data);
+        setLastTouch(data);
 
-          // Add visual indicator
-          const id = indicatorIdRef.current++;
-          setIndicators((prev) => [
-            ...prev,
-            { id, x: data.position.x, y: data.position.y },
-          ]);
+        switch (data.type) {
+          case "touch_down": {
+            // Record start position for tap detection
+            activeTouchesRef.current.set(data.touch_id, {
+              x: data.position.x,
+              y: data.position.y,
+            });
 
-          // Remove indicator after animation completes
-          setTimeout(() => {
-            setIndicators((prev) => prev.filter((i) => i.id !== id));
-          }, 500);
+            // Add visual indicator
+            const id = indicatorIdRef.current++;
+            setIndicators((prev) => [
+              ...prev,
+              { id, x: data.position.x, y: data.position.y },
+            ]);
+            setTimeout(() => {
+              setIndicators((prev) => prev.filter((i) => i.id !== id));
+            }, 500);
 
-          // Fullscreen: projector coords = viewport coords
-          dispatchSyntheticClick(data.position.x, data.position.y);
+            console.log(`[touch] DOWN id=${data.touch_id} at (${data.position.x}, ${data.position.y})`);
+            break;
+          }
+
+          case "touch_move": {
+            // Update position (for future drag support)
+            // Currently just logging
+            break;
+          }
+
+          case "touch_up": {
+            const startPos = activeTouchesRef.current.get(data.touch_id);
+            activeTouchesRef.current.delete(data.touch_id);
+
+            if (startPos) {
+              // Check if it's a tap (small movement)
+              const distance = Math.hypot(
+                data.position.x - startPos.x,
+                data.position.y - startPos.y
+              );
+
+              if (distance < TAP_DISTANCE_THRESHOLD) {
+                // It's a tap - dispatch click at the UP position
+                console.log(`[touch] TAP id=${data.touch_id} at (${data.position.x}, ${data.position.y}), distance=${distance.toFixed(1)}px`);
+                dispatchSyntheticClick(data.position.x, data.position.y);
+              } else {
+                console.log(`[touch] DRAG id=${data.touch_id} distance=${distance.toFixed(1)}px (no click)`);
+              }
+            }
+            break;
+          }
+
+          case "touch": {
+            // Legacy support: treat as immediate tap
+            const id = indicatorIdRef.current++;
+            setIndicators((prev) => [
+              ...prev,
+              { id, x: data.position.x, y: data.position.y },
+            ]);
+            setTimeout(() => {
+              setIndicators((prev) => prev.filter((i) => i.id !== id));
+            }, 500);
+            dispatchSyntheticClick(data.position.x, data.position.y);
+            break;
+          }
         }
       } catch (e) {
         console.warn("[touch] Invalid message", e);

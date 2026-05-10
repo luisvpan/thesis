@@ -139,6 +139,22 @@ export function mergeVisionFrameIntoNodes(
       continue;
     }
 
+    if (parsed.type === "deckMontessori") {
+      additions.push({
+        id: nodeId,
+        type: "source" as const,
+        position,
+        data: {
+          variant: "montessori",
+          yoloClass: parsed.yoloClass,
+          color: parsed.color,
+          trackId: c.trackId,
+        },
+      });
+      idx++;
+      continue;
+    }
+
     if (parsed.type === "unknown") {
       additions.push({
         id: nodeId,
