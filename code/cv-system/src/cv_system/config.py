@@ -7,7 +7,7 @@ as configuration parameters with type-safe validation via Pydantic.
 
 import json
 from pathlib import Path
-from typing import Tuple
+from typing import Literal, Tuple
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
@@ -123,6 +123,10 @@ class CalibrationConfig(BaseModel):
 
 class DetectionConfig(BaseModel):
     """Parameters for touch and interaction detection."""
+
+    # Card detection method: simple (CardDetector), e2e (E2ECardDetector), rfdetr (RFDETRCardDetector)
+    # None = auto-detect based on model file
+    card_method: Literal["simple", "e2e", "rfdetr"] | None = None
 
     # Number of frames in the ring buffer for noise filtering
     ring_buffer_size: int = 5

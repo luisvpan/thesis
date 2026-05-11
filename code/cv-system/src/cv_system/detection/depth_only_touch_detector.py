@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 
 from cv_system.config import DetectionConfig
+from cv_system.detection.touch_tracker import TouchTracker, TrackedTouch
 from cv_system.transform import DepthCoordinateTransformer, ResolutionMapper
 
 
@@ -109,20 +110,33 @@ class DepthOnlyTouchDetector:
         self._frames_without_touch = 0
         self._lock_reset_frames = 5  # Frames without touch to reset lock
 
+        # Touch tracker for persistent IDs and stateful events
+        self._touch_tracker = TouchTracker(
+            debounce_frames=3,
+            touch_radius=15.0,
+            lost_track_buffer=5,
+        )
+
     def detect(
-        self, depth_frame: np.ndarray
-    ) -> tuple[list[tuple[float, float]], bool]:
+        self,
+        depth_frame: np.ndarray,
+        rgb_frame: np.ndarray | None = None,
+        ir_frame: np.ndarray | None = None,
+    ) -> tuple[list[TrackedTouch], bool]:
         """
         Detect touches from depth frame.
 
         Args:
             depth_frame: Raw depth frame from HardwareManager (depth space, uint16).
+            rgb_frame: RGB frame (unused, for API compatibility).
+            ir_frame: IR frame (unused, for API compatibility).
 
         Returns:
-            Tuple of (touches, objects_detected):
-            - touches: List of (x, y) touch positions in projector coordinates.
+            Tuple of (tracked_touches, objects_detected):
+            - tracked_touches: List of TrackedTouch events (down/move/up).
             - objects_detected: True if any objects were detected in the touch zone.
         """
+        # rgb_frame and ir_frame unused - DepthOnlyTouchDetector uses only depth
         # Convert UMat to numpy if needed
         if isinstance(depth_frame, cv2.UMat):
             depth_frame = depth_frame.get()
@@ -207,7 +221,10 @@ class DepthOnlyTouchDetector:
         if self._show_debug:
             self._show_debug_windows(depth_frame, touch_mask_raw, touch_mask, touches_projector)
 
-        return touches_projector, objects_detected
+        # Track touches for persistent IDs and stateful events
+        tracked_touches = self._touch_tracker.update(touches_projector)
+
+        return tracked_touches, objects_detected
 
     def _transform_to_projector(
         self, depth_x: float, depth_y: float

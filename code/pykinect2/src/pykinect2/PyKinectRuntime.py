@@ -66,7 +66,7 @@ class PyKinectRuntime(object):
         self._sensor.Open()
 
         # Esperar a que el sensor esté disponible (puede tardar un momento)
-        max_wait = 1.0
+        max_wait = 2.0
         wait_interval = 0.1
         waited = 0
         while not self._sensor.IsAvailable and waited < max_wait:

@@ -10,6 +10,7 @@ dependencies = [
     "numpy>=2.0.0",
     "comtypes>=1.4.0",
     "mediapipe>=0.10.35",
+    "opencv-contrib-python>=4.13.0.92",
 ]
 
 [project.optional-dependencies]

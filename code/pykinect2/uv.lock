@@ -584,6 +584,7 @@ dependencies = [
     { name = "comtypes" },
     { name = "mediapipe" },
     { name = "numpy" },
+    { name = "opencv-contrib-python" },
 ]
 
 [package.optional-dependencies]
@@ -599,6 +600,7 @@ requires-dist = [
     { name = "comtypes", specifier = ">=1.4.0" },
     { name = "mediapipe", specifier = ">=0.10.35" },
     { name = "numpy", specifier = ">=2.0.0" },
+    { name = "opencv-contrib-python", specifier = ">=4.13.0.92" },
     { name = "opencv-python", marker = "extra == 'opencv'", specifier = ">=4.0.0" },
     { name = "pygame", marker = "extra == 'examples'", specifier = ">=2.0.0" },
 ]

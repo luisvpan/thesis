@@ -26,17 +26,68 @@ from cv_system.bridge.vision_ingest import post_card_batch_async
 from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.calibration.result import CalibrationResult
-from cv_system.detection import E2ECardDetector
+from cv_system.detection import CARD_DETECTORS, detect_card_method, TouchMethod
+from cv_system.detection.touch_detector import TouchDetector
+from cv_system.detection.espol_touch_detector import ESPOLTouchDetector
 from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
-from cv_system.hardware.manager import HardwareManager, HardwareError
-from cv_system.transform import RgbImageTransformer, DepthCoordinateTransformer, ResolutionMapper
+from cv_system.detection.direct_touch_detector import DIRECTTouchDetector
+from cv_system.detection.farout_touch_detector import FarOutTouchDetector
+from cv_system.detection.mediapipe_direct_hybrid_touch_detector import (
+    MediapipeDIRECTHybridTouchDetector,
+)
+from cv_system.hardware import HardwareError, HardwareManager, PyKinect2HardwareManager
+from cv_system.transform import (
+    RgbImageTransformer,
+    DepthCoordinateTransformer,
+    ResolutionMapper,
+    PyKinect2ResolutionMapper,
+)
 
+# Configure logging level from env var (DEBUG, INFO, WARNING, ERROR)
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 
 def touch_detector_enabled() -> bool:
-    """Depth-only touch pipeline. Off by default; set CV_TOUCH_DETECTOR=1 to enable."""
+    """Touch detection. Off by default; set CV_TOUCH_DETECTOR=1 to enable."""
     v = os.getenv("CV_TOUCH_DETECTOR", "0").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
+def get_touch_detector_type() -> TouchMethod:
+    """
+    Get touch detector type from environment.
+
+    CV_TOUCH_DETECTOR_TYPE:
+        - "mediapipe" (default): MediaPipe hand landmarks + convex hull
+        - "espol": ESPOL paper algorithm (K-curvature + hysteresis)
+        - "depth_only": Simple depth blob detection
+        - "direct": DIRECT paper (depth + IR fusion)
+        - "farout": FarOut Touch paper (depth only, long range)
+        - "hybrid": MediaPipe + DIRECT hybrid (best of both)
+    """
+    v = os.getenv("CV_TOUCH_DETECTOR_TYPE", "mediapipe").strip().lower()
+    if v in ("espol", "espol_touch", "kcurvature"):
+        return "espol"
+    elif v in ("depth_only", "depth", "simple"):
+        return "depth_only"
+    elif v in ("direct", "direct_touch"):
+        return "direct"
+    elif v in ("farout", "farout_touch"):
+        return "farout"
+    elif v in ("hybrid", "mediapipe_direct", "mp_direct"):
+        return "hybrid"
+    else:
+        return "mediapipe"
+
+
+def debug_windows_enabled() -> bool:
+    """Show debug windows (cv2.imshow). Off by default; set CV_DEBUG_WINDOWS=1 to enable."""
+    v = os.getenv("CV_DEBUG_WINDOWS", "0").strip().lower()
     return v in ("1", "true", "yes", "on")
 
 
@@ -91,7 +142,7 @@ def main() -> None:
     enable_touch = touch_detector_enabled()
     print(
         f"Touch detector: {'ON' if enable_touch else 'OFF'} "
-        "(set CV_TOUCH_DETECTOR=1 to enable depth-only touch)"
+        "(set CV_TOUCH_DETECTOR=1 to enable MediaPipe touch)"
     )
     print("=" * 60)
 
@@ -107,7 +158,17 @@ def main() -> None:
     try:
         # Step 1: Initialize hardware
         print("\n[1/5] Initializing hardware...")
-        hardware = HardwareManager()
+        manager_type = os.getenv("HARDWARE_MANAGER", "openni2").lower()
+        print(f"  HARDWARE_MANAGER env var = '{manager_type}'")
+        if manager_type == "pykinect2":
+            hardware = PyKinect2HardwareManager()
+        elif manager_type == "openni2":
+            hardware = HardwareManager()
+        else:
+            print(f"  ERROR: Unknown HARDWARE_MANAGER: {manager_type}")
+            print("  Valid values: 'openni2' (default), 'pykinect2'")
+            sys.exit(1)
+        print(f"  Using: {type(hardware).__name__}")
         try:
             hardware.initialize(config.camera)
             print("  Hardware initialized successfully")
@@ -117,7 +178,13 @@ def main() -> None:
 
         # Step 2: Load or run calibration
         print("\n[2/5] Loading or running calibration...")
-        resolution_mapper = ResolutionMapper(config.camera)
+        # Select resolution mapper based on hardware manager type
+        if isinstance(hardware, PyKinect2HardwareManager):
+            resolution_mapper = PyKinect2ResolutionMapper(kinect=hardware.kinect)
+            print("  Using PyKinect2ResolutionMapper (Kinect SDK mapping)")
+        else:
+            resolution_mapper = ResolutionMapper(config.camera)
+            print("  Using ResolutionMapper (linear scaling)")
 
         calibration_path = os.getenv("CALIBRATION_PATH")
         calibration_result = None
@@ -172,18 +239,69 @@ def main() -> None:
         print("  Resolution mapper initialized")
 
         detector = None
+        touch_type: TouchMethod = "mediapipe"
         if enable_touch:
-            detector = DepthOnlyTouchDetector(
-                calibration_result.dmax_map,
-                depth_coordinate_transformer,
-                resolution_mapper,
-                config.detection,
-                calibration_result.depth_corners,
-                show_debug=True,
-            )
-            print(f"  Depth-only touch detector initialized (area corners: {calibration_result.depth_corners})")
+            touch_type = get_touch_detector_type()
+            show_debug = debug_windows_enabled()
+
+            if touch_type == "espol":
+                detector = ESPOLTouchDetector(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    config.detection,
+                    show_debug=show_debug,
+                )
+                print("  ESPOLTouchDetector (K-curvature + hysteresis) initialized")
+            elif touch_type == "depth_only":
+                detector = DepthOnlyTouchDetector(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    config.detection,
+                    show_debug=show_debug,
+                )
+                print("  DepthOnlyTouchDetector (blob detection) initialized")
+            elif touch_type == "direct":
+                detector = DIRECTTouchDetector(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    config.detection,
+                    show_debug=show_debug,
+                )
+                print("  DIRECTTouchDetector (depth + IR fusion) initialized")
+            elif touch_type == "farout":
+                # FarOut uses "bump" mode at short range (<1.5m)
+                # Set use_denting=True for long range (1.5-3.5m)
+                use_denting = os.getenv("CV_FAROUT_DENTING", "0").strip().lower() in ("1", "true", "yes")
+                detector = FarOutTouchDetector(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    config.detection,
+                    show_debug=show_debug,
+                    use_denting=use_denting,
+                )
+                mode = "denting (long range)" if use_denting else "bump (short range)"
+                print(f"  FarOutTouchDetector ({mode}) initialized")
+            elif touch_type == "hybrid":
+                detector = MediapipeDIRECTHybridTouchDetector(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    resolution_mapper,
+                    config.detection,
+                    show_debug=show_debug,
+                    use_ir_refinement=True,
+                )
+                print("  MediapipeDIRECTHybridTouchDetector (MediaPipe + DIRECT + IR) initialized")
+            else:  # mediapipe
+                detector = TouchDetector(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    resolution_mapper,
+                    config.detection,
+                    show_debug=show_debug,
+                )
+                print("  TouchDetector (MediaPipe hand segmentation) initialized")
         else:
-            print("  Depth-only touch detector: skipped (disabled)")
+            print("  Touch detection: skipped (disabled)")
         print(f"YOLO model path: {os.getenv('YOLO_MODEL_PATH')}")
 
         model_path = Path(
@@ -196,8 +314,10 @@ def main() -> None:
                 ),
             )
         )
-        card_detector = E2ECardDetector(rgb_image_transformer, model_path)
-        print(f"  Card detector (YOLO) initialized: {model_path}")
+        card_method = config.detection.card_method or detect_card_method(model_path)
+        DetectorClass = CARD_DETECTORS[card_method]
+        card_detector = DetectorClass(rgb_image_transformer, model_path)
+        print(f"  Card detector ({card_method}) initialized: {model_path}")
 
         vision_cards_url = os.getenv(
             "VISION_CARDS_INGEST_URL",
@@ -245,18 +365,38 @@ def main() -> None:
 
         start_time = time.time()
 
-        cv2.namedWindow("Card Detection", cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty("Card Detection", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        cv2.moveWindow("Card Detection", 1920, 0)
+        # Debug windows (controlled by CV_DEBUG_WINDOWS env var)
+        show_debug_windows = debug_windows_enabled()
+        # Check if we have IR frame support (only PyKinect2HardwareManager)
+        has_ir_support = isinstance(hardware, PyKinect2HardwareManager)
+        if show_debug_windows:
+            cv2.namedWindow("Card Detection", cv2.WINDOW_NORMAL)
+            cv2.setWindowProperty("Card Detection", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            cv2.moveWindow("Card Detection", 1920, 0)
 
-        cv2.namedWindow("Touch Debug", cv2.WINDOW_NORMAL)
-        cv2.moveWindow("Touch Debug", -1920, 0)
-        cv2.setWindowProperty("Touch Debug", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            cv2.namedWindow("Touch Debug", cv2.WINDOW_NORMAL)
+            cv2.moveWindow("Touch Debug", -1920, 0)
+            cv2.setWindowProperty("Touch Debug", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+            if has_ir_support:
+                logger.info("IR frame support enabled (PyKinect2)")
+
+            logger.info("Debug windows enabled (CV_DEBUG_WINDOWS=1)")
+        else:
+            logger.info("Debug windows disabled (set CV_DEBUG_WINDOWS=1 to enable)")
+
+        # Pre-allocate buffers for debug views (reused each frame)
+        touch_debug_buffer = np.zeros((PROJ_H, PROJ_W, 3), dtype=np.uint8)
+        full_card_view_buffer = np.zeros((FULL_PROJ_H, FULL_PROJ_W, 3), dtype=np.uint8)
 
         # Cache for card detection (Fix 3: run every N frames)
         CARD_DETECT_INTERVAL = 1  # TEMP: Set to 1 for profiling
         last_card_view = None
         last_card_dets: list = []
+
+        # Throttling for touch_move events (20Hz = 50ms minimum between moves)
+        TOUCH_MOVE_MIN_INTERVAL = 0.05
+        last_move_times: dict[int, float] = {}
 
         # Helper for frame acquisition (Fix 2: pipeline)
         def acquire_frames():
@@ -274,15 +414,27 @@ def main() -> None:
 
                 t1 = time.perf_counter()
 
+                # Update color-to-depth mapping for PyKinect2 (must be done per-frame)
+                if isinstance(resolution_mapper, PyKinect2ResolutionMapper):
+                    resolution_mapper.update_mapping(depth_frame)
+
                 # Fix 1: Do warp ONCE and share with both detectors (UMat stays on GPU)
                 rgb_bird = rgb_image_transformer.camera_to_projector(rgb_frame)
 
                 t2 = time.perf_counter()
 
+                # Get IR frame for touch correction (PyKinect2 only)
+                ir_frame = None
+                if has_ir_support and enable_touch:
+                    ir_frame = hardware.get_ir_frame()
+
                 # Submit BOTH detections in parallel (don't wait for touch before card)
                 touch_future = None
                 if enable_touch and touch_executor is not None and detector is not None:
-                    touch_future = touch_executor.submit(detector.detect, depth_frame)
+                    # TouchDetector uses depth frame + raw RGB + optional IR for correction
+                    touch_future = touch_executor.submit(
+                        detector.detect, depth_frame, rgb_frame, ir_frame
+                    )
 
                 card_future = None
                 t_card_submit = t2  # For timing card from submission
@@ -321,65 +473,88 @@ def main() -> None:
                     card_dets = last_card_dets
 
                 if touches:
-                    # Process all touches, but limit prints to reduce overhead
-                    touch_printed = frame_count % 15 == 0
-                    for i, (x, y) in enumerate(touches):
-                        full_x = x + ROI_OFFSET_X
-                        full_y = y + ROI_OFFSET_Y
-                        if 0 <= full_x < FULL_PROJ_W and 0 <= full_y < FULL_PROJ_H:
-                            touch_event = TouchEvent.from_detected_touch(x=full_x, y=full_y)
-                            if touch_printed:
-                                print(f"  Frame {frame_count}: Touch {i+1} at proj_x={full_x:.0f}, proj_y={full_y:.0f}")
+                    for touch in touches:
+                        # Throttle touch_move events
+                        if touch.state == "move":
+                            now = time.monotonic()
+                            last_time = last_move_times.get(touch.id, 0)
+                            if now - last_time < TOUCH_MOVE_MIN_INTERVAL:
+                                continue
+                            last_move_times[touch.id] = now
 
+                        # Clean up throttle state on touch_up
+                        if touch.state == "up":
+                            last_move_times.pop(touch.id, None)
+
+                        full_x = touch.x + ROI_OFFSET_X
+                        full_y = touch.y + ROI_OFFSET_Y
+                        if 0 <= full_x < FULL_PROJ_W and 0 <= full_y < FULL_PROJ_H:
+                            touch_event = TouchEvent.from_tracked_touch(
+                                x=full_x,
+                                y=full_y,
+                                event_type=f"touch_{touch.state}",
+                                touch_id=touch.id,
+                            )
                             if ws_bridge.state.value == "CONNECTED" and ws_bridge.loop is not None:
+                                logger.info(
+                                    f"[WS] touch_{touch.state} id={touch.id} "
+                                    f"({full_x:.0f}, {full_y:.0f})"
+                                )
                                 asyncio.run_coroutine_threadsafe(
                                     ws_bridge.send_touch_event(touch_event.to_dict()),
                                     loop=ws_bridge.loop,
                                 )
                 elif enable_touch and frame_count % 30 == 0:
-                    print(f"  Frame {frame_count}: No touches detected")
+                    logger.debug(f"Frame {frame_count}: No touches detected")
 
                 if card_dets:
                     for d in card_dets:
-                        print(
-                            f"  Frame {frame_count}: Card {d.label} "
-                            f"{d.confidence * 100:.1f}%"
+                        logger.debug(f"Frame {frame_count}: Card {d.label} {d.confidence * 100:.1f}%")
+
+                # Debug windows (only if enabled)
+                if show_debug_windows:
+                    # Card detection view (every 2 frames)
+                    if frame_count % 2 == 0:
+                        full_card_view_buffer.fill(0)
+                        y1 = max(0, ROI_OFFSET_Y)
+                        x1 = max(0, ROI_OFFSET_X)
+                        y2 = min(FULL_PROJ_H, y1 + card_view.shape[0])
+                        x2 = min(FULL_PROJ_W, x1 + card_view.shape[1])
+                        src_h = max(0, y2 - y1)
+                        src_w = max(0, x2 - x1)
+                        if src_h > 0 and src_w > 0:
+                            full_card_view_buffer[y1:y2, x1:x2] = card_view[:src_h, :src_w]
+                        cv2.imshow("Card Detection", full_card_view_buffer)
+
+                    # Touch debug view
+                    touch_debug_buffer.fill(0)
+                    if touches:
+                        logger.debug(
+                            f"[TouchDebug] {len(touches)} events: "
+                            f"{[(t.state, t.id, int(t.x), int(t.y)) for t in touches]}"
                         )
+                    for touch in touches:
+                        tx_int, ty_int = int(touch.x), int(touch.y)
+                        tx_draw = max(30, min(tx_int, PROJ_W - 30))
+                        ty_draw = max(30, min(ty_int, PROJ_H - 30))
+                        # Color by state: green=down, yellow=move, red=up
+                        color = {
+                            "down": (0, 255, 0),
+                            "move": (0, 255, 255),
+                            "up": (0, 0, 255),
+                        }.get(touch.state, (255, 255, 255))
+                        cv2.circle(touch_debug_buffer, (tx_draw, ty_draw), 20, color, -1)
+                        cv2.circle(touch_debug_buffer, (tx_draw, ty_draw), 20, (255, 255, 255), 3)
+                        cv2.putText(
+                            touch_debug_buffer,
+                            f"id={touch.id} {touch.state}",
+                            (tx_draw + 25, ty_draw + 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2
+                        )
+                    cv2.imshow("Touch Debug", touch_debug_buffer)
 
-                # # Fix 4: Show only every 2 frames
-                if frame_count % 2 == 0:
-                    full_card_view = np.zeros((FULL_PROJ_H, FULL_PROJ_W, 3), dtype=np.uint8)
-                    y1 = max(0, ROI_OFFSET_Y)
-                    x1 = max(0, ROI_OFFSET_X)
-                    y2 = min(FULL_PROJ_H, y1 + card_view.shape[0])
-                    x2 = min(FULL_PROJ_W, x1 + card_view.shape[1])
-                    src_h = max(0, y2 - y1)
-                    src_w = max(0, x2 - x1)
-                    if src_h > 0 and src_w > 0:
-                        full_card_view[y1:y2, x1:x2] = card_view[:src_h, :src_w]
-                    cv2.imshow("Card Detection", full_card_view)
-                    cv2.imshow("Card Detection", card_view)
-
-                # Debug: Show touches on black canvas (avoids infinite reflection)
-                touch_debug = np.zeros((PROJ_H, PROJ_W, 3), dtype=np.uint8)
-                if touches:
-                    print(f"  [TouchDebug] {len(touches)} touches: {[(int(x), int(y)) for x, y in touches]}")
-                for tx, ty in touches:
-                    tx_int, ty_int = int(tx), int(ty)
-                    # Clamp to visible area for debugging
-                    tx_draw = max(30, min(tx_int, PROJ_W - 30))
-                    ty_draw = max(30, min(ty_int, PROJ_H - 30))
-                    # Yellow filled circle with white border
-                    cv2.circle(touch_debug, (tx_draw, ty_draw), 20, (0, 255, 255), -1)
-                    cv2.circle(touch_debug, (tx_draw, ty_draw), 20, (255, 255, 255), 3)
-                    # Show coordinates (original, not clamped)
-                    cv2.putText(touch_debug, f"({tx_int}, {ty_int})",
-                                (tx_draw + 25, ty_draw + 5),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-                cv2.imshow("Touch Debug", touch_debug)
-
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
 
                 frame_count += 1
                 elapsed = time.time() - start_time
@@ -388,7 +563,7 @@ def main() -> None:
                 t5 = time.perf_counter()
                 depth_frame, rgb_frame = next_frame_future.result()
                 t6 = time.perf_counter()
-                print(f"  [FPS: {frame_count / elapsed:.1f}] submit={1000*(t1-t0):.1f}ms warp={1000*(t2-t1):.1f}ms touch={1000*(t_touch-t2):.1f}ms card={card_time_ms:.1f}ms(wait={card_wait_ms:.1f}ms) acq={1000*(t6-t5):.1f}ms")
+                logger.debug(f"[FPS: {frame_count / elapsed:.1f}] submit={1000*(t1-t0):.1f}ms warp={1000*(t2-t1):.1f}ms touch={1000*(t_touch-t2):.1f}ms card={card_time_ms:.1f}ms(wait={card_wait_ms:.1f}ms) acq={1000*(t6-t5):.1f}ms")
 
             except KeyboardInterrupt:
                 break

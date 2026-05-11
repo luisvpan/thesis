@@ -357,7 +357,7 @@ def estimate_depth_from_plane(plane, x, y):
     return z
 
 
-def interpolate_missing_depths(all_landmarks, landmarks_with_depth, kinect, depth_frame):
+def interpolate_missing_depths(all_landmarks, landmarks_with_depth, kinect, depth_frame, compare_mode=False):
     """
     Interpola profundidades faltantes usando un plano ajustado a los landmarks válidos.
 
@@ -366,9 +366,11 @@ def interpolate_missing_depths(all_landmarks, landmarks_with_depth, kinect, dept
         landmarks_with_depth: Dict {index: (cx, cy, dx, dy, depth_mm)} para landmarks con depth válido
         kinect: PyKinectRuntime instance
         depth_frame: Depth frame actual
+        compare_mode: Si True, calcula interpolación para TODOS los landmarks (para comparar)
 
     Returns:
-        interpolated: Dict {index: (cx, cy, depth_mm, is_interpolated)} para todos los landmarks
+        interpolated: Dict {index: (cx, cy, depth_mm, is_interpolated, interp_depth_mm)}
+                      interp_depth_mm es el valor interpolado (para comparación), None si no aplica
         plane: Coeficientes del plano ajustado
     """
     if not landmarks_with_depth:
@@ -379,7 +381,7 @@ def interpolate_missing_depths(all_landmarks, landmarks_with_depth, kinect, dept
         result = {}
         for idx, data in landmarks_with_depth.items():
             cx, cy, dx, dy, depth_mm = data
-            result[idx] = (cx, cy, depth_mm, False)
+            result[idx] = (cx, cy, depth_mm, False, None)
         return result, None
 
     # Construir puntos 3D a partir de landmarks con depth válido
@@ -407,30 +409,30 @@ def interpolate_missing_depths(all_landmarks, landmarks_with_depth, kinect, dept
         result = {}
         for idx, data in landmarks_with_depth.items():
             cx, cy, dx, dy, depth_mm = data
-            result[idx] = (cx, cy, depth_mm, False)
+            result[idx] = (cx, cy, depth_mm, False, None)
         return result, None
 
     # Crear resultado con todos los landmarks
     result = {}
 
-    # Primero, agregar los que tienen depth válido
-    for idx, data in landmarks_with_depth.items():
-        cx, cy, dx, dy, depth_mm = data
-        result[idx] = (cx, cy, depth_mm, False)  # False = no interpolado
-
-    # Luego, interpolar los faltantes
-    missing_indices = [idx for idx in range(len(all_landmarks)) if idx not in landmarks_with_depth]
-
+    # Para cada landmark, calcular valor interpolado para comparación
     for idx, (cx, cy) in enumerate(all_landmarks):
-        if idx not in landmarks_with_depth:
-            # Estimar en coordenadas normalizadas
-            estimated_norm = estimate_depth_from_plane(plane, cx / 1920.0, cy / 1080.0)
-            if estimated_norm is not None:
-                # Desnormalizar
-                estimated_depth = estimated_norm * 1000.0
-                # Validar que esté en rango razonable
-                if valid_min < estimated_depth < valid_max:
-                    result[idx] = (cx, cy, estimated_depth, True)  # True = interpolado
+        # Calcular interpolación para este punto
+        estimated_norm = estimate_depth_from_plane(plane, cx / 1920.0, cy / 1080.0)
+        interp_depth = None
+        if estimated_norm is not None:
+            estimated_depth = estimated_norm * 1000.0
+            if valid_min < estimated_depth < valid_max:
+                interp_depth = estimated_depth
+
+        if idx in landmarks_with_depth:
+            # Tiene depth real
+            cx, cy, dx, dy, depth_mm = landmarks_with_depth[idx]
+            result[idx] = (cx, cy, depth_mm, False, interp_depth)
+        else:
+            # Solo tiene interpolación
+            if interp_depth is not None:
+                result[idx] = (cx, cy, interp_depth, True, interp_depth)
 
     return result, plane
 
@@ -538,8 +540,8 @@ def main():
             # --- Mapping to depth ---
             t_map_start = time.perf_counter()
 
-            fingertips_with_depth = []
-            fingertips_interpolated = []  # Fingertips con depth interpolado
+            # fingertips_data: lista de (cx, cy, real_depth, interp_depth, is_only_interp)
+            fingertips_data = []
             palm_with_depth = []
             palm_depth_mm = None
             all_stats = {'total': 0, 'valid': 0, 'ratio': 0.0}
@@ -553,30 +555,33 @@ def main():
                         kinect, hand_points, last_depth_frame, return_indexed=True
                     )
 
-                    # Interpolar depths faltantes usando el plano
+                    # Interpolar depths (con comparación)
                     interpolated_landmarks, hand_plane = interpolate_missing_depths(
-                        hand_points, landmarks_with_depth, kinect, last_depth_frame
+                        hand_points, landmarks_with_depth, kinect, last_depth_frame,
+                        compare_mode=True
                     )
 
                     # Extraer fingertips (índices 4, 8, 12, 16, 20)
                     tip_indices = [4, 8, 12, 16, 20]
                     for idx in tip_indices:
                         if idx in interpolated_landmarks:
-                            cx, cy, depth_mm, is_interp = interpolated_landmarks[idx]
-                            if is_interp:
-                                fingertips_interpolated.append((cx, cy, 0, 0, depth_mm))
-                            else:
-                                fingertips_with_depth.append((cx, cy, 0, 0, depth_mm))
+                            cx, cy, depth_mm, is_interp, interp_depth = interpolated_landmarks[idx]
+                            # real_depth es depth_mm si no es interpolado, None si solo tiene interp
+                            real_depth = None if is_interp else depth_mm
+                            fingertips_data.append((cx, cy, real_depth, interp_depth, is_interp))
 
                     # Extraer wrist (índice 0)
                     if 0 in interpolated_landmarks:
-                        cx, cy, depth_mm, is_interp = interpolated_landmarks[0]
+                        cx, cy, depth_mm, is_interp, interp_depth = interpolated_landmarks[0]
                         palm_with_depth.append((cx, cy, 0, 0, depth_mm))
                         palm_depth_mm = depth_mm
 
             elif last_depth_frame is not None and fingertips:
                 # Modo skin detection (sin interpolación)
-                fingertips_with_depth, all_stats = map_color_to_depth(kinect, fingertips, last_depth_frame)
+                mapped_tips, all_stats = map_color_to_depth(kinect, fingertips, last_depth_frame)
+                for tip in mapped_tips:
+                    cx, cy, dx, dy, depth_mm = tip
+                    fingertips_data.append((cx, cy, depth_mm, None, False))
                 if palm_points:
                     palm_with_depth, _ = map_color_to_depth(kinect, palm_points, last_depth_frame)
                     if palm_with_depth:
@@ -586,8 +591,14 @@ def main():
             mapping_time_ms = (t_map_end - t_map_start) * 1000
             mapping_times.append(mapping_time_ms)
 
-            # Calcular profundidad promedio de la mano
-            all_depths = [tip[4] for tip in fingertips_with_depth + fingertips_interpolated]
+            # Calcular profundidad promedio de la mano (usar real si existe, sino interp)
+            all_depths = []
+            for tip in fingertips_data:
+                cx, cy, real_depth, interp_depth, is_only_interp = tip
+                if real_depth is not None:
+                    all_depths.append(real_depth)
+                elif interp_depth is not None:
+                    all_depths.append(interp_depth)
             avg_hand_depth_mm = np.mean(all_depths) if all_depths else 0
 
             # --- Visualization ---
@@ -615,33 +626,34 @@ def main():
                 scaled_contour = (contour / 2).astype(np.int32)
                 cv2.drawContours(display_frame, [scaled_contour], -1, (255, 255, 255), 2)
 
-            # Draw fingertips with depth (green = measured directly)
-            for tip_data in fingertips_with_depth:
-                cx, cy, dx, dy, depth_mm = tip_data
+            # Draw fingertips with depth comparison (real vs interpolated)
+            for tip_data in fingertips_data:
+                cx, cy, real_depth, interp_depth, is_only_interp = tip_data
                 sx, sy = cx // 2, cy // 2
 
-                cv2.circle(display_frame, (sx, sy), 8, (0, 255, 0), -1)  # Green
-                cv2.circle(display_frame, (sx, sy), 10, (255, 255, 255), 2)
+                if is_only_interp:
+                    # Solo interpolado (naranja)
+                    cv2.circle(display_frame, (sx, sy), 8, (0, 165, 255), -1)
+                    cv2.circle(display_frame, (sx, sy), 10, (255, 255, 255), 2)
+                    depth_text = f"~{interp_depth/1000:.2f}m"
+                    text_color = (0, 165, 255)
+                else:
+                    # Tiene valor real (verde)
+                    cv2.circle(display_frame, (sx, sy), 8, (0, 255, 0), -1)
+                    cv2.circle(display_frame, (sx, sy), 10, (255, 255, 255), 2)
 
-                depth_text = f"{depth_mm/1000:.2f}m"
-                cv2.putText(display_frame, depth_text, (sx + 12, sy - 5),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                cv2.putText(display_frame, depth_text, (sx + 12, sy - 5),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    # Mostrar comparación: Real / Interp
+                    if interp_depth is not None:
+                        diff = real_depth - interp_depth
+                        depth_text = f"R:{real_depth/1000:.2f} I:{interp_depth/1000:.2f} ({diff:+.0f}mm)"
+                    else:
+                        depth_text = f"{real_depth/1000:.2f}m"
+                    text_color = (0, 255, 0)
 
-            # Draw interpolated fingertips (orange = estimated from plane)
-            for tip_data in fingertips_interpolated:
-                cx, cy, dx, dy, depth_mm = tip_data
-                sx, sy = cx // 2, cy // 2
-
-                cv2.circle(display_frame, (sx, sy), 8, (0, 165, 255), -1)  # Orange
-                cv2.circle(display_frame, (sx, sy), 10, (255, 255, 255), 2)
-
-                depth_text = f"~{depth_mm/1000:.2f}m"  # ~ indica interpolado
                 cv2.putText(display_frame, depth_text, (sx + 12, sy - 5),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2)
                 cv2.putText(display_frame, depth_text, (sx + 12, sy - 5),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 1)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1)
 
             # Draw wrist with depth (cyan color to distinguish from fingertips)
             for palm_data in palm_with_depth:
@@ -664,13 +676,29 @@ def main():
 
             mode_text = "MediaPipe" if use_mediapipe else "Skin Color"
             wrist_text = f"{palm_depth_mm/1000:.3f}m" if palm_depth_mm else "N/A"
-            measured_tips = len(fingertips_with_depth)
-            interp_tips = len(fingertips_interpolated)
+            measured_tips = sum(1 for t in fingertips_data if not t[4])  # not is_only_interp
+            interp_only_tips = sum(1 for t in fingertips_data if t[4])   # is_only_interp
+
+            # Calcular error de interpolación
+            interp_errors = []
+            for tip in fingertips_data:
+                cx, cy, real_depth, interp_depth, is_only_interp = tip
+                if not is_only_interp and real_depth and interp_depth:
+                    interp_errors.append(abs(real_depth - interp_depth))
+
+            if interp_errors and avg_hand_depth_mm > 0:
+                avg_error_mm = np.mean(interp_errors)
+                avg_error_pct = (avg_error_mm / avg_hand_depth_mm) * 100
+                error_text = f"Interp Error: {avg_error_mm:.0f}mm ({avg_error_pct:.1f}%)"
+            else:
+                error_text = "Interp Error: N/A"
+
             info_lines = [
                 f"Mode: {mode_text}",
-                f"Tips: {measured_tips} measured + {interp_tips} interp",
+                f"Tips: {measured_tips} real + {interp_only_tips} interp-only",
                 f"Wrist: {wrist_text}",
                 f"Hand Depth: {avg_hand_depth_mm/1000:.3f}m",
+                error_text,
                 f"Detection: {avg_detect:.1f}ms",
             ]
 
