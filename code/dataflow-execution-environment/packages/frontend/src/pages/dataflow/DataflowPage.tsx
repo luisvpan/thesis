@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ReactFlow,
@@ -66,9 +66,14 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
     spawnDeckYoloClass,
     addArrayOpenNode,
     addArrayCloseNode,
+    clearSelection,
   } = useNode();
 
   const [viewMode, setViewMode] = useState<ResultViewMode>('abstracto');
+
+  useEffect(() => {
+    clearSelection();
+  }, [viewMode, clearSelection]);
   const [showOperatorResults, setShowOperatorResults] = useState(false);
 
   const spawnAllCards = () => {
@@ -134,7 +139,8 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
                 Mochila
               </h2>
               <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-                Números (azul), Operadores (rojo, incluye `result`), Figuras (amarillo), Comidas (naranja).
+                Mochila por CPA: Concreto (comidas, Montessori, filtrar), Pictórico (figuras, filtrar), Abstracto
+                (números, ×÷, orden; sin filtrar), Común (resultado).
               </p>
               <ModelDeckSidebar />
             </section>
