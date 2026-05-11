@@ -3,6 +3,9 @@ import { Position } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
 import type { OperatorType } from '@/types/card-types';
 import { FlowNodeCard } from './FlowNodeCard';
+import { useResultCardUi } from '@/contexts/ResultCardUiContext';
+import { isOperatorBlockedByCpaMode } from '@/utils/cpaModeUtils';
+import { CpaModeDisabledBanner } from './CpaModeDisabledBanner';
 
 export type OperatorFlowNodeData = {
   operator: OperatorType;
@@ -24,18 +27,21 @@ function operatorSymbol(operator: OperatorType): string {
 export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
+  const { viewMode } = useResultCardUi();
+  const blocked = isOperatorBlockedByCpaMode(operator, viewMode);
 
   return (
     <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
-      <ClickableHandle type="target" position={Position.Left} id="a" nodeId={id} style={{ top: '25%', transform: 'translateX(-100px)' }} />
-      <ClickableHandle type="target" position={Position.Left} id="b" nodeId={id} style={{ top: '75%', transform: 'translateX(-100px)' }} />
+      <ClickableHandle type="target" position={Position.Left} id="a" nodeId={id} style={{ top: '25%', transform: 'translateX(-100px)' }} disabled={blocked} />
+      <ClickableHandle type="target" position={Position.Left} id="b" nodeId={id} style={{ top: '75%', transform: 'translateX(-100px)' }} disabled={blocked} />
       <FlowNodeCard
         family="transformation"
         title={operator}
         content={<span className="text-xs font-black text-slate-100">{operatorSymbol(operator)}</span>}
         subtitle={d.result !== undefined ? `resultado: ${d.result}` : 'esperando entradas'}
+        topNotice={<CpaModeDisabledBanner show={blocked} />}
       />
-      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} />
+      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} disabled={blocked} />
     </div>
   );
 }

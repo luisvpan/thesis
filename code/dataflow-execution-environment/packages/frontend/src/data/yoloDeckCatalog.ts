@@ -10,6 +10,52 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
   montessori: ['montessori_blue', 'montessori_green', 'montessori_orange', 'montessori_purple', 'montessori_red', 'montessori_yellow'],
 };
 
+/** Operadores permitidos en concreto y pictórico (suma, resta, filtrar, ordenar). */
+const YOLO_OPERATORS_CPA_CONCRETE_PICTORIAL = ['add', 'subtract', 'filter', 'ascending', 'descending'] as const;
+
+const YOLO_OPERATORS_ABSTRACT = [
+  'add',
+  'subtract',
+  'multiply',
+  'division',
+  'ascending',
+  'descending',
+] as const;
+
+export type CpaSidebarSectionId = 'concreto' | 'pictorico' | 'abstracto' | 'comun';
+
+/** Cartas agrupadas por CPA (mismo criterio que el lenguaje) + sección común (resultado). */
+export const CPA_YOLO_SIDEBAR_SECTIONS: ReadonlyArray<{
+  id: CpaSidebarSectionId;
+  title: string;
+  yoloClasses: readonly string[];
+}> = [
+  {
+    id: 'concreto',
+    title: 'Concreto',
+    yoloClasses: [
+      ...DECK_SECTION_ITEMS.foods,
+      ...DECK_SECTION_ITEMS.montessori,
+      ...YOLO_OPERATORS_CPA_CONCRETE_PICTORIAL,
+    ],
+  },
+  {
+    id: 'pictorico',
+    title: 'Pictórico',
+    yoloClasses: [...DECK_SECTION_ITEMS.figures, ...YOLO_OPERATORS_CPA_CONCRETE_PICTORIAL],
+  },
+  {
+    id: 'abstracto',
+    title: 'Abstracto',
+    yoloClasses: [...DECK_SECTION_ITEMS.numbers, ...YOLO_OPERATORS_ABSTRACT],
+  },
+  {
+    id: 'comun',
+    title: 'Común',
+    yoloClasses: ['result'],
+  },
+];
+
 export function deckLabel(yoloClass: string): string {
   const m: Record<string, string> = {
     zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9',

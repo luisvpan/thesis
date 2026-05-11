@@ -9,6 +9,8 @@ type ClickableHandleProps = {
   nodeId: string;
   className?: string;
   style?: React.CSSProperties;
+  /** Sin conexiones ni selección de puerto (p. ej. carta incompatible con el modo CPA). */
+  disabled?: boolean;
 };
 
 export function ClickableHandle({
@@ -18,13 +20,15 @@ export function ClickableHandle({
   nodeId,
   className = "",
   style,
+  disabled = false,
 }: ClickableHandleProps) {
   const { isPortSelected, handlePortClick } = useNode();
   const [isCooldown, setIsCooldown] = useState(false);
 
-  const selected = isPortSelected(nodeId, id, type);
+  const selected = !disabled && isPortSelected(nodeId, id, type);
 
   const handleClick = (e: React.MouseEvent) => {
+    if (disabled) return;
     if (isCooldown) return; // Ignorar durante cooldown
 
     e.stopPropagation();
@@ -49,7 +53,9 @@ export function ClickableHandle({
       type={type}
       position={position}
       id={id}
-      className={`nodrag nopan !h-20 !w-20 !border-2 ${colorClass} ${cooldownClass} cursor-pointer ${className}`}
+      className={`nodrag nopan !h-20 !w-20 !border-2 ${colorClass} ${cooldownClass} ${
+        disabled ? "pointer-events-none cursor-not-allowed opacity-35" : "cursor-pointer"
+      } ${className}`}
       style={style}
       onClick={handleClick}
     />

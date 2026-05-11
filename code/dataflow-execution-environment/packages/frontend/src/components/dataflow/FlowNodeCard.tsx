@@ -8,21 +8,21 @@ type FlowNodeCardProps = {
   content: ReactNode;
   subtitle?: string;
   className?: string;
+  /** Aviso encima de la fila del título (label), sin alterar el resto de la carta. */
+  topNotice?: ReactNode;
 };
 
-function familyBadge(family: FlowCardFamily): string {
-  if (family === 'input') return 'Input';
-  if (family === 'transformation') return 'Transformation';
-  return 'Sink';
-}
-
-export function FlowNodeCard({ family, title, content, subtitle, className = '' }: FlowNodeCardProps) {
-  console.log("content", content);
-  console.log("title", title);
+export function FlowNodeCard({
+  family: _family,
+  title,
+  content,
+  subtitle: _subtitle,
+  className = '',
+  topNotice,
+}: FlowNodeCardProps) {
   return (
-    <div
-      className={`h-48 w-48   p-3 text-white ${className}`}
-    >
+    <div className={`min-h-48 w-48 p-3 text-white ${className}`}>
+      {topNotice}
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="truncate text-xs font-semibold uppercase tracking-wide text-slate-300">{title}-{content}</span>
       </div>
