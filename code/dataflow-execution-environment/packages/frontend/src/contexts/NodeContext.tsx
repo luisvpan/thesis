@@ -16,6 +16,7 @@ import { useManualExecuteProgram } from "./node/useManualExecuteProgram";
 import { useNodeSpawning } from "./node/useNodeSpawning";
 import { usePortSelection } from "./node/usePortSelection";
 import { useProgramExecutorRef } from "./node/useProgramExecutorRef";
+import { computeNodeIdsInsideActiveArrayZones } from "@/utils/arrayZoneGeometry";
 
 export type { DataflowNode, PortDefinition, PortIdentifier } from "./node/types";
 
@@ -92,6 +93,16 @@ export function NodeProvider({
     return typeof value === "number" ? value : null;
   }, [nodes]);
 
+  const nodesInsideArrayZones = useMemo(
+    () => computeNodeIdsInsideActiveArrayZones(nodes, edges),
+    [nodes, edges]
+  );
+
+  const isNodeInsideArrayZone = useCallback(
+    (nodeId: string) => nodesInsideArrayZones.has(nodeId),
+    [nodesInsideArrayZones]
+  );
+
   const value = useMemo(
     (): NodeContextState => ({
       nodes,
@@ -102,6 +113,7 @@ export function NodeProvider({
       executionError,
       getNodePorts,
       isPortSelected,
+      isNodeInsideArrayZone,
       handlePortClick,
       clearSelection,
       addNumberNode,
@@ -126,6 +138,7 @@ export function NodeProvider({
       executionError,
       getNodePorts,
       isPortSelected,
+      isNodeInsideArrayZone,
       handlePortClick,
       clearSelection,
       addNumberNode,

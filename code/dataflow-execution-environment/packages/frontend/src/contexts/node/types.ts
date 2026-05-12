@@ -6,8 +6,8 @@ import type {
   SourceFlowNodeData,
   ArrayOpenNodeData,
   ArrayCloseNodeData,
-} from "@/components/dataflow";
-import type { OperatorType } from "@/types/card-types";
+} from "../../components/dataflow";
+import type { OperatorType } from "../../types/card-types";
 
 export type DataflowNode =
   | Node<SourceFlowNodeData, "source">
@@ -44,6 +44,9 @@ export type NodeContextState = {
     handleId: string,
     handleType: "source" | "target"
   ) => boolean;
+
+  /** True si el centro de la carta está dentro del rectángulo de alguna zona abrir→cerrar conectada. */
+  isNodeInsideArrayZone: (nodeId: string) => boolean;
 
   handlePortClick: (
     nodeId: string,
