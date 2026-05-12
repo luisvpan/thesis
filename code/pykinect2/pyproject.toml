@@ -6,16 +6,11 @@ license = "MIT"
 authors = [{ name = "Microsoft Corporation", email = "k4w@microsoft.com" }]
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "numpy>=2.0.0",
-    "comtypes>=1.4.0",
-    "mediapipe>=0.10.35",
-    "opencv-contrib-python>=4.13.0.92",
-]
+dependencies = ["numpy>=2.0.0", "comtypes>=1.4.0", "mediapipe>=0.10.35"]
 
 [project.optional-dependencies]
 examples = ["pygame>=2.0.0"]
-opencv = ["opencv-python>=4.0.0"]
+opencv = ["opencv-contrib-python>=4.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/Kinect/PyKinect2/"

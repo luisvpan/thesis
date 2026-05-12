@@ -23,6 +23,7 @@ Controls:
     - 'r': Toggle radius value (3, 5, 7, 9)
     - 'e': Toggle eps value (0.001, 0.01, 0.1, 0.5)
     - 'm': Toggle morphology kernel size (3, 5, 7)
+    - 'd': Toggle hand detection depth range
     - 's': Save current frames to disk
     - 'q': Quit
 """
@@ -128,7 +129,95 @@ def reconstruct_depth_with_ir(depth_raw, ir_8bit, radius=5, eps=0.01, morph_kern
     return depth_final, mask_invalid, mask_cleaned
 
 
-def create_comparison_view(depth_original, depth_reconstructed, ir_8bit, mask):
+def detect_hand_from_depth(depth_frame, min_depth=300, max_depth=1000, min_area=3000):
+    """
+    Detect hand using depth thresholding (objects close to camera).
+
+    Args:
+        depth_frame: Raw depth frame (uint16)
+        min_depth: Minimum depth in mm (filter noise)
+        max_depth: Maximum depth in mm (hand range)
+        min_area: Minimum contour area to be considered a hand
+
+    Returns:
+        contour: Hand contour or None
+        fingertips: List of (x, y) fingertip positions
+        center: (cx, cy) center of hand or None
+    """
+    # Create mask for objects within depth range
+    hand_mask = ((depth_frame > min_depth) & (depth_frame < max_depth)).astype(np.uint8) * 255
+
+    # Clean up noise with morphology
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    hand_mask = cv2.morphologyEx(hand_mask, cv2.MORPH_OPEN, kernel)
+    hand_mask = cv2.morphologyEx(hand_mask, cv2.MORPH_CLOSE, kernel)
+
+    # Find contours
+    contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        return None, [], None
+
+    # Get largest contour (assumed to be hand)
+    hand_contour = max(contours, key=cv2.contourArea)
+
+    if cv2.contourArea(hand_contour) < min_area:
+        return None, [], None
+
+    # Calculate center
+    M = cv2.moments(hand_contour)
+    if M["m00"] == 0:
+        return hand_contour, [], None
+
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
+
+    # Find fingertips using convex hull defects
+    fingertips = []
+    try:
+        hull = cv2.convexHull(hand_contour, returnPoints=False)
+        defects = cv2.convexityDefects(hand_contour, hull)
+
+        if defects is not None:
+            for i in range(defects.shape[0]):
+                s, e, f, d = defects[i, 0]
+                start = tuple(hand_contour[s][0])
+                if d > 10000:  # Significant defect
+                    fingertips.append(start)
+
+        # If not enough fingertips from defects, use hull points
+        if len(fingertips) < 3:
+            hull_points = cv2.convexHull(hand_contour, returnPoints=True)
+            candidates = []
+            for point in hull_points:
+                x, y = point[0]
+                dist = (x - cx) ** 2 + (y - cy) ** 2
+                candidates.append((x, y, dist))
+            candidates.sort(key=lambda p: -p[2])
+            fingertips = [(p[0], p[1]) for p in candidates[:5]]
+    except Exception:
+        pass
+
+    return hand_contour, fingertips[:5], (cx, cy)
+
+
+def draw_hand_overlay(image, contour, fingertips, center, color=(0, 255, 0)):
+    """Draw hand contour, fingertips and center on image."""
+    if contour is not None:
+        cv2.drawContours(image, [contour], -1, color, 2)
+
+    if center is not None:
+        cv2.circle(image, center, 8, (255, 255, 0), -1)
+        cv2.circle(image, center, 10, (255, 255, 255), 2)
+
+    for tip in fingertips:
+        cv2.circle(image, tip, 6, (0, 0, 255), -1)
+        cv2.circle(image, tip, 8, (255, 255, 255), 2)
+
+    return image
+
+
+def create_comparison_view(depth_original, depth_reconstructed, ir_8bit, mask, hand_data=None):
     """
     Create a side-by-side comparison view with color mapping.
 
@@ -137,6 +226,7 @@ def create_comparison_view(depth_original, depth_reconstructed, ir_8bit, mask):
         depth_reconstructed: Reconstructed depth frame
         ir_8bit: IR frame (8-bit)
         mask: Invalid pixel mask
+        hand_data: Tuple of (contour, fingertips, center) or None
 
     Returns:
         comparison: Combined visualization image
@@ -160,6 +250,14 @@ def create_comparison_view(depth_original, depth_reconstructed, ir_8bit, mask):
     diff = np.abs(depth_recon_8bit.astype(np.int16) - depth_orig_8bit.astype(np.int16))
     diff_normalized = np.clip(diff * 5, 0, 255).astype(np.uint8)  # Amplify differences
     diff_color = cv2.applyColorMap(diff_normalized, cv2.COLORMAP_HOT)
+
+    # Draw hand overlay on all views
+    if hand_data is not None:
+        contour, fingertips, center = hand_data
+        depth_orig_marked = draw_hand_overlay(depth_orig_marked, contour, fingertips, center, (0, 255, 0))
+        ir_3ch = draw_hand_overlay(ir_3ch, contour, fingertips, center, (0, 255, 0))
+        depth_recon_color = draw_hand_overlay(depth_recon_color, contour, fingertips, center, (0, 255, 0))
+        diff_color = draw_hand_overlay(diff_color, contour, fingertips, center, (0, 255, 0))
 
     # Combine into 2x2 grid
     top_row = np.hstack([depth_orig_marked, ir_3ch])
@@ -188,19 +286,20 @@ def add_text_overlay(image, params, stats):
         cv2.putText(image, text, pos, font, font_scale, (255, 255, 255), thickness)
 
     # Parameters
-    param_text = f"Radius: {params['radius']} | Eps: {params['eps']:.3f} | Morph: {params['morph']}"
+    param_text = f"Radius: {params['radius']} | Eps: {params['eps']:.3f} | Morph: {params['morph']} | Hand: {params['hand_min']}-{params['hand_max']}mm"
     cv2.putText(image, param_text, (10, 830), font, font_scale, (0, 0, 0), thickness + 1)
     cv2.putText(image, param_text, (10, 830), font, font_scale, (0, 255, 0), thickness)
 
     # Statistics
-    stats_text = f"Invalid pixels: {stats['invalid_count']} ({stats['invalid_pct']:.2f}%) | Recovered: {stats['recovered_count']}"
+    hand_text = f"Hand: {'Detected' if stats['hand_detected'] else 'Not found'}"
+    stats_text = f"Invalid: {stats['invalid_count']} ({stats['invalid_pct']:.2f}%) | Recovered: {stats['recovered_count']} | {hand_text}"
     cv2.putText(image, stats_text, (10, 850), font, font_scale, (0, 0, 0), thickness + 1)
     cv2.putText(image, stats_text, (10, 850), font, font_scale, (255, 255, 0), thickness)
 
     # Controls
-    controls = "Controls: [R]adius [E]ps [M]orph [S]ave [Q]uit"
-    cv2.putText(image, controls, (350, 830), font, font_scale, (0, 0, 0), thickness + 1)
-    cv2.putText(image, controls, (350, 830), font, font_scale, (200, 200, 200), thickness)
+    controls = "Controls: [R]adius [E]ps [M]orph [D]epth range [S]ave [Q]uit"
+    cv2.putText(image, controls, (300, 830), font, font_scale, (0, 0, 0), thickness + 1)
+    cv2.putText(image, controls, (300, 830), font, font_scale, (200, 200, 200), thickness)
 
     return image
 
@@ -229,6 +328,7 @@ def main():
     print("  [R] - Cycle radius values (3, 5, 7, 9)")
     print("  [E] - Cycle eps values (0.001, 0.01, 0.1, 0.5)")
     print("  [M] - Cycle morphology kernel size (3, 5, 7)")
+    print("  [D] - Cycle hand detection depth range")
     print("  [S] - Save current frames to disk")
     print("  [Q] - Quit")
     print()
@@ -237,10 +337,18 @@ def main():
     radius_options = [3, 5, 7, 9]
     eps_options = [0.001, 0.01, 0.1, 0.5]
     morph_options = [3, 5, 7]
+    # Hand detection depth ranges (min_depth, max_depth) in mm
+    hand_depth_options = [
+        (300, 800),    # Very close
+        (300, 1000),   # Close (default)
+        (300, 1500),   # Medium
+        (500, 2000),   # Far
+    ]
 
     radius_idx = 1  # Start with radius=5
     eps_idx = 1     # Start with eps=0.01
     morph_idx = 0   # Start with morph=3
+    hand_depth_idx = 1  # Start with 300-1000mm
 
     last_depth_frame = None
     last_ir_frame = None
@@ -258,6 +366,7 @@ def main():
         radius = radius_options[radius_idx]
         eps = eps_options[eps_idx]
         morph = morph_options[morph_idx]
+        hand_min, hand_max = hand_depth_options[hand_depth_idx]
 
         # Get depth frame
         if kinect.has_new_depth_frame():
@@ -281,6 +390,12 @@ def main():
                 last_depth_frame, ir_8bit, radius, eps, morph
             )
 
+            # Detect hand from reconstructed depth
+            hand_contour, fingertips, hand_center = detect_hand_from_depth(
+                depth_reconstructed, min_depth=hand_min, max_depth=hand_max
+            )
+            hand_data = (hand_contour, fingertips, hand_center) if hand_contour is not None else None
+
             # Calculate statistics
             total_pixels = last_depth_frame.size
             invalid_count = np.sum(mask_invalid > 0)
@@ -293,18 +408,21 @@ def main():
             stats = {
                 'invalid_count': invalid_count,
                 'invalid_pct': invalid_pct,
-                'recovered_count': recovered_count
+                'recovered_count': recovered_count,
+                'hand_detected': hand_contour is not None
             }
 
             params = {
                 'radius': radius,
                 'eps': eps,
-                'morph': morph
+                'morph': morph,
+                'hand_min': hand_min,
+                'hand_max': hand_max
             }
 
-            # Create comparison visualization
+            # Create comparison visualization with hand overlay
             comparison = create_comparison_view(
-                last_depth_frame, depth_reconstructed, ir_8bit, mask_cleaned
+                last_depth_frame, depth_reconstructed, ir_8bit, mask_cleaned, hand_data
             )
 
             # Add text overlay
@@ -327,6 +445,10 @@ def main():
         elif key == ord('m'):
             morph_idx = (morph_idx + 1) % len(morph_options)
             print(f"Morphology kernel changed to: {morph_options[morph_idx]}")
+        elif key == ord('d'):
+            hand_depth_idx = (hand_depth_idx + 1) % len(hand_depth_options)
+            new_min, new_max = hand_depth_options[hand_depth_idx]
+            print(f"Hand depth range changed to: {new_min}-{new_max}mm")
         elif key == ord('s'):
             if last_depth_frame is not None and last_ir_frame is not None:
                 os.makedirs(output_dir, exist_ok=True)
