@@ -6,6 +6,8 @@ import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
 import { formatResultCpa } from './dataflowResultCpa';
 import { FlowNodeCard } from './FlowNodeCard';
+import { ResultArrayVisual } from './ResultArrayVisual';
+import type { ResultVisualItem } from '@/services/executeProgram';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = {
@@ -13,6 +15,8 @@ export type ProgramOutputFlowNodeData = {
   value?: number;
   /** Descripción semántica para resultados de arreglo */
   description?: string;
+  /** Cubos / iconos en orden del arreglo (Montessori, forma, comida). */
+  visualStrip?: ResultVisualItem[];
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
@@ -26,19 +30,25 @@ export function ProgramOutputFlowNode({
 
   const value = data.value;
   const description = data.description;
+  const visualStrip = data.visualStrip;
 
   const modeLabel = viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A';
 
   const display =
     executionError ? (
-      <p className="text-lg font-semibold text-red-400 text-center leading-snug px-1">{executionError}</p>
+      <p className="max-h-48 overflow-y-auto text-left text-sm font-semibold leading-snug text-red-400 whitespace-pre-wrap px-1">
+        {executionError}
+      </p>
     ) : description ? (
       // Resultado semántico (arreglo de objetos)
-      <div className="flex flex-col items-center gap-1 text-white">
+      <div className="flex flex-col items-center gap-0.5 text-white">
         <LayoutList className="w-5 h-5 text-slate-400" strokeWidth={2} />
         <p className="text-lg text-center text-teal-200 leading-snug px-1">
           {description}
         </p>
+        {visualStrip && visualStrip.length > 0 ? (
+          <ResultArrayVisual items={visualStrip} />
+        ) : null}
       </div>
     ) : value !== undefined ? (
       // Resultado numérico

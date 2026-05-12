@@ -1,4 +1,10 @@
-import type { Program, Statement, Expression, IdentifierExpression } from "../analyzer/ast";
+import type {
+  Program,
+  Statement,
+  Expression,
+  IdentifierExpression,
+  Literal,
+} from "../analyzer/ast";
 import type { ExecutionNode } from "./types";
 import { RuntimeError } from "./errors";
 
@@ -64,11 +70,18 @@ function getStatementId(stmt: Statement): string {
   return stmt.identifier;
 }
 
+/** Identificadores referenciados en un literal de arreglo (p. ej. `source z = [a, b]`). */
+function extractArrayLiteralIdentifierDependencies(lit: Literal): string[] {
+  if (lit.type !== "ArrayLiteral") return [];
+  return lit.elements
+    .filter((el): el is IdentifierExpression => el.type === "Identifier")
+    .map((el) => el.name);
+}
+
 function extractDependencies(stmt: Statement): string[] {
   switch (stmt.type) {
     case "SourceStatement":
-      // Sources have no dependencies (only contain literals)
-      return [];
+      return extractArrayLiteralIdentifierDependencies(stmt.value);
 
     case "TransformStatement":
       // Extract identifier references from arguments

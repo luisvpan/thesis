@@ -2,7 +2,11 @@
  * Service for executing dataflow programs client-side using the interpreter.
  */
 
-import { Interpreter } from "@dataflow/interpreter";
+import {
+  Interpreter,
+  RuntimeError,
+  type ParseError,
+} from "@dataflow/interpreter";
 import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
 import type { Edge } from "@xyflow/react";
@@ -39,11 +43,61 @@ interface SemanticResult {
   categories: CategoryGroup[];
   totalAmount: number;
   description: string;
+  /** Orden de aparición para la tira gráfica bajo el texto (cubos / iconos). */
+  visualStrip: ResultVisualItem[];
 }
+
+/** Unidad visual en la carta de salida (orden = orden del arreglo aplanado). */
+export type ResultVisualMontessori = { kind: "montessori"; color: string };
+export type ResultVisualForma = { kind: "forma"; subtype: string; size: string };
+export type ResultVisualComida = { kind: "comida"; subtype: string; color: string };
+export type ResultVisualItem =
+  | ResultVisualMontessori
+  | ResultVisualForma
+  | ResultVisualComida;
 
 export type ResultValue =
   | { kind: "number"; value: number }
   | { kind: "semantic"; result: SemanticResult };
+
+function formatInterpreterErrors(
+  errors: Array<ParseError | RuntimeError>
+): string {
+  return errors
+    .map((e, i) => {
+      const prefix = errors.length > 1 ? `${i + 1}. ` : "";
+      if (e instanceof RuntimeError) {
+        return `${prefix}${e.message}`;
+      }
+      let s = `${prefix}${e.message}`;
+      if (e.line !== undefined) {
+        s += ` (línea ${e.line}`;
+        if (e.column !== undefined) s += `, columna ${e.column}`;
+        s += ")";
+      }
+      return s;
+    })
+    .join("\n");
+}
+
+function logInterpreterErrors(errors: Array<ParseError | RuntimeError>): void {
+  for (const e of errors) {
+    if (e instanceof RuntimeError) {
+      console.error("[execute] Interpreter RuntimeError:", {
+        code: e.code,
+        nodeId: e.nodeId,
+        message: e.message,
+        stack: e.stack,
+      });
+    } else {
+      console.error("[execute] Interpreter ParseError:", {
+        message: e.message,
+        line: e.line,
+        column: e.column,
+      });
+    }
+  }
+}
 
 export type ExecuteResult = {
   success: boolean;
@@ -131,6 +185,63 @@ function pluralize(word: string, count: number): string {
 }
 
 // ============================================================================
+// Tira visual (cubos Montessori, etc.) — orden del arreglo en runtime
+// ============================================================================
+
+const MAX_VISUAL_UNITS = 48;
+
+function flattenRuntimeElements(elements: unknown[]): unknown[] {
+  const out: unknown[] = [];
+  for (const el of elements) {
+    if (!el || typeof el !== "object") continue;
+    const o = el as Record<string, unknown>;
+    if (o.kind === "arreglo" && Array.isArray(o.elements)) {
+      out.push(...flattenRuntimeElements(o.elements));
+    } else {
+      out.push(el);
+    }
+  }
+  return out;
+}
+
+function buildVisualStrip(elements: unknown[]): ResultVisualItem[] {
+  const flat = flattenRuntimeElements(elements);
+  const strip: ResultVisualItem[] = [];
+
+  for (const elem of flat) {
+    if (!elem || typeof elem !== "object") continue;
+    const o = elem as Record<string, unknown>;
+    const rawAmt = getAmount(elem);
+    const n = Math.max(0, Math.min(24, Math.round(Number(rawAmt) || 0)));
+    if (n === 0) continue;
+
+    if (o.kind === "montessori") {
+      const color = String(o.color ?? "verde");
+      for (let i = 0; i < n; i++) {
+        if (strip.length >= MAX_VISUAL_UNITS) return strip;
+        strip.push({ kind: "montessori", color });
+      }
+    } else if (o.kind === "forma") {
+      const subtype = String(o.subtype ?? "forma");
+      const size = String(o.size ?? "mediano");
+      for (let i = 0; i < n; i++) {
+        if (strip.length >= MAX_VISUAL_UNITS) return strip;
+        strip.push({ kind: "forma", subtype, size });
+      }
+    } else if (o.kind === "comida") {
+      const subtype = String(o.subtype ?? "comida");
+      const color = String(o.color ?? "verde");
+      for (let i = 0; i < n; i++) {
+        if (strip.length >= MAX_VISUAL_UNITS) return strip;
+        strip.push({ kind: "comida", subtype, color });
+      }
+    }
+  }
+
+  return strip;
+}
+
+// ============================================================================
 // Agrupación jerárquica de elementos
 // ============================================================================
 
@@ -194,8 +305,9 @@ function groupElements(elements: unknown[]): SemanticResult {
 
   const categories = Array.from(categoryMap.values());
   const description = generateDescription(categories, totalAmount);
+  const visualStrip = buildVisualStrip(elements);
 
-  return { categories, totalAmount, description };
+  return { categories, totalAmount, description, visualStrip };
 }
 
 // ============================================================================
@@ -304,8 +416,9 @@ export function createProgramExecutor() {
       if (nodes.length === 0) {
         return { success: false, error: "No hay nodos para ejecutar" };
       }
-
+      
       const program = flowToProgram(nodes, edges);
+      console.log("[frontend → interpreter] Program:", program);
       console.log(
         "[execute] Program with",
         program.statements.length,
@@ -323,8 +436,9 @@ export function createProgramExecutor() {
         );
 
         if (errors.length > 0) {
-          const errorMsg = errors[0].message;
-          console.error("[execute] Interpreter error:", errorMsg);
+          logInterpreterErrors(errors);
+          const errorMsg = formatInterpreterErrors(errors);
+          console.error("[execute] Interpreter errors (texto):", errorMsg);
           return { success: false, error: errorMsg };
         }
 
@@ -386,7 +500,10 @@ export function createProgramExecutor() {
 
         return { success: true, results: resultsMap };
       } catch (err) {
-        console.error("[execute] Error:", err);
+        console.error("[execute] Excepción al ejecutar:", err);
+        if (err instanceof Error && err.stack) {
+          console.error("[execute] Stack:", err.stack);
+        }
         return {
           success: false,
           error: err instanceof Error ? err.message : "Error de ejecución",

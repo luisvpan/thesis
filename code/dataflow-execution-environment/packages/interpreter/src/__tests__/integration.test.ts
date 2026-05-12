@@ -154,6 +154,23 @@ describe("Integration", () => {
       expect(azules.amount.equals(new Fraction(5))).toBe(true);
     });
 
+    test("sum merges array source built from identifiers with another montessori", async () => {
+      const interpreter = new Interpreter();
+      const result = await interpreter.execute(`
+        source orange = { type: montessori, color: naranja, amount: 1 };
+        source purple = { type: montessori, color: morado, amount: 1 };
+        source red = { type: montessori, color: rojo, amount: 1 };
+        source duo = [orange, purple];
+        transform added = sum(duo, red);
+        sink result = added;
+      `);
+
+      expect(result.errors).toHaveLength(0);
+      const sinkResult = result.results.get("result") as ArrayValue;
+      expect(sinkResult.kind).toBe("arreglo");
+      expect(sinkResult.elements).toHaveLength(3);
+    });
+
     test("montessori cubes are concrete category", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`

@@ -5,6 +5,8 @@ export {
   type ParseError,
 } from "./interpreter";
 
+export { RuntimeError, type ErrorCode } from "./runtime/errors";
+
 export { serialize, deserialize, type SerializeResult } from "./serializer";
 
 export type {

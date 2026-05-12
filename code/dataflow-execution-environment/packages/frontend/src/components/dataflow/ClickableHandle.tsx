@@ -22,10 +22,11 @@ export function ClickableHandle({
   style,
   disabled = false,
 }: ClickableHandleProps) {
-  const { isPortSelected, handlePortClick } = useNode();
+  const { isPortSelected, handlePortClick, isNodeInsideArrayZone } = useNode();
   const [isCooldown, setIsCooldown] = useState(false);
 
   const selected = !disabled && isPortSelected(nodeId, id, type);
+  const hideInArrayZone = isNodeInsideArrayZone(nodeId);
 
   const handleClick = (e: React.MouseEvent) => {
     if (disabled) return;
@@ -54,6 +55,8 @@ export function ClickableHandle({
       position={position}
       id={id}
       className={`nodrag nopan !h-20 !w-20 !border-2 ${colorClass} ${cooldownClass} ${
+        hideInArrayZone ? "!invisible !pointer-events-none" : ""
+      } ${
         disabled ? "pointer-events-none cursor-not-allowed opacity-35" : "cursor-pointer"
       } ${className}`}
       style={style}

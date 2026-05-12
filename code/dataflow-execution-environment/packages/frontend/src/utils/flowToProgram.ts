@@ -11,9 +11,13 @@ import type {
   Operation,
   ArrayLiteral,
 } from "@dataflow/interpreter";
-import type { DataflowNode } from "@/contexts/NodeContext";
 import type { Edge } from "@xyflow/react";
-import type { SourceFlowNodeData, OperatorFlowNodeData } from "@/components/dataflow";
+import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
+import type { DataflowNode } from "../contexts/node/types";
+import {
+  getArrayZoneBounds,
+  shouldIncludeNodeInArrayZone,
+} from "./arrayZoneGeometry";
 
 const OPERATOR_MAP: Record<string, Operation> = {
   adicion: "sum",
@@ -35,10 +39,6 @@ function normalizeSize(size: string | undefined): string {
   if (!size) return "mediano";
   return SIZE_MAP[size] ?? size;
 }
-
-// Approximate rendered size of the bracket nodes (px, in XYFlow coordinates)
-const BRACKET_NODE_W = 64;
-const BRACKET_NODE_H = 80;
 
 /**
  * Converts ReactFlow nodes and edges to a Program object for the interpreter.
@@ -101,8 +101,8 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
   }
 
   // 2a. Array pairs: each edge from arrayOpen → arrayClose (zone-in) defines an array.
-  //     The bounding box of the two bracket nodes determines which source/operator nodes
-  //     are elements of the array.
+  //     AABB entre handlers zone-out (abrir) y zone-in (cerrar); miembros = fuentes/operadores
+  //     cuyo centro de carta cae dentro (inclusive).
   for (const edge of edges) {
     if (edge.targetHandle !== "zone-in") continue;
 
@@ -114,18 +114,12 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
     );
     if (!openNode || !closeNode) continue;
 
-    const left   = Math.min(openNode.position.x, closeNode.position.x);
-    const right  = Math.max(openNode.position.x, closeNode.position.x) + BRACKET_NODE_W;
-    const top    = Math.min(openNode.position.y, closeNode.position.y);
-    const bottom = Math.max(openNode.position.y, closeNode.position.y) + BRACKET_NODE_H;
+    const bounds = getArrayZoneBounds(openNode, closeNode);
 
     const inner = nodes
-      .filter((n) => n.type === "source" || n.type === "operator")
-      .filter((n) => {
-        const nx = n.position.x;
-        const ny = n.position.y;
-        return nx >= left && nx <= right && ny >= top && ny <= bottom;
-      })
+      .filter((n) =>
+        shouldIncludeNodeInArrayZone(n, openNode.id, closeNode.id, bounds)
+      )
       .sort((a, b) =>
         a.position.x !== b.position.x
           ? a.position.x - b.position.x

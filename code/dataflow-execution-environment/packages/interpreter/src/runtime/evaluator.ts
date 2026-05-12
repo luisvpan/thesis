@@ -133,7 +133,7 @@ export class LazyEvaluator {
   ): RuntimeValue {
     switch (stmt.type) {
       case "SourceStatement":
-        return this.evaluateLiteral(stmt.value);
+        return this.evaluateSourceStatementValue(stmt.value, deps);
 
       case "TransformStatement": {
         const args = stmt.arguments.map((arg) =>
@@ -164,6 +164,36 @@ export class LazyEvaluator {
     return this.evaluateLiteral(expr);
   }
 
+  /**
+   * Valor de un `source`: literales de arreglo con identificadores resuelven contra `deps`
+   * (nodos fuente referenciados, declarados en el grafo antes que este `source`).
+   */
+  private evaluateSourceStatementValue(
+    literal: Literal,
+    deps: Map<string, RuntimeValue>
+  ): RuntimeValue {
+    if (literal.type === "ArrayLiteral") {
+      return {
+        kind: "arreglo",
+        elements: literal.elements.map((el) => {
+          if (el.type === "Identifier") {
+            const v = deps.get(el.name);
+            if (v === undefined) {
+              throw new RuntimeError(
+                "UNDEFINED_REFERENCE",
+                `Undefined reference in array literal: ${el.name}`,
+                undefined
+              );
+            }
+            return v;
+          }
+          return this.evaluateLiteral(el as Literal);
+        }),
+      };
+    }
+    return this.evaluateLiteral(literal);
+  }
+
   private evaluateLiteral(literal: Literal): RuntimeValue {
     switch (literal.type) {
       case "NumberLiteral":
@@ -180,8 +210,11 @@ export class LazyEvaluator {
           kind: "arreglo",
           elements: literal.elements.map((el) => {
             if (el.type === "Identifier") {
-              // Identifiers in array literals are treated as "otro" values
-              return { kind: "otro" as const, value: el.name };
+              throw new RuntimeError(
+                "INVALID_ARGUMENT",
+                "Array literal with identifiers must be bound in a source statement so references are resolved (e.g. source z = [a, b]); bare identifiers in inline arrays are not supported here.",
+                undefined
+              );
             }
             return this.evaluateLiteral(el as Literal);
           }),

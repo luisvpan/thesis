@@ -17,17 +17,19 @@ export function mergeProgramOutputsFromResults(
     let newData: ProgramOutputFlowNodeData;
 
     if (resultValue.kind === "number") {
-      newData = { value: resultValue.value, description: undefined };
+      newData = { value: resultValue.value, description: undefined, visualStrip: undefined };
     } else {
       newData = {
         value: resultValue.result.totalAmount,
         description: resultValue.result.description,
+        visualStrip: resultValue.result.visualStrip,
       };
     }
 
     if (
       currentData.value === newData.value &&
-      currentData.description === newData.description
+      currentData.description === newData.description &&
+      JSON.stringify(currentData.visualStrip) === JSON.stringify(newData.visualStrip)
     ) {
       return n;
     }
