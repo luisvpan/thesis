@@ -287,10 +287,10 @@ def main() -> None:
                     depth_coordinate_transformer,
                     resolution_mapper,
                     config.detection,
+                    rgb_H=calibration_result.rgb_H,
                     show_debug=show_debug,
-                    use_ir_refinement=True,
                 )
-                print("  MediapipeDIRECTHybridTouchDetector (MediaPipe + DIRECT + IR) initialized")
+                print("  MediapipeDIRECTHybridTouchDetector (MediaPipe + DIRECT) initialized")
             else:  # mediapipe
                 detector = TouchDetector(
                     calibration_result.dmax_map,

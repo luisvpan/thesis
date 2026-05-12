@@ -20,7 +20,6 @@ from cv_system.detection.direct_touch_detector import DIRECTTouchDetector
 from cv_system.detection.farout_touch_detector import FarOutTouchDetector, FarOutTouch
 from cv_system.detection.mediapipe_direct_hybrid_touch_detector import (
     MediapipeDIRECTHybridTouchDetector,
-    HybridTouchPoint,
 )
 from cv_system.detection.touch_tracker import TouchTracker, TrackedTouch
 
@@ -88,7 +87,6 @@ __all__ = [
     "FarOutTouchDetector",
     "FarOutTouch",
     "MediapipeDIRECTHybridTouchDetector",
-    "HybridTouchPoint",
     "TouchMethod",
     "TouchTracker",
     "TrackedTouch",

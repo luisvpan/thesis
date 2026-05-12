@@ -163,6 +163,9 @@ class DIRECTTouchDetector:
                 touches_projector.append(
                     (float(proj_point[0, 0]), float(proj_point[0, 1]))
                 )
+                # Debug: compare with Hybrid
+                if self._show_debug:
+                    print(f"[DIRECT] depth({finger.tip_x},{finger.tip_y}) -> proj({proj_point[0,0]:.0f},{proj_point[0,1]:.0f})")
 
         # Debug visualization
         if self._show_debug:

@@ -38,14 +38,14 @@ class PyKinect2ResolutionMapper:
         Must be called once per frame before using rgb_to_depth.
 
         Args:
-            depth_frame: Depth frame (can be flipped - will be unflipped internally)
+            depth_frame: Depth frame (vertically flipped, same as color frame)
         """
         from pykinect2 import PyKinectV2
 
-        # Unflip depth frame for SDK (it expects raw sensor layout)
-        depth_unflipped = cv2.flip(depth_frame, 1)
-
-        depth_flat = depth_unflipped.flatten().astype(np.uint16)
+        # Give SDK the depth frame AS-IS (flipped).
+        # The SDK will compute mappings in the flipped coordinate system,
+        # matching the flipped color frame.
+        depth_flat = depth_frame.flatten().astype(np.uint16)
         depth_ptr = depth_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_ushort))
 
         self._depth_space_points = (
@@ -59,20 +59,59 @@ class PyKinect2ResolutionMapper:
             self._depth_space_points,
         )
 
-    def rgb_to_depth(self, points: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    def rgb_to_depth(self, points: list[tuple[int, int]], debug: bool = False) -> list[tuple[int, int]]:
         """Map RGB coordinates to depth coordinates.
 
-        Uses simple linear scaling. Both RGB and depth frames are already
-        flipped by PyKinect2HardwareManager, so no flip handling needed here.
+        Uses Kinect SDK's MapColorFrameToDepthSpace for accurate mapping.
+        Requires update_mapping() to be called first with current depth frame.
+
+        Args:
+            points: List of (x, y) coordinates in RGB space (vertically flipped frame).
+            debug: If True, print debug info about the mapping.
+
+        Returns:
+            List of (x, y) coordinates in depth space (vertically flipped frame).
+            Invalid mappings (where SDK returns -inf) return (-1, -1).
         """
-        # Simple linear scaling (both frames are already flipped consistently)
-        return [
-            (
-                int(x * self._depth_width / self._color_width),
-                int(y * self._depth_height / self._color_height),
-            )
-            for x, y in points
-        ]
+        if self._depth_space_points is None:
+            # Fallback to linear scaling if mapping not initialized
+            if debug:
+                print("[rgb_to_depth] WARNING: SDK mapping not initialized, using linear scaling")
+            return [
+                (
+                    int(x * self._depth_width / self._color_width),
+                    int(y * self._depth_height / self._color_height),
+                )
+                for x, y in points
+            ]
+
+        result = []
+        for x, y in points:
+            # Bounds check
+            if not (0 <= x < self._color_width and 0 <= y < self._color_height):
+                result.append((-1, -1))
+                continue
+
+            # Look up depth coordinate from SDK mapping (row-major: y * width + x)
+            # Both color and depth frames are flipped, so SDK mapping is in flipped space
+            idx = y * self._color_width + x
+            depth_point = self._depth_space_points[idx]
+            depth_x = depth_point.x
+            depth_y = depth_point.y
+
+            # SDK returns -inf for invalid mappings
+            if depth_x < 0 or depth_y < 0 or depth_x >= self._depth_width or depth_y >= self._depth_height:
+                if debug:
+                    print(f"[rgb_to_depth] rgb({x},{y}) -> INVALID (sdk returned {depth_x:.1f},{depth_y:.1f})")
+                result.append((-1, -1))
+                continue
+
+            if debug:
+                print(f"[rgb_to_depth] rgb({x},{y}) -> depth({int(depth_x)},{int(depth_y)})")
+
+            result.append((int(depth_x), int(depth_y)))
+
+        return result
 
     def depth_to_rgb(self, points: list[tuple[int, int]]) -> list[tuple[int, int]]:
         """Map depth coordinates to RGB coordinates.
