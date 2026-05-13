@@ -62,7 +62,7 @@ class TouchEvent:
 
         self.type = event_type
         self.touch_id = touch_id
-        self.position = {"x": round(x, 2), "y": round(y, 2)}
+        self.position = {"x": float(round(x, 2)), "y": float(round(y, 2))}
         self.timestamp = timestamp
 
         logger.debug(

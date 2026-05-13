@@ -212,25 +212,32 @@ class WebSocketBridge:
         Raises:
             RuntimeError: If WebSocket is not connected.
         """
-        if self.ws is None or self.state != ConnectionState.CONNECTED:
-            raise RuntimeError("WebSocket is not connected. Call connect() first.")
+        try:
+            print(f"[WS_CLIENT] send_touch_event called, state={self.state}, ws={self.ws is not None}")
+            if self.ws is None or self.state != ConnectionState.CONNECTED:
+                raise RuntimeError("WebSocket is not connected. Call connect() first.")
 
-        if "position" not in touch:
-            raise ValueError("Touch event must have 'position' field")
-        if "x" not in touch["position"]:
-            raise ValueError("Position must have 'x' coordinate")
-        if "y" not in touch["position"]:
-            raise ValueError("Position must have 'y' coordinate")
+            if "position" not in touch:
+                raise ValueError("Touch event must have 'position' field")
+            if "x" not in touch["position"]:
+                raise ValueError("Position must have 'x' coordinate")
+            if "y" not in touch["position"]:
+                raise ValueError("Position must have 'y' coordinate")
 
-        message = json.dumps(touch)
+            message = json.dumps(touch)
 
-        logger.debug(
-            f"Sending touch event: x={touch['position']['x']:.1f}, "
-            f"y={touch['position']['y']:.1f}, "
-            f"timestamp={touch['timestamp']}"
-        )
+            print(
+                f"[WS_CLIENT] Sending: type={touch.get('type')}, "
+                f"x={touch['position']['x']:.1f}, "
+                f"y={touch['position']['y']:.1f}"
+            )
 
-        await self.ws.send(message)
+            await self.ws.send(message)
+            print("[WS_CLIENT] Touch event sent successfully")
+        except Exception as e:
+            import traceback
+            print(f"[WS_CLIENT] EXCEPTION: {e}")
+            traceback.print_exc()
 
     async def _graceful_shutdown(self) -> None:
         try:

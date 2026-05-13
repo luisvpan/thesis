@@ -81,14 +81,51 @@ class CalibrationConfig(BaseModel):
         (512, 424),
     ]
 
-    # Four corner points in projector coordinates (y, x)
-    # Format: [(y1, x1), (y2, x2), (y3, x3), (y4, x4)]
+    # Calibration grid size (rows, cols) - more points = better homography
+    # (2, 2) = 4 points (corners only, legacy behavior)
+    # (3, 3) = 9 points (recommended)
+    # (4, 4) = 16 points (high precision)
+    calibration_grid: Tuple[int, int] = (3, 3)
+
+    # Margin from projector edges in pixels
+    calibration_margin: int = 100
+
+    # Projector resolution for generating grid points (width, height)
+    projector_size: Tuple[int, int] = (1920, 1080)
+
+    # Legacy: Four corner points in projector coordinates (ignored if calibration_grid is set)
+    # Format: [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
     projector_corners: list[Tuple[int, int]] = [
         (0, 0),
-        (0, 1080),
         (1920, 0),
+        (0, 1080),
         (1920, 1080),
     ]
+
+    def get_projector_points(self) -> list[Tuple[int, int]]:
+        """Generate calibration points as a grid.
+
+        Returns:
+            List of (x, y) points in projector coordinates, row by row.
+        """
+        rows, cols = self.calibration_grid
+        width, height = self.projector_size
+        margin = self.calibration_margin
+
+        # Calculate spacing
+        x_start = margin
+        x_end = width - margin
+        y_start = margin
+        y_end = height - margin
+
+        points = []
+        for row in range(rows):
+            y = y_start + (y_end - y_start) * row // (rows - 1) if rows > 1 else (y_start + y_end) // 2
+            for col in range(cols):
+                x = x_start + (x_end - x_start) * col // (cols - 1) if cols > 1 else (x_start + x_end) // 2
+                points.append((x, y))
+
+        return points
 
     @field_validator("dsurface_num_frames")
     @classmethod

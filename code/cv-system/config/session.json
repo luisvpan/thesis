@@ -12,9 +12,9 @@
   },
   "calibration": {
     "dsurface_num_frames": 2000,
-    "histogram_threshold": 2,
+    "histogram_threshold": 10,
     "histogram_range": 25,
-    "surface_offset": 2,
+    "surface_offset": 1,
     "depth_range_min": 650,
     "depth_range_max": 800,
     "camera_corners": [
@@ -56,7 +56,7 @@
   },
   "detection": {
     "ring_buffer_size": 3,
-    "touch_threshold": 10,
+    "touch_threshold": 30,
     "min_touch_size": 15,
     "max_touch_size": 5000,
     "vibration_threshold": 15,

@@ -74,40 +74,42 @@ class Calibrator:
             raise ValueError("Config must have 'calibration' attribute")
 
         calibration = config.calibration
-        if not hasattr(calibration, "projector_corners"):
-            raise ValueError("Calibration config must have projector_corners")
 
-        if len(calibration.projector_corners) != 4:
+        # Get calibration grid points
+        self.projector_points = calibration.get_projector_points()
+        expected_count = len(self.projector_points)
+
+        if expected_count < 4:
             raise ValueError(
-                f"Exactly 4 projector corners required: "
-                f"got {len(calibration.projector_corners)} corners"
+                f"At least 4 calibration points required: "
+                f"got {expected_count} points from grid {calibration.calibration_grid}"
             )
 
-        # Initialize marker detector with default parameters
-        self.marker_detector = MarkerDetector()
+        # Initialize marker detector with expected count
+        self.marker_detector = MarkerDetector(expected_count=expected_count)
 
         # Initialize marker projector with default resolution
         self.marker_projector = MarkerProjector()
 
         logger.info(
-            f"Calibrator initialized with marker detection: "
-            f"projector_corners={calibration.projector_corners}"
+            f"Calibrator initialized with grid calibration: "
+            f"grid={calibration.calibration_grid}, points={expected_count}"
         )
 
     def run(self) -> CalibrationResult:
         """Run the full automatic calibration process.
 
         Process:
-        1. Project 4 calibration markers and detect them in RGB frame
+        1. Project calibration markers at grid positions and detect them in RGB frame
         2. Map detected RGB centroids to depth coordinates
-        3. Compute homography matrix from detected camera_corners
-        4. Generate dmax_map using direct mode estimation (no histogram, no depth range filtering)
+        3. Compute homography matrix from detected camera points (uses least squares for N > 4)
+        4. Generate dmax_map using Wilson 2010 algorithm
         5. Validate results
         6. Return immutable CalibrationResult with generation metadata
 
         Returns:
             CalibrationResult with homography matrix, dmax_map, camera_corners,
-            and metadata (includes "method": "direct").
+            and metadata.
 
         Raises:
             RuntimeError: If calibration fails at any step.
@@ -141,6 +143,8 @@ class Calibrator:
         calibration = self.config.calibration
         metadata = {
             "method": "wilson",  # Wilson 2010 per-pixel histogram algorithm
+            "calibration_grid": calibration.calibration_grid,
+            "calibration_points": len(self.projector_points),
             "num_frames": calibration.dsurface_num_frames,
             "histogram_threshold": calibration.histogram_threshold,
             "histogram_range": calibration.histogram_range,
@@ -156,6 +160,7 @@ class Calibrator:
 
         print("\n" + "=" * 60)
         print("Calibration complete")
+        print(f"  Grid: {calibration.calibration_grid} ({len(self.projector_points)} points)")
         print(f"  Depth H shape: {result.depth_H.shape}")
         print(f"  RGB H shape: {result.rgb_H.shape}")
         print(f"  dmax_map shape: {result.dmax_map.shape}")
@@ -168,7 +173,7 @@ class Calibrator:
         """Compute homography matrix via automatic marker detection.
 
         This method:
-        1. Projects 4 calibration markers at configured projector_corners
+        1. Projects calibration markers at grid positions
         2. Captures RGB frame from hardware manager
         3. Detects markers in RGB frame using MarkerDetector
         4. Maps detected RGB centroids to depth coordinates
@@ -176,21 +181,20 @@ class Calibrator:
 
         Returns:
             Tuple of (3x3 depth homography matrix (float32),
-            3x3 RGB homography matrix (float32), camera_corners as list of 4
-            (x, y) tuples in depth coordinates, camera_corners as list of 4
+            3x3 RGB homography matrix (float32), camera_corners as list of N
+            (x, y) tuples in depth coordinates, camera_corners as list of N
             (x, y) tuples in RGB coordinates).
 
         Raises:
             RuntimeError: If homography computation fails.
             ValueError: If marker detection fails or RGB frame is invalid.
         """
-        calibration = self.config.calibration
-        projector_corners = calibration.projector_corners
+        projector_points = self.projector_points
 
         try:
             # Step 1: Project markers
-            logger.info(f"Projecting markers at {projector_corners}")
-            self.marker_projector.project_markers(projector_corners)
+            logger.info(f"Projecting {len(projector_points)} markers at grid positions")
+            self.marker_projector.project_markers(projector_points)
             logger.info("Marker projection complete")
             cv2.waitKey()
             # Step 2: Capture RGB frame
@@ -239,11 +243,11 @@ class Calibrator:
             # Step 5: Compute homography matrix
             depth_H = compute_homography(
                 camera_points=depth_corners,
-                projector_points=projector_corners,
+                projector_points=projector_points,
             )
             rgb_H = compute_homography(
                 camera_points=rgb_corners,
-                projector_points=projector_corners,
+                projector_points=projector_points,
             )
 
             # Validate the homography

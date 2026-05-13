@@ -187,17 +187,23 @@ async def ws_live(websocket: WebSocket) -> None:
     try:
         while True:
             raw = await websocket.receive_text()
+            logger.info(f"[touch] received raw: {raw[:100]}...")
             try:
                 data = json.loads(raw)
             except json.JSONDecodeError:
+                logger.warning("[touch] JSON decode error")
                 continue
-            if data.get("type") != "touch":
+            event_type = data.get("type")
+            logger.info(f"[touch] event_type={event_type}")
+            if event_type not in ("touch", "touch_down", "touch_move", "touch_up"):
+                logger.info(f"[touch] filtered out type={event_type}")
                 continue
             pos = data.get("position") or {}
             if not isinstance(pos, dict):
                 continue
             payload = {
-                "type": "touch",
+                "type": event_type,  # Preserve original event type
+                "touch_id": data.get("touch_id", 0),
                 "position": {
                     "x": float(pos.get("x", 0)),
                     "y": float(pos.get("y", 0)),
@@ -206,8 +212,10 @@ async def ws_live(websocket: WebSocket) -> None:
                 "t": int(time.time() * 1000),
             }
             await broadcast_to_touch(json.dumps(payload))
-            logger.debug(
-                "[touch] relay ok (%s, %s)",
+            logger.info(
+                "[touch] relay %s id=%s (%s, %s)",
+                event_type,
+                payload["touch_id"],
                 payload["position"]["x"],
                 payload["position"]["y"],
             )

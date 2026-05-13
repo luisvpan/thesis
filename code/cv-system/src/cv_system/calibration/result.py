@@ -67,16 +67,16 @@ class CalibrationResult:
                 f"dmax_map must be 2D, got {self.dmax_map.ndim} dimensions"
             )
 
-        # Validate depth_corners has exactly 4 points if provided
-        if self.depth_corners and len(self.depth_corners) != 4:
+        # Validate depth_corners has at least 4 points if provided
+        if self.depth_corners and len(self.depth_corners) < 4:
             raise ValueError(
-                f"depth_corners must have exactly 4 points, got {len(self.depth_corners)}"
+                f"depth_corners must have at least 4 points, got {len(self.depth_corners)}"
             )
 
-        # Validate rgb_corners has exactly 4 points if provided
-        if self.rgb_corners and len(self.rgb_corners) != 4:
+        # Validate rgb_corners has at least 4 points if provided
+        if self.rgb_corners and len(self.rgb_corners) < 4:
             raise ValueError(
-                f"rgb_corners must have exactly 4 points, got {len(self.rgb_corners)}"
+                f"rgb_corners must have at least 4 points, got {len(self.rgb_corners)}"
             )
 
     def __repr__(self) -> str:
@@ -265,9 +265,9 @@ class CalibrationResult:
             corners_list = data["depth_corners"]
             depth_corners = [(x, y) for x, y in corners_list]
 
-            if len(depth_corners) != 4:
+            if len(depth_corners) < 4:
                 raise ValueError(
-                    f"depth_corners must have exactly 4 points, got {len(depth_corners)}"
+                    f"depth_corners must have at least 4 points, got {len(depth_corners)}"
                 )
         except (KeyError, TypeError) as e:
             raise ValueError(f"Failed to deserialize depth_corners: {e}") from e
@@ -277,9 +277,9 @@ class CalibrationResult:
             corners_list = data["rgb_corners"]
             rgb_corners = [(x, y) for x, y in corners_list]
 
-            if len(rgb_corners) != 4:
+            if len(rgb_corners) < 4:
                 raise ValueError(
-                    f"rgb_corners must have exactly 4 points, got {len(rgb_corners)}"
+                    f"rgb_corners must have at least 4 points, got {len(rgb_corners)}"
                 )
         except (KeyError, TypeError) as e:
             raise ValueError(f"Failed to deserialize rgb_corners: {e}") from e

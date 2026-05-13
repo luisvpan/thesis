@@ -96,102 +96,81 @@ class MarkerProjector:
             f"marker_size={self.marker_size}"
         )
 
-    def project_markers(self, projector_corners: list[tuple[int, int]]) -> int:
-        """Project 4 white square markers at the specified corner positions.
+    def project_markers(self, projector_points: list[tuple[int, int]]) -> int:
+        """Project white square markers at the specified positions.
 
         This method creates a black image at the projector resolution, draws
-        4 white squares at the specified corner positions, and displays the
-        image fullscreen using OpenCV.
+        white squares at the specified positions, and displays the image fullscreen.
 
-        The window remains open until explicitly destroyed by calling
-        destroy_window() or the program exits.
+        Supports any number of points (4 for corners, 9 for 3x3 grid, etc.)
 
         Args:
-            projector_corners: List of 4 (x, y) tuples specifying the positions
-                of the white square markers, going from top-left, top-right,
-                bottom-left, to bottom-right. Each corner must be within the image
-                bounds. What is represented by the position depends on the specific
-                corner, e.x., the top-left corner of the top-left marker should be
-                at the first specified (x, y) tuple.
+            projector_points: List of (x, y) tuples specifying the CENTER positions
+                of the white square markers. Each point must be within the image bounds.
 
         Returns:
             The OpenCV window handle for the fullscreen window.
 
         Raises:
-            ValueError: If projector_corners is invalid (wrong count, invalid
-                format, or out-of-bounds coordinates).
+            ValueError: If projector_points is invalid.
         """
-        # Validate input: exactly 4 corners required
-        if not isinstance(projector_corners, list):
+        # Validate input
+        if not isinstance(projector_points, list):
             raise ValueError(
-                f"projector_corners must be a list of 4 (x, y) tuples: "
-                f"got type {type(projector_corners)}"
+                f"projector_points must be a list of (x, y) tuples: "
+                f"got type {type(projector_points)}"
             )
 
-        if len(projector_corners) != 4:
+        if len(projector_points) < 4:
             raise ValueError(
-                f"Exactly 4 corners required: got {len(projector_corners)} corners"
+                f"At least 4 points required: got {len(projector_points)} points"
             )
 
-        # Validate each corner
-        for i, corner in enumerate(projector_corners):
-            if not isinstance(corner, (tuple, list)) or len(corner) != 2:
+        # Validate each point
+        width, height = self.resolution
+        for i, point in enumerate(projector_points):
+            if not isinstance(point, (tuple, list)) or len(point) != 2:
                 raise ValueError(
-                    f"projector_corners[{i}] must be an (x, y) tuple: got {corner}"
+                    f"projector_points[{i}] must be an (x, y) tuple: got {point}"
                 )
 
-            x, y = corner
+            x, y = point
 
             # Validate coordinates are integers
             if not isinstance(x, (int, np.integer)) or not isinstance(
                 y, (int, np.integer)
             ):
                 raise ValueError(
-                    f"projector_corners[{i}] coordinates must be integers: "
+                    f"projector_points[{i}] coordinates must be integers: "
                     f"got ({x}, {y})"
                 )
 
-            # Validate coordinates are within bounds
-            width, height = self.resolution
-            if x < 0 or x > width:
+            # Validate coordinates are within bounds (with margin for marker size)
+            margin = self.marker_size // 2
+            if x < margin or x > width - margin:
                 raise ValueError(
-                    f"projector_corners[{i}] x-coordinate out of bounds: "
-                    f"{x} not in [0, {width}]"
+                    f"projector_points[{i}] x-coordinate out of bounds: "
+                    f"{x} not in [{margin}, {width - margin}]"
                 )
-            if y < 0 or y > height:
+            if y < margin or y > height - margin:
                 raise ValueError(
-                    f"projector_corners[{i}] y-coordinate out of bounds: "
-                    f"{y} not in [0, {height}]"
+                    f"projector_points[{i}] y-coordinate out of bounds: "
+                    f"{y} not in [{margin}, {height - margin}]"
                 )
 
-        logger.info(f"Validated {len(projector_corners)} projector corners")
+        logger.info(f"Validated {len(projector_points)} projector points")
 
         # Create black image at projector resolution
-        width, height = self.resolution
         image = np.zeros((height, width, 3), dtype=np.uint8)
 
         logger.info(
             f"Created black image: resolution={self.resolution}, shape={image.shape}"
         )
 
-        # Draw white squares at each corner position
-        for i, (x, y) in enumerate(projector_corners):
+        # Draw white squares at each point (centered on the point)
+        half_size = self.marker_size // 2
+        for i, (x, y) in enumerate(projector_points):
             x_center, y_center = int(x), int(y)
-            half_size = self.marker_size // 2
-
-            match i:
-                case 0:  # top-left corner
-                    x_center += half_size
-                    y_center += half_size
-                case 1:  # top-right corner
-                    x_center -= half_size
-                    y_center += half_size
-                case 2:  # bottom-left corner
-                    x_center += half_size
-                    y_center -= half_size
-                case 3:  # bottom-right corner
-                    x_center -= half_size
-                    y_center -= half_size
 
             # Calculate square bounds (clipped to image bounds)
             x1 = max(0, x_center - half_size)
@@ -200,10 +179,10 @@ class MarkerProjector:
             y2 = min(height, y_center + half_size)
 
             print(
-                f"Drawing marker {i + 1} at ({x_center}, {y_center}), bounds=(({x1}, {y1}), ({x2}, {y2}))"
+                f"Drawing marker {i + 1}/{len(projector_points)} at ({x_center}, {y_center})"
             )
 
-            # Draw white square
+            # Draw magenta square
             image[y1:y2, x1:x2] = [255, 0, 255]
 
             logger.debug(
@@ -211,7 +190,7 @@ class MarkerProjector:
                 f"bounds=({x1}, {y1}, {x2}, {y2})"
             )
 
-        logger.info(f"Drew {len(projector_corners)} white square markers")
+        logger.info(f"Drew {len(projector_points)} white square markers")
 
         # Import cv2 only when needed (lazy import for CI environments)
         try:
