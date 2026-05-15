@@ -15,8 +15,12 @@ export type SourceFlowNodeData =
 
 export type SourceFlowNode = Node<SourceFlowNodeData, 'source'>;
 
+/** Cartas pictóricas de tamaño sin forma explícita (distintas de sm_/md_/lg_* + figura). */
+const PICTORIAL_SIZE_ONLY_YOLO = new Set(['small', 'medium', 'large']);
+
 function sourceTitle(data: SourceFlowNodeData): string {
   if (data.variant === 'number') return 'Numero';
+  if (data.variant === 'shape' && PICTORIAL_SIZE_ONLY_YOLO.has(data.yoloClass)) return 'Tamaño';
   if (data.variant === 'shape') return 'Forma';
   if (data.variant === 'montessori') return 'Montessori';
   return 'Comida';
@@ -24,6 +28,7 @@ function sourceTitle(data: SourceFlowNodeData): string {
 
 function sourceMain(data: SourceFlowNodeData): string {
   if (data.variant === 'number') return String(data.value);
+  if (data.variant === 'shape' && PICTORIAL_SIZE_ONLY_YOLO.has(data.yoloClass)) return data.size;
   if (data.variant === 'shape') return `${data.shape} ${data.size}`;
   if (data.variant === 'montessori') return data.color;
   return data.food;
@@ -36,7 +41,7 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   const blocked = isSourceBlockedByCpaMode(d, viewMode);
 
   return (
-    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+    <div className="relative h-80 w-52 -translate-x-[30%] -translate-y-[50%]">
       <FlowNodeCard
         family="input"
         title={sourceTitle(d)}

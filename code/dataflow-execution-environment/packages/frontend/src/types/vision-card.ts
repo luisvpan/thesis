@@ -22,6 +22,8 @@ export type ParsedVisionCard =
   /** Carta física detectada como `grapes`: marcador visual de salida */
   | { type: 'resultAnchor' }
   | { type: 'programResultCard' }
+  | { type: 'visionArrayOpen' }
+  | { type: 'visionArrayClose' }
   | { type: 'deckShape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor }
   | { type: 'deckFood'; yoloClass: string; food: FoodType }
   | { type: 'deckMontessori'; yoloClass: string; color: MontessoriColor }
@@ -90,6 +92,8 @@ export function parseVisionLabel(label: string): ParsedVisionCard {
   if (spawn) {
     if (spawn.kind === 'number') return { type: 'number', value: spawn.value as VisionDigit };
     if (spawn.kind === 'resultCard') return { type: 'programResultCard' };
+    if (spawn.kind === 'arrayOpen') return { type: 'visionArrayOpen' };
+    if (spawn.kind === 'arrayClose') return { type: 'visionArrayClose' };
     if (spawn.kind === 'operator') {
       const op = spawn.operator;
       if (op === 'adicion') return { type: 'operator', operator: 'addition' };

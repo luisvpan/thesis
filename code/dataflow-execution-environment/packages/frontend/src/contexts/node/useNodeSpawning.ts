@@ -108,6 +108,30 @@ export function useNodeSpawning(setNodes: SetNodes) {
       if (spawn.kind === "number") return addNumberNode(spawn.value);
       if (spawn.kind === "operator") return addOperatorNode(spawn.operator);
       if (spawn.kind === "resultCard") return addResultCard();
+      if (spawn.kind === "arrayOpen") {
+        setNodes((nds) => [
+          ...nds,
+          {
+            id: `deck_open_${Date.now()}`,
+            type: "arrayOpen" as const,
+            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+            data: {},
+          },
+        ]);
+        return;
+      }
+      if (spawn.kind === "arrayClose") {
+        setNodes((nds) => [
+          ...nds,
+          {
+            id: `deck_close_${Date.now()}`,
+            type: "arrayClose" as const,
+            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+            data: {},
+          },
+        ]);
+        return;
+      }
       if (spawn.kind === "shape") {
         setNodes((nds) => [
           ...nds,

@@ -139,8 +139,8 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
                 Mochila
               </h2>
               <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-                Mochila por CPA: Concreto (comidas, Montessori, filtrar), Pictórico (figuras, filtrar), Abstracto
-                (números, ×÷, orden; sin filtrar), Común (resultado).
+                Mochila por CPA: Concreto (comidas, Montessori, filtrar), Pictórico (figuras, tamaños, filtrar), Abstracto
+                (números, ×÷, orden; sin filtrar), Común (salida, abrir/cerrar arreglo).
               </p>
               <ModelDeckSidebar />
             </section>

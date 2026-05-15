@@ -8,7 +8,7 @@ export type ArrayOpenNode = Node<ArrayOpenNodeData, 'arrayOpen'>;
 
 export function ArrayOpenNode({ id }: NodeProps<ArrayOpenNode>) {
   return (
-    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[45%]">
       <FlowNodeCard
         family="input"
         title="Abrir arreglo"

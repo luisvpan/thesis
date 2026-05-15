@@ -9,7 +9,7 @@ export type ArrayCloseNode = Node<ArrayCloseNodeData, 'arrayClose'>;
 
 export function ArrayCloseNode({ id }: NodeProps<ArrayCloseNode>) {
   return (
-    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[45%]">
       <ClickableHandle
         type="target"
         position={Position.Left}
@@ -31,7 +31,7 @@ export function ArrayCloseNode({ id }: NodeProps<ArrayCloseNode>) {
         id="out"
         nodeId={id}
         style={{
-          top: '72%',
+          top: `${ARRAY_CLOSE_ZONE_IN_TOP_FRAC * 100}%`,
           transform: 'translateX(100px)',
         }}
       />

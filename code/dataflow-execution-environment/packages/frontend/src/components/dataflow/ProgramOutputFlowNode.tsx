@@ -77,7 +77,7 @@ export function ProgramOutputFlowNode({
     );
 
   return (
-    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+    <div className="relative h-65 w-52 -translate-x-[30%] -translate-y-[80%]">
       <div className="absolute -top-5 left-0 rounded bg-black/50 px-1 text-xs text-teal-300">
         {id}
       </div>

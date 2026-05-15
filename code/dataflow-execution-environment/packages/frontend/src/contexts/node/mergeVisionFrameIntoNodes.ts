@@ -105,6 +105,28 @@ export function mergeVisionFrameIntoNodes(
       continue;
     }
 
+    if (parsed.type === "visionArrayOpen") {
+      additions.push({
+        id: nodeId,
+        type: "arrayOpen" as const,
+        position,
+        data: {},
+      });
+      idx++;
+      continue;
+    }
+
+    if (parsed.type === "visionArrayClose") {
+      additions.push({
+        id: nodeId,
+        type: "arrayClose" as const,
+        position,
+        data: {},
+      });
+      idx++;
+      continue;
+    }
+
     if (parsed.type === "deckShape") {
       additions.push({
         id: nodeId,

@@ -38,7 +38,7 @@ export function ArrayZoneEdge({
         height={rectH}
         rx={6}
         ry={6}
-        fill="#2dd4bf"
+        
         fillOpacity={0.08}
         stroke="#2dd4bf"
         strokeWidth={1.5}
@@ -54,15 +54,7 @@ export function ArrayZoneEdge({
         strokeLinecap="round"
       />
       {/* Dashed zone link */}
-      <path
-        id={id}
-        d={edgePath}
-        stroke="#2dd4bf"
-        strokeWidth={2}
-        fill="none"
-        strokeDasharray="8 5"
-        strokeLinecap="round"
-      />
+    
     </g>
   );
 }
