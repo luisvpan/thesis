@@ -52,10 +52,14 @@ interface SemanticResult {
 export type ResultVisualMontessori = { kind: "montessori"; color: string };
 export type ResultVisualForma = { kind: "forma"; subtype: string; size: string };
 export type ResultVisualComida = { kind: "comida"; subtype: string; color: string };
+export type ResultVisualCap = { kind: "cap"; color: string };
+export type ResultVisualStick = { kind: "stick"; color: string };
 export type ResultVisualItem =
   | ResultVisualMontessori
   | ResultVisualForma
-  | ResultVisualComida;
+  | ResultVisualComida
+  | ResultVisualCap
+  | ResultVisualStick;
 
 export type ResultValue =
   | { kind: "number"; value: number }
@@ -120,7 +124,7 @@ function getAmount(elem: unknown): number {
   if (obj.kind === "abstracto" && obj.value) {
     return Number((obj.value as { valueOf(): number }).valueOf());
   }
-  if ((obj.kind === "forma" || obj.kind === "comida" || obj.kind === "montessori") && obj.amount) {
+  if ((obj.kind === "forma" || obj.kind === "comida" || obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick") && obj.amount) {
     return Number((obj.amount as { valueOf(): number }).valueOf());
   }
   return 1;
@@ -132,7 +136,7 @@ function getCategory(elem: unknown): "abstracto" | "pictorico" | "concreto" {
 
   if (obj.kind === "racional" || obj.kind === "abstracto") return "abstracto";
   if (obj.kind === "forma") return "pictorico";
-  if (obj.kind === "comida" || obj.kind === "montessori") return "concreto";
+  if (obj.kind === "comida" || obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick") return "concreto";
   return "abstracto";
 }
 
@@ -144,6 +148,8 @@ function getType(elem: unknown): string {
   if (obj.kind === "forma") return "forma";
   if (obj.kind === "comida") return "comida";
   if (obj.kind === "montessori") return "montessori";
+  if (obj.kind === "cap") return "cap";
+  if (obj.kind === "stick") return "stick";
   return "racional";
 }
 
@@ -165,6 +171,8 @@ const PLURALS: Record<string, string> = {
   forma: "formas",
   comida: "comidas",
   montessori: "montessoris",
+  cap: "tapas",
+  stick: "palitos",
   racional: "racionales",
   cuadrado: "cuadrados",
   circulo: "círculos",
@@ -236,6 +244,18 @@ function buildVisualStrip(elements: unknown[]): ResultVisualItem[] {
         if (strip.length >= MAX_VISUAL_UNITS) return strip;
         strip.push({ kind: "comida", subtype, color });
       }
+    } else if (o.kind === "cap") {
+      const color = String(o.color ?? "azul");
+      for (let i = 0; i < n; i++) {
+        if (strip.length >= MAX_VISUAL_UNITS) return strip;
+        strip.push({ kind: "cap", color });
+      }
+    } else if (o.kind === "stick") {
+      const color = String(o.color ?? "rojo");
+      for (let i = 0; i < n; i++) {
+        if (strip.length >= MAX_VISUAL_UNITS) return strip;
+        strip.push({ kind: "stick", color });
+      }
     }
   }
 
@@ -282,11 +302,15 @@ function groupElements(elements: unknown[]): SemanticResult {
       typeGroup.rationalValue = (typeGroup.rationalValue ?? 0) + amount;
     }
 
-    // Crear o actualizar subtipo (para forma/comida/montessori)
+    // Crear o actualizar subtipo (para forma/comida/montessori/cap/stick)
     const obj = elem as Record<string, unknown>;
 
-    // Montessori no tiene subtype, pero agrupamos por color
-    const effectiveSubtype = subtype ?? (obj.kind === "montessori" ? (obj.color as string) : null);
+    // Montessori, cap y stick no tienen subtype, pero agrupamos por color
+    const effectiveSubtype = subtype ?? (
+      (obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick")
+        ? (obj.color as string)
+        : null
+    );
 
     if (effectiveSubtype) {
       let subtypeGroup = typeGroup.subtypes.find((s) => s.subtype === effectiveSubtype);
@@ -298,7 +322,7 @@ function groupElements(elements: unknown[]): SemanticResult {
 
       subtypeGroup.items.push({
         size: obj.kind === "forma" ? (obj.size as string) : undefined,
-        color: (obj.kind === "comida" || obj.kind === "montessori") ? (obj.color as string) : undefined,
+        color: (obj.kind === "comida" || obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick") ? (obj.color as string) : undefined,
         amount,
       });
     }

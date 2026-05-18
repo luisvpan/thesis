@@ -97,6 +97,28 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
             amount: new Fraction(1),
           },
         });
+      } else if (data.variant === "cap") {
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: {
+            type: "ObjectLiteral",
+            objectType: "cap",
+            color: data.color,
+            amount: new Fraction(1),
+          },
+        });
+      } else if (data.variant === "stick") {
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: {
+            type: "ObjectLiteral",
+            objectType: "stick",
+            color: data.color,
+            amount: new Fraction(1),
+          },
+        });
       }
     }
   }

@@ -5,15 +5,16 @@ import tailwindcss from '@tailwindcss/vite'
 import Terminal from 'vite-plugin-terminal'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    Terminal({
+    // Terminal plugin solo en desarrollo (usa módulos virtuales que fallan en build)
+    mode === 'development' && Terminal({
       output: ['terminal', 'console'],
       console: 'terminal'
     }),
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

@@ -177,6 +177,38 @@ export function mergeVisionFrameIntoNodes(
       continue;
     }
 
+    if (parsed.type === "deckCap") {
+      additions.push({
+        id: nodeId,
+        type: "source" as const,
+        position,
+        data: {
+          variant: "cap",
+          yoloClass: parsed.yoloClass,
+          color: parsed.color,
+          trackId: c.trackId,
+        },
+      });
+      idx++;
+      continue;
+    }
+
+    if (parsed.type === "deckStick") {
+      additions.push({
+        id: nodeId,
+        type: "source" as const,
+        position,
+        data: {
+          variant: "stick",
+          yoloClass: parsed.yoloClass,
+          color: parsed.color,
+          trackId: c.trackId,
+        },
+      });
+      idx++;
+      continue;
+    }
+
     if (parsed.type === "unknown") {
       additions.push({
         id: nodeId,

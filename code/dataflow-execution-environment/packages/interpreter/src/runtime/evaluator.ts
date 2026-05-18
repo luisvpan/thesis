@@ -5,6 +5,8 @@ import type {
   ShapeValue,
   FoodValue,
   MontessoriValue,
+  CapValue,
+  StickValue,
   AbstractValue,
   ExecutionNode,
 } from "./types";
@@ -256,6 +258,24 @@ export class LazyEvaluator {
         color: obj.color ?? "verde",
         amount: toFraction(obj.amount ?? "1"),
       } as MontessoriValue;
+    }
+
+    if (obj.objectType === "cap") {
+      return {
+        kind: "cap",
+        category: "concreto",
+        color: obj.color ?? "azul",
+        amount: toFraction(obj.amount ?? "1"),
+      } as CapValue;
+    }
+
+    if (obj.objectType === "stick") {
+      return {
+        kind: "stick",
+        category: "concreto",
+        color: obj.color ?? "rojo",
+        amount: toFraction(obj.amount ?? "1"),
+      } as StickValue;
     }
 
     if (obj.category === "concreto" || obj.objectType === "comida") {

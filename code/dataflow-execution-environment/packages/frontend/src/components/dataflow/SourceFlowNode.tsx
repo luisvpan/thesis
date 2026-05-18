@@ -1,7 +1,7 @@
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
-import type { ShapeType, ShapeSize, ShapeColor, FoodType, MontessoriColor } from '@/types/card-types';
+import type { ShapeType, ShapeSize, ShapeColor, FoodType, MontessoriColor, CapColor, StickColor } from '@/types/card-types';
 import { FlowNodeCard } from './FlowNodeCard';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { isSourceBlockedByCpaMode } from '@/utils/cpaModeUtils';
@@ -11,7 +11,9 @@ export type SourceFlowNodeData =
   | { variant: 'number'; value: number; visionSubtitle?: string; trackId?: number }
   | { variant: 'shape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor; trackId?: number }
   | { variant: 'food'; yoloClass: string; food: FoodType; trackId?: number }
-  | { variant: 'montessori'; yoloClass: string; color: MontessoriColor; trackId?: number };
+  | { variant: 'montessori'; yoloClass: string; color: MontessoriColor; trackId?: number }
+  | { variant: 'cap'; yoloClass: string; color: CapColor; trackId?: number }
+  | { variant: 'stick'; yoloClass: string; color: StickColor; trackId?: number };
 
 export type SourceFlowNode = Node<SourceFlowNodeData, 'source'>;
 
@@ -22,7 +24,9 @@ function sourceTitle(data: SourceFlowNodeData): string {
   if (data.variant === 'number') return 'Numero';
   if (data.variant === 'shape' && PICTORIAL_SIZE_ONLY_YOLO.has(data.yoloClass)) return 'Tamaño';
   if (data.variant === 'shape') return 'Forma';
-  if (data.variant === 'montessori') return 'Montessori';
+  if (data.variant === 'montessori') return 'Cubo';
+  if (data.variant === 'cap') return 'Tapa';
+  if (data.variant === 'stick') return 'Palito';
   return 'Comida';
 }
 
@@ -31,6 +35,8 @@ function sourceMain(data: SourceFlowNodeData): string {
   if (data.variant === 'shape' && PICTORIAL_SIZE_ONLY_YOLO.has(data.yoloClass)) return data.size;
   if (data.variant === 'shape') return `${data.shape} ${data.size}`;
   if (data.variant === 'montessori') return data.color;
+  if (data.variant === 'cap') return data.color;
+  if (data.variant === 'stick') return data.color;
   return data.food;
 }
 

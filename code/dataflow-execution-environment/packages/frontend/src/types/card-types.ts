@@ -1,6 +1,6 @@
 // Tipos de cartas para el IDE de programación tangible
 
-export type CardCategory = 'operator' | 'number' | 'animal' | 'food' | 'person' | 'car' | 'shape';
+export type CardCategory = 'operator' | 'number' | 'animal' | 'food' | 'person' | 'car' | 'shape' | 'montessori' | 'cap' | 'stick';
 
 // Operadores matemáticos básicos
 export type MathOperatorType = 'adicion' | 'sustraccion' | 'multiplicacion' | 'division';
@@ -55,7 +55,14 @@ export type ShapeSize = 'pequeño' | 'mediano' | 'grande';
 
 export type ShapeColor = 'rojo' | 'azul' | 'amarillo' | 'verde';
 
-export type MontessoriColor = 'azul' | 'verde' | 'naranja' | 'morado' | 'rojo' | 'amarillo';
+// Colores de cubos Montessori (cube_blue, cube_red, cube_yellow)
+export type MontessoriColor = 'azul' | 'rojo' | 'amarillo';
+
+// Colores de tapas (cap_blue, cap_white)
+export type CapColor = 'azul' | 'blanco';
+
+// Colores de palitos (stick_cyan, stick_orange, stick_red)
+export type StickColor = 'cian' | 'naranja' | 'rojo';
 
 export interface BaseCard {
   id: string;
@@ -100,4 +107,19 @@ export interface ShapeCard extends BaseCard {
   color: ShapeColor;
 }
 
-export type Card = OperatorCard | NumberCard | AnimalCard | FoodCard | PersonCard | CarCard | ShapeCard;
+export interface MontessoriCard extends BaseCard {
+  category: 'montessori';
+  color: MontessoriColor;
+}
+
+export interface CapCard extends BaseCard {
+  category: 'cap';
+  color: CapColor;
+}
+
+export interface StickCard extends BaseCard {
+  category: 'stick';
+  color: StickColor;
+}
+
+export type Card = OperatorCard | NumberCard | AnimalCard | FoodCard | PersonCard | CarCard | ShapeCard | MontessoriCard | CapCard | StickCard;

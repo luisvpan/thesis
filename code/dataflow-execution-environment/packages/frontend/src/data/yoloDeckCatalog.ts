@@ -1,10 +1,10 @@
-import type { FoodType, MontessoriColor, OperatorType, ShapeColor, ShapeSize, ShapeType } from '@/types/card-types';
+import type { CapColor, FoodType, MontessoriColor, OperatorType, ShapeColor, ShapeSize, ShapeType, StickColor } from '@/types/card-types';
 
-export type DeckSectionId = 'numbers' | 'operators' | 'figures' | 'foods' | 'montessori' | 'arrayMarkers';
+export type DeckSectionId = 'numbers' | 'operators' | 'figures' | 'foods' | 'montessori' | 'caps' | 'sticks' | 'arrayMarkers';
 
 export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
   numbers: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'],
-  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'filter', 'output'],
+  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'filter', 'sink'],
   figures: [
     'sm_circle',
     'sm_square',
@@ -23,7 +23,9 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
     'red',
   ],
   foods: ['apple', 'burger', 'pear', 'grapes', 'orange'],
-  montessori: ['montessori_blue', 'montessori_green', 'montessori_orange', 'montessori_purple', 'montessori_red', 'montessori_yellow'],
+  montessori: ['cube_blue', 'cube_red', 'cube_yellow'],
+  caps: ['cap_blue', 'cap_white'],
+  sticks: ['stick_cyan', 'stick_orange', 'stick_red'],
   arrayMarkers: ['open', 'close'],
 };
 
@@ -53,6 +55,8 @@ export const CPA_YOLO_SIDEBAR_SECTIONS: ReadonlyArray<{
     yoloClasses: [
       ...DECK_SECTION_ITEMS.foods,
       ...DECK_SECTION_ITEMS.montessori,
+      ...DECK_SECTION_ITEMS.caps,
+      ...DECK_SECTION_ITEMS.sticks,
       ...YOLO_OPERATORS_CPA_CONCRETE_PICTORIAL,
     ],
   },
@@ -69,7 +73,7 @@ export const CPA_YOLO_SIDEBAR_SECTIONS: ReadonlyArray<{
   {
     id: 'comun',
     title: 'Común',
-    yoloClasses: ['output', ...DECK_SECTION_ITEMS.arrayMarkers],
+    yoloClasses: ['sink', ...DECK_SECTION_ITEMS.arrayMarkers],
   },
 ];
 
@@ -77,7 +81,7 @@ export function deckLabel(yoloClass: string): string {
   const m: Record<string, string> = {
     zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9',
     add: '+', subtract: '-', multiply: 'x', division: '÷', ascending: 'Asc', descending: 'Desc', filter: 'Filtrar',
-    output: 'Resultado', result: 'Resultado',
+    sink: 'Resultado', output: 'Resultado', result: 'Resultado',
     open: 'Abrir', close: 'Cerrar',
     small: 'pequeño', medium: 'mediano', large: 'grande',
     sm_circle: 'Circulo P', sm_square: 'Cuadrado P', sm_triangle: 'Triángulo P',
@@ -85,8 +89,12 @@ export function deckLabel(yoloClass: string): string {
     lg_circle: 'Circulo G', lg_square: 'Cuadrado G', lg_triangle: 'Triángulo G',
     green: 'Verde', purple: 'Morado', red: 'Rojo',
     apple: 'Manzana', burger: 'Hamburguesa', pear: 'Pera', grapes: 'Uvas', orange: 'Naranja',
-    montessori_blue: 'Montessori Azul', montessori_green: 'Montessori Verde', montessori_orange: 'Montessori Naranja',
-    montessori_purple: 'Montessori Morado', montessori_red: 'Montessori Rojo', montessori_yellow: 'Montessori Amarillo',
+    // Cubos Montessori
+    cube_blue: 'Cubo Azul', cube_red: 'Cubo Rojo', cube_yellow: 'Cubo Amarillo',
+    // Tapas
+    cap_blue: 'Tapa Azul', cap_white: 'Tapa Blanca',
+    // Palitos
+    stick_cyan: 'Palito Cian', stick_orange: 'Palito Naranja', stick_red: 'Palito Rojo',
   };
   return m[yoloClass] ?? yoloClass;
 }
@@ -99,13 +107,15 @@ export type DeckSpawnAction =
   | { kind: 'arrayClose' }
   | { kind: 'shape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor }
   | { kind: 'food'; yoloClass: string; food: FoodType }
-  | { kind: 'montessori'; yoloClass: string; color: MontessoriColor };
+  | { kind: 'montessori'; yoloClass: string; color: MontessoriColor }
+  | { kind: 'cap'; yoloClass: string; color: CapColor }
+  | { kind: 'stick'; yoloClass: string; color: StickColor };
 
 export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   const x = raw.trim().toLowerCase();
   const digit: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
   if (x in digit) return { kind: 'number', value: digit[x] };
-  if (x === 'output' || x === 'result') return { kind: 'resultCard' };
+  if (x === 'sink' || x === 'output' || x === 'result') return { kind: 'resultCard' };
   if (x === 'open') return { kind: 'arrayOpen' };
   if (x === 'close') return { kind: 'arrayClose' };
 
@@ -139,15 +149,28 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   };
   if (x in fig) return { kind: 'shape', yoloClass: x, ...fig[x] };
 
+  // Cubos Montessori (cube_blue, cube_red, cube_yellow)
   const mont: Record<string, MontessoriColor> = {
-    montessori_blue: 'azul',
-    montessori_green: 'verde',
-    montessori_orange: 'naranja',
-    montessori_purple: 'morado',
-    montessori_red: 'rojo',
-    montessori_yellow: 'amarillo',
+    cube_blue: 'azul',
+    cube_red: 'rojo',
+    cube_yellow: 'amarillo',
   };
   if (x in mont) return { kind: 'montessori', yoloClass: x, color: mont[x] };
+
+  // Tapas (cap_blue, cap_white)
+  const caps: Record<string, CapColor> = {
+    cap_blue: 'azul',
+    cap_white: 'blanco',
+  };
+  if (x in caps) return { kind: 'cap', yoloClass: x, color: caps[x] };
+
+  // Palitos (stick_cyan, stick_orange, stick_red)
+  const sticks: Record<string, StickColor> = {
+    stick_cyan: 'cian',
+    stick_orange: 'naranja',
+    stick_red: 'rojo',
+  };
+  if (x in sticks) return { kind: 'stick', yoloClass: x, color: sticks[x] };
 
   const food: Record<string, FoodType> = {
     apple: 'manzana',

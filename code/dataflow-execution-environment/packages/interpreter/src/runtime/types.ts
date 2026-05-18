@@ -42,6 +42,20 @@ export type MontessoriValue = {
   amount: Fraction;
 };
 
+export type CapValue = {
+  kind: "cap";
+  category: "concreto";
+  color: ColorValue;
+  amount: Fraction;
+};
+
+export type StickValue = {
+  kind: "stick";
+  category: "concreto";
+  color: ColorValue;
+  amount: Fraction;
+};
+
 export type AbstractValue = {
   kind: "abstracto";
   category: "abstracto";
@@ -49,7 +63,7 @@ export type AbstractValue = {
   value: Fraction;
 };
 
-export type CPAObject = ShapeValue | FoodValue | MontessoriValue | AbstractValue;
+export type CPAObject = ShapeValue | FoodValue | MontessoriValue | CapValue | StickValue | AbstractValue;
 
 export type ArrayValue = {
   kind: "arreglo";
@@ -91,7 +105,7 @@ export function isArray(val: RuntimeValue): val is ArrayValue {
 }
 
 export function isCPAObject(val: RuntimeValue): val is CPAObject {
-  return val.kind === "forma" || val.kind === "comida" || val.kind === "montessori" || val.kind === "abstracto";
+  return val.kind === "forma" || val.kind === "comida" || val.kind === "montessori" || val.kind === "cap" || val.kind === "stick" || val.kind === "abstracto";
 }
 
 export function isShape(val: RuntimeValue): val is ShapeValue {
@@ -104,6 +118,14 @@ export function isFood(val: RuntimeValue): val is FoodValue {
 
 export function isMontessori(val: RuntimeValue): val is MontessoriValue {
   return val.kind === "montessori";
+}
+
+export function isCap(val: RuntimeValue): val is CapValue {
+  return val.kind === "cap";
+}
+
+export function isStick(val: RuntimeValue): val is StickValue {
+  return val.kind === "stick";
 }
 
 export function isAbstract(val: RuntimeValue): val is AbstractValue {
@@ -132,12 +154,18 @@ export function getCPAKey(val: CPAObject): string {
   if (val.kind === "montessori") {
     return `concreto:montessori:${val.color}`;
   }
+  if (val.kind === "cap") {
+    return `concreto:cap:${val.color}`;
+  }
+  if (val.kind === "stick") {
+    return `concreto:stick:${val.color}`;
+  }
   return "unknown";
 }
 
 // Get category enum value from a runtime value
 export function getCategoryOrder(val: RuntimeValue): Category {
-  if (val.kind === "comida" || val.kind === "montessori") return Category.Concreto;
+  if (val.kind === "comida" || val.kind === "montessori" || val.kind === "cap" || val.kind === "stick") return Category.Concreto;
   if (val.kind === "forma") return Category.Pictorico;
   if (val.kind === "abstracto" || val.kind === "racional") return Category.Abstracto;
   return Category.Abstracto;
@@ -148,6 +176,8 @@ export function getTypeKey(val: RuntimeValue): string {
   if (val.kind === "comida") return `comida:${val.subtype}`;
   if (val.kind === "forma") return `forma:${val.subtype}`;
   if (val.kind === "montessori") return `montessori:${val.color}`;
+  if (val.kind === "cap") return `cap:${val.color}`;
+  if (val.kind === "stick") return `stick:${val.color}`;
   if (val.kind === "abstracto") return "racional";
   if (val.kind === "racional") return "racional";
   return "otro";

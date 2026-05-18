@@ -9,6 +9,17 @@ const MONTESSORI_CUBE: Record<string, string> = {
   amarillo: 'bg-amber-300 shadow-amber-900/40',
 };
 
+const CAP_COLORS: Record<string, string> = {
+  azul: 'bg-blue-500 shadow-blue-900/50',
+  blanco: 'bg-white shadow-slate-400/50',
+};
+
+const STICK_COLORS: Record<string, string> = {
+  cian: 'bg-cyan-400 shadow-cyan-900/50',
+  naranja: 'bg-orange-500 shadow-orange-900/50',
+  rojo: 'bg-red-500 shadow-red-900/50',
+};
+
 const FOOD_DOT: Record<string, string> = {
   verde: 'bg-emerald-400',
   morado: 'bg-violet-400',
@@ -52,6 +63,26 @@ function ComidaGlyph({ subtype, color }: { subtype: string; color: string }) {
   );
 }
 
+function CapGlyph({ color }: { color: string }) {
+  const palette = CAP_COLORS[color] ?? 'bg-slate-500 shadow-slate-900/50';
+  return (
+    <span
+      title={`Tapa ${color}`}
+      className={`inline-block h-7 w-7 shrink-0 rounded-full shadow-lg ring-1 ring-white/25 ${palette}`}
+    />
+  );
+}
+
+function StickGlyph({ color }: { color: string }) {
+  const palette = STICK_COLORS[color] ?? 'bg-slate-500 shadow-slate-900/50';
+  return (
+    <span
+      title={`Palito ${color}`}
+      className={`inline-block h-7 w-2 shrink-0 rounded-sm shadow-lg ring-1 ring-white/25 ${palette}`}
+    />
+  );
+}
+
 type ResultArrayVisualProps = {
   items: ResultVisualItem[];
 };
@@ -73,6 +104,12 @@ export function ResultArrayVisual({ items }: ResultArrayVisualProps) {
           }
           if (item.kind === 'forma') {
             return <FormaGlyph key={`v-${i}`} subtype={item.subtype} />;
+          }
+          if (item.kind === 'cap') {
+            return <CapGlyph key={`v-${i}`} color={item.color} />;
+          }
+          if (item.kind === 'stick') {
+            return <StickGlyph key={`v-${i}`} color={item.color} />;
           }
           return (
             <ComidaGlyph
