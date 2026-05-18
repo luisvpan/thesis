@@ -1,6 +1,6 @@
 # Dataflow Language - Formal Grammar Specification
 
-**Version:** 3.0.0
+**Version:** 3.1.0
 **Date:** 2026-05-18  
 **Notation:** W3C Extended Backus-Naur Form (EBNF)
 
@@ -22,7 +22,7 @@ operation           ::= "sum" | "substract" | "multiply" | "divide"
 
 object_literal      ::= "{" '"' category '"' ":" category_type "," '"' type '"' ":" string_literal "," '"' subtype '"' ":" string_literal "," '"' quantity '"' ":" rational_literal ("," kv_pairs)? "}"
 
-category_type       ::= '"abstract"' | '"pictorial"' | '"concrete"'
+category_type       ::= '"abstracto"' | '"pictorico"' | '"concreto"'
 
 kv_pairs            ::= string_literal ":" kv_value ("," string_literal ":" kv_value)*
 kv_value            ::= string_literal | rational_literal
@@ -52,24 +52,24 @@ digit               ::= [0-9]
 
 These are the strictly recognized category literal types matching `category_type`:
 
-* `"abstract"`
-* `"pictorial"`
-* `"concrete"`
+* `"abstracto"`
+* `"pictorico"`
+* `"concreto"`
 
 ## Program Examples
 
-### Example 1: Rational Fraction Math (Abstract Tier)
+### Example 1: Rational Fraction Math
 
 ```erae
 source third = {
-  "category": "abstract",
+  "category": "abstracto",
   "type": "number",
   "subtype": "rational",
   "quantity": 0.3333333333
 };
 
 source direct_fraction = {
-  "category": "abstract",
+  "category": "abstracto",
   "type": "number",
   "subtype": "rational",
   "quantity": "1/3"
@@ -80,13 +80,13 @@ sink output_fraction = sum_fractions;
 
 ```
 
-### Example 2: Dynamic Taxonomy & Freeform Attributes (Concrete Tier)
+### Example 2: Dynamic Taxonomy & Freeform Attributes
 
 Shows how a brand new concrete type (`"vehicle"`) utilizes the required `"subtype"` field while introducing custom metadata (`"doors"`) inside the dynamic `kv_pairs` block.
 
 ```erae
 source sedan = {
-  "category": "concrete",
+  "category": "concreto",
   "type": "vehicle",
   "subtype": "car",
   "doors": "4",
@@ -94,33 +94,33 @@ source sedan = {
 };
 
 source coupe = {
-  "category": "concrete",
+  "category": "concreto",
   "type": "vehicle",
   "subtype": "car",
   "doors": "2",
   "quantity": 1
 };
 
-// Groups naturally by matching "concrete", "vehicle", and "car"
+// Groups naturally by matching "concreto", "vehicle", and "car"
 transform total_cars = sum(sedan, coupe);
 sink output_cars = total_cars;
 
 ```
 
-### Example 3: Error Recovery & Live-Editing (Partial Tree State)
+### Example 3: Error Recovery & Live-Editing
 
 This example mimics what happens while a child is actively typing on a canvas. Thanks to `?` optional modifiers, this program will **successfully parse** without crashing, creating placeholder nodes for the incomplete entries.
 
 ```erae
 source incomplete_apple = {
-  "category": "concrete",
+  "category": "concreto",
   "type": "food",
   "subtype": "apple"
   // User stopped typing here; missing ending kv_pairs and closing brace
 ;
 
 source multiplier = {
-  "category": "abstract",
+  "category": "abstracto",
   "type": "number",
   "subtype": "multiplier",
   "quantity": 4
@@ -139,7 +139,7 @@ Illustrates dynamic properties (`"size": "large"`) living perfectly alongside ma
 
 ```erae
 source large_star = {
-  "category": "pictorial",
+  "category": "pictorico",
   "type": "shape",
   "subtype": "star",
   "size": "large",
@@ -147,7 +147,7 @@ source large_star = {
 };
 
 source scale_factor = {
-  "category": "abstract",
+  "category": "abstracto",
   "type": "number",
   "subtype": "multiplier",
   "quantity": 3
