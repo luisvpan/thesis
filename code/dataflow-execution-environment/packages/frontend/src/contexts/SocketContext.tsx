@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { logger } from '@/lib/logger';
 
 const SOCKET_URL =
   typeof import.meta.env.VITE_SOCKET_URL === 'string' && import.meta.env.VITE_SOCKET_URL
@@ -27,18 +28,18 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     s.on('connect', () => {
-      console.debug('[Socket] connected', s.id);
+      logger.socket.debug('Connected', { id: s.id });
     });
 
     /** Log de todo evento que emita el servidor Socket.IO (addNode, navigate, etc.) */
     s.onAny((event, ...args) => {
-      console.log('[backend:socket.io]', event, args);
+      logger.socketBackend.debug('Event received', { event, args });
     });
     s.on('disconnect', (reason) => {
-      console.debug('[Socket] disconnected', reason);
+      logger.socket.debug('Disconnected', { reason });
     });
     s.on('connect_error', (err) => {
-      console.warn('[Socket] connect_error', err.message);
+      logger.socket.warn('Connection error', { message: err.message });
     });
 
     setSocket(s);

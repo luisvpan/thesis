@@ -6,6 +6,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import { logger } from "@/lib/logger";
 
 /** Payload emitido por Elysia cuando Python envía `POST /api/v1/vision/ingest`. */
 export type DetectedNumberPayload = {
@@ -70,7 +71,7 @@ export function VisionProvider({ children }: { children: ReactNode }) {
     ws.onopen = () => {
       setConnected(true);
       setError(null);
-      console.log("[ide:vision]", "WebSocket conectado", url);
+      logger.vision.info("WebSocket connected", { url });
     };
     ws.onclose = () => {
       setConnected(false);
@@ -79,45 +80,43 @@ export function VisionProvider({ children }: { children: ReactNode }) {
       setError("WebSocket visión: error de conexión");
     };
     ws.onmessage = (ev) => {
-      console.log("[ide:vision]", "mensaje crudo:", ev.data);
+      logger.vision.debug("Raw message", { data: ev.data });
       try {
         const data = JSON.parse(ev.data as string) as unknown;
-        console.log("[ide:vision]", "mensaje parseado:", data);
+        logger.vision.debug("Parsed message", { data });
         if (typeof data !== "object" || data === null) return;
 
         const typ = (data as { type?: string }).type;
         if (typ === "detectedNumber") {
           const det = data as DetectedNumberPayload;
           setLast(det);
-          const pos = det.position;
-          const posStr =
-            pos != null
-              ? ` pos=(${Number(pos.x).toFixed(3)}, ${Number(pos.y).toFixed(3)})`
-              : "";
-          console.log(
-            "[ide:vision] detección:",
-            det.number != null ? `#${det.number}` : "(sin dígito)",
-            det.label,
-            det.confidence != null
-              ? `${(det.confidence * 100).toFixed(0)}%`
-              : "",
-            posStr.trim() || "(sin posición)",
-          );
+          logger.vision.debug("Detection", {
+            number: det.number,
+            label: det.label,
+            confidence: det.confidence,
+            position: det.position,
+          });
           return;
         }
 
         if (typ === "cardDetections") {
           const frame = data as CardDetectionsPayload;
           setLastCardFrame(frame);
-          console.log(
-            "[ide:vision] cartas:",
-            frame.cards.length,
-            frame.t,
-            frame.cards.map((c) => `${c.label}[${c.trackId ?? "?"}]@${c.position.x.toFixed(2)},${c.position.y.toFixed(2)}`),
-          );
+          logger.vision.debug("Card detections", {
+            count: frame.cards.length,
+            t: frame.t,
+            cards: frame.cards.map((c) => ({
+              label: c.label,
+              trackId: c.trackId,
+              x: c.position.x,
+              y: c.position.y,
+            })),
+          });
         }
       } catch (e) {
-        console.warn("[ide:vision]", "JSON inválido", e);
+        logger.vision.warn("Invalid JSON", {
+          error: e instanceof Error ? e.message : String(e),
+        });
         setError("Mensaje WS inválido");
       }
     };

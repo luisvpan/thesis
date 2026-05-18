@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronUp, RefreshCw } from "lucide-react";
 import { edenClient, type HealthData } from "@/lib/eden";
+import { logger } from "@/lib/logger";
 
 type LoadState =
   | { kind: "loading" }
@@ -19,7 +20,7 @@ export function ApiHealthBadge() {
     setState({ kind: "loading" });
     try {
       const res = await edenClient.api.v1.health.get();
-      console.log("[backend:elysia]", "GET /api/v1/health", res);
+      logger.backendElysia.debug("GET /api/v1/health", { res });
       const { data, error } = res;
       if (error) {
         setState({

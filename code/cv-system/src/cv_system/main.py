@@ -371,8 +371,8 @@ def main() -> None:
         has_ir_support = isinstance(hardware, PyKinect2HardwareManager)
         if show_debug_windows:
             cv2.namedWindow("Card Detection", cv2.WINDOW_NORMAL)
+            cv2.moveWindow("Card Detection", -1920, 0)
             cv2.setWindowProperty("Card Detection", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-            cv2.moveWindow("Card Detection", 1920, 0)
 
             cv2.namedWindow("Touch Debug", cv2.WINDOW_NORMAL)
             cv2.moveWindow("Touch Debug", -1920, 0)

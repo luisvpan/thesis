@@ -3,18 +3,19 @@ import {
   createProgramExecutor,
   type ProgramExecutor,
 } from "@/services/executeProgram";
+import { logger } from "@/lib/logger";
 
 export function useProgramExecutorRef(): MutableRefObject<ProgramExecutor | null> {
   const executorRef = useRef<ProgramExecutor | null>(null);
 
   useEffect(() => {
     executorRef.current = createProgramExecutor();
-    console.log("[NodeProvider] Interpreter created");
+    logger.nodeProvider.debug("Interpreter created");
 
     return () => {
       executorRef.current?.reset();
       executorRef.current = null;
-      console.log("[NodeProvider] Interpreter destroyed");
+      logger.nodeProvider.debug("Interpreter destroyed");
     };
   }, []);
 

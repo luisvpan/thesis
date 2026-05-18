@@ -18,6 +18,7 @@ import {
   getArrayZoneBounds,
   shouldIncludeNodeInArrayZone,
 } from "./arrayZoneGeometry";
+import { logger } from "@/lib/logger";
 
 const OPERATOR_MAP: Record<string, Operation> = {
   adicion: "sum",
@@ -44,7 +45,7 @@ function normalizeSize(size: string | undefined): string {
  * Converts ReactFlow nodes and edges to a Program object for the interpreter.
  */
 export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
-  console.log("[flowToProgram] Input nodes:", nodes.length, "edges:", edges.length);
+  logger.flow.debug("Input", { nodes: nodes.length, edges: edges.length });
 
   const statements: (SourceStatement | TransformStatement | SinkStatement)[] = [];
 
@@ -195,6 +196,6 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
     });
   }
 
-  console.log("[flowToProgram] Generated", statements.length, "statements");
+  logger.flow.debug("Generated statements", { count: statements.length });
   return { type: "Program", statements };
 }

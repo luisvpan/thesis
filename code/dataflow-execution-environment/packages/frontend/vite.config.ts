@@ -10,7 +10,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     Terminal({
-      output: ['terminal', 'console']
+      output: ['terminal', 'console'],
+      console: 'terminal'
     }),
   ],
   resolve: {

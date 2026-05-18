@@ -7,6 +7,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { logger } from "@/lib/logger";
 
 export type TouchEventPayload = {
   type: "touch" | "touch_down" | "touch_move" | "touch_up";
@@ -34,11 +35,15 @@ function getTouchWsUrl(): string {
 function dispatchSyntheticClick(x: number, y: number): void {
   const element = document.elementFromPoint(x, y);
   if (!element) {
-    console.warn(`[touch] No element at (${x}, ${y})`);
+    logger.touch.warn("No element at position", { x, y });
     return;
   }
   (element as HTMLElement).click();
-  console.log(`[touch] Click on <${element.tagName.toLowerCase()}> at (${x}, ${y})`);
+  logger.touch.debug("Click dispatched", {
+    tag: element.tagName.toLowerCase(),
+    x,
+    y,
+  });
 }
 
 type TouchIndicator = {
@@ -107,27 +112,30 @@ export function TouchProvider({ children }: { children: ReactNode }) {
   // Track active touches: touch_id -> start position
   const activeTouchesRef = useRef<Map<number, { x: number; y: number }>>(new Map());
 
-  console.log("[touch] TouchProvider mounted");
+  logger.touch.debug("TouchProvider mounted");
 
   useEffect(() => {
     const url = getTouchWsUrl();
-    console.log("[touch] useEffect running, connecting to:", url);
+    logger.touch.debug("Connecting to WebSocket", { url });
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
       setConnected(true);
       setError(null);
-      console.log("[touch] WebSocket connected", url);
+      logger.touch.info("WebSocket connected", { url });
     };
 
     ws.onclose = (ev) => {
       setConnected(false);
-      console.log("[touch] WebSocket disconnected, code:", ev.code, "reason:", ev.reason);
+      logger.touch.info("WebSocket disconnected", {
+        code: ev.code,
+        reason: ev.reason,
+      });
     };
 
-    ws.onerror = (ev) => {
+    ws.onerror = () => {
       setError("Touch WebSocket error");
-      console.error("[touch] WebSocket error:", ev);
+      logger.touch.error("WebSocket error");
     };
 
     ws.onmessage = (ev) => {
@@ -153,7 +161,11 @@ export function TouchProvider({ children }: { children: ReactNode }) {
               setIndicators((prev) => prev.filter((i) => i.id !== id));
             }, 500);
 
-            console.log(`[touch] DOWN id=${data.touch_id} at (${data.position.x}, ${data.position.y})`);
+            logger.touch.debug("DOWN", {
+              touchId: data.touch_id,
+              x: data.position.x,
+              y: data.position.y,
+            });
             break;
           }
 
@@ -176,10 +188,18 @@ export function TouchProvider({ children }: { children: ReactNode }) {
 
               if (distance < TAP_DISTANCE_THRESHOLD) {
                 // It's a tap - dispatch click at the UP position
-                console.log(`[touch] TAP id=${data.touch_id} at (${data.position.x}, ${data.position.y}), distance=${distance.toFixed(1)}px`);
+                logger.touch.debug("TAP detected", {
+                  touchId: data.touch_id,
+                  x: data.position.x,
+                  y: data.position.y,
+                  distance: Math.round(distance),
+                });
                 dispatchSyntheticClick(data.position.x, data.position.y);
               } else {
-                console.log(`[touch] DRAG id=${data.touch_id} distance=${distance.toFixed(1)}px (no click)`);
+                logger.touch.debug("DRAG detected (no click)", {
+                  touchId: data.touch_id,
+                  distance: Math.round(distance),
+                });
               }
             }
             break;
@@ -200,7 +220,9 @@ export function TouchProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (e) {
-        console.warn("[touch] Invalid message", e);
+        logger.touch.warn("Invalid message", {
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     };
 

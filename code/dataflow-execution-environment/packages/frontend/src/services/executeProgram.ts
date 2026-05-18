@@ -10,6 +10,7 @@ import {
 import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
 import type { Edge } from "@xyflow/react";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // Tipos para agrupación jerárquica de resultados
@@ -83,14 +84,14 @@ function formatInterpreterErrors(
 function logInterpreterErrors(errors: Array<ParseError | RuntimeError>): void {
   for (const e of errors) {
     if (e instanceof RuntimeError) {
-      console.error("[execute] Interpreter RuntimeError:", {
+      logger.execute.error("Interpreter RuntimeError", {
         code: e.code,
         nodeId: e.nodeId,
         message: e.message,
         stack: e.stack,
       });
     } else {
-      console.error("[execute] Interpreter ParseError:", {
+      logger.execute.error("Interpreter ParseError", {
         message: e.message,
         line: e.line,
         column: e.column,
@@ -397,6 +398,36 @@ function describeSubtype(sub: SubtypeGroup): string {
 // ============================================================================
 
 /**
+ * Helper to create a hash of the program (nodes + edges) for change detection.
+ * Only includes semantically relevant data (not positions).
+ */
+function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
+  const nodesKey = nodes
+    .filter((n) => n.type === "source" || n.type === "operator" || n.type === "programOutput")
+    .map((n) => `${n.id}:${n.type}:${JSON.stringify(n.data)}`)
+    .sort()
+    .join("|");
+  const edgesKey = edges
+    .map((e) => `${e.source}->${e.target}:${e.sourceHandle ?? ""}-${e.targetHandle ?? ""}`)
+    .sort()
+    .join("|");
+  return `${nodesKey}::${edgesKey}`;
+}
+
+/**
+ * Helper to create a hash of results for change detection.
+ */
+function hashResults(results: Map<string, ResultValue>): string {
+  return Array.from(results.entries())
+    .map(([k, v]) => {
+      if (v.kind === "number") return `${k}:num:${v.value}`;
+      return `${k}:sem:${v.result.description}`;
+    })
+    .sort()
+    .join("|");
+}
+
+/**
  * Creates a program executor with its own Interpreter instance.
  * The interpreter maintains cache between executions within the same session.
  *
@@ -404,6 +435,10 @@ function describeSubtype(sub: SubtypeGroup): string {
  */
 export function createProgramExecutor() {
   const interpreter = new Interpreter();
+
+  // Cache for change detection - only log when something actually changes
+  let lastProgramHash: string | null = null;
+  let lastResultsHash: string | null = null;
 
   return {
     /**
@@ -416,42 +451,36 @@ export function createProgramExecutor() {
       if (nodes.length === 0) {
         return { success: false, error: "No hay nodos para ejecutar" };
       }
-      
+
+      // Check if program changed
+      const currentProgramHash = hashProgram(nodes, edges);
+      const programChanged = currentProgramHash !== lastProgramHash;
+
       const program = flowToProgram(nodes, edges);
-      console.log("[frontend → interpreter] Program:", program);
-      console.log(
-        "[execute] Program with",
-        program.statements.length,
-        "statements"
-      );
+
+      // Only log program details when it actually changed
+      if (programChanged) {
+        logger.execute.info("Program changed", {
+          statements: program.statements.length,
+        });
+        lastProgramHash = currentProgramHash;
+      }
 
       try {
         const { results, errors } = await interpreter.execute(program);
 
-        console.log(
-          "[execute] Interpreter results:",
-          results.size,
-          "errors:",
-          errors.length
-        );
-
         if (errors.length > 0) {
           logInterpreterErrors(errors);
           const errorMsg = formatInterpreterErrors(errors);
-          console.error("[execute] Interpreter errors (texto):", errorMsg);
+          logger.execute.error("Interpreter errors", { errorMsg });
           return { success: false, error: errorMsg };
         }
 
         // Collect all sink results
         const resultsMap = new Map<string, ResultValue>();
 
-        console.log("[execute] Processing results, size:", results.size);
         for (const [sinkId, output] of results) {
-          console.log(`[execute] Result: sinkId="${sinkId}", kind="${output.kind}"`);
           if (!sinkId.startsWith("output_")) {
-            console.log(
-              `[execute] Skipping sinkId="${sinkId}" (no output_ prefix)`
-            );
             continue;
           }
 
@@ -460,50 +489,51 @@ export function createProgramExecutor() {
 
           if (output.kind === "racional") {
             const value = Number(output.value.valueOf());
-            console.log(`[execute] Setting ${outputNodeId} = ${value} (racional)`);
             resultsMap.set(outputNodeId, { kind: "number", value });
           } else if (output.kind === "arreglo") {
-            // Agrupar elementos jerárquicamente
             const semantic = groupElements(output.elements);
-            console.log(
-              `[execute] Setting ${outputNodeId} = "${semantic.description}" (arreglo)`
-            );
             resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
           } else if (output.kind === "forma" || output.kind === "comida") {
-            // Objeto individual
             const semantic = groupElements([output]);
-            console.log(
-              `[execute] Setting ${outputNodeId} = "${semantic.description}" (${output.kind})`
-            );
             resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
           } else if (output.kind === "abstracto") {
             const value = Number(
               (output as { value: { valueOf(): number } }).value.valueOf()
             );
-            console.log(
-              `[execute] Setting ${outputNodeId} = ${value} (abstracto)`
-            );
             resultsMap.set(outputNodeId, { kind: "number", value });
           } else {
-            console.log(
-              `[execute] Unknown output type for ${outputNodeId}: kind="${output.kind}"`
-            );
+            logger.execute.warn("Unknown output type", {
+              outputNodeId,
+              kind: output.kind,
+            });
           }
         }
 
-        console.log("[execute] Final resultsMap size:", resultsMap.size);
-
         if (resultsMap.size === 0) {
-          console.warn("[execute] No results found, returning error");
+          logger.execute.warn("No results found");
           return { success: false, error: "Sin resultados" };
+        }
+
+        // Check if results changed
+        const currentResultsHash = hashResults(resultsMap);
+        const resultsChanged = currentResultsHash !== lastResultsHash;
+
+        if (resultsChanged) {
+          // Log summary of what changed
+          const summary = Array.from(resultsMap.entries()).map(([id, val]) => ({
+            id,
+            value: val.kind === "number" ? val.value : val.result.description,
+          }));
+          logger.execute.info("Results updated", { results: summary });
+          lastResultsHash = currentResultsHash;
         }
 
         return { success: true, results: resultsMap };
       } catch (err) {
-        console.error("[execute] Excepción al ejecutar:", err);
-        if (err instanceof Error && err.stack) {
-          console.error("[execute] Stack:", err.stack);
-        }
+        logger.execute.error("Exception during execution", {
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
         return {
           success: false,
           error: err instanceof Error ? err.message : "Error de ejecución",
@@ -512,12 +542,14 @@ export function createProgramExecutor() {
     },
 
     /**
-     * Clears the interpreter cache.
+     * Clears the interpreter cache and resets change detection.
      * Call this when leaving the page or when you need a fresh state.
      */
     reset() {
       interpreter.reset();
-      console.log("[execute] Interpreter reset");
+      lastProgramHash = null;
+      lastResultsHash = null;
+      logger.execute.info("Interpreter reset");
     },
 
     /**

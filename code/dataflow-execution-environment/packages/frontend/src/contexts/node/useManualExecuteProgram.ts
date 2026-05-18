@@ -3,6 +3,7 @@ import type { Edge } from "@xyflow/react";
 import type { ProgramOutputFlowNodeData } from "@/components/dataflow";
 import type { ProgramExecutor } from "@/services/executeProgram";
 import type { DataflowNode } from "./types";
+import { logger } from "@/lib/logger";
 
 type SetNodes = Dispatch<SetStateAction<DataflowNode[]>>;
 
@@ -17,7 +18,7 @@ export function useManualExecuteProgram(
 ) {
   return useCallback(async () => {
     if (!executorRef.current) {
-      console.error("[executeProgram] No executor available");
+      logger.executeProgram.error("No executor available");
       return;
     }
 
@@ -54,7 +55,7 @@ export function useManualExecuteProgram(
         syncProgramOutputValue(typeof numericResult === "number" ? numericResult : undefined);
 
         const stats = executorRef.current.getStats();
-        console.log("[executeProgram] Stats:", stats);
+        logger.executeProgram.debug("Execution stats", { stats });
       } else {
         setExecutionResult(null);
         setExecutionError(result.error || "Error desconocido");
