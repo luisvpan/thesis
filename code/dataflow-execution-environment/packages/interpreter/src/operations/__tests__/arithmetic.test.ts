@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { sum, multiply, substract, divide } from "../arithmetic";
-import type { RationalValue, ShapeValue, FoodValue, ArrayValue } from "../../runtime/types";
+import type { RationalValue, CPAObject, ArrayValue } from "../../runtime/types";
 
 describe("sum (unit)", () => {
   test("adds two rationals", () => {
@@ -24,39 +24,43 @@ describe("sum (unit)", () => {
   });
 
   test("aggregates CPA objects by key", () => {
-    const grape1: FoodValue = {
-      kind: "comida",
+    const grape1: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "uva",
-      color: "morado",
-      amount: new Fraction(5),
+      quantity: new Fraction(5),
+      attributes: { color: "morado" },
     };
-    const grape2: FoodValue = {
-      kind: "comida",
+    const grape2: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "uva",
-      color: "morado",
-      amount: new Fraction(3),
+      quantity: new Fraction(3),
+      attributes: { color: "morado" },
     };
-    const result = sum([grape1, grape2]) as FoodValue;
-    expect(result.kind).toBe("comida");
-    expect(result.amount.equals(new Fraction(8))).toBe(true);
+    const result = sum([grape1, grape2]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(8))).toBe(true);
   });
 
   test("returns array for different CPA types", () => {
-    const grape: FoodValue = {
-      kind: "comida",
+    const grape: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "uva",
-      color: "morado",
-      amount: new Fraction(5),
+      quantity: new Fraction(5),
+      attributes: { color: "morado" },
     };
-    const circle: ShapeValue = {
-      kind: "forma",
+    const circle: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "circulo",
-      size: "grande",
-      amount: new Fraction(3),
+      quantity: new Fraction(3),
+      attributes: { size: "grande" },
     };
     const result = sum([grape, circle]) as ArrayValue;
     expect(result.kind).toBe("arreglo");
@@ -93,37 +97,40 @@ describe("multiply (unit)", () => {
   });
 
   test("scales CPA object by rational factor", () => {
-    const shape: ShapeValue = {
-      kind: "forma",
+    const shape: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "cuadrado",
-      size: "pequeño",
-      amount: new Fraction(5),
+      quantity: new Fraction(5),
+      attributes: { size: "pequeño" },
     };
     const factor: RationalValue = { kind: "racional", value: new Fraction(3) };
-    const result = multiply([shape, factor]) as ShapeValue;
-    expect(result.kind).toBe("forma");
-    expect(result.amount.equals(new Fraction(15))).toBe(true);
+    const result = multiply([shape, factor]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(15))).toBe(true);
   });
 
   test("aggregates CPA objects by key with multiplication", () => {
-    const circle1: ShapeValue = {
-      kind: "forma",
+    const circle1: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "circulo",
-      size: "grande",
-      amount: new Fraction(2),
+      quantity: new Fraction(2),
+      attributes: { size: "grande" },
     };
-    const circle2: ShapeValue = {
-      kind: "forma",
+    const circle2: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "circulo",
-      size: "grande",
-      amount: new Fraction(3),
+      quantity: new Fraction(3),
+      attributes: { size: "grande" },
     };
-    const result = multiply([circle1, circle2]) as ShapeValue;
-    expect(result.kind).toBe("forma");
-    expect(result.amount.equals(new Fraction(6))).toBe(true);
+    const result = multiply([circle1, circle2]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(6))).toBe(true);
   });
 });
 
@@ -137,37 +144,40 @@ describe("substract (unit)", () => {
   });
 
   test("subtracts CPA object amounts", () => {
-    const grape1: FoodValue = {
-      kind: "comida",
+    const grape1: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "uva",
-      color: "morado",
-      amount: new Fraction(10),
+      quantity: new Fraction(10),
+      attributes: { color: "morado" },
     };
-    const grape2: FoodValue = {
-      kind: "comida",
+    const grape2: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "manzana",
-      color: "rojo",
-      amount: new Fraction(3),
+      quantity: new Fraction(3),
+      attributes: { color: "rojo" },
     };
-    const result = substract([grape1, grape2]) as FoodValue;
-    expect(result.kind).toBe("comida");
-    expect(result.amount.equals(new Fraction(7))).toBe(true);
+    const result = substract([grape1, grape2]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(7))).toBe(true);
   });
 
   test("subtracts rational from CPA object", () => {
-    const shape: ShapeValue = {
-      kind: "forma",
+    const shape: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "circulo",
-      size: "mediano",
-      amount: new Fraction(12),
+      quantity: new Fraction(12),
+      attributes: { size: "mediano" },
     };
     const value: RationalValue = { kind: "racional", value: new Fraction(4) };
-    const result = substract([shape, value]) as ShapeValue;
-    expect(result.kind).toBe("forma");
-    expect(result.amount.equals(new Fraction(8))).toBe(true);
+    const result = substract([shape, value]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(8))).toBe(true);
   });
 
   test("throws error for wrong arity", () => {
@@ -186,17 +196,18 @@ describe("divide (unit)", () => {
   });
 
   test("divides CPA object by rational", () => {
-    const shape: ShapeValue = {
-      kind: "forma",
+    const shape: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "circulo",
-      size: "mediano",
-      amount: new Fraction(12),
+      quantity: new Fraction(12),
+      attributes: { size: "mediano" },
     };
     const divisor: RationalValue = { kind: "racional", value: new Fraction(4) };
-    const result = divide([shape, divisor]) as ShapeValue;
-    expect(result.kind).toBe("forma");
-    expect(result.amount.equals(new Fraction(3))).toBe(true);
+    const result = divide([shape, divisor]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(3))).toBe(true);
   });
 
   test("handles fractional results", () => {

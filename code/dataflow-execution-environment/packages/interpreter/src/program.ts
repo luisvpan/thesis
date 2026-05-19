@@ -4,15 +4,7 @@
 import type Fraction from "fraction.js";
 
 // Re-export non-numeric types from AST
-export type {
-  Operation,
-  CategoryValue,
-  TypeValue,
-  ShapeTypeValue,
-  SizeValue,
-  FoodTypeValue,
-  ColorValue,
-} from "./analyzer/ast";
+export type { Operation } from "./analyzer/ast";
 
 // Program structure (same as AST)
 export type Program = {
@@ -64,57 +56,20 @@ export type ArrayLiteral = {
 
 export type OtherLiteral = {
   type: "OtherLiteral";
-  value:
-    | import("./analyzer/ast").CategoryValue
-    | import("./analyzer/ast").TypeValue
-    | import("./analyzer/ast").ShapeTypeValue
-    | import("./analyzer/ast").SizeValue
-    | import("./analyzer/ast").FoodTypeValue
-    | import("./analyzer/ast").ColorValue;
+  value: string;
 };
 
-// Object Literals with Fraction for numeric fields
-export type ObjectLiteral =
-  | AbstractObjectLiteral
-  | PictorialObjectLiteral
-  | ConcreteObjectLiteral
-  | SimpleObjectLiteral;
-
-export type SimpleObjectLiteral = {
-  type: "ObjectLiteral";
-  category?: import("./analyzer/ast").CategoryValue;
-  objectType:
-    | import("./analyzer/ast").TypeValue
-    | import("./analyzer/ast").ShapeTypeValue
-    | import("./analyzer/ast").FoodTypeValue;
-  subtype?: import("./analyzer/ast").ShapeTypeValue | import("./analyzer/ast").FoodTypeValue;
-  size?: import("./analyzer/ast").SizeValue;
-  color?: import("./analyzer/ast").ColorValue;
-  amount?: Fraction;
-  value?: Fraction;
+// Object property with Fraction for numeric values
+export type ObjectProperty = {
+  key: string;
+  value: string | Fraction;
 };
 
-export type AbstractObjectLiteral = {
+// Generic Object Literal with key-value pairs
+// Numeric values (like quantity) are stored as Fraction
+export type ObjectLiteral = {
   type: "ObjectLiteral";
-  category: "abstracto";
-  objectType: "racional";
-  value: Fraction;
-};
-
-export type PictorialObjectLiteral = {
-  type: "ObjectLiteral";
-  category: "pictorico";
-  objectType: "forma";
-  subtype: import("./analyzer/ast").ShapeTypeValue;
-  size: import("./analyzer/ast").SizeValue;
-  amount: Fraction;
-};
-
-export type ConcreteObjectLiteral = {
-  type: "ObjectLiteral";
-  category: "concreto";
-  objectType: "comida";
-  subtype: import("./analyzer/ast").FoodTypeValue;
-  color: import("./analyzer/ast").ColorValue;
-  amount: Fraction;
+  properties: ObjectProperty[];
+  // Convenience accessor for quantity (computed from properties)
+  quantity?: Fraction;
 };

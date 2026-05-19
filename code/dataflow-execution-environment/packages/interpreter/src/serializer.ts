@@ -4,13 +4,14 @@ import Fraction from "fraction.js";
 import { DataflowLexer } from "./analyzer/lexer";
 import { parserInstance } from "./analyzer/parser";
 import { visitorInstance } from "./analyzer/visitor";
-import type { Program as ASTProgram, Statement as ASTStatement, Literal as ASTLiteral, Expression as ASTExpression, ObjectLiteral as ASTObjectLiteral } from "./analyzer/ast";
+import type { Program as ASTProgram, Statement as ASTStatement, Literal as ASTLiteral, Expression as ASTExpression, ObjectLiteral as ASTObjectLiteral, ObjectProperty as ASTObjectProperty } from "./analyzer/ast";
 import type {
   Program,
   Statement,
   Literal,
   Expression,
   ObjectLiteral,
+  ObjectProperty,
   NumberLiteral,
   ArrayLiteral,
   OtherLiteral,
@@ -98,20 +99,20 @@ function astStatementToStatement(stmt: ASTStatement): Statement {
       return {
         type: "SourceStatement",
         identifier: stmt.identifier,
-        value: astLiteralToLiteral(stmt.value),
+        value: stmt.value ? astLiteralToLiteral(stmt.value) : { type: "NumberLiteral", value: new Fraction(0) },
       };
     case "TransformStatement":
       return {
         type: "TransformStatement",
         identifier: stmt.identifier,
-        operation: stmt.operation,
+        operation: stmt.operation ?? "sum",
         arguments: stmt.arguments.map(astExpressionToExpression),
       };
     case "SinkStatement":
       return {
         type: "SinkStatement",
         identifier: stmt.identifier,
-        sourceIdentifier: stmt.sourceIdentifier,
+        sourceIdentifier: stmt.sourceIdentifier ?? "",
       };
   }
 }
@@ -135,7 +136,7 @@ function astLiteralToLiteral(lit: ASTLiteral): Literal {
         type: "ArrayLiteral",
         elements: lit.elements.map(astExpressionToExpression),
       };
-    case "OtherLiteral":
+    case "StringLiteral":
       return {
         type: "OtherLiteral",
         value: lit.value,
@@ -146,21 +147,32 @@ function astLiteralToLiteral(lit: ASTLiteral): Literal {
 }
 
 function astObjectLiteralToObjectLiteral(obj: ASTObjectLiteral): ObjectLiteral {
-  const result: Record<string, unknown> = {
+  const properties: ObjectProperty[] = obj.properties.map((prop: ASTObjectProperty) => {
+    // Check if value looks like a number
+    const numValue = parseFloat(prop.value);
+    if (!isNaN(numValue) && prop.value.trim() === String(numValue)) {
+      return {
+        key: prop.key,
+        value: new Fraction(prop.value),
+      };
+    }
+    return {
+      key: prop.key,
+      value: prop.value,
+    };
+  });
+
+  // Add convenience quantity accessor
+  const quantityProp = properties.find(p => p.key === "quantity");
+  const quantity = quantityProp && quantityProp.value instanceof Fraction
+    ? quantityProp.value
+    : undefined;
+
+  return {
     type: "ObjectLiteral",
+    properties,
+    quantity,
   };
-
-  if (obj.category !== undefined) result.category = obj.category;
-  if (obj.objectType !== undefined) result.objectType = obj.objectType;
-  if ("subtype" in obj && obj.subtype !== undefined) result.subtype = obj.subtype;
-  if ("size" in obj && obj.size !== undefined) result.size = obj.size;
-  if ("color" in obj && obj.color !== undefined) result.color = obj.color;
-
-  // Convert string numeric values to Fraction
-  if ("amount" in obj && obj.amount !== undefined) result.amount = new Fraction(obj.amount);
-  if ("value" in obj && obj.value !== undefined) result.value = new Fraction(obj.value);
-
-  return result as ObjectLiteral;
 }
 
 // Internal conversion: Program (Fraction) -> dataflow string
@@ -190,22 +202,19 @@ function deserializeLiteral(lit: Literal): string {
     case "ArrayLiteral":
       return `[${lit.elements.map(deserializeExpression).join(", ")}]`;
     case "OtherLiteral":
-      return lit.value;
+      return `"${lit.value}"`;
     case "ObjectLiteral":
       return deserializeObjectLiteral(lit);
   }
 }
 
 function deserializeObjectLiteral(obj: ObjectLiteral): string {
-  const props: string[] = [];
-
-  if (obj.category !== undefined) props.push(`category: ${obj.category}`);
-  if (obj.objectType !== undefined) props.push(`type: ${obj.objectType}`);
-  if ("subtype" in obj && obj.subtype !== undefined) props.push(`subtype: ${obj.subtype}`);
-  if ("size" in obj && obj.size !== undefined) props.push(`size: ${obj.size}`);
-  if ("color" in obj && obj.color !== undefined) props.push(`color: ${obj.color}`);
-  if ("amount" in obj && obj.amount !== undefined) props.push(`amount: ${fractionToString(obj.amount)}`);
-  if ("value" in obj && obj.value !== undefined) props.push(`value: ${fractionToString(obj.value)}`);
+  const props: string[] = obj.properties.map(prop => {
+    if (prop.value instanceof Fraction) {
+      return `"${prop.key}": ${fractionToString(prop.value)}`;
+    }
+    return `"${prop.key}": "${prop.value}"`;
+  });
 
   return `{${props.join(", ")}}`;
 }

@@ -1,4 +1,4 @@
-// AST Node Types for the Dataflow Language v2.1.0
+// AST Node Types for the Dataflow Language v3.0.0
 
 export type Program = {
   type: "Program";
@@ -10,20 +10,20 @@ export type Statement = SourceStatement | TransformStatement | SinkStatement;
 export type SourceStatement = {
   type: "SourceStatement";
   identifier: string;
-  value: Literal;
+  value?: Literal;  // Optional for incomplete programs
 };
 
 export type TransformStatement = {
   type: "TransformStatement";
   identifier: string;
-  operation: Operation;
+  operation?: Operation;  // Optional for incomplete programs
   arguments: Expression[];
 };
 
 export type SinkStatement = {
   type: "SinkStatement";
   identifier: string;
-  sourceIdentifier: string;
+  sourceIdentifier?: string;  // Optional for incomplete programs
 };
 
 // Operations
@@ -47,11 +47,16 @@ export type IdentifierExpression = {
 };
 
 // Literals
-export type Literal = ObjectLiteral | OtherLiteral | ArrayLiteral | NumberLiteral;
+export type Literal = ObjectLiteral | StringLiteral | ArrayLiteral | NumberLiteral;
 
 export type NumberLiteral = {
   type: "NumberLiteral";
   value: string;
+};
+
+export type StringLiteral = {
+  type: "StringLiteral";
+  value: string;  // Without quotes
 };
 
 export type ArrayLiteral = {
@@ -59,59 +64,36 @@ export type ArrayLiteral = {
   elements: Expression[];
 };
 
-export type OtherLiteral = {
-  type: "OtherLiteral";
-  value: CategoryValue | TypeValue | ShapeTypeValue | SizeValue | FoodTypeValue | ColorValue;
-};
-
-// Object Literals with category-specific extensions
-export type ObjectLiteral = AbstractObjectLiteral | PictorialObjectLiteral | ConcreteObjectLiteral | SimpleObjectLiteral;
-
-export type SimpleObjectLiteral = {
+// Generic Object Literal with key-value pairs
+// All properties are stored as strings (keys without quotes, values as-is)
+export type ObjectLiteral = {
   type: "ObjectLiteral";
-  category?: CategoryValue;
-  objectType: TypeValue | ShapeTypeValue | FoodTypeValue;
-  subtype?: ShapeTypeValue | FoodTypeValue;
-  size?: SizeValue;
-  color?: ColorValue;
-  amount?: string;
-  value?: string;
+  properties: ObjectProperty[];
 };
 
-export type AbstractObjectLiteral = {
-  type: "ObjectLiteral";
-  category: "abstracto";
-  objectType: "racional";
-  value: string;
+export type ObjectProperty = {
+  key: string;    // Property name without quotes
+  value: string;  // Property value without quotes (or number as string)
 };
 
-export type PictorialObjectLiteral = {
-  type: "ObjectLiteral";
-  category: "pictorico";
-  objectType: "forma";
-  subtype: ShapeTypeValue;
-  size: SizeValue;
-  amount: string;
-};
+// Helper type for CPA categories (for type checking)
+export type CPACategory = "abstracto" | "pictorico" | "concreto";
 
-export type ConcreteObjectLiteral = {
-  type: "ObjectLiteral";
-  category: "concreto";
-  objectType: "comida";
-  subtype: FoodTypeValue;
-  color: ColorValue;
-  amount: string;
-};
+// Helper function to get a property value from an ObjectLiteral
+export function getProperty(obj: ObjectLiteral, key: string): string | undefined {
+  const prop = obj.properties.find(p => p.key === key);
+  return prop?.value;
+}
 
-// Value types (v2.1.0 - Spanish)
-export type CategoryValue = "abstracto" | "pictorico" | "concreto";
+// Helper function to check if an ObjectLiteral has all required CPA fields
+export function isValidCPAObject(obj: ObjectLiteral): boolean {
+  const category = getProperty(obj, "category");
+  const type = getProperty(obj, "type");
+  const subtype = getProperty(obj, "subtype");
+  const quantity = getProperty(obj, "quantity");
 
-export type TypeValue = "racional" | "forma" | "comida" | "montessori";
-
-export type ShapeTypeValue = "circulo" | "cuadrado" | "triangulo" | "rectangulo" | "rombo" | "estrella" | "trapecio";
-
-export type SizeValue = "pequeño" | "mediano" | "grande";
-
-export type FoodTypeValue = "manzana" | "hamburguesa" | "uva" | "pasta" | "pera";
-
-export type ColorValue = "morado" | "verde" | "rojo" | "naranja" | "azul" | "amarillo";
+  return category !== undefined &&
+         type !== undefined &&
+         subtype !== undefined &&
+         quantity !== undefined;
+}

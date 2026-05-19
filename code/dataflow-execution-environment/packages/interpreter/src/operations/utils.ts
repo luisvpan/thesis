@@ -19,15 +19,11 @@ export function flattenArrays(values: RuntimeValue[]): RuntimeValue[] {
 }
 
 /**
- * Gets the quantity/amount from a CPA object.
- * For abstracto: returns value
- * For forma/comida: returns amount
+ * Gets the quantity from a CPA object.
+ * All CPA objects now use the unified 'quantity' field.
  */
 export function getQuantity(obj: CPAObject): Fraction {
-  if (obj.kind === "abstracto") {
-    return obj.value;
-  }
-  return obj.amount;
+  return obj.quantity;
 }
 
 /**
@@ -62,14 +58,5 @@ export function getQuantityOrZero(val: RuntimeValue): Fraction {
  * Clones a CPA object with a new quantity.
  */
 export function cloneCPAWithQuantity(obj: CPAObject, quantity: Fraction): CPAObject {
-  if (obj.kind === "abstracto") {
-    return { ...obj, value: quantity };
-  }
-  if (obj.kind === "forma") {
-    return { ...obj, amount: quantity };
-  }
-  if (obj.kind === "comida") {
-    return { ...obj, amount: quantity };
-  }
-  return obj;
+  return { ...obj, quantity };
 }

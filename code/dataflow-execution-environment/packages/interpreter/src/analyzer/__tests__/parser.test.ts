@@ -51,8 +51,12 @@ describe("Parser v2.1.0", () => {
     }
   });
 
-  test("parses rational type in objects", () => {
-    const result = parse("source x = {category: abstracto, type: racional, value: 42};");
+  test("parses CPA object with new JSON-like syntax", () => {
+    const result = parse('source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 42};');
     expect(result.errors).toHaveLength(0);
+    const stmt = result.ast!.statements[0];
+    if (stmt.type === "SourceStatement") {
+      expect(stmt.value.type).toBe("ObjectLiteral");
+    }
   });
 });

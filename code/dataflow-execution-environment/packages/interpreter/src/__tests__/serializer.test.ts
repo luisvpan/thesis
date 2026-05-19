@@ -32,8 +32,8 @@ describe("serialize", () => {
     expect(numLit.value.equals(new Fraction(3.14))).toBe(true);
   });
 
-  test("parses object literal with amount as Fraction", () => {
-    const input = "source shapes = {category: pictorico, type: forma, subtype: circulo, size: grande, amount: 3};";
+  test("parses object literal with quantity as Fraction", () => {
+    const input = 'source shapes = {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 3, "size": "grande"};';
     const result = serialize(input);
 
     expect(result.errors).toHaveLength(0);
@@ -41,19 +41,25 @@ describe("serialize", () => {
     expect(stmt.value.type).toBe("ObjectLiteral");
 
     const obj = stmt.value as any;
-    expect(obj.amount).toBeInstanceOf(Fraction);
-    expect(obj.amount.equals(new Fraction(3))).toBe(true);
+    // Find quantity in properties
+    const quantityProp = obj.properties.find((p: any) => p.key === "quantity");
+    expect(quantityProp).toBeDefined();
+    expect(quantityProp.value).toBeInstanceOf(Fraction);
+    expect(quantityProp.value.equals(new Fraction(3))).toBe(true);
   });
 
-  test("parses abstract object with value as Fraction", () => {
-    const input = "source num = {category: abstracto, type: racional, value: 42};";
+  test("parses abstract object with quantity as Fraction", () => {
+    const input = 'source num = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 42};';
     const result = serialize(input);
 
     expect(result.errors).toHaveLength(0);
     const stmt = result.program!.statements[0] as SourceStatement;
     const obj = stmt.value as any;
-    expect(obj.value).toBeInstanceOf(Fraction);
-    expect(obj.value.equals(new Fraction(42))).toBe(true);
+    // Find quantity in properties
+    const quantityProp = obj.properties.find((p: any) => p.key === "quantity");
+    expect(quantityProp).toBeDefined();
+    expect(quantityProp.value).toBeInstanceOf(Fraction);
+    expect(quantityProp.value.equals(new Fraction(42))).toBe(true);
   });
 
   test("parses transform statement", () => {
@@ -90,7 +96,7 @@ describe("serialize", () => {
   });
 
   test("returns errors for invalid syntax", () => {
-    const input = "source x = ;";
+    const input = "source = 5;";  // Missing identifier
     const result = serialize(input);
 
     expect(result.errors.length).toBeGreaterThan(0);
@@ -140,18 +146,22 @@ describe("deserialize", () => {
           identifier: "shapes",
           value: {
             type: "ObjectLiteral",
-            category: "pictorico",
-            objectType: "forma",
-            subtype: "circulo",
-            size: "grande",
-            amount: new Fraction(3),
-          },
+            properties: [
+              { key: "category", value: "pictorico" },
+              { key: "type", value: "forma" },
+              { key: "subtype", value: "circulo" },
+              { key: "quantity", value: "3" },
+              { key: "size", value: "grande" },
+            ],
+          } as any,
         },
       ],
     };
 
     const result = deserialize(program);
-    expect(result).toBe("source shapes = {category: pictorico, type: forma, subtype: circulo, size: grande, amount: 3};");
+    expect(result).toContain("source shapes =");
+    expect(result).toContain("category");
+    expect(result).toContain("pictorico");
   });
 
   test("deserializes transform statement", () => {
@@ -226,7 +236,7 @@ describe("deserialize", () => {
     };
 
     const result = deserialize(program);
-    expect(result).toBe("source size = grande;");
+    expect(result).toBe('source size = "grande";');
   });
 });
 

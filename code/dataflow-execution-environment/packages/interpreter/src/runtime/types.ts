@@ -1,5 +1,11 @@
 import type Fraction from "fraction.js";
-import type { Statement, ShapeTypeValue, SizeValue, FoodTypeValue, ColorValue } from "../analyzer/ast";
+import type { Statement } from "../analyzer/ast";
+
+// =============================================================================
+// CPA Categories
+// =============================================================================
+
+export type CPACategory = "abstracto" | "pictorico" | "concreto";
 
 // Category enum for taxonomical ordering (lower = higher priority)
 export enum Category {
@@ -8,7 +14,26 @@ export enum Category {
   Abstracto = 2,
 }
 
-// Runtime value types
+// =============================================================================
+// Generic CPA Object - Unified representation for all CPA types
+// =============================================================================
+
+export interface GenericCPAObject {
+  kind: "cpa";                            // Discriminator for type guards
+  category: CPACategory;                  // CPA category
+  type: string;                           // Object type: "comida", "forma", "numero", etc.
+  subtype: string;                        // Specific subtype: "manzana", "circulo", "racional"
+  quantity: Fraction;                     // Unified quantity (amount/value)
+  attributes: Record<string, string>;     // Additional key-value attributes
+}
+
+// CPAObject is now an alias for the generic type
+export type CPAObject = GenericCPAObject;
+
+// =============================================================================
+// Other Runtime Value Types
+// =============================================================================
+
 export type RationalValue = {
   kind: "racional";
   value: Fraction;
@@ -18,52 +43,6 @@ export type BooleanValue = {
   kind: "booleano";
   value: boolean;
 };
-
-export type ShapeValue = {
-  kind: "forma";
-  category: "pictorico";
-  subtype: ShapeTypeValue;
-  size: SizeValue;
-  amount: Fraction;
-};
-
-export type FoodValue = {
-  kind: "comida";
-  category: "concreto";
-  subtype: FoodTypeValue;
-  color: ColorValue;
-  amount: Fraction;
-};
-
-export type MontessoriValue = {
-  kind: "montessori";
-  category: "concreto";
-  color: ColorValue;
-  amount: Fraction;
-};
-
-export type CapValue = {
-  kind: "cap";
-  category: "concreto";
-  color: ColorValue;
-  amount: Fraction;
-};
-
-export type StickValue = {
-  kind: "stick";
-  category: "concreto";
-  color: ColorValue;
-  amount: Fraction;
-};
-
-export type AbstractValue = {
-  kind: "abstracto";
-  category: "abstracto";
-  objectType: "racional";
-  value: Fraction;
-};
-
-export type CPAObject = ShapeValue | FoodValue | MontessoriValue | CapValue | StickValue | AbstractValue;
 
 export type ArrayValue = {
   kind: "arreglo";
@@ -75,6 +54,7 @@ export type OtherValue = {
   value: string;
 };
 
+// All possible runtime values
 export type RuntimeValue =
   | RationalValue
   | BooleanValue
@@ -82,20 +62,25 @@ export type RuntimeValue =
   | ArrayValue
   | OtherValue;
 
-// Node evaluation state
+// =============================================================================
+// Execution Graph Types
+// =============================================================================
+
 export type EvaluationState = "pending" | "evaluating" | "completed";
 
-// Graph node for execution
 export interface ExecutionNode {
   id: string;
   statement: Statement;
   dependencies: string[];
-  dependents: string[]; // Reverse dependencies: who depends on me
+  dependents: string[];
   state: EvaluationState;
   result?: RuntimeValue;
 }
 
-// Type guards
+// =============================================================================
+// Type Guards
+// =============================================================================
+
 export function isRational(val: RuntimeValue): val is RationalValue {
   return val.kind === "racional";
 }
@@ -105,31 +90,7 @@ export function isArray(val: RuntimeValue): val is ArrayValue {
 }
 
 export function isCPAObject(val: RuntimeValue): val is CPAObject {
-  return val.kind === "forma" || val.kind === "comida" || val.kind === "montessori" || val.kind === "cap" || val.kind === "stick" || val.kind === "abstracto";
-}
-
-export function isShape(val: RuntimeValue): val is ShapeValue {
-  return val.kind === "forma";
-}
-
-export function isFood(val: RuntimeValue): val is FoodValue {
-  return val.kind === "comida";
-}
-
-export function isMontessori(val: RuntimeValue): val is MontessoriValue {
-  return val.kind === "montessori";
-}
-
-export function isCap(val: RuntimeValue): val is CapValue {
-  return val.kind === "cap";
-}
-
-export function isStick(val: RuntimeValue): val is StickValue {
-  return val.kind === "stick";
-}
-
-export function isAbstract(val: RuntimeValue): val is AbstractValue {
-  return val.kind === "abstracto";
+  return val.kind === "cpa";
 }
 
 export function isOther(val: RuntimeValue): val is OtherValue {
@@ -140,45 +101,74 @@ export function isBoolean(val: RuntimeValue): val is BooleanValue {
   return val.kind === "booleano";
 }
 
-// Get a unique key for CPA aggregation (category + type + subtype)
+// =============================================================================
+// CPA Object Helpers
+// =============================================================================
+
+/**
+ * Get a unique key for CPA aggregation based on category, type, subtype, and attributes
+ */
 export function getCPAKey(val: CPAObject): string {
-  if (val.kind === "abstracto") {
-    return `abstracto:racional`;
+  const parts = [val.category, val.type, val.subtype];
+
+  // Include sorted attributes for uniqueness
+  const sortedAttrs = Object.entries(val.attributes)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  for (const [key, value] of sortedAttrs) {
+    parts.push(`${key}:${value}`);
   }
-  if (val.kind === "forma") {
-    return `pictorico:forma:${val.subtype}:${val.size}`;
-  }
-  if (val.kind === "comida") {
-    return `concreto:comida:${val.subtype}:${val.color}`;
-  }
-  if (val.kind === "montessori") {
-    return `concreto:montessori:${val.color}`;
-  }
-  if (val.kind === "cap") {
-    return `concreto:cap:${val.color}`;
-  }
-  if (val.kind === "stick") {
-    return `concreto:stick:${val.color}`;
-  }
-  return "unknown";
+
+  return parts.join(":");
 }
 
-// Get category enum value from a runtime value
+/**
+ * Get category enum value from a runtime value
+ */
 export function getCategoryOrder(val: RuntimeValue): Category {
-  if (val.kind === "comida" || val.kind === "montessori" || val.kind === "cap" || val.kind === "stick") return Category.Concreto;
-  if (val.kind === "forma") return Category.Pictorico;
-  if (val.kind === "abstracto" || val.kind === "racional") return Category.Abstracto;
+  if (isCPAObject(val)) {
+    switch (val.category) {
+      case "concreto": return Category.Concreto;
+      case "pictorico": return Category.Pictorico;
+      case "abstracto": return Category.Abstracto;
+    }
+  }
+  if (val.kind === "racional") return Category.Abstracto;
   return Category.Abstracto;
 }
 
-// Get type key for sorting
+/**
+ * Get type key for sorting within categories
+ */
 export function getTypeKey(val: RuntimeValue): string {
-  if (val.kind === "comida") return `comida:${val.subtype}`;
-  if (val.kind === "forma") return `forma:${val.subtype}`;
-  if (val.kind === "montessori") return `montessori:${val.color}`;
-  if (val.kind === "cap") return `cap:${val.color}`;
-  if (val.kind === "stick") return `stick:${val.color}`;
-  if (val.kind === "abstracto") return "racional";
+  if (isCPAObject(val)) {
+    return `${val.type}:${val.subtype}`;
+  }
   if (val.kind === "racional") return "racional";
   return "otro";
+}
+
+/**
+ * Get quantity from a CPA object
+ */
+export function getQuantity(val: CPAObject): Fraction {
+  return val.quantity;
+}
+
+/**
+ * Clone a CPA object with a new quantity
+ */
+export function cloneCPAWithQuantity(obj: CPAObject, quantity: Fraction): CPAObject {
+  return { ...obj, quantity };
+}
+
+/**
+ * Check if a CPA object matches a criterion (for filtering)
+ * Matches against category, type, subtype, or any attribute value
+ */
+export function matchesAttribute(val: CPAObject, criterion: string): boolean {
+  if (val.category === criterion) return true;
+  if (val.type === criterion) return true;
+  if (val.subtype === criterion) return true;
+  return Object.values(val.attributes).includes(criterion);
 }

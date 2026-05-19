@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { Interpreter } from "../index";
-import type { RationalValue, ArrayValue, ShapeValue, FoodValue, MontessoriValue } from "../runtime/types";
+import type { RationalValue, ArrayValue, CPAObject } from "../runtime/types";
 
 describe("Integration", () => {
   describe("Example 1: Simple Addition", () => {
@@ -47,9 +47,9 @@ describe("Integration", () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
         source items = [
-          {type: uva, color: morado, amount: 5},
-          {type: uva, color: morado, amount: 3},
-          {type: manzana, color: rojo, amount: 2}
+          {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 5, "color": "morado"},
+          {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 3, "color": "morado"},
+          {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 2, "color": "rojo"}
         ];
         transform total = sum(items);
         sink result = total;
@@ -65,9 +65,9 @@ describe("Integration", () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
         source items = [
-          {type: circulo, size: grande, amount: 2},
-          {type: circulo, size: grande, amount: 3},
-          {type: cuadrado, size: pequeño, amount: 4}
+          {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 2, "size": "grande"},
+          {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 3, "size": "grande"},
+          {"category": "pictorico", "type": "forma", "subtype": "cuadrado", "quantity": 4, "size": "pequeño"}
         ];
         transform product = multiply(items);
         sink result = product;
@@ -78,56 +78,56 @@ describe("Integration", () => {
       expect(sinkResult.kind).toBe("arreglo");
       expect(sinkResult.elements).toHaveLength(2);
 
-      const circle = sinkResult.elements.find(e => (e as ShapeValue).subtype === "circulo") as ShapeValue;
-      const square = sinkResult.elements.find(e => (e as ShapeValue).subtype === "cuadrado") as ShapeValue;
-      expect(circle.amount.equals(new Fraction(6))).toBe(true);
-      expect(square.amount.equals(new Fraction(4))).toBe(true);
+      const circle = sinkResult.elements.find(e => (e as CPAObject).subtype === "circulo") as CPAObject;
+      const square = sinkResult.elements.find(e => (e as CPAObject).subtype === "cuadrado") as CPAObject;
+      expect(circle.quantity.equals(new Fraction(6))).toBe(true);
+      expect(square.quantity.equals(new Fraction(4))).toBe(true);
     });
 
     test("substract operates on CPA object amounts", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source a = {type: uva, color: morado, amount: 10};
-        source b = {type: manzana, color: rojo, amount: 3};
+        source a = {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 10, "color": "morado"};
+        source b = {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 3, "color": "rojo"};
         transform diff = substract(a, b);
         sink result = diff;
       `);
 
       expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as FoodValue;
-      expect(sinkResult.kind).toBe("comida");
-      expect(sinkResult.amount.equals(new Fraction(7))).toBe(true);
+      const sinkResult = result.results.get("result") as CPAObject;
+      expect(sinkResult.kind).toBe("cpa");
+      expect(sinkResult.quantity.equals(new Fraction(7))).toBe(true);
     });
 
     test("divide operates on CPA object amounts", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source a = {type: circulo, size: mediano, amount: 12};
+        source a = {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 12, "size": "mediano"};
         source b = 4;
         transform quotient = divide(a, b);
         sink result = quotient;
       `);
 
       expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as ShapeValue;
-      expect(sinkResult.kind).toBe("forma");
-      expect(sinkResult.amount.equals(new Fraction(3))).toBe(true);
+      const sinkResult = result.results.get("result") as CPAObject;
+      expect(sinkResult.kind).toBe("cpa");
+      expect(sinkResult.quantity.equals(new Fraction(3))).toBe(true);
     });
 
     test("multiply scales CPA objects by rational factor", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source myShape = {type: cuadrado, size: pequeño, amount: 5};
+        source myShape = {"category": "pictorico", "type": "forma", "subtype": "cuadrado", "quantity": 5, "size": "pequeño"};
         source factor = 3;
         transform scaled = multiply(myShape, factor);
         sink result = scaled;
       `);
 
       expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as ShapeValue;
-      expect(sinkResult.kind).toBe("forma");
+      const sinkResult = result.results.get("result") as CPAObject;
+      expect(sinkResult.kind).toBe("cpa");
       expect(sinkResult.subtype).toBe("cuadrado");
-      expect(sinkResult.amount.equals(new Fraction(15))).toBe(true);
+      expect(sinkResult.quantity.equals(new Fraction(15))).toBe(true);
     });
   });
 
@@ -135,8 +135,8 @@ describe("Integration", () => {
     test("sum aggregates montessori cubes by color", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source rojos = { type: montessori, color: rojo, amount: 3 };
-        source azules = { type: montessori, color: azul, amount: 5 };
+        source rojos = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 3, "color": "rojo"};
+        source azules = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 5, "color": "azul"};
         transform total = sum(rojos, azules);
         sink resultado = total;
       `);
@@ -146,20 +146,20 @@ describe("Integration", () => {
       expect(sinkResult.kind).toBe("arreglo");
       expect(sinkResult.elements).toHaveLength(2);
 
-      const rojos = sinkResult.elements.find(e => (e as MontessoriValue).color === "rojo") as MontessoriValue;
-      const azules = sinkResult.elements.find(e => (e as MontessoriValue).color === "azul") as MontessoriValue;
-      expect(rojos.kind).toBe("montessori");
-      expect(rojos.amount.equals(new Fraction(3))).toBe(true);
-      expect(azules.kind).toBe("montessori");
-      expect(azules.amount.equals(new Fraction(5))).toBe(true);
+      const rojos = sinkResult.elements.find(e => (e as CPAObject).attributes.color === "rojo") as CPAObject;
+      const azules = sinkResult.elements.find(e => (e as CPAObject).attributes.color === "azul") as CPAObject;
+      expect(rojos.kind).toBe("cpa");
+      expect(rojos.quantity.equals(new Fraction(3))).toBe(true);
+      expect(azules.kind).toBe("cpa");
+      expect(azules.quantity.equals(new Fraction(5))).toBe(true);
     });
 
     test("sum merges array source built from identifiers with another montessori", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source orange = { type: montessori, color: naranja, amount: 1 };
-        source purple = { type: montessori, color: morado, amount: 1 };
-        source red = { type: montessori, color: rojo, amount: 1 };
+        source orange = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "naranja"};
+        source purple = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "morado"};
+        source red = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "rojo"};
         source duo = [orange, purple];
         transform added = sum(duo, red);
         sink result = added;
@@ -174,15 +174,15 @@ describe("Integration", () => {
     test("montessori cubes are concrete category", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source cubo = { type: montessori, color: verde, amount: 1 };
+        source cubo = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "verde"};
         sink resultado = cubo;
       `);
 
       expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("resultado") as MontessoriValue;
-      expect(sinkResult.kind).toBe("montessori");
+      const sinkResult = result.results.get("resultado") as CPAObject;
+      expect(sinkResult.kind).toBe("cpa");
       expect(sinkResult.category).toBe("concreto");
-      expect(sinkResult.color).toBe("verde");
+      expect(sinkResult.attributes.color).toBe("verde");
     });
   });
 });

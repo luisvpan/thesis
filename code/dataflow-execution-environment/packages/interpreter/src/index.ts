@@ -9,6 +9,8 @@ export { RuntimeError, type ErrorCode } from "./runtime/errors";
 
 export { serialize, deserialize, type SerializeResult } from "./serializer";
 
+export { formatValue } from "./formatter";
+
 export type {
   Program,
   Statement,

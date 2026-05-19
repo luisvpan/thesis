@@ -10,16 +10,10 @@ import type {
   Expression,
   Literal,
   ObjectLiteral,
-  OtherLiteral,
+  ObjectProperty,
+  StringLiteral,
   ArrayLiteral,
   NumberLiteral,
-  CategoryValue,
-  TypeValue,
-  ShapeTypeValue,
-  SizeValue,
-  FoodTypeValue,
-  ColorValue,
-  SimpleObjectLiteral,
 } from "./ast";
 
 // CST Node types
@@ -40,15 +34,15 @@ interface StatementCstNode extends CstNode {
 interface SourceStatementCstNode extends CstNode {
   children: {
     Identifier: IToken[];
-    literal: CstNode[];
+    literal?: CstNode[];
   };
 }
 
 interface TransformStatementCstNode extends CstNode {
   children: {
     Identifier: IToken[];
-    operation: CstNode[];
-    argumentList: CstNode[];
+    operation?: CstNode[];
+    argumentList?: CstNode[];
   };
 }
 
@@ -89,195 +83,36 @@ interface LiteralCstNode extends CstNode {
   children: {
     objectLiteral?: CstNode[];
     arrayLiteral?: CstNode[];
-    numberLiteral?: CstNode[];
-    otherLiteral?: CstNode[];
-  };
-}
-
-interface NumberLiteralCstNode extends CstNode {
-  children: {
-    NumberLiteral: IToken[];
+    StringLiteral?: IToken[];
+    NumberLiteral?: IToken[];
   };
 }
 
 interface ArrayLiteralCstNode extends CstNode {
   children: {
-    expression: CstNode[];
+    expression?: CstNode[];
   };
 }
 
 interface ObjectLiteralCstNode extends CstNode {
   children: {
-    objectProperties: CstNode[];
+    kvPair?: CstNode[];
   };
 }
 
-interface ObjectPropertiesCstNode extends CstNode {
+interface KvPairCstNode extends CstNode {
   children: {
-    objectProperty: CstNode[];
+    StringLiteral: IToken[];
+    NumberLiteral?: IToken[];
   };
 }
 
-interface ObjectPropertyCstNode extends CstNode {
-  children: {
-    categoryProperty?: CstNode[];
-    typeProperty?: CstNode[];
-    valueProperty?: CstNode[];
-    subtypeProperty?: CstNode[];
-    sizeProperty?: CstNode[];
-    amountProperty?: CstNode[];
-    colorProperty?: CstNode[];
-  };
-}
-
-interface CategoryPropertyCstNode extends CstNode {
-  children: {
-    categoryValue: CstNode[];
-  };
-}
-
-interface TypePropertyCstNode extends CstNode {
-  children: {
-    typeValue: CstNode[];
-  };
-}
-
-interface ValuePropertyCstNode extends CstNode {
-  children: {
-    numberLiteral: CstNode[];
-  };
-}
-
-interface SubtypePropertyCstNode extends CstNode {
-  children: {
-    subtypeValue: CstNode[];
-  };
-}
-
-interface SizePropertyCstNode extends CstNode {
-  children: {
-    sizeValue: CstNode[];
-  };
-}
-
-interface AmountPropertyCstNode extends CstNode {
-  children: {
-    numberLiteral: CstNode[];
-  };
-}
-
-interface ColorPropertyCstNode extends CstNode {
-  children: {
-    colorValue: CstNode[];
-  };
-}
-
-interface CategoryValueCstNode extends CstNode {
-  children: {
-    Abstract?: IToken[];
-    Pictorial?: IToken[];
-    Concrete?: IToken[];
-  };
-}
-
-interface TypeValueCstNode extends CstNode {
-  children: {
-    RationalType?: IToken[];
-    ShapeType?: IToken[];
-    FoodType?: IToken[];
-    MontessoriType?: IToken[];
-    // Shape subtypes
-    Circle?: IToken[];
-    Square?: IToken[];
-    Triangle?: IToken[];
-    Rectangle?: IToken[];
-    Diamond?: IToken[];
-    Star?: IToken[];
-    Trapezoid?: IToken[];
-    // Food subtypes
-    Grape?: IToken[];
-    Pear?: IToken[];
-    Apple?: IToken[];
-    Burger?: IToken[];
-    Pasta?: IToken[];
-  };
-}
-
-interface SubtypeValueCstNode extends CstNode {
-  children: {
-    // Shape subtypes
-    Circle?: IToken[];
-    Square?: IToken[];
-    Triangle?: IToken[];
-    Rectangle?: IToken[];
-    Diamond?: IToken[];
-    Star?: IToken[];
-    Trapezoid?: IToken[];
-    // Food subtypes
-    Grape?: IToken[];
-    Pear?: IToken[];
-    Apple?: IToken[];
-    Burger?: IToken[];
-    Pasta?: IToken[];
-  };
-}
-
-interface SizeValueCstNode extends CstNode {
-  children: {
-    Small?: IToken[];
-    Medium?: IToken[];
-    Large?: IToken[];
-  };
-}
-
-interface ColorValueCstNode extends CstNode {
-  children: {
-    Purple?: IToken[];
-    Green?: IToken[];
-    Red?: IToken[];
-    Orange?: IToken[];
-    Blue?: IToken[];
-    Yellow?: IToken[];
-  };
-}
-
-interface OtherLiteralCstNode extends CstNode {
-  children: {
-    // Categories
-    Abstract?: IToken[];
-    Pictorial?: IToken[];
-    Concrete?: IToken[];
-    // Types
-    RationalType?: IToken[];
-    ShapeType?: IToken[];
-    FoodType?: IToken[];
-    MontessoriType?: IToken[];
-    // Shape subtypes
-    Circle?: IToken[];
-    Square?: IToken[];
-    Triangle?: IToken[];
-    Rectangle?: IToken[];
-    Diamond?: IToken[];
-    Star?: IToken[];
-    Trapezoid?: IToken[];
-    // Size values
-    Small?: IToken[];
-    Medium?: IToken[];
-    Large?: IToken[];
-    // Food subtypes
-    Grape?: IToken[];
-    Pear?: IToken[];
-    Apple?: IToken[];
-    Burger?: IToken[];
-    Pasta?: IToken[];
-    // Color values
-    Purple?: IToken[];
-    Green?: IToken[];
-    Red?: IToken[];
-    Orange?: IToken[];
-    Blue?: IToken[];
-    Yellow?: IToken[];
-  };
+// Helper: Remove quotes from string literal
+function unquote(str: string): string {
+  if (str.startsWith('"') && str.endsWith('"')) {
+    return str.slice(1, -1);
+  }
+  return str;
 }
 
 // Get the base visitor class from the parser
@@ -319,7 +154,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     return {
       type: "SourceStatement",
       identifier: ctx.Identifier[0].image,
-      value: this.visit(ctx.literal[0]),
+      value: ctx.literal ? this.visit(ctx.literal[0]) : undefined,
     };
   }
 
@@ -327,8 +162,8 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     return {
       type: "TransformStatement",
       identifier: ctx.Identifier[0].image,
-      operation: this.visit(ctx.operation[0]),
-      arguments: this.visit(ctx.argumentList[0]),
+      operation: ctx.operation ? this.visit(ctx.operation[0]) : undefined,
+      arguments: ctx.argumentList ? this.visit(ctx.argumentList[0]) : [],
     };
   }
 
@@ -336,7 +171,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     return {
       type: "SinkStatement",
       identifier: ctx.Identifier[0].image,
-      sourceIdentifier: ctx.Identifier[1].image,
+      sourceIdentifier: ctx.Identifier[1]?.image,
     };
   }
 
@@ -374,205 +209,57 @@ export class DataflowAstVisitor extends BaseCstVisitor {
       return this.visit(ctx.objectLiteral[0]);
     } else if (ctx.arrayLiteral) {
       return this.visit(ctx.arrayLiteral[0]);
-    } else if (ctx.numberLiteral) {
-      return this.visit(ctx.numberLiteral[0]);
-    } else if (ctx.otherLiteral) {
-      return this.visit(ctx.otherLiteral[0]);
+    } else if (ctx.StringLiteral) {
+      return {
+        type: "StringLiteral",
+        value: unquote(ctx.StringLiteral[0].image),
+      } as StringLiteral;
+    } else if (ctx.NumberLiteral) {
+      return {
+        type: "NumberLiteral",
+        value: ctx.NumberLiteral[0].image,
+      } as NumberLiteral;
     }
     throw new Error("Unknown literal type");
-  }
-
-  numberLiteral(ctx: NumberLiteralCstNode["children"]): NumberLiteral {
-    return {
-      type: "NumberLiteral",
-      value: ctx.NumberLiteral[0].image,
-    };
   }
 
   arrayLiteral(ctx: ArrayLiteralCstNode["children"]): ArrayLiteral {
     return {
       type: "ArrayLiteral",
-      elements: ctx.expression.map((expr) => this.visit(expr)),
+      elements: ctx.expression ? ctx.expression.map((expr) => this.visit(expr)) : [],
     };
   }
 
   objectLiteral(ctx: ObjectLiteralCstNode["children"]): ObjectLiteral {
-    const properties = this.visit(ctx.objectProperties[0]) as Record<string, unknown>;
+    const properties: ObjectProperty[] = [];
+
+    if (ctx.kvPair) {
+      for (const kvPairCst of ctx.kvPair) {
+        properties.push(this.visit(kvPairCst));
+      }
+    }
 
     return {
       type: "ObjectLiteral",
-      ...properties,
-    } as SimpleObjectLiteral;
-  }
-
-  objectProperties(ctx: ObjectPropertiesCstNode["children"]): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-
-    for (const prop of ctx.objectProperty) {
-      const propValue = this.visit(prop) as { key: string; value: unknown };
-      result[propValue.key] = propValue.value;
-    }
-
-    return result;
-  }
-
-  objectProperty(ctx: ObjectPropertyCstNode["children"]): { key: string; value: unknown } {
-    if (ctx.categoryProperty) {
-      return { key: "category", value: this.visit(ctx.categoryProperty[0]) };
-    } else if (ctx.typeProperty) {
-      return { key: "objectType", value: this.visit(ctx.typeProperty[0]) };
-    } else if (ctx.valueProperty) {
-      return { key: "value", value: this.visit(ctx.valueProperty[0]) };
-    } else if (ctx.subtypeProperty) {
-      return { key: "subtype", value: this.visit(ctx.subtypeProperty[0]) };
-    } else if (ctx.sizeProperty) {
-      return { key: "size", value: this.visit(ctx.sizeProperty[0]) };
-    } else if (ctx.amountProperty) {
-      return { key: "amount", value: this.visit(ctx.amountProperty[0]) };
-    } else if (ctx.colorProperty) {
-      return { key: "color", value: this.visit(ctx.colorProperty[0]) };
-    }
-    throw new Error("Unknown object property");
-  }
-
-  categoryProperty(ctx: CategoryPropertyCstNode["children"]): CategoryValue {
-    return this.visit(ctx.categoryValue[0]);
-  }
-
-  typeProperty(ctx: TypePropertyCstNode["children"]): TypeValue | ShapeTypeValue | FoodTypeValue {
-    return this.visit(ctx.typeValue[0]);
-  }
-
-  valueProperty(ctx: ValuePropertyCstNode["children"]): string {
-    const numLiteral = this.visit(ctx.numberLiteral[0]) as NumberLiteral;
-    return numLiteral.value;
-  }
-
-  subtypeProperty(ctx: SubtypePropertyCstNode["children"]): ShapeTypeValue | FoodTypeValue {
-    return this.visit(ctx.subtypeValue[0]);
-  }
-
-  sizeProperty(ctx: SizePropertyCstNode["children"]): SizeValue {
-    return this.visit(ctx.sizeValue[0]);
-  }
-
-  amountProperty(ctx: AmountPropertyCstNode["children"]): string {
-    const numLiteral = this.visit(ctx.numberLiteral[0]) as NumberLiteral;
-    return numLiteral.value;
-  }
-
-  colorProperty(ctx: ColorPropertyCstNode["children"]): ColorValue {
-    return this.visit(ctx.colorValue[0]);
-  }
-
-  categoryValue(ctx: CategoryValueCstNode["children"]): CategoryValue {
-    if (ctx.Abstract) return "abstracto";
-    if (ctx.Pictorial) return "pictorico";
-    if (ctx.Concrete) return "concreto";
-    throw new Error("Unknown category value");
-  }
-
-  // v2.1.0: Spanish types
-  typeValue(ctx: TypeValueCstNode["children"]): TypeValue | ShapeTypeValue | FoodTypeValue {
-    if (ctx.RationalType) return "racional";
-    if (ctx.ShapeType) return "forma";
-    if (ctx.FoodType) return "comida";
-    if (ctx.MontessoriType) return "montessori";
-    // Shape subtypes
-    if (ctx.Circle) return "circulo";
-    if (ctx.Square) return "cuadrado";
-    if (ctx.Triangle) return "triangulo";
-    if (ctx.Rectangle) return "rectangulo";
-    if (ctx.Diamond) return "rombo";
-    if (ctx.Star) return "estrella";
-    if (ctx.Trapezoid) return "trapecio";
-    // Food subtypes
-    if (ctx.Grape) return "uva";
-    if (ctx.Pear) return "pera";
-    if (ctx.Apple) return "manzana";
-    if (ctx.Burger) return "hamburguesa";
-    if (ctx.Pasta) return "pasta";
-    throw new Error("Unknown type value");
-  }
-
-  subtypeValue(ctx: SubtypeValueCstNode["children"]): ShapeTypeValue | FoodTypeValue {
-    // Shape subtypes
-    if (ctx.Circle) return "circulo";
-    if (ctx.Square) return "cuadrado";
-    if (ctx.Triangle) return "triangulo";
-    if (ctx.Rectangle) return "rectangulo";
-    if (ctx.Diamond) return "rombo";
-    if (ctx.Star) return "estrella";
-    if (ctx.Trapezoid) return "trapecio";
-    // Food subtypes
-    if (ctx.Grape) return "uva";
-    if (ctx.Pear) return "pera";
-    if (ctx.Apple) return "manzana";
-    if (ctx.Burger) return "hamburguesa";
-    if (ctx.Pasta) return "pasta";
-    throw new Error("Unknown subtype value");
-  }
-
-  sizeValue(ctx: SizeValueCstNode["children"]): SizeValue {
-    if (ctx.Small) return "pequeño";
-    if (ctx.Medium) return "mediano";
-    if (ctx.Large) return "grande";
-    throw new Error("Unknown size value");
-  }
-
-  colorValue(ctx: ColorValueCstNode["children"]): ColorValue {
-    if (ctx.Purple) return "morado";
-    if (ctx.Green) return "verde";
-    if (ctx.Red) return "rojo";
-    if (ctx.Orange) return "naranja";
-    if (ctx.Blue) return "azul";
-    if (ctx.Yellow) return "amarillo";
-    throw new Error("Unknown color value");
-  }
-
-  otherLiteral(ctx: OtherLiteralCstNode["children"]): OtherLiteral {
-    let value: OtherLiteral["value"];
-
-    // Categories
-    if (ctx.Abstract) value = "abstracto";
-    else if (ctx.Pictorial) value = "pictorico";
-    else if (ctx.Concrete) value = "concreto";
-    // Types (Spanish)
-    else if (ctx.RationalType) value = "racional";
-    else if (ctx.ShapeType) value = "forma";
-    else if (ctx.FoodType) value = "comida";
-    else if (ctx.MontessoriType) value = "montessori";
-    // Shape subtypes
-    else if (ctx.Circle) value = "circulo";
-    else if (ctx.Square) value = "cuadrado";
-    else if (ctx.Triangle) value = "triangulo";
-    else if (ctx.Rectangle) value = "rectangulo";
-    else if (ctx.Diamond) value = "rombo";
-    else if (ctx.Star) value = "estrella";
-    else if (ctx.Trapezoid) value = "trapecio";
-    // Size values
-    else if (ctx.Small) value = "pequeño";
-    else if (ctx.Medium) value = "mediano";
-    else if (ctx.Large) value = "grande";
-    // Food subtypes
-    else if (ctx.Grape) value = "uva";
-    else if (ctx.Pear) value = "pera";
-    else if (ctx.Apple) value = "manzana";
-    else if (ctx.Burger) value = "hamburguesa";
-    else if (ctx.Pasta) value = "pasta";
-    // Color values
-    else if (ctx.Purple) value = "morado";
-    else if (ctx.Green) value = "verde";
-    else if (ctx.Red) value = "rojo";
-    else if (ctx.Orange) value = "naranja";
-    else if (ctx.Blue) value = "azul";
-    else if (ctx.Yellow) value = "amarillo";
-    else throw new Error("Unknown other literal value");
-
-    return {
-      type: "OtherLiteral",
-      value,
+      properties,
     };
+  }
+
+  kvPair(ctx: KvPairCstNode["children"]): ObjectProperty {
+    // First StringLiteral is the key
+    const key = unquote(ctx.StringLiteral[0].image);
+
+    // Value can be second StringLiteral or NumberLiteral
+    let value: string;
+    if (ctx.StringLiteral.length > 1) {
+      value = unquote(ctx.StringLiteral[1].image);
+    } else if (ctx.NumberLiteral) {
+      value = ctx.NumberLiteral[0].image;
+    } else {
+      throw new Error("KV pair must have a value");
+    }
+
+    return { key, value };
   }
 }
 

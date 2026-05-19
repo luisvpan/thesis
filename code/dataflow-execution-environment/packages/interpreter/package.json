@@ -12,6 +12,7 @@
   "scripts": {
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "test": "bun test",
-    "dev": "bun run build --hot"
+    "dev": "bun run build --hot",
+    "repl": "bun run src/repl.ts"
   }
 }

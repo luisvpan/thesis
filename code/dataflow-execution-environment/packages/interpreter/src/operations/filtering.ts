@@ -1,29 +1,16 @@
 import type { RuntimeValue } from "../runtime/types";
-import { isOther, isShape, isFood } from "../runtime/types";
+import { isOther, isCPAObject, matchesAttribute } from "../runtime/types";
 import { RuntimeError } from "../runtime/errors";
 import { flattenArrays } from "./utils";
 
 /**
  * Checks if a value matches the criterion.
- * Matches against: size, color, subtype, category, type.
+ * For CPA objects: matches against category, type, subtype, or any attribute value.
+ * For other types: matches against the value or kind.
  */
 function matchesCriterion(value: RuntimeValue, criterion: string): boolean {
-  if (isShape(value)) {
-    return (
-      value.subtype === criterion ||
-      value.size === criterion ||
-      value.category === criterion ||
-      value.kind === criterion
-    );
-  }
-
-  if (isFood(value)) {
-    return (
-      value.subtype === criterion ||
-      value.color === criterion ||
-      value.category === criterion ||
-      value.kind === criterion
-    );
+  if (isCPAObject(value)) {
+    return matchesAttribute(value, criterion);
   }
 
   if (isOther(value)) {

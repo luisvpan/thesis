@@ -2,15 +2,10 @@ import type { DependencyGraph } from "./graph";
 import type {
   RuntimeValue,
   CPAObject,
-  ShapeValue,
-  FoodValue,
-  MontessoriValue,
-  CapValue,
-  StickValue,
-  AbstractValue,
+  CPACategory,
   ExecutionNode,
 } from "./types";
-import type { Statement, Expression, Literal, ObjectLiteral, ShapeTypeValue, FoodTypeValue } from "../analyzer/ast";
+import type { Statement, Expression, Literal, ObjectLiteral, getProperty } from "../analyzer/ast";
 import { executeOperation } from "../operations";
 import { toFraction } from "./rational";
 import { RuntimeError } from "./errors";
@@ -135,9 +130,17 @@ export class LazyEvaluator {
   ): RuntimeValue {
     switch (stmt.type) {
       case "SourceStatement":
+        // Handle incomplete source statements
+        if (!stmt.value) {
+          return { kind: "otro", value: "" };
+        }
         return this.evaluateSourceStatementValue(stmt.value, deps);
 
       case "TransformStatement": {
+        // Handle incomplete transform statements
+        if (!stmt.operation) {
+          return { kind: "otro", value: "" };
+        }
         const args = stmt.arguments.map((arg) =>
           this.resolveExpression(arg, deps)
         );
@@ -145,6 +148,10 @@ export class LazyEvaluator {
       }
 
       case "SinkStatement":
+        // Handle incomplete sink statements
+        if (!stmt.sourceIdentifier) {
+          return { kind: "otro", value: "" };
+        }
         return deps.get(stmt.sourceIdentifier)!;
     }
   }
@@ -204,6 +211,12 @@ export class LazyEvaluator {
           value: toFraction(literal.value),
         };
 
+      case "StringLiteral":
+        return {
+          kind: "otro",
+          value: literal.value,
+        };
+
       case "ObjectLiteral":
         return this.evaluateObjectLiteral(literal);
 
@@ -221,115 +234,63 @@ export class LazyEvaluator {
             return this.evaluateLiteral(el as Literal);
           }),
         };
-
-      case "OtherLiteral":
-        return {
-          kind: "otro",
-          value: literal.value,
-        };
     }
   }
 
+  /**
+   * Evaluates an ObjectLiteral to a GenericCPAObject.
+   * Uses the new unified format with properties array.
+   */
   private evaluateObjectLiteral(obj: ObjectLiteral): CPAObject {
-    // Handle explicit category
-    if (obj.category === "abstracto") {
-      return {
-        kind: "abstracto",
-        category: "abstracto",
-        objectType: "racional",
-        value: toFraction(obj.value!),
-      } as AbstractValue;
+    // Extract properties from the ObjectLiteral
+    const props = new Map<string, string>();
+    for (const prop of obj.properties) {
+      props.set(prop.key, prop.value);
     }
 
-    if (obj.category === "pictorico" || obj.objectType === "forma") {
-      return {
-        kind: "forma",
-        category: "pictorico",
-        subtype: obj.subtype as ShapeTypeValue,
-        size: obj.size!,
-        amount: toFraction(obj.amount ?? "1"),
-      } as ShapeValue;
+    // Get required fields
+    const category = props.get("category") as CPACategory | undefined;
+    const type = props.get("type");
+    const subtype = props.get("subtype");
+    const quantity = props.get("quantity");
+
+    // Validate required fields (with defaults for backwards compatibility)
+    if (!category) {
+      throw new RuntimeError(
+        "INVALID_OBJECT",
+        "Object must have a 'category' property"
+      );
     }
 
-    if (obj.objectType === "montessori") {
-      return {
-        kind: "montessori",
-        category: "concreto",
-        color: obj.color ?? "verde",
-        amount: toFraction(obj.amount ?? "1"),
-      } as MontessoriValue;
+    if (!type) {
+      throw new RuntimeError(
+        "INVALID_OBJECT",
+        "Object must have a 'type' property"
+      );
     }
 
-    if (obj.objectType === "cap") {
-      return {
-        kind: "cap",
-        category: "concreto",
-        color: obj.color ?? "azul",
-        amount: toFraction(obj.amount ?? "1"),
-      } as CapValue;
+    if (!subtype) {
+      throw new RuntimeError(
+        "INVALID_OBJECT",
+        "Object must have a 'subtype' property"
+      );
     }
 
-    if (obj.objectType === "stick") {
-      return {
-        kind: "stick",
-        category: "concreto",
-        color: obj.color ?? "rojo",
-        amount: toFraction(obj.amount ?? "1"),
-      } as StickValue;
+    // Extract additional attributes (everything except category, type, subtype, quantity)
+    const attributes: Record<string, string> = {};
+    for (const [key, value] of props) {
+      if (!["category", "type", "subtype", "quantity"].includes(key)) {
+        attributes[key] = value;
+      }
     }
 
-    if (obj.category === "concreto" || obj.objectType === "comida") {
-      return {
-        kind: "comida",
-        category: "concreto",
-        subtype: obj.subtype as FoodTypeValue,
-        color: obj.color!,
-        amount: toFraction(obj.amount ?? "1"),
-      } as FoodValue;
-    }
-
-    // Infer from objectType if it's a shape subtype
-    if (
-      obj.objectType === "circulo" ||
-      obj.objectType === "cuadrado" ||
-      obj.objectType === "triangulo" ||
-      obj.objectType === "rectangulo" ||
-      obj.objectType === "rombo" ||
-      obj.objectType === "estrella" ||
-      obj.objectType === "trapecio"
-    ) {
-      return {
-        kind: "forma",
-        category: "pictorico",
-        subtype: obj.objectType,
-        size: obj.size ?? "mediano",
-        amount: toFraction(obj.amount ?? "1"),
-      } as ShapeValue;
-    }
-
-    // Infer from objectType if it's a food subtype
-    if (
-      obj.objectType === "manzana" ||
-      obj.objectType === "hamburguesa" ||
-      obj.objectType === "uva" ||
-      obj.objectType === "pasta" ||
-      obj.objectType === "pera"
-    ) {
-      return {
-        kind: "comida",
-        category: "concreto",
-        subtype: obj.objectType,
-        color: obj.color ?? "verde",
-        amount: toFraction(obj.amount ?? "1"),
-      } as FoodValue;
-    }
-
-    // Default to abstract with value 0
     return {
-      kind: "abstracto",
-      category: "abstracto",
-      objectType: "racional",
-      value: toFraction(obj.value ?? "0"),
-    } as AbstractValue;
+      kind: "cpa",
+      category,
+      type,
+      subtype,
+      quantity: toFraction(quantity ?? "1"),
+      attributes,
+    };
   }
 }

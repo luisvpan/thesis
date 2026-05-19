@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { lessThan, greaterThan } from "../comparison";
-import type { RationalValue, ShapeValue, FoodValue, ArrayValue } from "../../runtime/types";
+import type { RationalValue, CPAObject, ArrayValue } from "../../runtime/types";
 
 describe("lessThan (unit)", () => {
   test("filters rationals less than threshold", () => {
@@ -19,11 +19,11 @@ describe("lessThan (unit)", () => {
     expect((result.elements[1] as RationalValue).value.equals(new Fraction(3))).toBe(true);
   });
 
-  test("filters CPA objects by amount less than threshold", () => {
-    const shapes: ShapeValue[] = [
-      { kind: "forma", category: "pictorico", subtype: "circulo", size: "grande", amount: new Fraction(2) },
-      { kind: "forma", category: "pictorico", subtype: "cuadrado", size: "pequeño", amount: new Fraction(10) },
-      { kind: "forma", category: "pictorico", subtype: "circulo", size: "mediano", amount: new Fraction(5) },
+  test("filters CPA objects by quantity less than threshold", () => {
+    const shapes: CPAObject[] = [
+      { kind: "cpa", category: "pictorico", type: "forma", subtype: "circulo", quantity: new Fraction(2), attributes: { size: "grande" } },
+      { kind: "cpa", category: "pictorico", type: "forma", subtype: "cuadrado", quantity: new Fraction(10), attributes: { size: "pequeño" } },
+      { kind: "cpa", category: "pictorico", type: "forma", subtype: "circulo", quantity: new Fraction(5), attributes: { size: "mediano" } },
     ];
     const threshold: RationalValue = { kind: "racional", value: new Fraction(6) };
     const result = lessThan([...shapes, threshold]) as ArrayValue;
@@ -75,11 +75,11 @@ describe("greaterThan (unit)", () => {
     expect((result.elements[1] as RationalValue).value.equals(new Fraction(8))).toBe(true);
   });
 
-  test("filters CPA objects by amount greater than threshold", () => {
-    const foods: FoodValue[] = [
-      { kind: "comida", category: "concreto", subtype: "uva", color: "morado", amount: new Fraction(2) },
-      { kind: "comida", category: "concreto", subtype: "manzana", color: "rojo", amount: new Fraction(10) },
-      { kind: "comida", category: "concreto", subtype: "pera", color: "verde", amount: new Fraction(5) },
+  test("filters CPA objects by quantity greater than threshold", () => {
+    const foods: CPAObject[] = [
+      { kind: "cpa", category: "concreto", type: "comida", subtype: "uva", quantity: new Fraction(2), attributes: { color: "morado" } },
+      { kind: "cpa", category: "concreto", type: "comida", subtype: "manzana", quantity: new Fraction(10), attributes: { color: "rojo" } },
+      { kind: "cpa", category: "concreto", type: "comida", subtype: "pera", quantity: new Fraction(5), attributes: { color: "verde" } },
     ];
     const threshold: RationalValue = { kind: "racional", value: new Fraction(4) };
     const result = greaterThan([...foods, threshold]) as ArrayValue;

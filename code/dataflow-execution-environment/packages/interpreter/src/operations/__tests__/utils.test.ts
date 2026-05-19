@@ -7,7 +7,7 @@ import {
   getQuantityOrZero,
   cloneCPAWithQuantity,
 } from "../utils";
-import type { RuntimeValue, CPAObject, ShapeValue, FoodValue, AbstractValue } from "../../runtime/types";
+import type { RuntimeValue, CPAObject } from "../../runtime/types";
 
 describe("flattenArrays", () => {
   test("should flatten nested arrays", () => {
@@ -57,34 +57,38 @@ describe("flattenArrays", () => {
 });
 
 describe("getQuantity", () => {
-  test("should return value for abstracto", () => {
-    const obj: AbstractValue = {
-      kind: "abstracto",
+  test("should return quantity for abstracto", () => {
+    const obj: CPAObject = {
+      kind: "cpa",
       category: "abstracto",
-      objectType: "racional",
-      value: new Fraction(5),
+      type: "numero",
+      subtype: "racional",
+      quantity: new Fraction(5),
+      attributes: {},
     };
     expect(getQuantity(obj).valueOf()).toBe(5);
   });
 
-  test("should return amount for forma", () => {
-    const obj: ShapeValue = {
-      kind: "forma",
+  test("should return quantity for forma (pictorico)", () => {
+    const obj: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "circulo",
-      size: "mediano",
-      amount: new Fraction(3),
+      quantity: new Fraction(3),
+      attributes: { size: "mediano" },
     };
     expect(getQuantity(obj).valueOf()).toBe(3);
   });
 
-  test("should return amount for comida", () => {
-    const obj: FoodValue = {
-      kind: "comida",
+  test("should return quantity for comida (concreto)", () => {
+    const obj: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "manzana",
-      color: "rojo",
-      amount: new Fraction(2),
+      quantity: new Fraction(2),
+      attributes: { color: "rojo" },
     };
     expect(getQuantity(obj).valueOf()).toBe(2);
   });
@@ -96,13 +100,14 @@ describe("getComparableValue", () => {
     expect(getComparableValue(val)?.valueOf()).toBe(7);
   });
 
-  test("should return amount for CPA objects", () => {
-    const val: ShapeValue = {
-      kind: "forma",
+  test("should return quantity for CPA objects", () => {
+    const val: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "cuadrado",
-      size: "grande",
-      amount: new Fraction(4),
+      quantity: new Fraction(4),
+      attributes: { size: "grande" },
     };
     expect(getComparableValue(val)?.valueOf()).toBe(4);
   });
@@ -124,13 +129,14 @@ describe("getQuantityOrZero", () => {
     expect(getQuantityOrZero(val).valueOf()).toBe(7);
   });
 
-  test("should return amount for CPA objects", () => {
-    const val: FoodValue = {
-      kind: "comida",
+  test("should return quantity for CPA objects", () => {
+    const val: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "pera",
-      color: "verde",
-      amount: new Fraction(5),
+      quantity: new Fraction(5),
+      attributes: { color: "verde" },
     };
     expect(getQuantityOrZero(val).valueOf()).toBe(5);
   });
@@ -147,43 +153,47 @@ describe("getQuantityOrZero", () => {
 });
 
 describe("cloneCPAWithQuantity", () => {
-  test("should clone abstracto with new value", () => {
-    const obj: AbstractValue = {
-      kind: "abstracto",
+  test("should clone abstracto with new quantity", () => {
+    const obj: CPAObject = {
+      kind: "cpa",
       category: "abstracto",
-      objectType: "racional",
-      value: new Fraction(1),
+      type: "numero",
+      subtype: "racional",
+      quantity: new Fraction(1),
+      attributes: {},
     };
-    const result = cloneCPAWithQuantity(obj, new Fraction(10)) as AbstractValue;
-    expect(result.value.valueOf()).toBe(10);
-    expect(obj.value.valueOf()).toBe(1); // original unchanged
+    const result = cloneCPAWithQuantity(obj, new Fraction(10));
+    expect(result.quantity.valueOf()).toBe(10);
+    expect(obj.quantity.valueOf()).toBe(1); // original unchanged
   });
 
-  test("should clone forma with new amount", () => {
-    const obj: ShapeValue = {
-      kind: "forma",
+  test("should clone forma with new quantity", () => {
+    const obj: CPAObject = {
+      kind: "cpa",
       category: "pictorico",
+      type: "forma",
       subtype: "cuadrado",
-      size: "grande",
-      amount: new Fraction(1),
+      quantity: new Fraction(1),
+      attributes: { size: "grande" },
     };
-    const result = cloneCPAWithQuantity(obj, new Fraction(5)) as ShapeValue;
-    expect(result.amount.valueOf()).toBe(5);
+    const result = cloneCPAWithQuantity(obj, new Fraction(5));
+    expect(result.quantity.valueOf()).toBe(5);
     expect(result.subtype).toBe("cuadrado");
-    expect(result.size).toBe("grande");
+    expect(result.attributes.size).toBe("grande");
   });
 
-  test("should clone comida with new amount", () => {
-    const obj: FoodValue = {
-      kind: "comida",
+  test("should clone comida with new quantity", () => {
+    const obj: CPAObject = {
+      kind: "cpa",
       category: "concreto",
+      type: "comida",
       subtype: "hamburguesa",
-      color: "naranja",
-      amount: new Fraction(2),
+      quantity: new Fraction(2),
+      attributes: { color: "naranja" },
     };
-    const result = cloneCPAWithQuantity(obj, new Fraction(8)) as FoodValue;
-    expect(result.amount.valueOf()).toBe(8);
+    const result = cloneCPAWithQuantity(obj, new Fraction(8));
+    expect(result.quantity.valueOf()).toBe(8);
     expect(result.subtype).toBe("hamburguesa");
-    expect(result.color).toBe("naranja");
+    expect(result.attributes.color).toBe("naranja");
   });
 });
