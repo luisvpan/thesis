@@ -9,7 +9,7 @@ type ClickableHandleProps = {
   nodeId: string;
   className?: string;
   style?: React.CSSProperties;
-  /** Sin conexiones ni selección de puerto (p. ej. carta incompatible con el modo CPA). */
+  /** Sin conexiones ni selección de puerto (reservado para uso interno o futuro). */
   disabled?: boolean;
 };
 

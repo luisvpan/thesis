@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 
+/**
+ * Modo de PRESENTACIÓN visual del resultado.
+ * Solo afecta cómo se renderiza un valor, no la semántica.
+ * La semántica CPA está en el `category` del CPAObject (interpreter).
+ */
 export type ResultViewMode = 'pictorico' | 'concreto' | 'abstracto';
 
 const numberNames: Record<number, string> = {
