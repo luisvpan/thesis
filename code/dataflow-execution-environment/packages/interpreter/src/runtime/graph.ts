@@ -81,6 +81,7 @@ function extractArrayLiteralIdentifierDependencies(lit: Literal): string[] {
 function extractDependencies(stmt: Statement): string[] {
   switch (stmt.type) {
     case "SourceStatement":
+      if (!stmt.value) return [];
       return extractArrayLiteralIdentifierDependencies(stmt.value);
 
     case "TransformStatement":
@@ -90,6 +91,7 @@ function extractDependencies(stmt: Statement): string[] {
         .map((arg) => arg.name);
 
     case "SinkStatement":
+      if (!stmt.sourceIdentifier) return [];
       return [stmt.sourceIdentifier];
   }
 }

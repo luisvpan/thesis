@@ -10,6 +10,8 @@ import type {
   SinkStatement,
   Operation,
   ArrayLiteral,
+  ObjectLiteral,
+  ObjectProperty,
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
@@ -42,6 +44,28 @@ function normalizeSize(size: string | undefined): string {
 }
 
 /**
+ * Creates a CPA ObjectLiteral with the new properties-based format.
+ */
+function createCPAObject(
+  category: string,
+  type: string,
+  subtype: string,
+  quantity: number,
+  attributes: Record<string, string> = {}
+): ObjectLiteral {
+  const properties: ObjectProperty[] = [
+    { key: "category", value: category },
+    { key: "type", value: type },
+    { key: "subtype", value: subtype },
+    { key: "quantity", value: new Fraction(quantity) },
+  ];
+  for (const [k, v] of Object.entries(attributes)) {
+    properties.push({ key: k, value: v });
+  }
+  return { type: "ObjectLiteral", properties };
+}
+
+/**
  * Converts ReactFlow nodes and edges to a Program object for the interpreter.
  */
 export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
@@ -64,60 +88,41 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: {
-            type: "ObjectLiteral",
-            category: "pictorico",
-            objectType: "forma",
-            subtype: data.shape,
+          value: createCPAObject("pictorico", "forma", data.shape ?? "circulo", 1, {
             size: normalizeSize(data.size),
-            amount: new Fraction(1),
-          },
+          }),
         });
       } else if (data.variant === "food") {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: {
-            type: "ObjectLiteral",
-            category: "concreto",
-            objectType: "comida",
-            subtype: data.food,
+          value: createCPAObject("concreto", "comida", data.food ?? "manzana", 1, {
             color: "verde",
-            amount: new Fraction(1),
-          },
+          }),
         });
       } else if (data.variant === "montessori") {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: {
-            type: "ObjectLiteral",
-            objectType: "montessori",
-            color: data.color,
-            amount: new Fraction(1),
-          },
+          value: createCPAObject("concreto", "montessori", data.color ?? "azul", 1, {
+            color: data.color ?? "azul",
+          }),
         });
       } else if (data.variant === "cap") {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: {
-            type: "ObjectLiteral",
-            objectType: "cap",
-            color: data.color,
-            amount: new Fraction(1),
-          },
+          value: createCPAObject("concreto", "cap", data.color ?? "azul", 1, {
+            color: data.color ?? "azul",
+          }),
         });
       } else if (data.variant === "stick") {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: {
-            type: "ObjectLiteral",
-            objectType: "stick",
-            color: data.color,
-            amount: new Fraction(1),
-          },
+          value: createCPAObject("concreto", "stick", data.color ?? "rojo", 1, {
+            color: data.color ?? "rojo",
+          }),
         });
       }
     }

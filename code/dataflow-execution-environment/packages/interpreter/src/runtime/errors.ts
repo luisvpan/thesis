@@ -7,6 +7,7 @@ export type ErrorCode =
   | "TYPE_ERROR"
   | "UNKNOWN_OPERATION"
   | "INVALID_ARGUMENT"
+  | "INVALID_OBJECT"
   | "ARITY_ERROR";
 
 export class RuntimeError extends Error {

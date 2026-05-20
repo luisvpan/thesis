@@ -118,15 +118,16 @@ function getAmount(elem: unknown): number {
   if (!elem || typeof elem !== "object") return 1;
   const obj = elem as Record<string, unknown>;
 
+  // Handle rational values
   if (obj.kind === "racional" && obj.value) {
     return Number((obj.value as { valueOf(): number }).valueOf());
   }
-  if (obj.kind === "abstracto" && obj.value) {
-    return Number((obj.value as { valueOf(): number }).valueOf());
+
+  // Handle unified CPA objects (new format)
+  if (obj.kind === "cpa" && obj.quantity) {
+    return Number((obj.quantity as { valueOf(): number }).valueOf());
   }
-  if ((obj.kind === "forma" || obj.kind === "comida" || obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick") && obj.amount) {
-    return Number((obj.amount as { valueOf(): number }).valueOf());
-  }
+
   return 1;
 }
 
@@ -134,9 +135,13 @@ function getCategory(elem: unknown): "abstracto" | "pictorico" | "concreto" {
   if (!elem || typeof elem !== "object") return "abstracto";
   const obj = elem as Record<string, unknown>;
 
-  if (obj.kind === "racional" || obj.kind === "abstracto") return "abstracto";
-  if (obj.kind === "forma") return "pictorico";
-  if (obj.kind === "comida" || obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick") return "concreto";
+  if (obj.kind === "racional") return "abstracto";
+
+  // Handle unified CPA objects (new format)
+  if (obj.kind === "cpa" && obj.category) {
+    return obj.category as "abstracto" | "pictorico" | "concreto";
+  }
+
   return "abstracto";
 }
 
@@ -144,12 +149,13 @@ function getType(elem: unknown): string {
   if (!elem || typeof elem !== "object") return "racional";
   const obj = elem as Record<string, unknown>;
 
-  if (obj.kind === "racional" || obj.kind === "abstracto") return "racional";
-  if (obj.kind === "forma") return "forma";
-  if (obj.kind === "comida") return "comida";
-  if (obj.kind === "montessori") return "montessori";
-  if (obj.kind === "cap") return "cap";
-  if (obj.kind === "stick") return "stick";
+  if (obj.kind === "racional") return "racional";
+
+  // Handle unified CPA objects (new format)
+  if (obj.kind === "cpa" && obj.type) {
+    return obj.type as string;
+  }
+
   return "racional";
 }
 
@@ -157,10 +163,24 @@ function getSubtype(elem: unknown): string | null {
   if (!elem || typeof elem !== "object") return null;
   const obj = elem as Record<string, unknown>;
 
-  if (obj.kind === "forma" || obj.kind === "comida") {
-    return (obj.subtype as string) ?? null;
+  // Handle unified CPA objects (new format)
+  if (obj.kind === "cpa" && obj.subtype) {
+    return obj.subtype as string;
   }
+
   return null;
+}
+
+function getAttributes(elem: unknown): Record<string, string> {
+  if (!elem || typeof elem !== "object") return {};
+  const obj = elem as Record<string, unknown>;
+
+  // Handle unified CPA objects (new format)
+  if (obj.kind === "cpa" && obj.attributes) {
+    return obj.attributes as Record<string, string>;
+  }
+
+  return {};
 }
 
 // ============================================================================
@@ -224,37 +244,34 @@ function buildVisualStrip(elements: unknown[]): ResultVisualItem[] {
     const n = Math.max(0, Math.min(24, Math.round(Number(rawAmt) || 0)));
     if (n === 0) continue;
 
-    if (o.kind === "montessori") {
-      const color = String(o.color ?? "verde");
+    // Handle unified CPA objects (new format)
+    if (o.kind === "cpa") {
+      const type = o.type as string;
+      const subtype = o.subtype as string;
+      const attributes = (o.attributes as Record<string, string>) ?? {};
+      const color = attributes.color ?? "verde";
+      const size = attributes.size ?? "mediano";
+
       for (let i = 0; i < n; i++) {
         if (strip.length >= MAX_VISUAL_UNITS) return strip;
-        strip.push({ kind: "montessori", color });
-      }
-    } else if (o.kind === "forma") {
-      const subtype = String(o.subtype ?? "forma");
-      const size = String(o.size ?? "mediano");
-      for (let i = 0; i < n; i++) {
-        if (strip.length >= MAX_VISUAL_UNITS) return strip;
-        strip.push({ kind: "forma", subtype, size });
-      }
-    } else if (o.kind === "comida") {
-      const subtype = String(o.subtype ?? "comida");
-      const color = String(o.color ?? "verde");
-      for (let i = 0; i < n; i++) {
-        if (strip.length >= MAX_VISUAL_UNITS) return strip;
-        strip.push({ kind: "comida", subtype, color });
-      }
-    } else if (o.kind === "cap") {
-      const color = String(o.color ?? "azul");
-      for (let i = 0; i < n; i++) {
-        if (strip.length >= MAX_VISUAL_UNITS) return strip;
-        strip.push({ kind: "cap", color });
-      }
-    } else if (o.kind === "stick") {
-      const color = String(o.color ?? "rojo");
-      for (let i = 0; i < n; i++) {
-        if (strip.length >= MAX_VISUAL_UNITS) return strip;
-        strip.push({ kind: "stick", color });
+
+        switch (type) {
+          case "montessori":
+            strip.push({ kind: "montessori", color });
+            break;
+          case "forma":
+            strip.push({ kind: "forma", subtype, size });
+            break;
+          case "comida":
+            strip.push({ kind: "comida", subtype, color });
+            break;
+          case "cap":
+            strip.push({ kind: "cap", color });
+            break;
+          case "stick":
+            strip.push({ kind: "stick", color });
+            break;
+        }
       }
     }
   }
@@ -277,6 +294,7 @@ function groupElements(elements: unknown[]): SemanticResult {
     const category = getCategory(elem);
     const type = getType(elem);
     const subtype = getSubtype(elem);
+    const attributes = getAttributes(elem);
 
     // Crear o actualizar categoría
     if (!categoryMap.has(category)) {
@@ -302,15 +320,9 @@ function groupElements(elements: unknown[]): SemanticResult {
       typeGroup.rationalValue = (typeGroup.rationalValue ?? 0) + amount;
     }
 
-    // Crear o actualizar subtipo (para forma/comida/montessori/cap/stick)
-    const obj = elem as Record<string, unknown>;
-
-    // Montessori, cap y stick no tienen subtype, pero agrupamos por color
-    const effectiveSubtype = subtype ?? (
-      (obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick")
-        ? (obj.color as string)
-        : null
-    );
+    // Crear o actualizar subtipo (para CPA objects)
+    // Montessori, cap y stick usan color como subtype efectivo
+    const effectiveSubtype = subtype ?? attributes.color ?? null;
 
     if (effectiveSubtype) {
       let subtypeGroup = typeGroup.subtypes.find((s) => s.subtype === effectiveSubtype);
@@ -321,8 +333,8 @@ function groupElements(elements: unknown[]): SemanticResult {
       subtypeGroup.totalAmount += amount;
 
       subtypeGroup.items.push({
-        size: obj.kind === "forma" ? (obj.size as string) : undefined,
-        color: (obj.kind === "comida" || obj.kind === "montessori" || obj.kind === "cap" || obj.kind === "stick") ? (obj.color as string) : undefined,
+        size: attributes.size,
+        color: attributes.color,
         amount,
       });
     }
@@ -517,14 +529,10 @@ export function createProgramExecutor() {
           } else if (output.kind === "arreglo") {
             const semantic = groupElements(output.elements);
             resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
-          } else if (output.kind === "forma" || output.kind === "comida") {
+          } else if (output.kind === "cpa") {
+            // Unified CPA object (new format)
             const semantic = groupElements([output]);
             resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
-          } else if (output.kind === "abstracto") {
-            const value = Number(
-              (output as { value: { valueOf(): number } }).value.valueOf()
-            );
-            resultsMap.set(outputNodeId, { kind: "number", value });
           } else {
             logger.execute.warn("Unknown output type", {
               outputNodeId,
