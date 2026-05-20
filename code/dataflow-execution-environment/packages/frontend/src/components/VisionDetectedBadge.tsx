@@ -14,10 +14,27 @@ export function VisionDetectedBadge() {
         {error ? ` · ${error}` : null}
       </p>
       {lastCardFrame != null && lastCardFrame.cards.length > 0 && (
-        <p className="mt-1 text-[11px] text-slate-600">
-          Cartas en mesa:{" "}
-          <span className="font-semibold text-slate-800">{lastCardFrame.cards.length}</span>
-        </p>
+        <div className="mt-1 space-y-0.5">
+          <p className="text-[11px] text-slate-600">
+            Cartas en mesa:{" "}
+            <span className="font-semibold text-slate-800">{lastCardFrame.cards.length}</span>
+          </p>
+          <ul className="max-h-24 overflow-y-auto font-mono text-[10px] text-slate-600">
+            {lastCardFrame.cards.map((c, i) => (
+              <li key={`${c.trackId ?? "x"}-${c.label}-${i}`} className="truncate" title={c.label}>
+                {c.trackId != null && c.trackId >= 0 ? (
+                  <span className="font-semibold text-indigo-700">#{c.trackId}</span>
+                ) : (
+                  <span className="text-amber-700">ID ?</span>
+                )}{" "}
+                · {c.label}
+                {c.status === "lost" ? (
+                  <span className="text-amber-600"> (perdida)</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {last ? (
         <>

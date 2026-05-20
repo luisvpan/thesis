@@ -6,14 +6,20 @@ import { FlowNodeCard } from './FlowNodeCard';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { isSourceBlockedByCpaMode } from '@/utils/cpaModeUtils';
 import { CpaModeDisabledBanner } from './CpaModeDisabledBanner';
+import { TrackIdBadge } from './TrackIdBadge';
+import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 
-export type SourceFlowNodeData =
-  | { variant: 'number'; value: number; visionSubtitle?: string; trackId?: number }
-  | { variant: 'shape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor; trackId?: number }
-  | { variant: 'food'; yoloClass: string; food: FoodType; trackId?: number }
-  | { variant: 'montessori'; yoloClass: string; color: MontessoriColor; trackId?: number }
-  | { variant: 'cap'; yoloClass: string; color: CapColor; trackId?: number }
-  | { variant: 'stick'; yoloClass: string; color: StickColor; trackId?: number };
+type VisionSynced = VisionNodeMeta;
+
+export type SourceFlowNodeData = VisionSynced &
+  (
+    | { variant: 'number'; value: number; visionSubtitle?: string }
+    | { variant: 'shape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor }
+    | { variant: 'food'; yoloClass: string; food: FoodType }
+    | { variant: 'montessori'; yoloClass: string; color: MontessoriColor }
+    | { variant: 'cap'; yoloClass: string; color: CapColor }
+    | { variant: 'stick'; yoloClass: string; color: StickColor }
+  );
 
 export type SourceFlowNode = Node<SourceFlowNodeData, 'source'>;
 
@@ -48,6 +54,7 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
 
   return (
     <div className="relative h-80 w-52 -translate-x-[30%] -translate-y-[50%]">
+      <TrackIdBadge trackId={readTrackId(d)} />
       <FlowNodeCard
         family="input"
         title={sourceTitle(d)}

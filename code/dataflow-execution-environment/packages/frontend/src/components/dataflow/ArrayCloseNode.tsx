@@ -1,15 +1,18 @@
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
+import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import { ARRAY_CLOSE_ZONE_IN_TOP_FRAC } from '../../utils/arrayZoneGeometry';
 import { ClickableHandle } from './ClickableHandle';
 import { FlowNodeCard } from './FlowNodeCard';
+import { TrackIdBadge } from './TrackIdBadge';
 
-export type ArrayCloseNodeData = Record<string, never>;
+export type ArrayCloseNodeData = VisionNodeMeta;
 export type ArrayCloseNode = Node<ArrayCloseNodeData, 'arrayClose'>;
 
-export function ArrayCloseNode({ id }: NodeProps<ArrayCloseNode>) {
+export function ArrayCloseNode({ id, data }: NodeProps<ArrayCloseNode>) {
   return (
     <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[45%]">
+      <TrackIdBadge trackId={readTrackId(data)} />
       <ClickableHandle
         type="target"
         position={Position.Left}
