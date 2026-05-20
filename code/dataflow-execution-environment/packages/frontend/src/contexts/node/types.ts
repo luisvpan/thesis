@@ -8,6 +8,7 @@ import type {
   ArrayCloseNodeData,
 } from "../../components/dataflow";
 import type { OperatorType } from "../../types/card-types";
+import type { HandleKind } from "../../components/dataflow/handle-kinds";
 
 export type DataflowNode =
   | Node<SourceFlowNodeData, "source">
@@ -28,6 +29,16 @@ export type PortDefinition = {
   position: "left" | "right";
   offsetY?: string;
 };
+
+export type PortKindInfo = {
+  produces?: HandleKind;
+  accepts?: HandleKind[];
+};
+
+export type ShakingPort = {
+  nodeId: string;
+  handleId: string;
+} | null;
 
 export type NodeContextState = {
   nodes: DataflowNode[];
@@ -71,4 +82,10 @@ export type NodeContextState = {
   onEdgesChange: OnEdgesChange;
 
   getExecutionResult: () => number | null;
+
+  // Port kind registry for connection validation
+  registerPortKind: (nodeId: string, handleId: string, info: PortKindInfo) => void;
+  unregisterPortKinds: (nodeId: string) => void;
+  getPortKindInfo: (nodeId: string, handleId: string) => PortKindInfo | undefined;
+  shakingPort: ShakingPort;
 };

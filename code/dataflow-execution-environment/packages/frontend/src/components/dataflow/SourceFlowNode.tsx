@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
@@ -5,6 +6,8 @@ import type { ShapeType, ShapeSize, ShapeColor, FoodType, MontessoriColor, CapCo
 import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import { useNode } from '@/contexts/NodeContext';
+import type { HandleKind } from './handle-kinds';
 
 type VisionSynced = VisionNodeMeta;
 
@@ -46,6 +49,16 @@ function sourceMain(data: SourceFlowNodeData): string {
 export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   const d = (data ?? { variant: 'number', value: 0 }) as SourceFlowNodeData;
   const subtitle = d.variant === 'number' ? d.visionSubtitle : undefined;
+  const { registerPortKind, unregisterPortKinds } = useNode();
+
+  // Determine what kind of data this source produces
+  const produces: HandleKind = d.variant === 'number' ? 'rational' : 'cpa';
+
+  // Register the port kind when the component mounts or produces changes
+  useEffect(() => {
+    registerPortKind(id, 'out', { produces });
+    return () => unregisterPortKinds(id);
+  }, [id, produces, registerPortKind, unregisterPortKinds]);
 
   return (
     <div className="relative h-80 w-52 -translate-x-[30%] -translate-y-[50%]">
@@ -56,7 +69,14 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
         content={<span className="text-xs font-black text-slate-100">{sourceMain(d)}</span>}
         subtitle={subtitle}
       />
-      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} />
+      <ClickableHandle
+        type="source"
+        position={Position.Right}
+        id="out"
+        nodeId={id}
+        produces={produces}
+        style={{ transform: 'translateX(100px)' }}
+      />
     </div>
   );
 }

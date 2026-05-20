@@ -1,15 +1,20 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { addEdge, type Connection, type Edge } from "@xyflow/react";
-import type { DataflowNode, PortIdentifier } from "./types";
+import type { DataflowNode, PortIdentifier, PortKindInfo } from "./types";
+import { acceptsConnection } from "../../components/dataflow/handle-kinds";
 
 type SetEdges = Dispatch<SetStateAction<Edge[]>>;
 type SetSelectedPort = Dispatch<SetStateAction<PortIdentifier | null>>;
+type GetPortKindInfo = (nodeId: string, handleId: string) => PortKindInfo | undefined;
+type TriggerIncompatibleFeedback = (nodeId: string, handleId: string) => void;
 
 export function usePortSelection(
   selectedPort: PortIdentifier | null,
   setSelectedPort: SetSelectedPort,
   setEdges: SetEdges,
-  nodes: DataflowNode[]
+  nodes: DataflowNode[],
+  getPortKindInfo: GetPortKindInfo,
+  triggerIncompatibleFeedback: TriggerIncompatibleFeedback
 ) {
   const isPortSelected = useCallback(
     (nodeId: string, handleId: string, handleType: "source" | "target") =>
@@ -55,6 +60,19 @@ export function usePortSelection(
       const source = first.handleType === "source" ? first : second;
       const target = first.handleType === "target" ? first : second;
 
+      // Validate connection compatibility
+      const sourceInfo = getPortKindInfo(source.nodeId, source.handleId);
+      const targetInfo = getPortKindInfo(target.nodeId, target.handleId);
+
+      const sourceKind = sourceInfo?.produces ?? "any";
+      const targetAccepts = targetInfo?.accepts ?? ["any"];
+
+      if (!acceptsConnection(sourceKind, targetAccepts)) {
+        triggerIncompatibleFeedback(target.nodeId, target.handleId);
+        setSelectedPort(null);
+        return;
+      }
+
       const connection: Connection = {
         source: source.nodeId,
         sourceHandle: source.handleId,
@@ -73,7 +91,7 @@ export function usePortSelection(
       setEdges((eds) => addEdge({ ...connection, type: edgeType }, eds));
       setSelectedPort(null);
     },
-    [selectedPort, setEdges, setSelectedPort, nodes]
+    [selectedPort, setEdges, setSelectedPort, nodes, getPortKindInfo, triggerIncompatibleFeedback]
   );
 
   return { isPortSelected, clearSelection, handlePortClick };

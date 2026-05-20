@@ -39,6 +39,14 @@ export function isMathOperatorType(op: OperatorType): op is MathOperatorType {
   );
 }
 
+export function isFilterOperatorType(op: OperatorType): op is FilterOperatorType {
+  return op.startsWith('filtrar-');
+}
+
+export function isOrderOperatorType(op: OperatorType): op is OrderOperatorType {
+  return op === 'orden-mayor-menor' || op === 'orden-menor-mayor';
+}
+
 export type AnimalType = 'gato' | 'perro' | 'tortuga' | 'elefante' | 'jirafa';
 
 export type FoodType = 'manzana' | 'hamburguesa' | 'uvas' | 'pasta' | 'peras' | 'naranja';

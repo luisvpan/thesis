@@ -9,3 +9,14 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Shake animation for incompatible connection attempts */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.animate-shake {
+  animation: shake 0.15s ease-in-out 2;
+}
