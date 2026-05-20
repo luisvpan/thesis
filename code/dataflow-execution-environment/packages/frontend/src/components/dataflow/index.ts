@@ -12,3 +12,4 @@ export type { OperatorFlowNodeData } from './OperatorFlowNode';
 export type { ProgramOutputFlowNodeData } from './ProgramOutputFlowNode';
 export type { ArrayOpenNodeData } from './ArrayOpenNode';
 export type { ArrayCloseNodeData } from './ArrayCloseNode';
+export * from './CpaGlyphs';

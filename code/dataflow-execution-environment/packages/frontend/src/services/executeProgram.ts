@@ -61,9 +61,22 @@ export type ResultVisualItem =
   | ResultVisualCap
   | ResultVisualStick;
 
+/** Metadata for single CPA object rendering */
+export type SingleCpaObjectMeta = {
+  type: string;      // "cap", "stick", "montessori", "forma", "comida"
+  subtype: string;
+  color: string;
+  quantity: number;
+};
+
 export type ResultValue =
   | { kind: "number"; value: number }
-  | { kind: "semantic"; result: SemanticResult };
+  | {
+      kind: "semantic";
+      result: SemanticResult;
+      isSingleCpaObject?: boolean;
+      singleCpaObjectMeta?: SingleCpaObjectMeta;
+    };
 
 function formatInterpreterErrors(
   errors: Array<ParseError | RuntimeError>
@@ -530,9 +543,20 @@ export function createProgramExecutor() {
             const semantic = groupElements(output.elements);
             resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
           } else if (output.kind === "cpa") {
-            // Unified CPA object (new format)
+            // Single CPA object - extract metadata for viewMode-aware rendering
+            const quantity = Number(output.quantity.valueOf());
             const semantic = groupElements([output]);
-            resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
+            resultsMap.set(outputNodeId, {
+              kind: "semantic",
+              result: semantic,
+              isSingleCpaObject: true,
+              singleCpaObjectMeta: {
+                type: output.type,
+                subtype: output.subtype,
+                color: output.attributes.color ?? '',
+                quantity,
+              },
+            });
           } else {
             logger.execute.warn("Unknown output type", {
               outputNodeId,

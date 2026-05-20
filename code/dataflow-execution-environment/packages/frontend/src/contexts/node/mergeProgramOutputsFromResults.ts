@@ -23,13 +23,17 @@ export function mergeProgramOutputsFromResults(
         value: resultValue.result.totalAmount,
         description: resultValue.result.description,
         visualStrip: resultValue.result.visualStrip,
+        isSingleCpaObject: resultValue.isSingleCpaObject,
+        singleCpaObjectMeta: resultValue.singleCpaObjectMeta,
       };
     }
 
     if (
       currentData.value === newData.value &&
       currentData.description === newData.description &&
-      JSON.stringify(currentData.visualStrip) === JSON.stringify(newData.visualStrip)
+      JSON.stringify(currentData.visualStrip) === JSON.stringify(newData.visualStrip) &&
+      currentData.isSingleCpaObject === newData.isSingleCpaObject &&
+      JSON.stringify(currentData.singleCpaObjectMeta) === JSON.stringify(newData.singleCpaObjectMeta)
     ) {
       return n;
     }
