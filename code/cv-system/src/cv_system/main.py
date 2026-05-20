@@ -28,12 +28,16 @@ from cv_system.calibration.calibrator import Calibrator
 from cv_system.calibration.result import CalibrationResult
 from cv_system.detection import CARD_DETECTORS, detect_card_method, TouchMethod
 from cv_system.detection.touch_detector import TouchDetector
+from cv_system.detection.touch_detector_dml import DmlTouchDetector
 from cv_system.detection.espol_touch_detector import ESPOLTouchDetector
 from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
 from cv_system.detection.direct_touch_detector import DIRECTTouchDetector
 from cv_system.detection.farout_touch_detector import FarOutTouchDetector
 from cv_system.detection.mediapipe_direct_hybrid_touch_detector import (
     MediapipeDIRECTHybridTouchDetector,
+)
+from cv_system.detection.mediapipe_direct_hybrid_touch_detector_dml import (
+    MediapipeDIRECTHybridTouchDetectorDml,
 )
 from cv_system.hardware import HardwareError, HardwareManager, PyKinect2HardwareManager
 from cv_system.transform import (
@@ -69,6 +73,8 @@ def get_touch_detector_type() -> TouchMethod:
         - "direct": DIRECT paper (depth + IR fusion)
         - "farout": FarOut Touch paper (depth only, long range)
         - "hybrid": MediaPipe + DIRECT hybrid (best of both)
+        - "mediapipe_dml": MediaPipe + depth masks on torch-directml
+        - "hybrid_dml": DIRECT + MediaPipe hybrid with DirectML PyTorch device
     """
     v = os.getenv("CV_TOUCH_DETECTOR_TYPE", "mediapipe").strip().lower()
     if v in ("espol", "espol_touch", "kcurvature"):
@@ -81,6 +87,10 @@ def get_touch_detector_type() -> TouchMethod:
         return "farout"
     elif v in ("hybrid", "mediapipe_direct", "mp_direct"):
         return "hybrid"
+    elif v in ("mediapipe_dml", "mp_dml", "dml_mediapipe"):
+        return "mediapipe_dml"
+    elif v in ("hybrid_dml", "mediapipe_direct_dml", "mp_direct_dml"):
+        return "hybrid_dml"
     else:
         return "mediapipe"
 
@@ -291,6 +301,28 @@ def main() -> None:
                     show_debug=show_debug,
                 )
                 print("  MediapipeDIRECTHybridTouchDetector (MediaPipe + DIRECT) initialized")
+            elif touch_type == "hybrid_dml":
+                detector = MediapipeDIRECTHybridTouchDetectorDml(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    resolution_mapper,
+                    config.detection,
+                    rgb_H=calibration_result.rgb_H,
+                    show_debug=show_debug,
+                )
+                print(
+                    "  MediapipeDIRECTHybridTouchDetectorDml "
+                    "(MediaPipe + DIRECT + DirectML) initialized"
+                )
+            elif touch_type == "mediapipe_dml":
+                detector = DmlTouchDetector(
+                    calibration_result.dmax_map,
+                    depth_coordinate_transformer,
+                    resolution_mapper,
+                    config.detection,
+                    show_debug=show_debug,
+                )
+                print("  DmlTouchDetector (MediaPipe CPU + depth on DirectML) initialized")
             else:  # mediapipe
                 detector = TouchDetector(
                     calibration_result.dmax_map,
@@ -390,7 +422,6 @@ def main() -> None:
         full_card_view_buffer = np.zeros((FULL_PROJ_H, FULL_PROJ_W, 3), dtype=np.uint8)
 
         # Cache for card detection (Fix 3: run every N frames)
-        CARD_DETECT_INTERVAL = 1  # TEMP: Set to 1 for profiling
         last_card_view = None
         last_card_dets: list = []
 
@@ -438,10 +469,9 @@ def main() -> None:
 
                 card_future = None
                 t_card_submit = t2  # For timing card from submission
-                run_card = frame_count % CARD_DETECT_INTERVAL == 0
-                if run_card:
-                    card_future = card_executor.submit(card_detector.detect, rgb_bird)
-                    t_card_submit = time.perf_counter()
+                
+                card_future = card_executor.submit(card_detector.detect, rgb_bird)
+                t_card_submit = time.perf_counter()
 
                 # Now wait for results (they run in parallel)
                 if touch_future is not None:

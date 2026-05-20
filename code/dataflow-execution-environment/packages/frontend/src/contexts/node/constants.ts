@@ -10,6 +10,12 @@ export const OPERATOR_PORTS: PortDefinition[] = [
   { handleId: "out", handleType: "source", position: "right" },
 ];
 
+/** Tras este tiempo siguiendo la visión, la posición en el lienzo queda fija (oclusión incluida). */
+export const VISION_POSITION_LOCK_MS = 1500;
+
+/** Tiempo sin detección antes de quitar un nodo `card_*` del lienzo (mantiene aristas al tapar). */
+export const VISION_CARD_NODE_TTL_MS = 3000;
+
 export const VISION_FLOW_MIN_SIZE = 64;
 export const VISION_NODE_HALF_W = 48;
 export const VISION_NODE_HALF_H = 40;

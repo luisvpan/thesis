@@ -35,6 +35,8 @@ upload-roboflow = "cv_system.upload_to_roboflow:main"
 
 [project.optional-dependencies]
 export = ["onnx>=1.21.0", "onnxruntime>=1.24.4", "onnxslim>=0.1.91"]
+# AMD/Intel/NVIDIA on Windows via DirectX 12 (pip install torch-directml torchvision)
+directml = ["torch-directml>=0.2.5.dev240914", "torchvision>=0.19.1"]
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]

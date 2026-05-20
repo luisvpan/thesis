@@ -6,12 +6,13 @@ import { FlowNodeCard } from './FlowNodeCard';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { isOperatorBlockedByCpaMode } from '@/utils/cpaModeUtils';
 import { CpaModeDisabledBanner } from './CpaModeDisabledBanner';
+import { TrackIdBadge } from './TrackIdBadge';
+import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 
-export type OperatorFlowNodeData = {
+export type OperatorFlowNodeData = VisionNodeMeta & {
   operator: OperatorType;
   result?: number;
   value?: number;
-  trackId?: number;
 };
 
 export type OperatorFlowNode = Node<OperatorFlowNodeData, 'operator'>;
@@ -32,6 +33,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
 
   return (
     <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+      <TrackIdBadge trackId={readTrackId(d)} />
       <ClickableHandle type="target" position={Position.Left} id="a" nodeId={id} style={{ top: '25%', transform: 'translateX(-100px)' }} disabled={blocked} />
       <ClickableHandle type="target" position={Position.Left} id="b" nodeId={id} style={{ top: '75%', transform: 'translateX(-100px)' }} disabled={blocked} />
       <FlowNodeCard
@@ -45,3 +47,4 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
     </div>
   );
 }
+

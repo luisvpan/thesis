@@ -24,7 +24,9 @@ export function FlowNodeCard({
     <div className={`min-h-48 w-48 p-3 text-white ${className}`}>
       {topNotice}
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="truncate text-xs font-semibold uppercase tracking-wide text-slate-300">{title}-{content}</span>
+        <span className="truncate text-xs font-semibold uppercase tracking-wide text-slate-300">
+          {title}-{content}
+        </span>
       </div>
     </div>
   );

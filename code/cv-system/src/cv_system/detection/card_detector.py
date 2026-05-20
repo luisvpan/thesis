@@ -107,15 +107,7 @@ class CardDetector:
         else:
             print("  WARNING: DirectML not available, using CPU fallback!")
 
-        # Initialize ByteTrack for persistent object IDs
-        # Tuned for card tracking with hand movement
-        self._tracker = sv.ByteTrack(
-            track_activation_threshold=0.20,  # Lower = easier to create tracks
-            lost_track_buffer=45,             # ~1.5s at 30fps to re-find lost tracks
-            minimum_matching_threshold=0.5,   # Lower IoU = tolerate more movement
-            frame_rate=30,
-        )
-        self._warned_no_lost_tracks = False
+        self._init_byte_tracker()
 
     def _load_onnx_class_names(self, path: Path) -> dict[int, str]:
         """Load class names from ONNX model metadata."""
@@ -137,6 +129,42 @@ class CardDetector:
 
         # Fallback: generic class names
         return {i: f"class_{i}" for i in range(100)}
+
+    def _init_byte_tracker(self) -> None:
+        """ByteTrack tuned for card tracking with hand occlusion."""
+        self._tracker = sv.ByteTrack(
+            track_activation_threshold=0.20,  # Lower = easier to create tracks
+            lost_track_buffer=45,  # ~1.5s at 30fps to re-find lost tracks
+            minimum_matching_threshold=0.5,  # Lower IoU = tolerate more movement
+            frame_rate=30,
+        )
+        self._warned_no_lost_tracks = False
+
+    def _track_detections(self, sv_detections: sv.Detections) -> list[CardDetection]:
+        """Associate detections with ByteTrack; include lost (occluded) tracks."""
+        if len(sv_detections) == 0:
+            self._tracker.update_with_detections(sv.Detections.empty())
+            return self._collect_lost_detections()
+
+        tracked = self._tracker.update_with_detections(sv_detections)
+        detections: list[CardDetection] = []
+        for i in range(len(tracked)):
+            label = self._names.get(int(tracked.class_id[i]), str(tracked.class_id[i]))
+            track_id = int(tracked.tracker_id[i]) if tracked.tracker_id is not None else -1
+            detections.append(
+                CardDetection(
+                    class_id=int(tracked.class_id[i]),
+                    label=label,
+                    confidence=float(tracked.confidence[i]),
+                    x1=float(tracked.xyxy[i, 0]),
+                    y1=float(tracked.xyxy[i, 1]),
+                    x2=float(tracked.xyxy[i, 2]),
+                    y2=float(tracked.xyxy[i, 3]),
+                    track_id=track_id,
+                )
+            )
+        detections.extend(self._collect_lost_detections())
+        return detections
 
     def detect(self, rgb_bird: cv2.UMat) -> tuple[np.ndarray, list[CardDetection]]:
         """
@@ -263,9 +291,7 @@ class CardDetector:
         confidences = confidences[mask]
 
         if len(boxes) == 0:
-            # Update tracker with empty frame so it can age lost tracks properly
-            self._tracker.update_with_detections(sv.Detections.empty())
-            return self._collect_lost_detections()
+            return self._track_detections(sv.Detections.empty())
 
         # Convert from center format to corner format
         x_center, y_center, w, h = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
@@ -292,7 +318,7 @@ class CardDetector:
         )
 
         if len(indices) == 0:
-            return []
+            return self._track_detections(sv.Detections.empty())
 
         # Filter arrays by NMS indices
         nms_indices = [idx[0] if isinstance(idx, (list, np.ndarray)) else idx for idx in indices]
@@ -300,34 +326,12 @@ class CardDetector:
         nms_confidences = confidences[nms_indices]
         nms_class_ids = class_ids[nms_indices]
 
-        # Create supervision Detections and update tracker
         sv_detections = sv.Detections(
             xyxy=nms_boxes,
             confidence=nms_confidences,
             class_id=nms_class_ids.astype(int),
         )
-        tracked = self._tracker.update_with_detections(sv_detections)
-
-        # Build CardDetection objects with track IDs
-        detections: list[CardDetection] = []
-        for i in range(len(tracked)):
-            label = self._names.get(int(tracked.class_id[i]), str(tracked.class_id[i]))
-            track_id = int(tracked.tracker_id[i]) if tracked.tracker_id is not None else -1
-            detections.append(
-                CardDetection(
-                    class_id=int(tracked.class_id[i]),
-                    label=label,
-                    confidence=float(tracked.confidence[i]),
-                    x1=float(tracked.xyxy[i, 0]),
-                    y1=float(tracked.xyxy[i, 1]),
-                    x2=float(tracked.xyxy[i, 2]),
-                    y2=float(tracked.xyxy[i, 3]),
-                    track_id=track_id,
-                )
-            )
-
-        detections.extend(self._collect_lost_detections())
-        return detections
+        return self._track_detections(sv_detections)
 
     def _collect_lost_detections(self) -> list[CardDetection]:
         """Return CardDetection entries for tracks ByteTrack considers lost (occluded)."""

@@ -8,9 +8,11 @@ import { formatResultCpa } from './dataflowResultCpa';
 import { FlowNodeCard } from './FlowNodeCard';
 import { ResultArrayVisual } from './ResultArrayVisual';
 import type { ResultVisualItem } from '@/services/executeProgram';
+import { TrackIdBadge } from './TrackIdBadge';
+import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
-export type ProgramOutputFlowNodeData = {
+export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   /** Valor numérico para resultados racionales */
   value?: number;
   /** Descripción semántica para resultados de arreglo */
@@ -76,11 +78,11 @@ export function ProgramOutputFlowNode({
       </div>
     );
 
+  const trackId = readTrackId(data);
+
   return (
     <div className="relative h-65 w-52 -translate-x-[30%] -translate-y-[80%]">
-      <div className="absolute -top-5 left-0 rounded bg-black/50 px-1 text-xs text-teal-300">
-        {id}
-      </div>
+      <TrackIdBadge trackId={trackId} />
       <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} style={{ transform: 'translateX(-100px)' }} />
       <FlowNodeCard family="sink" title="Salida" content={<span className="text-xs font-black text-slate-100">{display}</span>} />
       <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} />
