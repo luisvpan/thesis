@@ -111,26 +111,83 @@ describe("multiply (unit)", () => {
     expect(result.quantity.equals(new Fraction(15))).toBe(true);
   });
 
-  test("aggregates CPA objects by key with multiplication", () => {
+  test("does not combine CPAs with same key, returns array", () => {
     const circle1: CPAObject = {
       kind: "cpa",
       category: "pictorico",
       type: "forma",
       subtype: "circulo",
-      quantity: new Fraction(2),
-      attributes: { size: "grande" },
+      quantity: new Fraction(3),
+      attributes: { color: "azul" },
     };
     const circle2: CPAObject = {
       kind: "cpa",
       category: "pictorico",
       type: "forma",
       subtype: "circulo",
-      quantity: new Fraction(3),
-      attributes: { size: "grande" },
+      quantity: new Fraction(2),
+      attributes: { color: "azul" },
     };
-    const result = multiply([circle1, circle2]) as CPAObject;
-    expect(result.kind).toBe("cpa");
-    expect(result.quantity.equals(new Fraction(6))).toBe(true);
+    const result = multiply([circle1, circle2]) as ArrayValue;
+    expect(result.kind).toBe("arreglo");
+    expect(result.elements).toHaveLength(2);
+    expect((result.elements[0] as CPAObject).quantity.equals(new Fraction(3))).toBe(true);
+    expect((result.elements[1] as CPAObject).quantity.equals(new Fraction(2))).toBe(true);
+  });
+
+  test("does not combine CPAs with different keys, returns array", () => {
+    const cap: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "tapa",
+      quantity: new Fraction(3),
+      attributes: { color: "azul" },
+    };
+    const ball: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "pelota",
+      quantity: new Fraction(2),
+      attributes: { color: "rojo" },
+    };
+    const result = multiply([cap, ball]) as ArrayValue;
+    expect(result.kind).toBe("arreglo");
+    expect(result.elements).toHaveLength(2);
+  });
+
+  test("applies rational factor to multiple CPAs", () => {
+    const cap1: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "tapa",
+      quantity: new Fraction(3),
+      attributes: { color: "azul" },
+    };
+    const cap2: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "tapa",
+      quantity: new Fraction(2),
+      attributes: { color: "azul" },
+    };
+    const factor: RationalValue = { kind: "racional", value: new Fraction(2) };
+    const result = multiply([cap1, cap2, factor]) as ArrayValue;
+    expect(result.kind).toBe("arreglo");
+    expect(result.elements).toHaveLength(2);
+    expect((result.elements[0] as CPAObject).quantity.equals(new Fraction(6))).toBe(true);  // 3*2
+    expect((result.elements[1] as CPAObject).quantity.equals(new Fraction(4))).toBe(true);  // 2*2
+  });
+
+  test("rationals multiply together (regression)", () => {
+    const a: RationalValue = { kind: "racional", value: new Fraction(3) };
+    const b: RationalValue = { kind: "racional", value: new Fraction(2) };
+    const result = multiply([a, b]) as RationalValue;
+    expect(result.kind).toBe("racional");
+    expect(result.value.equals(new Fraction(6))).toBe(true);
   });
 });
 

@@ -61,7 +61,7 @@ describe("Integration", () => {
       expect(sinkResult.elements).toHaveLength(2);
     });
 
-    test("multiply aggregates matching CPA objects", async () => {
+    test("multiply does not aggregate CPA objects, returns all as array", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
         source items = [
@@ -76,11 +76,14 @@ describe("Integration", () => {
       expect(result.errors).toHaveLength(0);
       const sinkResult = result.results.get("result") as ArrayValue;
       expect(sinkResult.kind).toBe("arreglo");
-      expect(sinkResult.elements).toHaveLength(2);
+      // CPAs are NOT combined - all 3 elements are preserved
+      expect(sinkResult.elements).toHaveLength(3);
 
-      const circle = sinkResult.elements.find(e => (e as CPAObject).subtype === "circulo") as CPAObject;
+      const circles = sinkResult.elements.filter(e => (e as CPAObject).subtype === "circulo") as CPAObject[];
       const square = sinkResult.elements.find(e => (e as CPAObject).subtype === "cuadrado") as CPAObject;
-      expect(circle.quantity.equals(new Fraction(6))).toBe(true);
+      expect(circles).toHaveLength(2);
+      expect(circles[0].quantity.equals(new Fraction(2))).toBe(true);
+      expect(circles[1].quantity.equals(new Fraction(3))).toBe(true);
       expect(square.quantity.equals(new Fraction(4))).toBe(true);
     });
 

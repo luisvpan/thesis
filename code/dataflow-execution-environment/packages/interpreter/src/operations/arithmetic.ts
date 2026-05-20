@@ -72,8 +72,14 @@ export function sum(args: RuntimeValue[]): RuntimeValue {
 /**
  * Multiply operation (variadic):
  * - Flatten all input arrays
- * - For rationals: multiply all values
- * - For CPA objects: aggregate by key, multiply amounts
+ * - For rationals only: multiply all values
+ * - For CPA objects: apply rational factor to each CPA individually
+ *
+ * DESIGN NOTE (Scratch-style, Plan C): CPA objects are NEVER combined with
+ * each other. Multiplying two CPAs (e.g., cap × cap) is semantically ambiguous
+ * (what is "caps²"?). Instead, CPAs are returned as-is in an array, with any
+ * rational factors applied to each individually. Visual blocking will be
+ * enforced in the frontend.
  */
 export function multiply(args: RuntimeValue[]): RuntimeValue {
   const flatValues = flattenArrays(args);
@@ -87,54 +93,35 @@ export function multiply(args: RuntimeValue[]): RuntimeValue {
     return { kind: "racional", value: total };
   }
 
-  // CPA aggregation: group by key, multiply quantities
-  const groups = new Map<string, CPAObject>();
+  // Separate CPAs and rationals
+  const cpas: CPAObject[] = [];
   const rationals: Fraction[] = [];
 
   for (const value of flatValues) {
     if (isRational(value)) {
       rationals.push(value.value);
     } else if (isCPAObject(value)) {
-      const key = getCPAKey(value);
-      const existing = groups.get(key);
-
-      if (existing) {
-        const newQty = rational.multiply(getQuantity(existing), getQuantity(value));
-        groups.set(key, cloneCPAWithQuantity(existing, newQty));
-      } else {
-        groups.set(key, cloneCPAWithQuantity(value, getQuantity(value)));
-      }
+      cpas.push(value);
     }
   }
 
-  // Apply rational multiplier to all CPA objects
-  if (rationals.length > 0) {
-    const rationalProduct = rationals.reduce(
-      (acc, v) => rational.multiply(acc, v),
-      rational.one()
-    );
+  // Calculate the product of all rationals (1 if none)
+  const rationalProduct = rationals.length > 0
+    ? rationals.reduce((acc, v) => rational.multiply(acc, v), rational.one())
+    : rational.one();
 
-    for (const [key, obj] of groups) {
-      const newQty = rational.multiply(getQuantity(obj), rationalProduct);
-      groups.set(key, cloneCPAWithQuantity(obj, newQty));
-    }
+  // Apply the factor to each CPA individually (NO combining)
+  const scaledCPAs = cpas.map(cpa =>
+    cloneCPAWithQuantity(cpa, rational.multiply(getQuantity(cpa), rationalProduct))
+  );
+
+  // If there's a single CPA, return it directly
+  if (scaledCPAs.length === 1) {
+    return scaledCPAs[0];
   }
 
-  const resultElements = Array.from(groups.values());
-
-  if (resultElements.length === 0 && rationals.length > 0) {
-    const rationalProduct = rationals.reduce(
-      (acc, v) => rational.multiply(acc, v),
-      rational.one()
-    );
-    return { kind: "racional", value: rationalProduct };
-  }
-
-  if (resultElements.length === 1) {
-    return resultElements[0];
-  }
-
-  return { kind: "arreglo", elements: resultElements };
+  // Multiple CPAs: return array
+  return { kind: "arreglo", elements: scaledCPAs };
 }
 
 /**
