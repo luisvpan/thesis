@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 from cv_system.detection.card_detector import CardDetector, CardDetection
+from cv_system.detection.card_detector_dml import DmlCardDetector
 from cv_system.detection.e2e_card_detector import E2ECardDetector
 from cv_system.detection.rfdetr_card_detector import RFDETRCardDetector
 from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
@@ -23,13 +24,23 @@ from cv_system.detection.mediapipe_direct_hybrid_touch_detector import (
 )
 from cv_system.detection.touch_tracker import TouchTracker, TrackedTouch
 
-CardMethod = Literal["simple", "e2e", "rfdetr"]
-TouchMethod = Literal["depth_only", "mediapipe", "espol", "direct", "farout", "hybrid"]
+CardMethod = Literal["simple", "e2e", "rfdetr", "dml"]
+TouchMethod = Literal[
+    "depth_only",
+    "mediapipe",
+    "mediapipe_dml",
+    "espol",
+    "direct",
+    "farout",
+    "hybrid",
+    "hybrid_dml",
+]
 
 CARD_DETECTORS: dict[CardMethod, type[CardDetector]] = {
     "simple": CardDetector,
     "e2e": E2ECardDetector,
     "rfdetr": RFDETRCardDetector,
+    "dml": DmlCardDetector,
 }
 
 
@@ -47,6 +58,14 @@ def detect_card_method(model_path: str | Path) -> CardMethod:
     path = Path(model_path)
 
     if path.suffix.lower() == ".pt":
+        import os
+
+        card = os.getenv("CV_CARD_DETECTOR", "").strip().lower()
+        if card in ("dml", "directml", "torch-dml"):
+            return "dml"
+        backend = os.getenv("CV_TORCH_BACKEND", "").strip().lower()
+        if backend in ("directml", "dml"):
+            return "dml"
         return "simple"
 
     if path.suffix.lower() == ".onnx":
@@ -78,6 +97,7 @@ __all__ = [
     "CardDetection",
     "CardMethod",
     "CARD_DETECTORS",
+    "DmlCardDetector",
     "E2ECardDetector",
     "RFDETRCardDetector",
     "DepthOnlyTouchDetector",
