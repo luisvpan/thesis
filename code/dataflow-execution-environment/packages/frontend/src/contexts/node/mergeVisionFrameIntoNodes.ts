@@ -1,14 +1,7 @@
-import type { ProgramOutputFlowNodeData } from "@/components/dataflow";
 import { parseVisionLabel, visionOperatorToMathOperator } from "@/types/vision-card";
-import { VISION_PROGRAM_OUTPUT_ID } from "@/utils/frontendFlowConstants";
 import type { CardDetectionsPayload } from "../VisionContext";
-import {
-  VISION_CARD_BOX,
-  VISION_CARD_NODE_TTL_MS,
-  VISION_RESULT_GAP,
-  VISION_FLOW_MIN_SIZE,
-} from "./constants";
-import { toValidSlug, visionToFlowPosition } from "./helpers";
+import { VISION_CARD_NODE_TTL_MS, VISION_FLOW_MIN_SIZE } from "./constants";
+import { toValidSlug } from "./helpers";
 import { resolveVisionNodePosition } from "./resolveVisionNodePosition";
 import type { DataflowNode } from "./types";
 import {
@@ -36,29 +29,15 @@ export function mergeVisionFrameIntoNodes(
 
   const frameTimeMs = lastCardFrame.t ?? Date.now();
 
-  const prevOut = prev.find(
-    (n) => n.id === VISION_PROGRAM_OUTPUT_ID && n.type === "programOutput"
-  );
-  const preservedValue =
-    prevOut?.type === "programOutput"
-      ? (prevOut.data as ProgramOutputFlowNodeData).value
-      : undefined;
-
   const withoutLive = prev.filter((n) => !n.id.startsWith("card_"));
   const prevCards = prev.filter((n) => n.id.startsWith("card_"));
 
-  let grapesFlowPos: { x: number; y: number } | null = null;
   const additions: DataflowNode[] = [];
   const frameNodeIds = new Set<string>();
   let idx = 0;
 
   for (const c of lastCardFrame.cards) {
     const parsed = parseVisionLabel(c.label);
-
-    if (parsed.type === "resultAnchor") {
-      grapesFlowPos = visionToFlowPosition(c.position, rect);
-      continue;
-    }
 
     const nodeId = toValidSlug(c.trackId, idx);
     frameNodeIds.add(nodeId);
@@ -256,18 +235,6 @@ export function mergeVisionFrameIntoNodes(
     frameNodeIds,
     frameTimeMs
   );
-
-  if (grapesFlowPos) {
-    additions.push({
-      id: VISION_PROGRAM_OUTPUT_ID,
-      type: "programOutput" as const,
-      position: {
-        x: grapesFlowPos.x + VISION_CARD_BOX + VISION_RESULT_GAP,
-        y: grapesFlowPos.y,
-      },
-      data: { value: preservedValue },
-    });
-  }
 
   return [...withoutLive, ...additions, ...retainedStale];
 }

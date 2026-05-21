@@ -9,25 +9,34 @@ import {
 
 type ResultArrayVisualProps = {
   items: ResultVisualItem[];
+  align?: 'start' | 'center';
 };
 
 const MAX_SHOW = 36;
 
-export function ResultArrayVisual({ items }: ResultArrayVisualProps) {
+export function ResultArrayVisual({ items, align = 'center' }: ResultArrayVisualProps) {
   if (items.length === 0) return null;
 
   const shown = items.slice(0, MAX_SHOW);
   const overflow = items.length - shown.length;
+  const itemsAlign = align === 'start' ? 'items-start' : 'items-center';
+  const flexJustify = align === 'start' ? 'justify-start' : 'justify-center';
 
   return (
-    <div className="mt-2 flex w-full max-w-44 flex-col items-center gap-1">
-      <div className="flex flex-wrap justify-center gap-1.5">
+    <div className={`flex w-full max-w-44 flex-col gap-1 ${itemsAlign}`}>
+      <div className={`flex flex-wrap gap-1.5 ${flexJustify}`}>
         {shown.map((item, i) => {
           if (item.kind === 'montessori') {
             return <MontessoriCubeGlyph key={`v-${i}`} color={item.color} />;
           }
           if (item.kind === 'forma') {
-            return <FormaGlyph key={`v-${i}`} subtype={item.subtype} />;
+            return (
+              <FormaGlyph
+                key={`v-${i}`}
+                subtype={item.subtype}
+                color={item.color}
+              />
+            );
           }
           if (item.kind === 'cap') {
             return <CapGlyph key={`v-${i}`} color={item.color} />;

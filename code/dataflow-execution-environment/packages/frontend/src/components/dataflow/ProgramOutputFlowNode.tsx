@@ -1,11 +1,12 @@
+import type { ReactNode } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
-import { Equal, LayoutList, Hourglass } from 'lucide-react';
+import { Hourglass } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
 import { formatResultCpa, type ResultViewMode } from './dataflowResultCpa';
-import { FlowNodeCard } from './FlowNodeCard';
+import { SinkFlowNodeCard } from './SinkFlowNodeCard';
 import { ResultArrayVisual } from './ResultArrayVisual';
 import {
   MontessoriCubeGlyph,
@@ -46,8 +47,6 @@ function SingleCpaGlyphStrip({
   const { type, subtype, color, quantity } = meta;
   const count = Math.min(quantity, MAX_GLYPHS);
   const overflow = quantity - count;
-
-  // In "pictorico" mode, use generic (teal) appearance
   const generic = viewMode === 'pictorico';
 
   const glyphs = Array.from({ length: count }, (_, i) => {
@@ -60,7 +59,9 @@ function SingleCpaGlyphStrip({
       case 'stick':
         return <StickGlyph key={key} color={color} generic={generic} />;
       case 'forma':
-        return <FormaGlyph key={key} subtype={subtype} generic={generic} />;
+        return (
+          <FormaGlyph key={key} subtype={subtype} color={color} generic={generic} />
+        );
       case 'comida':
         return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} />;
       default:
@@ -69,19 +70,115 @@ function SingleCpaGlyphStrip({
   });
 
   if (count === 0) {
-    return <span className="text-slate-500 text-lg italic">vacío</span>;
+    return <span className="text-slate-500 text-sm italic">vacío</span>;
   }
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex flex-wrap justify-center gap-1.5 max-w-44">
-        {glyphs}
-      </div>
-      {overflow > 0 && (
+    <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-wrap justify-start gap-1.5">{glyphs}</div>
+      {overflow > 0 ? (
         <span className="text-[10px] font-medium text-slate-400">+{overflow} más</span>
-      )}
+      ) : null}
     </div>
   );
+}
+
+function singleCpaHeaderText(meta: SingleCpaObjectMeta, viewMode: ResultViewMode): string {
+  if (viewMode === 'abstracto') {
+    return String(meta.quantity);
+  }
+  const colorPart = meta.color ? meta.color.toUpperCase() : '';
+  const typeLabels: Record<string, string> = {
+    montessori: 'cubos',
+    cap: 'tapas',
+    stick: 'palitos',
+    forma: meta.subtype,
+    comida: meta.subtype,
+  };
+  const label = typeLabels[meta.type] ?? meta.type;
+  if (colorPart) {
+    return `${meta.quantity} ${label} ${colorPart}`.trim();
+  }
+  return `${meta.quantity} ${label}`.trim();
+}
+
+type SinkBodyParts = {
+  headerRight: ReactNode;
+  resultVisual?: ReactNode;
+};
+
+function buildSinkBody(
+  data: ProgramOutputFlowNodeData,
+  executionError: string | null | undefined,
+  viewMode: ResultViewMode
+): SinkBodyParts {
+  if (executionError) {
+    return {
+      headerRight: (
+        <p className="text-sm font-semibold leading-snug text-red-400 whitespace-pre-wrap">
+          {executionError}
+        </p>
+      ),
+    };
+  }
+
+  if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
+    const meta = data.singleCpaObjectMeta;
+    if (viewMode === 'abstracto') {
+      return {
+        headerRight: (
+          <span className="text-3xl font-black tabular-nums text-white">{meta.quantity}</span>
+        ),
+      };
+    }
+    return {
+      headerRight: singleCpaHeaderText(meta, viewMode),
+      resultVisual: <SingleCpaGlyphStrip meta={meta} viewMode={viewMode} />,
+    };
+  }
+
+  if (data.description) {
+    return {
+      headerRight: data.description,
+      resultVisual:
+        data.visualStrip && data.visualStrip.length > 0 ? (
+          <ResultArrayVisual items={data.visualStrip} align="start" />
+        ) : undefined,
+    };
+  }
+
+  if (data.value !== undefined) {
+    if (viewMode === 'pictorico' && Number.isInteger(data.value) && data.value >= 0 && data.value <= 24) {
+      return {
+        headerRight: <span className="tabular-nums text-white">{data.value}</span>,
+        resultVisual: (
+          <div className="flex justify-start">{formatResultCpa(data.value, viewMode)}</div>
+        ),
+      };
+    }
+    return {
+      headerRight: (
+        <span
+          className={
+            viewMode === 'abstracto'
+              ? 'text-3xl font-black tabular-nums text-white'
+              : 'text-lg font-bold text-sky-300'
+          }
+        >
+          {formatResultCpa(data.value, viewMode)}
+        </span>
+      ),
+    };
+  }
+
+  return {
+    headerRight: (
+      <span className="flex items-center justify-end gap-1.5 text-slate-500 italic">
+        <Hourglass className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+        Sin resultado
+      </span>
+    ),
+  };
 }
 
 export function ProgramOutputFlowNode({
@@ -90,86 +187,27 @@ export function ProgramOutputFlowNode({
 }: NodeProps<ProgramOutputFlowNode>) {
   const { executionError } = useNode();
   const { viewMode } = useResultCardUi();
-
-  const value = data.value;
-  const description = data.description;
-  const visualStrip = data.visualStrip;
-
-  const modeLabel = viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A';
-
-  const display =
-    executionError ? (
-      <p className="max-h-48 overflow-y-auto text-left text-sm font-semibold leading-snug text-red-400 whitespace-pre-wrap px-1">
-        {executionError}
-      </p>
-    ) : (data.isSingleCpaObject && data.singleCpaObjectMeta) ? (
-      // Single CPA Object - viewMode-aware rendering
-      viewMode === 'abstracto' ? (
-        // Abstract mode: just show the quantity as a number
-        <div className="flex flex-col items-center gap-1 text-white">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Equal className="w-4 h-4" strokeWidth={2.5} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
-          </div>
-          <div className="text-5xl font-black text-white tabular-nums drop-shadow-lg">
-            {data.singleCpaObjectMeta.quantity}
-          </div>
-        </div>
-      ) : (
-        // Pictoric or Concrete mode: show N glyphs
-        <div className="flex flex-col items-center gap-1 text-white">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Equal className="w-4 h-4" strokeWidth={2.5} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
-          </div>
-          <SingleCpaGlyphStrip meta={data.singleCpaObjectMeta} viewMode={viewMode} />
-        </div>
-      )
-    ) : description ? (
-      // Resultado semántico (arreglo de objetos)
-      <div className="flex flex-col items-center gap-0.5 text-white">
-        <LayoutList className="w-5 h-5 text-slate-400" strokeWidth={2} />
-        <p className="text-lg text-center text-teal-200 leading-snug px-1">
-          {description}
-        </p>
-        {visualStrip && visualStrip.length > 0 ? (
-          <ResultArrayVisual items={visualStrip} />
-        ) : null}
-      </div>
-    ) : value !== undefined ? (
-      // Resultado numérico
-      <div className="flex flex-col items-center gap-1 text-white">
-        <div className="flex items-center gap-1 text-slate-400">
-          <Equal className="w-4 h-4" strokeWidth={2.5} />
-          <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
-        </div>
-        <div
-          className={
-            viewMode === 'abstracto'
-              ? 'text-5xl font-black text-white tabular-nums drop-shadow-lg'
-              : viewMode === 'concreto'
-                ? 'text-3xl font-bold text-sky-300 text-center drop-shadow-md'
-                : 'text-center drop-shadow-md max-w-[14rem]'
-          }
-        >
-          {formatResultCpa(value, viewMode)}
-        </div>
-      </div>
-    ) : (
-      <div className="flex flex-col items-center gap-2 text-slate-500">
-        <Hourglass className="w-6 h-6" strokeWidth={1.5} />
-        <p className="text-sm text-center italic px-2">Sin resultado</p>
-      </div>
-    );
-
+  const { headerRight, resultVisual } = buildSinkBody(data, executionError, viewMode);
   const trackId = readTrackId(data);
 
   return (
-    <div className="relative h-65 w-52 -translate-x-[30%] -translate-y-[80%]">
+    <div className="relative h-65 w-70 -translate-x-[10%] ">
       <TrackIdBadge trackId={trackId} />
-      <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} style={{ transform: 'translateX(-100px)' }} />
-      <FlowNodeCard family="sink" title="Salida" content={<span className="text-xs font-black text-slate-100">{display}</span>} />
-      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} />
+      <ClickableHandle
+        type="target"
+        position={Position.Left}
+        id="in"
+        nodeId={id}
+        style={{ transform: 'translateX(-100px) translateY(-200%)' }}
+      />
+      <SinkFlowNodeCard headerRight={headerRight} resultVisual={resultVisual} />
+      <ClickableHandle
+        type="source"
+        position={Position.Right}
+        id="out"
+        nodeId={id}
+        style={{ transform: 'translateX(100px) translateY(-200%)' }}
+      />
     </div>
   );
 }

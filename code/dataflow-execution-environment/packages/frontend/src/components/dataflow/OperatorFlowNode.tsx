@@ -59,7 +59,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   }, [id, operator, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
 
   return (
-    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+    <div className="relative h-52 w-30 -translate-x-[15 %] -translate-y-[45%]">
       <TrackIdBadge trackId={readTrackId(d)} />
       <ClickableHandle
         type="target"

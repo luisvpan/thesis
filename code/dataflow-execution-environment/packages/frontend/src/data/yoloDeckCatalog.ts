@@ -1,4 +1,5 @@
 import type { CapColor, FoodType, MontessoriColor, OperatorType, ShapeColor, ShapeSize, ShapeType, StickColor } from '@/types/card-types';
+import { isPictorialColorYoloClass, YOLO_CLASS_TO_SHAPE_COLOR } from './pictorialColors';
 
 export type DeckSectionId = 'numbers' | 'operators' | 'figures' | 'foods' | 'montessori' | 'caps' | 'sticks' | 'arrayMarkers';
 
@@ -21,8 +22,9 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
     'green',
     'purple',
     'red',
+    'orange',
   ],
-  foods: ['apple', 'burger', 'pear', 'grapes', 'orange'],
+  foods: ['apple', 'burger', 'pear', 'grapes'],
   montessori: ['cube_blue', 'cube_red', 'cube_yellow'],
   caps: ['cap_blue', 'cap_white'],
   sticks: ['stick_cyan', 'stick_orange', 'stick_red'],
@@ -87,8 +89,14 @@ export function deckLabel(yoloClass: string): string {
     sm_circle: 'Circulo P', sm_square: 'Cuadrado P', sm_triangle: 'Triángulo P',
     md_circle: 'Circulo M', md_square: 'Cuadrado M', md_triangle: 'Triángulo M',
     lg_circle: 'Circulo G', lg_square: 'Cuadrado G', lg_triangle: 'Triángulo G',
-    green: 'Verde', purple: 'Morado', red: 'Rojo',
-    apple: 'Manzana', burger: 'Hamburguesa', pear: 'Pera', grapes: 'Uvas', orange: 'Naranja',
+    green: 'Verde',
+    purple: 'Morado',
+    red: 'Rojo',
+    orange: 'Naranja (color)',
+    apple: 'Manzana',
+    burger: 'Hamburguesa',
+    pear: 'Pera',
+    grapes: 'Uvas',
     // Cubos Montessori
     cube_blue: 'Cubo Azul', cube_red: 'Cubo Rojo', cube_yellow: 'Cubo Amarillo',
     // Tapas
@@ -130,6 +138,16 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   };
   if (x in op) return { kind: 'operator', operator: op[x] };
 
+  if (isPictorialColorYoloClass(x)) {
+    return {
+      kind: 'shape',
+      yoloClass: x,
+      shape: 'circulo',
+      size: 'mediano',
+      color: YOLO_CLASS_TO_SHAPE_COLOR[x],
+    };
+  }
+
   const fig: Record<string, { shape: ShapeType; size: ShapeSize; color: ShapeColor }> = {
     sm_circle: { shape: 'circulo', size: 'pequeño', color: 'amarillo' },
     md_circle: { shape: 'circulo', size: 'mediano', color: 'amarillo' },
@@ -143,9 +161,6 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     small: { shape: 'circulo', size: 'pequeño', color: 'amarillo' },
     medium: { shape: 'circulo', size: 'mediano', color: 'amarillo' },
     large: { shape: 'circulo', size: 'grande', color: 'amarillo' },
-    green: { shape: 'circulo', size: 'mediano', color: 'verde' },
-    purple: { shape: 'circulo', size: 'mediano', color: 'azul' },
-    red: { shape: 'circulo', size: 'mediano', color: 'rojo' },
   };
   if (x in fig) return { kind: 'shape', yoloClass: x, ...fig[x] };
 
@@ -177,7 +192,6 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     burger: 'hamburguesa',
     pear: 'peras',
     grapes: 'uvas',
-    orange: 'naranja',
   };
   if (x in food) return { kind: 'food', yoloClass: x, food: food[x] };
 

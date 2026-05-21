@@ -38,13 +38,11 @@ export function ArrayZoneEdge({
         height={rectH}
         rx={6}
         ry={6}
-        
         fillOpacity={0.08}
         stroke="#2dd4bf"
         strokeWidth={1.5}
         strokeOpacity={0.45}
       />
-      {/* Glow */}
       <path
         d={edgePath}
         stroke="#2dd4bf"
@@ -53,8 +51,6 @@ export function ArrayZoneEdge({
         strokeOpacity={0.12}
         strokeLinecap="round"
       />
-      {/* Dashed zone link */}
-    
     </g>
   );
 }

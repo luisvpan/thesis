@@ -32,7 +32,7 @@ function getShapeClass(kind: HandleKind | undefined): string {
     case "cpa":
       return "!rounded-md";
     case "keyword":
-      return "!rounded-full !w-28"; // pill: wider than the default square
+      return "!rounded-full !w-26 translate-x-[-20%]"; // pill: wider than the default square
     case "any":
     default:
       return "!rounded-full";

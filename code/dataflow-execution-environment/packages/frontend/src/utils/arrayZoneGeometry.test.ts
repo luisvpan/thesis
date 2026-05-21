@@ -3,8 +3,13 @@ import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "../contexts/node/types";
 import { flowToProgram } from "./flowToProgram";
 import {
+  ARRAY_NODE_HEIGHT,
+  ARRAY_NODE_WIDTH,
+  ARRAY_ZONE_HANDLE_OFFSET_X,
+} from "../components/dataflow/arrayNodeLayout";
+import {
   ARRAY_CLOSE_ZONE_IN_TOP_FRAC,
-  FLOW_CARD_SIZE,
+  FLOW_HANDLE_SIZE,
   computeNodeIdsInsideActiveArrayZones,
   getArrayCloseZoneInCenter,
   getArrayOpenZoneOutCenter,
@@ -15,16 +20,20 @@ import {
 } from "./arrayZoneGeometry";
 
 describe("arrayZoneGeometry", () => {
-  test("getArrayOpenZoneOutCenter uses card size and horizontal handle offset", () => {
+  test("getArrayOpenZoneOutCenter uses array node size and zone-out handle offset", () => {
     const c = getArrayOpenZoneOutCenter({ position: { x: 10, y: 20 } });
-    expect(c.x).toBe(10 + FLOW_CARD_SIZE + 100);
-    expect(c.y).toBe(20 + FLOW_CARD_SIZE / 2);
+    expect(c.x).toBe(10 + ARRAY_NODE_WIDTH + ARRAY_ZONE_HANDLE_OFFSET_X);
+    expect(c.y).toBe(20 + ARRAY_NODE_HEIGHT / 2);
   });
 
   test("getArrayCloseZoneInCenter uses zone-in fraction and left handle offset", () => {
     const c = getArrayCloseZoneInCenter({ position: { x: 400, y: 200 } });
-    expect(c.x).toBe(400 - 100 + 40);
-    expect(c.y).toBe(200 + ARRAY_CLOSE_ZONE_IN_TOP_FRAC * FLOW_CARD_SIZE);
+    expect(c.x).toBe(400 - ARRAY_ZONE_HANDLE_OFFSET_X + FLOW_HANDLE_SIZE / 2);
+    expect(c.y).toBe(
+      200 +
+        ARRAY_CLOSE_ZONE_IN_TOP_FRAC * ARRAY_NODE_HEIGHT +
+        FLOW_HANDLE_SIZE / 2
+    );
   });
 
   test("getArrayZoneBounds is axis-aligned min/max of both handle centers", () => {

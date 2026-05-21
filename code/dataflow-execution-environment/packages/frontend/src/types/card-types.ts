@@ -61,7 +61,13 @@ export type ShapeType = 'triangulo' | 'cuadrado' | 'rectangulo' | 'rombo' | 'cir
 
 export type ShapeSize = 'pequeño' | 'mediano' | 'grande';
 
-export type ShapeColor = 'rojo' | 'azul' | 'amarillo' | 'verde';
+export type ShapeColor =
+  | 'rojo'
+  | 'azul'
+  | 'amarillo'
+  | 'verde'
+  | 'morado'
+  | 'naranja';
 
 // Colores de cubos Montessori (cube_blue, cube_red, cube_yellow)
 export type MontessoriColor = 'azul' | 'rojo' | 'amarillo';

@@ -15,6 +15,7 @@ import type {
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
+import { isPictorialColorYoloClass } from "../data/pictorialColors";
 import type { DataflowNode } from "../contexts/node/types";
 import {
   getArrayZoneBounds,
@@ -85,12 +86,22 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           value: { type: "NumberLiteral", value: new Fraction(data.value ?? 0) },
         });
       } else if (data.variant === "shape") {
+        const shapeAttrs: Record<string, string> = {
+          size: normalizeSize(data.size),
+        };
+        if (isPictorialColorYoloClass(data.yoloClass)) {
+          shapeAttrs.color = data.color;
+        }
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject("pictorico", "forma", data.shape ?? "circulo", 1, {
-            size: normalizeSize(data.size),
-          }),
+          value: createCPAObject(
+            "pictorico",
+            "forma",
+            data.shape ?? "circulo",
+            1,
+            shapeAttrs
+          ),
         });
       } else if (data.variant === "food") {
         statements.push({

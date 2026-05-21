@@ -50,7 +50,12 @@ interface SemanticResult {
 
 /** Unidad visual en la carta de salida (orden = orden del arreglo aplanado). */
 export type ResultVisualMontessori = { kind: "montessori"; color: string };
-export type ResultVisualForma = { kind: "forma"; subtype: string; size: string };
+export type ResultVisualForma = {
+  kind: "forma";
+  subtype: string;
+  size: string;
+  color?: string;
+};
 export type ResultVisualComida = { kind: "comida"; subtype: string; color: string };
 export type ResultVisualCap = { kind: "cap"; color: string };
 export type ResultVisualStick = { kind: "stick"; color: string };
@@ -273,7 +278,7 @@ function buildVisualStrip(elements: unknown[]): ResultVisualItem[] {
             strip.push({ kind: "montessori", color });
             break;
           case "forma":
-            strip.push({ kind: "forma", subtype, size });
+            strip.push({ kind: "forma", subtype, size, color });
             break;
           case "comida":
             strip.push({ kind: "comida", subtype, color });

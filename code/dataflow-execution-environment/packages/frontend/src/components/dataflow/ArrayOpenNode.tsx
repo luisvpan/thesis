@@ -1,6 +1,7 @@
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import { ARRAY_ZONE_OUT_HANDLE_STYLE } from './arrayNodeLayout';
 import { ClickableHandle } from './ClickableHandle';
 import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
@@ -10,7 +11,7 @@ export type ArrayOpenNode = Node<ArrayOpenNodeData, 'arrayOpen'>;
 
 export function ArrayOpenNode({ id, data }: NodeProps<ArrayOpenNode>) {
   return (
-    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[45%]">
+    <div className="relative h-52 w-26 -translate-x-[10%] -translate-y-[45%]">
       <TrackIdBadge trackId={readTrackId(data)} />
       <FlowNodeCard
         family="input"
@@ -22,7 +23,7 @@ export function ArrayOpenNode({ id, data }: NodeProps<ArrayOpenNode>) {
         position={Position.Right}
         id="zone-out"
         nodeId={id}
-        style={{ transform: 'translateX(100px)' }}
+        style={ARRAY_ZONE_OUT_HANDLE_STYLE}
       />
     </div>
   );
