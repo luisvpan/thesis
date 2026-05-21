@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { Equal, LayoutList, Hourglass } from 'lucide-react';
@@ -17,6 +18,7 @@ import {
 import type { ResultVisualItem, SingleCpaObjectMeta } from '@/services/executeProgram';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import { computeMultiplicationGrouping, type MultiplicationGrouping } from './result-rendering-heuristics';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = VisionNodeMeta & {
@@ -84,11 +86,82 @@ function SingleCpaGlyphStrip({
   );
 }
 
+/**
+ * Renders CPA glyphs organized into visual groups (for multiplication results).
+ */
+function GroupedCpaGlyphStrip({
+  meta,
+  viewMode,
+  groupSize,
+  groupCount,
+}: {
+  meta: SingleCpaObjectMeta;
+  viewMode: ResultViewMode;
+  groupSize: number;
+  groupCount: number;
+}) {
+  const { type, subtype, color } = meta;
+  const generic = viewMode === 'pictorico';
+  const totalGlyphs = groupSize * groupCount;
+  const maxTotal = MAX_GLYPHS;
+
+  const renderGlyph = (key: string) => {
+    switch (type) {
+      case 'montessori':
+        return <MontessoriCubeGlyph key={key} color={color} generic={generic} />;
+      case 'cap':
+        return <CapGlyph key={key} color={color} generic={generic} />;
+      case 'stick':
+        return <StickGlyph key={key} color={color} generic={generic} />;
+      case 'forma':
+        return <FormaGlyph key={key} subtype={subtype} generic={generic} />;
+      case 'comida':
+        return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} />;
+      default:
+        return null;
+    }
+  };
+
+  // Distribute glyphs across groups (respecting max)
+  let rendered = 0;
+  const groups: React.ReactNode[] = [];
+
+  for (let g = 0; g < groupCount && rendered < maxTotal; g++) {
+    const glyphsInGroup = Math.min(groupSize, maxTotal - rendered);
+    groups.push(
+      <div
+        key={`group-${g}`}
+        className="flex flex-wrap justify-center gap-1 p-1.5 rounded-md bg-slate-700/40 ring-1 ring-slate-600/50"
+      >
+        {Array.from({ length: glyphsInGroup }, (_, i) => renderGlyph(`g${g}-${i}`))}
+      </div>
+    );
+    rendered += glyphsInGroup;
+  }
+
+  const overflow = totalGlyphs - rendered;
+
+  if (groups.length === 0) {
+    return <span className="text-slate-500 text-lg italic">vacío</span>;
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-wrap justify-center gap-4 max-w-52">
+        {groups}
+      </div>
+      {overflow > 0 && (
+        <span className="text-[10px] font-medium text-slate-400">+{overflow} más</span>
+      )}
+    </div>
+  );
+}
+
 export function ProgramOutputFlowNode({
   id,
   data,
 }: NodeProps<ProgramOutputFlowNode>) {
-  const { executionError } = useNode();
+  const { executionError, nodes, edges } = useNode();
   const { viewMode } = useResultCardUi();
 
   const value = data.value;
@@ -96,6 +169,47 @@ export function ProgramOutputFlowNode({
   const visualStrip = data.visualStrip;
 
   const modeLabel = viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A';
+
+  // Compute grouping for single CPA objects
+  const grouping: MultiplicationGrouping = useMemo(() => {
+    // Only applies in pictoric/concrete modes
+    if (viewMode === 'abstracto') return { kind: 'none' };
+
+    // For single CPA objects
+    if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
+      const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
+      if (!inputEdge) return { kind: 'none' };
+
+      const sourceNode = nodes.find((n) => n.id === inputEdge.source);
+      if (!sourceNode) return { kind: 'none' };
+
+      return computeMultiplicationGrouping(
+        sourceNode,
+        edges,
+        nodes,
+        data.singleCpaObjectMeta.quantity
+      );
+    }
+
+    return { kind: 'none' };
+  }, [viewMode, data, id, nodes, edges]);
+
+  // Compute grouping for array results
+  const arrayGrouping = useMemo(() => {
+    if (viewMode === 'abstracto' || !visualStrip?.length) return undefined;
+
+    const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
+    if (!inputEdge) return undefined;
+
+    const sourceNode = nodes.find((n) => n.id === inputEdge.source);
+    if (!sourceNode) return undefined;
+
+    const result = computeMultiplicationGrouping(sourceNode, edges, nodes, visualStrip.length);
+
+    return result.kind === 'grouped'
+      ? { groupSize: result.groupSize, groupCount: result.groupCount }
+      : undefined;
+  }, [viewMode, visualStrip, id, nodes, edges]);
 
   const display =
     executionError ? (
@@ -115,8 +229,22 @@ export function ProgramOutputFlowNode({
             {data.singleCpaObjectMeta.quantity}
           </div>
         </div>
+      ) : grouping.kind === 'grouped' ? (
+        // Grouped mode: show glyphs organized into visual groups
+        <div className="flex flex-col items-center gap-1 text-white">
+          <div className="flex items-center gap-1 text-slate-400">
+            <Equal className="w-4 h-4" strokeWidth={2.5} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
+          </div>
+          <GroupedCpaGlyphStrip
+            meta={data.singleCpaObjectMeta}
+            viewMode={viewMode}
+            groupSize={grouping.groupSize}
+            groupCount={grouping.groupCount}
+          />
+        </div>
       ) : (
-        // Pictoric or Concrete mode: show N glyphs
+        // Non-grouped: show N glyphs without grouping
         <div className="flex flex-col items-center gap-1 text-white">
           <div className="flex items-center gap-1 text-slate-400">
             <Equal className="w-4 h-4" strokeWidth={2.5} />
@@ -133,7 +261,7 @@ export function ProgramOutputFlowNode({
           {description}
         </p>
         {visualStrip && visualStrip.length > 0 ? (
-          <ResultArrayVisual items={visualStrip} />
+          <ResultArrayVisual items={visualStrip} grouping={arrayGrouping} />
         ) : null}
       </div>
     ) : value !== undefined ? (
