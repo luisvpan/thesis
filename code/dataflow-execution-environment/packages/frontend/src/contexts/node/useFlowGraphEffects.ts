@@ -11,6 +11,7 @@ import type { CardDetectionsPayload } from "../VisionContext";
 import { VISION_FLOW_MIN_SIZE } from "./constants";
 import { mergeProgramOutputsFromResults } from "./mergeProgramOutputsFromResults";
 import { mergeVisionFrameIntoNodes } from "./mergeVisionFrameIntoNodes";
+import { applyNumberTouchMerge } from "@/utils/numberTouchMerge";
 import type { DataflowNode } from "./types";
 
 type SetNodes = Dispatch<SetStateAction<DataflowNode[]>>;
@@ -18,6 +19,7 @@ type SetEdges = Dispatch<SetStateAction<Edge[]>>;
 
 type UseFlowGraphEffectsParams = {
   visionSyncEnabled: boolean;
+  nodesDraggable: boolean;
   lastCardFrame: CardDetectionsPayload | null;
   flowContainerRef: RefObject<HTMLDivElement | null>;
   setNodes: SetNodes;
@@ -31,6 +33,7 @@ type UseFlowGraphEffectsParams = {
 
 export function useFlowGraphEffects({
   visionSyncEnabled,
+  nodesDraggable,
   lastCardFrame,
   flowContainerRef,
   setNodes,
@@ -53,8 +56,23 @@ export function useFlowGraphEffects({
       return;
     }
 
-    setNodes((prev) => mergeVisionFrameIntoNodes(prev, lastCardFrame, rect));
-  }, [visionSyncEnabled, lastCardFrame, setNodes, flowContainerRef]);
+    setNodes((prev) =>
+      applyNumberTouchMerge(
+        mergeVisionFrameIntoNodes(prev, lastCardFrame, rect, nodesDraggable)
+      )
+    );
+  }, [
+    visionSyncEnabled,
+    nodesDraggable,
+    lastCardFrame,
+    setNodes,
+    flowContainerRef,
+  ]);
+
+  /** Re-fusionar al mover cartas en el lienzo (p. ej. arrastre manual). */
+  useEffect(() => {
+    setNodes((prev) => applyNumberTouchMerge(prev));
+  }, [nodes, setNodes]);
 
   useEffect(() => {
     const nodeIds = new Set(nodes.map((n) => n.id));

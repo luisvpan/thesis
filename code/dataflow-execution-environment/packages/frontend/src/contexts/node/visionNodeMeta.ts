@@ -1,6 +1,6 @@
 import type { VisionCardItem } from "../VisionContext";
 
-/** Estado interno de sincronización (no afecta estilo visual). */
+/** Estado de sincronización con visión; `lost`/`stale` atenúan la carta en el lienzo. */
 export type VisionNodeStatus = "active" | "lost" | "stale";
 
 export type VisionNodeMeta = {

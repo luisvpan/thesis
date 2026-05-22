@@ -14,7 +14,10 @@ import {
   getArrayCloseZoneInCenter,
   getArrayOpenZoneOutCenter,
   getArrayZoneBounds,
+  getFlowCardBounds,
   getFlowCardCenter,
+  getOrderedArrayZoneMembers,
+  doAxisAlignedBoundsOverlap,
   isPointInBoundsInclusive,
   shouldIncludeNodeInArrayZone,
 } from "./arrayZoneGeometry";
@@ -88,6 +91,28 @@ describe("arrayZoneGeometry", () => {
     ).toBe(false);
   });
 
+  test("shouldIncludeNodeInArrayZone when card touches zone edge but center is outside", () => {
+    const open = { position: { x: 0, y: 0 } };
+    const close = { position: { x: 400, y: 200 } };
+    const bounds = getArrayZoneBounds(open, close);
+
+    const touchingEdge: DataflowNode = {
+      id: "s_touch",
+      type: "source",
+      position: { x: 100, y: 150 },
+      data: { variant: "number", value: 1 },
+    } as DataflowNode;
+
+    const cardBounds = getFlowCardBounds(touchingEdge);
+    expect(doAxisAlignedBoundsOverlap(cardBounds, bounds)).toBe(true);
+    expect(
+      isPointInBoundsInclusive(getFlowCardCenter(touchingEdge), bounds)
+    ).toBe(false);
+    expect(
+      shouldIncludeNodeInArrayZone(touchingEdge, "open1", "close1", bounds)
+    ).toBe(true);
+  });
+
   test("computeNodeIdsInsideActiveArrayZones lists sources inside any connected zone", () => {
     const open: DataflowNode = {
       id: "o1",
@@ -132,7 +157,7 @@ describe("arrayZoneGeometry", () => {
 });
 
 describe("flowToProgram array zone", () => {
-  test("array literal lists only source nodes whose card center lies in handler AABB", () => {
+  test("array literal lists only source nodes whose card overlaps handler AABB", () => {
     const open: DataflowNode = {
       id: "open1",
       type: "arrayOpen",
@@ -181,5 +206,41 @@ describe("flowToProgram array zone", () => {
     );
     expect(names).toEqual(["src_in"]);
     expect(names).not.toContain("src_out");
+  });
+
+  test("getOrderedArrayZoneMembers matches flowToProgram array order", () => {
+    const open: DataflowNode = {
+      id: "open1",
+      type: "arrayOpen",
+      position: { x: 200, y: 50 },
+      data: {},
+    };
+    const close: DataflowNode = {
+      id: "close1",
+      type: "arrayClose",
+      position: { x: 500, y: 50 },
+      data: {},
+    };
+    const first: DataflowNode = {
+      id: "a",
+      type: "source",
+      position: { x: 220, y: 80 },
+      data: { variant: "number", value: 1 },
+    };
+    const second: DataflowNode = {
+      id: "b",
+      type: "source",
+      position: { x: 320, y: 80 },
+      data: { variant: "number", value: 2 },
+    };
+    const edge: Edge = {
+      id: "e1",
+      source: "open1",
+      target: "close1",
+      sourceHandle: "zone-out",
+      targetHandle: "zone-in",
+    };
+    const members = getOrderedArrayZoneMembers("close1", [open, close, first, second], [edge]);
+    expect(members.map((n) => n.id)).toEqual(["a", "b"]);
   });
 });

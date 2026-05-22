@@ -8,13 +8,15 @@ import {
 import { ClickableHandle } from './ClickableHandle';
 import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
+import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 
 export type ArrayCloseNodeData = VisionNodeMeta;
 export type ArrayCloseNode = Node<ArrayCloseNodeData, 'arrayClose'>;
 
 export function ArrayCloseNode({ id, data }: NodeProps<ArrayCloseNode>) {
+  const shellClass = useFlowNodeShellClass();
   return (
-    <div className="relative h-52 w-26 -translate-x-[10%] -translate-y-[45%]">
+    <div className={`relative h-52 w-26 -translate-x-[10%] -translate-y-[45%] ${shellClass}`}>
       <TrackIdBadge trackId={readTrackId(data)} />
       <ClickableHandle
         type="target"

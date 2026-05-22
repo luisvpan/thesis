@@ -8,6 +8,7 @@ import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import { useNode } from '@/contexts/NodeContext';
 import type { HandleKind } from './handle-kinds';
+import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 
 export type OperatorFlowNodeData = VisionNodeMeta & {
   operator: OperatorType;
@@ -43,6 +44,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
   const { registerPortKind, unregisterPortKinds } = useNode();
+  const shellClass = useFlowNodeShellClass();
 
   // Determine accepts for each input handle
   const acceptsA = getHandleAccepts(operator, 'a');
@@ -59,7 +61,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   }, [id, operator, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
 
   return (
-    <div className="relative h-52 w-30 -translate-x-[15 %] -translate-y-[45%]">
+    <div className={`relative h-52 w-30 -translate-x-[15 %] -translate-y-[45%] ${shellClass}`}>
       <TrackIdBadge trackId={readTrackId(d)} />
       <ClickableHandle
         type="target"

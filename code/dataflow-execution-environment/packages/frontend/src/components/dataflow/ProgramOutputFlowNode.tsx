@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
-import { Hourglass } from 'lucide-react';
+import { Hourglass, Volume2 } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
@@ -18,6 +18,10 @@ import {
 import type { ResultVisualItem, SingleCpaObjectMeta } from '@/services/executeProgram';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import { FLOW_NODE_INTERACTIVE_CLASS } from './flowNodeChrome';
+import { useFlowNodeShellClass } from './useFlowNodeShellClass';
+import { speakSpanish } from '@/utils/speakSpanish';
+import { buildSinkResultSpeechText } from '@/utils/sinkResultSpeech';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = VisionNodeMeta & {
@@ -161,7 +165,7 @@ function buildSinkBody(
         <span
           className={
             viewMode === 'abstracto'
-              ? 'text-3xl font-black tabular-nums text-white'
+              ? 'text-6xl font-black tabular-nums text-white'
               : 'text-lg font-bold text-sky-300'
           }
         >
@@ -187,27 +191,43 @@ export function ProgramOutputFlowNode({
 }: NodeProps<ProgramOutputFlowNode>) {
   const { executionError } = useNode();
   const { viewMode } = useResultCardUi();
+  const shellClass = useFlowNodeShellClass();
   const { headerRight, resultVisual } = buildSinkBody(data, executionError, viewMode);
   const trackId = readTrackId(data);
+  const speechText = buildSinkResultSpeechText(data, executionError, viewMode);
 
   return (
-    <div className="relative h-65 w-70 -translate-x-[10%] ">
-      <TrackIdBadge trackId={trackId} />
-      <ClickableHandle
-        type="target"
-        position={Position.Left}
-        id="in"
-        nodeId={id}
-        style={{ transform: 'translateX(-100px) translateY(-200%)' }}
-      />
-      <SinkFlowNodeCard headerRight={headerRight} resultVisual={resultVisual} />
-      <ClickableHandle
-        type="source"
-        position={Position.Right}
-        id="out"
-        nodeId={id}
-        style={{ transform: 'translateX(100px) translateY(-200%)' }}
-      />
+    <div
+      className={`relative flex w-70 -translate-x-[10%] -translate-y-[40%] flex-col-reverse gap-2 ${shellClass}`}
+    >
+      <div className="pointer-events-none relative h-65 w-full">
+        <TrackIdBadge trackId={trackId} />
+        <ClickableHandle
+          type="target"
+          position={Position.Left}
+          id="in"
+          nodeId={id}
+          style={{ transform: 'translateX(-100px) translateY(-150%)' }}
+        />
+        <SinkFlowNodeCard headerRight={headerRight} resultVisual={resultVisual} />
+        <ClickableHandle
+          type="source"
+          position={Position.Right}
+          id="out"
+          nodeId={id}
+          style={{ transform: 'translateX(100px) translateY(-150%)' }}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          if (speechText) speakSpanish(speechText);
+        }}
+        className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} w-20 h-20 relative z-30 flex shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-teal-600 bg-teal-800 px-3 py-2 text-sm font-semibold text-teal-50 shadow transition-colors hover:bg-teal-700`}
+        title={speechText ? 'Escuchar el resultado' : 'Sin resultado para reproducir'}
+      >
+        <Volume2 className="h-10 w-10 shrink-0" strokeWidth={2} aria-hidden />
+      </button>
     </div>
   );
 }

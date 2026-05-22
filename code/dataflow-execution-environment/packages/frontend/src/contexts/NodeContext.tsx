@@ -8,7 +8,12 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { useEdgesState, useNodesState, type Edge } from "@xyflow/react";
+import {
+  useEdgesState,
+  useNodesState,
+  type Edge,
+  type NodeChange,
+} from "@xyflow/react";
 import { useVision } from "./VisionContext";
 import { getNodeValue, getRightmostEvaluableNode } from "./node/helpers";
 import type { DataflowNode, NodeContextState, PortIdentifier, PortKindInfo, ShakingPort } from "./node/types";
@@ -39,8 +44,22 @@ export function NodeProvider({
   const { lastCardFrame } = useVision();
   const executorRef = useProgramExecutorRef();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<DataflowNode>([]);
+  const [nodes, setNodes, onNodesChangeBase] = useNodesState<DataflowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<DataflowNode>[]) => {
+      if (nodesDraggable) {
+        onNodesChangeBase(changes);
+        return;
+      }
+      const filtered = changes.filter((c) => c.type !== "position");
+      if (filtered.length > 0) {
+        onNodesChangeBase(filtered);
+      }
+    },
+    [nodesDraggable, onNodesChangeBase]
+  );
   const [selectedPort, setSelectedPort] = useState<PortIdentifier | null>(null);
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -80,6 +99,7 @@ export function NodeProvider({
 
   useFlowGraphEffects({
     visionSyncEnabled,
+    nodesDraggable,
     lastCardFrame,
     flowContainerRef,
     setNodes,
@@ -109,7 +129,7 @@ export function NodeProvider({
     spawnDeckYoloClass,
     addArrayOpenNode,
     addArrayCloseNode,
-  } = useNodeSpawning(setNodes);
+  } = useNodeSpawning(setNodes, nodesDraggable);
 
   const executeProgram = useManualExecuteProgram(
     executorRef,

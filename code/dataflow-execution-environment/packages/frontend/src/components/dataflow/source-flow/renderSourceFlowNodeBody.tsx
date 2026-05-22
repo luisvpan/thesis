@@ -6,10 +6,10 @@ import { CapSourceFlowNode } from './CapSourceFlowNode';
 import { StickSourceFlowNode } from './StickSourceFlowNode';
 import { FoodSourceFlowNode } from './FoodSourceFlowNode';
 
-export function renderSourceFlowNodeBody(data: SourceFlowNodeData) {
+export function renderSourceFlowNodeBody(data: SourceFlowNodeData, nodeId: string) {
   switch (data.variant) {
     case 'number':
-      return <NumberSourceFlowNode data={data} />;
+      return <NumberSourceFlowNode data={data} nodeId={nodeId} />;
     case 'shape':
       return <ShapeSourceFlowNode data={data} />;
     case 'montessori':

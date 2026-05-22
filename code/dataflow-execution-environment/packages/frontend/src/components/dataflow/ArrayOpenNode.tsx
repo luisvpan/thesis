@@ -5,13 +5,15 @@ import { ARRAY_ZONE_OUT_HANDLE_STYLE } from './arrayNodeLayout';
 import { ClickableHandle } from './ClickableHandle';
 import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
+import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 
 export type ArrayOpenNodeData = VisionNodeMeta;
 export type ArrayOpenNode = Node<ArrayOpenNodeData, 'arrayOpen'>;
 
 export function ArrayOpenNode({ id, data }: NodeProps<ArrayOpenNode>) {
+  const shellClass = useFlowNodeShellClass();
   return (
-    <div className="relative h-52 w-26 -translate-x-[10%] -translate-y-[45%]">
+    <div className={`relative h-52 w-26 -translate-x-[10%] -translate-y-[45%] ${shellClass}`}>
       <TrackIdBadge trackId={readTrackId(data)} />
       <FlowNodeCard
         family="input"

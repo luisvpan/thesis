@@ -1,5 +1,6 @@
 import { CardBase } from './CardBase';
 import type { FoodType } from '@/types/card-types';
+import { FOOD_EMOJI } from '@/data/foodEmoji';
 
 interface FoodCardProps {
   food: FoodType;
@@ -8,23 +9,16 @@ interface FoodCardProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-interface FoodConfig {
-  emoji: string;
-  name: string;
-}
-
-const foodConfig: Record<FoodType, FoodConfig> = {
-  'manzana': { emoji: '🍎', name: 'Manzana' },
-  'hamburguesa': { emoji: '🍔', name: 'Hamburguesa' },
-  'uvas': { emoji: '🍇', name: 'Uvas' },
-  'pasta': { emoji: '🍝', name: 'Pasta' },
-  'peras': { emoji: '🍐', name: 'Peras' },
-  'naranja': { emoji: '🍊', name: 'Naranja' },
+const foodNames: Record<FoodType, string> = {
+  manzana: 'Manzana',
+  hamburguesa: 'Hamburguesa',
+  uvas: 'Uvas',
+  pasta: 'Pasta',
+  peras: 'Peras',
+  naranja: 'Naranja',
 };
 
 export function FoodCard({ food, isDraggable = false, onClick, size = 'medium' }: FoodCardProps) {
-  const config = foodConfig[food];
-
   return (
     <CardBase 
       borderColor="#f97316" // Naranja
@@ -32,9 +26,9 @@ export function FoodCard({ food, isDraggable = false, onClick, size = 'medium' }
       onClick={onClick}
       size={size}
       cardType="ENTRADA"
-      cardName={config.name}
+      cardName={foodNames[food]}
     >
-      {config.emoji}
+      {FOOD_EMOJI[food]}
     </CardBase>
   );
 }

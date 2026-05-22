@@ -19,11 +19,11 @@ export function SinkFlowNodeCard({
 }: SinkFlowNodeCardProps) {
   return (
     <div
-      className={`flex min-h-36 w-full flex-col justify-between gap-3 p-3 text-white ${className}`}
+      className={`flex min-h-36 w-full flex-col justify-between gap-26 p-3 text-white ${className}`}
     >
-      <div className="grid grid-cols-2 text-md font-semibold leading-snug text-teal-200">
+      <div className="grid grid-cols-2 text-md font-semibold leading-snug text-teal-200 gap-6">
         <div className="col-span-1"></div>
-        <div className="col-span-1">{headerRight}</div>
+        <div className="col-span-1 max-h-20 h-20">{headerRight}</div>
       </div>
       {resultVisual ? <div className=" w-full">{resultVisual}</div> : null}
     </div>

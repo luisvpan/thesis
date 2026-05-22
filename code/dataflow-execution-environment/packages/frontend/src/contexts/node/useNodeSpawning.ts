@@ -3,10 +3,18 @@ import type { OperatorType } from "@/types/card-types";
 import { spawnActionForYoloClass } from "@/data/yoloDeckCatalog";
 import type { DataflowNode } from "./types";
 import { getNodePortsForType } from "./getNodePortsForType";
+import { withVisionNodeChrome } from "./visionNodePresentation";
 
 type SetNodes = Dispatch<SetStateAction<DataflowNode[]>>;
 
-export function useNodeSpawning(setNodes: SetNodes) {
+function devSpawnNode(
+  node: DataflowNode,
+  nodesDraggable: boolean
+): DataflowNode {
+  return withVisionNodeChrome(node, {}, nodesDraggable);
+}
+
+export function useNodeSpawning(setNodes: SetNodes, nodesDraggable = false) {
   const getNodePorts = useCallback(
     (nodeType: "source" | "operator") => getNodePortsForType(nodeType),
     []
@@ -17,18 +25,21 @@ export function useNodeSpawning(setNodes: SetNodes) {
       const id = `num${value}_${Date.now()}`;
       setNodes((nds) => [
         ...nds,
-        {
-          id,
-          type: "source" as const,
-          position: position ?? {
-            x: 100 + (nds.length % 3) * 60,
-            y: 80 + Math.floor(nds.length / 3) * 100,
+        devSpawnNode(
+          {
+            id,
+            type: "source" as const,
+            position: position ?? {
+              x: 100 + (nds.length % 3) * 60,
+              y: 80 + Math.floor(nds.length / 3) * 100,
+            },
+            data: { variant: "number", value, digitValue: value },
           },
-          data: { variant: "number", value },
-        },
+          nodesDraggable
+        ),
       ]);
     },
-    [setNodes]
+    [setNodes, nodesDraggable]
   );
 
   const addOperatorNode = useCallback(
@@ -36,18 +47,21 @@ export function useNodeSpawning(setNodes: SetNodes) {
       const id = `op${operator}_${Date.now()}`;
       setNodes((nds) => [
         ...nds,
-        {
-          id,
-          type: "operator" as const,
-          position: position ?? {
-            x: 320 + (nds.filter((n) => n.type === "operator").length % 2) * 200,
-            y: 120,
+        devSpawnNode(
+          {
+            id,
+            type: "operator" as const,
+            position: position ?? {
+              x: 320 + (nds.filter((n) => n.type === "operator").length % 2) * 200,
+              y: 120,
+            },
+            data: { operator },
           },
-          data: { operator },
-        },
+          nodesDraggable
+        ),
       ]);
     },
-    [setNodes]
+    [setNodes, nodesDraggable]
   );
 
   const addResultAnchorPair = useCallback(() => {
@@ -55,51 +69,63 @@ export function useNodeSpawning(setNodes: SetNodes) {
       const pairId = `manual_out_${Date.now()}`;
       return [
         ...nds,
-        {
-          id: `${pairId}`,
-          type: "programOutput" as const,
-          position: { x: 304, y: 120 },
-          data: {},
-        },
+        devSpawnNode(
+          {
+            id: `${pairId}`,
+            type: "programOutput" as const,
+            position: { x: 304, y: 120 },
+            data: {},
+          },
+          nodesDraggable
+        ),
       ];
     });
-  }, [setNodes]);
+  }, [setNodes, nodesDraggable]);
 
   const addResultCard = useCallback(() => {
     setNodes((nds) => [
       ...nds,
-      {
-        id: `result_${Date.now()}`,
-        type: "programOutput" as const,
-        position: { x: 380 + (nds.length % 4) * 220, y: 140 },
-        data: {},
-      },
+      devSpawnNode(
+        {
+          id: `result_${Date.now()}`,
+          type: "programOutput" as const,
+          position: { x: 380 + (nds.length % 4) * 220, y: 140 },
+          data: {},
+        },
+        nodesDraggable
+      ),
     ]);
-  }, [setNodes]);
+  }, [setNodes, nodesDraggable]);
 
   const addArrayOpenNode = useCallback(() => {
     setNodes((nds) => [
       ...nds,
-      {
-        id: `arr_open_${Date.now()}`,
-        type: "arrayOpen" as const,
-        position: { x: 80, y: 100 + (nds.length % 4) * 120 },
-        data: {},
-      },
+      devSpawnNode(
+        {
+          id: `arr_open_${Date.now()}`,
+          type: "arrayOpen" as const,
+          position: { x: 80, y: 100 + (nds.length % 4) * 120 },
+          data: {},
+        },
+        nodesDraggable
+      ),
     ]);
-  }, [setNodes]);
+  }, [setNodes, nodesDraggable]);
 
   const addArrayCloseNode = useCallback(() => {
     setNodes((nds) => [
       ...nds,
-      {
-        id: `arr_close_${Date.now()}`,
-        type: "arrayClose" as const,
-        position: { x: 500, y: 100 + (nds.length % 4) * 120 },
-        data: {},
-      },
+      devSpawnNode(
+        {
+          id: `arr_close_${Date.now()}`,
+          type: "arrayClose" as const,
+          position: { x: 500, y: 100 + (nds.length % 4) * 120 },
+          data: {},
+        },
+        nodesDraggable
+      ),
     ]);
-  }, [setNodes]);
+  }, [setNodes, nodesDraggable]);
 
   const spawnDeckYoloClass = useCallback(
     (yoloClass: string) => {
@@ -111,74 +137,89 @@ export function useNodeSpawning(setNodes: SetNodes) {
       if (spawn.kind === "arrayOpen") {
         setNodes((nds) => [
           ...nds,
-          {
-            id: `deck_open_${Date.now()}`,
-            type: "arrayOpen" as const,
-            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
-            data: {},
-          },
+          devSpawnNode(
+            {
+              id: `deck_open_${Date.now()}`,
+              type: "arrayOpen" as const,
+              position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+              data: {},
+            },
+            nodesDraggable
+          ),
         ]);
         return;
       }
       if (spawn.kind === "arrayClose") {
         setNodes((nds) => [
           ...nds,
-          {
-            id: `deck_close_${Date.now()}`,
-            type: "arrayClose" as const,
-            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
-            data: {},
-          },
+          devSpawnNode(
+            {
+              id: `deck_close_${Date.now()}`,
+              type: "arrayClose" as const,
+              position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+              data: {},
+            },
+            nodesDraggable
+          ),
         ]);
         return;
       }
       if (spawn.kind === "shape") {
         setNodes((nds) => [
           ...nds,
-          {
-            id: `deck_${spawn.yoloClass}_${Date.now()}`,
-            type: "source" as const,
-            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
-            data: {
-              variant: "shape",
-              yoloClass: spawn.yoloClass,
-              shape: spawn.shape,
-              size: spawn.size,
-              color: spawn.color,
+          devSpawnNode(
+            {
+              id: `deck_${spawn.yoloClass}_${Date.now()}`,
+              type: "source" as const,
+              position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+              data: {
+                variant: "shape",
+                yoloClass: spawn.yoloClass,
+                shape: spawn.shape,
+                size: spawn.size,
+                color: spawn.color,
+              },
             },
-          },
+            nodesDraggable
+          ),
         ]);
         return;
       }
       if (spawn.kind === "food") {
         setNodes((nds) => [
           ...nds,
-          {
-            id: `deck_${spawn.yoloClass}_${Date.now()}`,
-            type: "source" as const,
-            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
-            data: { variant: "food", yoloClass: spawn.yoloClass, food: spawn.food },
-          },
+          devSpawnNode(
+            {
+              id: `deck_${spawn.yoloClass}_${Date.now()}`,
+              type: "source" as const,
+              position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+              data: { variant: "food", yoloClass: spawn.yoloClass, food: spawn.food },
+            },
+            nodesDraggable
+          ),
         ]);
         return;
       }
       if (spawn.kind === "montessori") {
         setNodes((nds) => [
           ...nds,
-          {
-            id: `deck_${spawn.yoloClass}_${Date.now()}`,
-            type: "source" as const,
-            position: { x: 120, y: 200 + (nds.length % 6) * 28 },
-            data: {
-              variant: "montessori",
-              yoloClass: spawn.yoloClass,
-              color: spawn.color,
+          devSpawnNode(
+            {
+              id: `deck_${spawn.yoloClass}_${Date.now()}`,
+              type: "source" as const,
+              position: { x: 120, y: 200 + (nds.length % 6) * 28 },
+              data: {
+                variant: "montessori",
+                yoloClass: spawn.yoloClass,
+                color: spawn.color,
+              },
             },
-          },
+            nodesDraggable
+          ),
         ]);
       }
     },
-    [addNumberNode, addOperatorNode, addResultCard, setNodes]
+    [addNumberNode, addOperatorNode, addResultCard, setNodes, nodesDraggable]
   );
 
   return {

@@ -7,13 +7,20 @@ type SourceCardNodeBodyProps = {
   cardCategory: SourceCardCategory;
   data: SourceFlowNodeData;
   cardStyleClassName?: string;
+  /** En fusión táctil de números: solo la primera carta muestra el encabezado. */
+  showHeader?: boolean;
 };
 
 /**
  * Cuerpo visual compartido por todas las cartas fuente.
  * Mismo diseño actual; `cardCategory` permite ramificar estilos por tipo más adelante.
  */
-export function SourceCardNodeBody({ cardCategory, data, cardStyleClassName }: SourceCardNodeBodyProps) {
+export function SourceCardNodeBody({
+  cardCategory,
+  data,
+  cardStyleClassName,
+  showHeader = true,
+}: SourceCardNodeBodyProps) {
   const subtitle = data.variant === 'number' ? data.visionSubtitle : undefined;
 
   return (
@@ -24,6 +31,7 @@ export function SourceCardNodeBody({ cardCategory, data, cardStyleClassName }: S
       content={<span className="text-xs font-black text-slate-100">{sourceMain(data)}</span>}
       subtitle={subtitle}
       className={cardStyleClassName}
+      showHeader={showHeader}
     />
   );
 }

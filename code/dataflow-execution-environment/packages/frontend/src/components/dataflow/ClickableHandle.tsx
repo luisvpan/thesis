@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { useNode } from "@/contexts/NodeContext";
 import { type HandleKind, acceptsConnection } from "./handle-kinds";
+import { FLOW_NODE_INTERACTIVE_CLASS } from "./flowNodeChrome";
 
 type ClickableHandleProps = {
   type: "source" | "target";
@@ -148,10 +149,10 @@ export function ClickableHandle({
       type={type}
       position={position}
       id={id}
-      className={`nodrag nopan !h-20 !w-20 !border-2 ${shapeClass} ${colorClass} ${cooldownClass} ${compatibilityClass} ${shakeClass} ${
+      className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} !h-20 !w-20 !border-2 ${shapeClass} ${colorClass} ${cooldownClass} ${compatibilityClass} ${shakeClass} ${
         hideInArrayZone ? "!invisible !pointer-events-none" : ""
       } ${
-        disabled ? "pointer-events-none cursor-not-allowed opacity-35" : "cursor-pointer"
+        disabled ? "!pointer-events-none cursor-not-allowed opacity-35" : "cursor-pointer"
       } ${className}`}
       style={style}
       onClick={handleClick}

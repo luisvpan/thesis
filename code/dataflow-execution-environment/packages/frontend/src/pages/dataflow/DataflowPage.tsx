@@ -190,7 +190,11 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
 
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
-          <ResultCardUiProvider viewMode={viewMode} hasExecuted={true}>
+          <ResultCardUiProvider
+            viewMode={viewMode}
+            hasExecuted={true}
+            showFlowResults={showOperatorResults}
+          >
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -209,6 +213,9 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
               panOnScroll={false}
               autoPanOnNodeDrag={false}
               nodesDraggable={nodesDraggable}
+              nodesSelectable={false}
+              elementsSelectable={false}
+              selectNodesOnDrag={false}
             >
               <Background color="#334155" gap={16} size={0.5} />
             </ReactFlow>
