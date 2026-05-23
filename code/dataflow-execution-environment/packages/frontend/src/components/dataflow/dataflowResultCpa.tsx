@@ -2,8 +2,24 @@ import type { ReactNode } from 'react';
 
 /**
  * Modo de PRESENTACIÓN visual del resultado.
- * Solo afecta cómo se renderiza un valor, no la semántica.
- * La semántica CPA está en el `category` del CPAObject (interpreter).
+ *
+ * SEPARACIÓN ARQUITECTÓNICA CLAVE:
+ * - Este `ResultViewMode` es modo de PRESENTACIÓN, no semántica.
+ * - La semántica del operando vive en `CPAObject.category` (packages/interpreter/src/runtime/types.ts).
+ * - El docente puede cambiar el viewMode libremente desde el sandbox sin alterar el programa.
+ *
+ * CAPACIDAD PEDAGÓGICA:
+ * Un valor abstracto puede VERSE como concreto/pictórico, y viceversa, sin modificar
+ * el programa subyacente. Esto permite transitar libremente entre representaciones
+ * durante la enseñanza, alineándose con la progresión CPA (Bruner, 1966).
+ *
+ * REFERENCIAS TEÓRICAS:
+ * - Bruner (1966): representaciones enactiva, icónica, simbólica
+ * - Vergnaud (1983): campos conceptuales y representaciones
+ * - Haylock & Cockburn (1989): conexiones entre representaciones
+ * - Fyfe et al. (2014): concreteness fading
+ *
+ * @see docs/decisions/PRESENTATION_VS_SEMANTICS.md para decisión arquitectónica completa.
  */
 export type ResultViewMode = 'pictorico' | 'concreto' | 'abstracto';
 
