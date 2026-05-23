@@ -18,7 +18,7 @@ import {
   type ResultViewMode,
 } from '@/components/dataflow';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
-import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
+import { ResultCardUiProvider, type OrderingStrategy } from '@/contexts/ResultCardUiContext';
 import { SocketInfoFab } from '@/components/SocketInfoFab';
 import { getLevelConfig } from '@/data/levelConfig';
 import { DECK_SECTION_ITEMS } from '@/data/yoloDeckCatalog';
@@ -70,6 +70,7 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
   } = useNode();
 
   const [viewMode, setViewMode] = useState<ResultViewMode>('abstracto');
+  const [orderingStrategy, setOrderingStrategy] = useState<OrderingStrategy>('taxonomical');
 
   useEffect(() => {
     clearSelection();
@@ -119,6 +120,10 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
             <button type="button" onClick={() => setViewMode('concreto')} className={`px-4 py-4 text-xl font-black ${viewMode === 'concreto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>C</button>
             <button type="button" onClick={() => setViewMode('pictorico')} className={`border-l-2 border-slate-600 px-4 py-4 text-xl font-black ${viewMode === 'pictorico' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>P</button>
             <button type="button" onClick={() => setViewMode('abstracto')} className={`border-l-2 border-slate-600 px-4 py-4 text-xl font-black ${viewMode === 'abstracto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>A</button>
+          </div>
+          <div className="inline-flex overflow-hidden rounded-xl border-2 border-slate-600 shadow-lg" role="group" aria-label="Estrategia de orden">
+            <button type="button" onClick={() => setOrderingStrategy('taxonomical')} className={`px-4 py-4 text-xl font-black ${orderingStrategy === 'taxonomical' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`} title="Orden taxonómico">T</button>
+            <button type="button" onClick={() => setOrderingStrategy('numerical')} className={`border-l-2 border-slate-600 px-4 py-4 text-xl font-black ${orderingStrategy === 'numerical' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`} title="Orden numérico">N</button>
           </div>
           <button
             type="button"
@@ -190,7 +195,7 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
 
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
-          <ResultCardUiProvider viewMode={viewMode} hasExecuted={true}>
+          <ResultCardUiProvider viewMode={viewMode} orderingStrategy={orderingStrategy} hasExecuted={true}>
             <ReactFlow
               nodes={nodes}
               edges={edges}

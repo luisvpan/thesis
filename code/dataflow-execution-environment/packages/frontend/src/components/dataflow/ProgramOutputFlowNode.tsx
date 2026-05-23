@@ -24,6 +24,11 @@ import {
   type MultiplicationGrouping,
   type DivisionGrouping,
 } from './result-rendering-heuristics';
+import {
+  sortByQuantity,
+  buildVisualStripFromElements,
+  generateDescriptionFromElements,
+} from '@/utils/post-ordering';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = VisionNodeMeta & {
@@ -33,6 +38,8 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   description?: string;
   /** Cubos / iconos en orden del arreglo (Montessori, forma, comida). */
   visualStrip?: ResultVisualItem[];
+  /** Elementos originales sin expandir, para re-ordenamiento en frontend. */
+  originalElements?: unknown[];
   /** Set to true when result is a single CPAObject (not an array) */
   isSingleCpaObject?: boolean;
   /** Metadata for single CPA object rendering */
@@ -167,13 +174,44 @@ export function ProgramOutputFlowNode({
   data,
 }: NodeProps<ProgramOutputFlowNode>) {
   const { executionError, nodes, edges } = useNode();
-  const { viewMode } = useResultCardUi();
+  const { viewMode, orderingStrategy } = useResultCardUi();
 
   const value = data.value;
   const description = data.description;
   const visualStrip = data.visualStrip;
 
   const modeLabel = viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A';
+
+  // Detect if this output comes from an ordering operation
+  const orderOperation = useMemo(() => {
+    const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
+    if (!inputEdge) return null;
+
+    const sourceNode = nodes.find((n) => n.id === inputEdge.source);
+    if (!sourceNode || sourceNode.type !== 'operator') return null;
+
+    const op = (sourceNode.data as { operation?: string }).operation;
+    if (op === 'order_asc') return 'asc' as const;
+    if (op === 'order_desc') return 'desc' as const;
+    return null;
+  }, [id, nodes, edges]);
+
+  // Apply numerical post-ordering if strategy is 'numerical' and this is an ordering operation
+  const { effectiveVisualStrip, effectiveDescription } = useMemo(() => {
+    if (
+      orderOperation === null ||
+      orderingStrategy !== 'numerical' ||
+      !data.originalElements?.length
+    ) {
+      return { effectiveVisualStrip: visualStrip, effectiveDescription: description };
+    }
+
+    const sorted = sortByQuantity(data.originalElements, orderOperation);
+    return {
+      effectiveVisualStrip: buildVisualStripFromElements(sorted),
+      effectiveDescription: generateDescriptionFromElements(sorted),
+    };
+  }, [orderOperation, orderingStrategy, visualStrip, description, data.originalElements]);
 
   // Compute grouping for single CPA objects
   const grouping: MultiplicationGrouping = useMemo(() => {
@@ -223,7 +261,7 @@ export function ProgramOutputFlowNode({
 
   // Compute grouping for array results
   const arrayGrouping = useMemo(() => {
-    if (viewMode === 'abstracto' || !visualStrip?.length) return undefined;
+    if (viewMode === 'abstracto' || !effectiveVisualStrip?.length) return undefined;
 
     const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
     if (!inputEdge) return undefined;
@@ -231,12 +269,12 @@ export function ProgramOutputFlowNode({
     const sourceNode = nodes.find((n) => n.id === inputEdge.source);
     if (!sourceNode) return undefined;
 
-    const result = computeMultiplicationGrouping(sourceNode, edges, nodes, visualStrip.length);
+    const result = computeMultiplicationGrouping(sourceNode, edges, nodes, effectiveVisualStrip.length);
 
     return result.kind === 'grouped'
       ? { groupSize: result.groupSize, groupCount: result.groupCount }
       : undefined;
-  }, [viewMode, visualStrip, id, nodes, edges]);
+  }, [viewMode, effectiveVisualStrip, id, nodes, edges]);
 
   const display =
     executionError ? (
@@ -296,15 +334,15 @@ export function ProgramOutputFlowNode({
           <SingleCpaGlyphStrip meta={data.singleCpaObjectMeta} viewMode={viewMode} />
         </div>
       )
-    ) : description ? (
+    ) : effectiveDescription ? (
       // Resultado semántico (arreglo de objetos)
       <div className="flex flex-col items-center gap-0.5 text-white">
         <LayoutList className="w-5 h-5 text-slate-400" strokeWidth={2} />
         <p className="text-lg text-center text-teal-200 leading-snug px-1">
-          {description}
+          {effectiveDescription}
         </p>
-        {visualStrip && visualStrip.length > 0 ? (
-          <ResultArrayVisual items={visualStrip} grouping={arrayGrouping} />
+        {effectiveVisualStrip && effectiveVisualStrip.length > 0 ? (
+          <ResultArrayVisual items={effectiveVisualStrip} grouping={arrayGrouping} />
         ) : null}
       </div>
     ) : value !== undefined ? (

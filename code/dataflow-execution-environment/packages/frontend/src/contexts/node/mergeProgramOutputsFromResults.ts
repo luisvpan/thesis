@@ -23,6 +23,7 @@ export function mergeProgramOutputsFromResults(
         value: resultValue.result.totalAmount,
         description: resultValue.result.description,
         visualStrip: resultValue.result.visualStrip,
+        originalElements: resultValue.result.originalElements,
         isSingleCpaObject: resultValue.isSingleCpaObject,
         singleCpaObjectMeta: resultValue.singleCpaObjectMeta,
       };

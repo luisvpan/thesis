@@ -46,6 +46,8 @@ interface SemanticResult {
   description: string;
   /** Orden de aparición para la tira gráfica bajo el texto (cubos / iconos). */
   visualStrip: ResultVisualItem[];
+  /** Elementos originales sin expandir, para re-ordenamiento en frontend. */
+  originalElements: unknown[];
 }
 
 /** Unidad visual en la carta de salida (orden = orden del arreglo aplanado). */
@@ -357,7 +359,7 @@ function groupElements(elements: unknown[]): SemanticResult {
   const description = generateDescription(categories, totalAmount);
   const visualStrip = buildVisualStrip(elements);
 
-  return { categories, totalAmount, description, visualStrip };
+  return { categories, totalAmount, description, visualStrip, originalElements: elements };
 }
 
 // ============================================================================
