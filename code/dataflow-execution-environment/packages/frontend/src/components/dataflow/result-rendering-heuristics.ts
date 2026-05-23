@@ -94,7 +94,8 @@ export function computeMultiplicationGrouping(
 
 export type DivisionGrouping =
   | { kind: "none" }
-  | { kind: "grouped"; groupSize: number; groupCount: number; mode: "partitivo" | "cuotativo" };
+  | { kind: "grouped"; groupSize: number; groupCount: number; mode: "partitivo" | "cuotativo" }
+  | { kind: "grouped-with-remainder"; groupSize: number; groupCount: number; remainderQty: number; mode: "partitivo" | "cuotativo" };
 
 /**
  * Determines if an operator node is a CPA ÷ scalar division.
@@ -104,12 +105,16 @@ export type DivisionGrouping =
  * @param edges - All edges in the graph
  * @param nodes - All nodes in the graph
  * @param finalQuantity - The quotient (CPA quantity after division)
+ * @param numerator - Numerator of the result fraction (from Fraction.js)
+ * @param denominator - Denominator of the result fraction (from Fraction.js)
  */
 export function computeDivisionGrouping(
   operatorNode: DataflowNode,
   edges: Edge[],
   nodes: DataflowNode[],
-  finalQuantity: number
+  finalQuantity: number,
+  numerator?: number,
+  denominator?: number
 ): DivisionGrouping {
   // 1. Validate it's a division operator
   if (operatorNode.type !== "operator") {
@@ -151,20 +156,61 @@ export function computeDivisionGrouping(
   }
   if (!isCpaInput) return { kind: "none" };
 
-  // 4. Calculate original quantity and verify integer division
-  const originalQuantity = finalQuantity * divisor;
-  if (!Number.isInteger(originalQuantity)) return { kind: "none" };
-
-  // 5. Return grouping based on mode
+  // 4. Calculate grouping based on numerator/denominator
   const mode = data.divisionMode ?? "partitivo";
 
+  // If we don't have numerator/denominator, fallback to legacy behavior (exact division only)
+  if (numerator === undefined || denominator === undefined) {
+    const originalQuantity = finalQuantity * divisor;
+    if (!Number.isInteger(originalQuantity)) return { kind: "none" };
+
+    if (mode === "partitivo") {
+      return { kind: "grouped", groupSize: finalQuantity, groupCount: divisor, mode };
+    } else {
+      return { kind: "grouped", groupSize: divisor, groupCount: finalQuantity, mode };
+    }
+  }
+
+  // Exact division: denominator === 1 means result is an integer
+  if (denominator === 1) {
+    if (mode === "partitivo") {
+      // Partitivo: divide into N groups (N = divisor)
+      // 12 ÷ 3 partitivo = 3 groups of 4
+      return { kind: "grouped", groupSize: numerator, groupCount: divisor, mode };
+    } else {
+      // Cuotativo: groups of size N (N = divisor)
+      // 12 ÷ 3 cuotativo = 4 groups of 3
+      return { kind: "grouped", groupSize: divisor, groupCount: numerator, mode };
+    }
+  }
+
+  // Division with remainder: denominator > 1
+  // Reconstruct original dividend: D = n * (divisor / d)
+  // This works because result = D/divisor, and after simplification: n/d = D/divisor
+  // So: D = n * divisor / d
+  const originalDividend = numerator * (divisor / denominator);
+  const quotient = Math.floor(originalDividend / divisor);
+  const remainder = originalDividend % divisor;
+
   if (mode === "partitivo") {
-    // Partitivo: divide into N groups (N = divisor)
-    // 12 ÷ 3 partitivo = 3 groups of 4
-    return { kind: "grouped", groupSize: finalQuantity, groupCount: divisor, mode };
+    // Partitivo: N groups of quotient items + remainder items
+    // 13 ÷ 4 partitivo = 4 groups of 3 + 1 remainder
+    return {
+      kind: "grouped-with-remainder",
+      groupSize: quotient,
+      groupCount: divisor,
+      remainderQty: remainder,
+      mode,
+    };
   } else {
-    // Cuotativo: groups of size N (N = divisor)
-    // 12 ÷ 3 cuotativo = 4 groups of 3
-    return { kind: "grouped", groupSize: divisor, groupCount: finalQuantity, mode };
+    // Cuotativo: quotient groups of N items + remainder items
+    // 13 ÷ 4 cuotativo = 3 groups of 4 + 1 remainder
+    return {
+      kind: "grouped-with-remainder",
+      groupSize: divisor,
+      groupCount: quotient,
+      remainderQty: remainder,
+      mode,
+    };
   }
 }

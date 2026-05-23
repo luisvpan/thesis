@@ -69,10 +69,13 @@ export type SingleCpaObjectMeta = {
   subtype: string;
   color: string;
   quantity: number;
+  // For exact fraction display (e.g., "13/4" instead of 3.25)
+  numerator: number;
+  denominator: number;
 };
 
 export type ResultValue =
-  | { kind: "number"; value: number }
+  | { kind: "number"; value: number; numerator?: number; denominator?: number }
   | {
       kind: "semantic";
       result: SemanticResult;
@@ -540,7 +543,12 @@ export function createProgramExecutor() {
 
           if (output.kind === "racional") {
             const value = Number(output.value.valueOf());
-            resultsMap.set(outputNodeId, { kind: "number", value });
+            resultsMap.set(outputNodeId, {
+              kind: "number",
+              value,
+              numerator: output.value.n,
+              denominator: output.value.d,
+            });
           } else if (output.kind === "arreglo") {
             const semantic = groupElements(output.elements);
             resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
@@ -557,6 +565,8 @@ export function createProgramExecutor() {
                 subtype: output.subtype,
                 color: output.attributes.color ?? '',
                 quantity,
+                numerator: output.quantity.n,
+                denominator: output.quantity.d,
               },
             });
           } else {

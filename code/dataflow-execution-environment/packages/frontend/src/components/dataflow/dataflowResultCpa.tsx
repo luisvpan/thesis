@@ -60,3 +60,18 @@ export function formatResultCpa(value: number, mode: ResultViewMode): ReactNode 
       return String(value);
   }
 }
+
+/**
+ * Formats a fraction as "numerator/denominator" for abstract mode display.
+ * Returns just the numerator if denominator is 1 (integer result).
+ */
+export function formatFraction(numerator: number, denominator: number): ReactNode {
+  if (denominator === 1) {
+    return <span className="tabular-nums">{numerator}</span>;
+  }
+  return (
+    <span className="tabular-nums">
+      {numerator}/{denominator}
+    </span>
+  );
+}

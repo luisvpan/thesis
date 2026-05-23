@@ -17,7 +17,13 @@ export function mergeProgramOutputsFromResults(
     let newData: ProgramOutputFlowNodeData;
 
     if (resultValue.kind === "number") {
-      newData = { value: resultValue.value, description: undefined, visualStrip: undefined };
+      newData = {
+        value: resultValue.value,
+        description: undefined,
+        visualStrip: undefined,
+        numerator: resultValue.numerator,
+        denominator: resultValue.denominator,
+      };
     } else {
       newData = {
         value: resultValue.result.totalAmount,
@@ -34,7 +40,9 @@ export function mergeProgramOutputsFromResults(
       currentData.description === newData.description &&
       JSON.stringify(currentData.visualStrip) === JSON.stringify(newData.visualStrip) &&
       currentData.isSingleCpaObject === newData.isSingleCpaObject &&
-      JSON.stringify(currentData.singleCpaObjectMeta) === JSON.stringify(newData.singleCpaObjectMeta)
+      JSON.stringify(currentData.singleCpaObjectMeta) === JSON.stringify(newData.singleCpaObjectMeta) &&
+      currentData.numerator === newData.numerator &&
+      currentData.denominator === newData.denominator
     ) {
       return n;
     }

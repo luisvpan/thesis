@@ -5,7 +5,7 @@ import { Equal, LayoutList, Hourglass } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
-import { formatResultCpa, type ResultViewMode } from './dataflowResultCpa';
+import { formatResultCpa, formatFraction, type ResultViewMode } from './dataflowResultCpa';
 import { FlowNodeCard } from './FlowNodeCard';
 import { ResultArrayVisual } from './ResultArrayVisual';
 import {
@@ -44,6 +44,9 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   isSingleCpaObject?: boolean;
   /** Metadata for single CPA object rendering */
   singleCpaObjectMeta?: SingleCpaObjectMeta;
+  /** For exact fraction display of pure rationals (e.g., "13/4" instead of 3.25) */
+  numerator?: number;
+  denominator?: number;
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
@@ -169,6 +172,91 @@ function GroupedCpaGlyphStrip({
   );
 }
 
+/**
+ * Renders CPA glyphs organized into visual groups with a remainder box (for division results).
+ */
+function GroupedCpaGlyphStripWithRemainder({
+  meta,
+  viewMode,
+  groupSize,
+  groupCount,
+  remainderQty,
+}: {
+  meta: SingleCpaObjectMeta;
+  viewMode: ResultViewMode;
+  groupSize: number;
+  groupCount: number;
+  remainderQty: number;
+}) {
+  const { type, subtype, color } = meta;
+  const generic = viewMode === 'pictorico';
+  const totalGlyphs = groupSize * groupCount + remainderQty;
+  const maxTotal = MAX_GLYPHS;
+
+  const renderGlyph = (key: string) => {
+    switch (type) {
+      case 'montessori':
+        return <MontessoriCubeGlyph key={key} color={color} generic={generic} />;
+      case 'cap':
+        return <CapGlyph key={key} color={color} generic={generic} />;
+      case 'stick':
+        return <StickGlyph key={key} color={color} generic={generic} />;
+      case 'forma':
+        return <FormaGlyph key={key} subtype={subtype} generic={generic} />;
+      case 'comida':
+        return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} />;
+      default:
+        return null;
+    }
+  };
+
+  // Distribute glyphs across groups (respecting max)
+  let rendered = 0;
+  const groups: React.ReactNode[] = [];
+
+  for (let g = 0; g < groupCount && rendered < maxTotal; g++) {
+    const glyphsInGroup = Math.min(groupSize, maxTotal - rendered);
+    groups.push(
+      <div
+        key={`group-${g}`}
+        className="flex flex-wrap justify-center gap-1 p-1.5 rounded-md bg-slate-700/40 ring-1 ring-slate-600/50"
+      >
+        {Array.from({ length: glyphsInGroup }, (_, i) => renderGlyph(`g${g}-${i}`))}
+      </div>
+    );
+    rendered += glyphsInGroup;
+  }
+
+  // Render remainder box with dashed border
+  const remainderRendered = Math.min(remainderQty, maxTotal - rendered);
+  const remainderBox = remainderRendered > 0 ? (
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="flex flex-wrap justify-center gap-1 p-1.5 rounded-md border-2 border-dashed border-slate-500 bg-slate-800/30">
+        {Array.from({ length: remainderRendered }, (_, i) => renderGlyph(`rem-${i}`))}
+      </div>
+      <span className="text-[9px] text-slate-500 italic">resto</span>
+    </div>
+  ) : null;
+
+  const overflow = totalGlyphs - rendered - remainderRendered;
+
+  if (groups.length === 0 && remainderRendered === 0) {
+    return <span className="text-slate-500 text-lg italic">vacío</span>;
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-wrap justify-center gap-4 max-w-52">
+        {groups}
+      </div>
+      {remainderBox}
+      {overflow > 0 && (
+        <span className="text-[10px] font-medium text-slate-400">+{overflow} más</span>
+      )}
+    </div>
+  );
+}
+
 export function ProgramOutputFlowNode({
   id,
   data,
@@ -252,7 +340,9 @@ export function ProgramOutputFlowNode({
         sourceNode,
         edges,
         nodes,
-        data.singleCpaObjectMeta.quantity
+        data.singleCpaObjectMeta.quantity,
+        data.singleCpaObjectMeta.numerator,
+        data.singleCpaObjectMeta.denominator
       );
     }
 
@@ -284,18 +374,37 @@ export function ProgramOutputFlowNode({
     ) : (data.isSingleCpaObject && data.singleCpaObjectMeta) ? (
       // Single CPA Object - viewMode-aware rendering
       viewMode === 'abstracto' ? (
-        // Abstract mode: just show the quantity as a number
+        // Abstract mode: show fraction (e.g., "13/4") or integer
         <div className="flex flex-col items-center gap-1 text-white">
           <div className="flex items-center gap-1 text-slate-400">
             <Equal className="w-4 h-4" strokeWidth={2.5} />
             <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
           </div>
           <div className="text-5xl font-black text-white tabular-nums drop-shadow-lg">
-            {data.singleCpaObjectMeta.quantity}
+            {data.singleCpaObjectMeta.denominator !== 1
+              ? formatFraction(data.singleCpaObjectMeta.numerator, data.singleCpaObjectMeta.denominator)
+              : data.singleCpaObjectMeta.quantity}
           </div>
         </div>
+      ) : divisionGrouping.kind === 'grouped-with-remainder' ? (
+        // Division with remainder mode: show groups + remainder box
+        <div className="flex flex-col items-center gap-1 text-white">
+          <div className="flex items-center gap-1 text-slate-400">
+            <Equal className="w-4 h-4" strokeWidth={2.5} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">
+              {modeLabel} · {divisionGrouping.mode === 'partitivo' ? 'Partitiva' : 'Cuotativa'}
+            </span>
+          </div>
+          <GroupedCpaGlyphStripWithRemainder
+            meta={data.singleCpaObjectMeta}
+            viewMode={viewMode}
+            groupSize={divisionGrouping.groupSize}
+            groupCount={divisionGrouping.groupCount}
+            remainderQty={divisionGrouping.remainderQty}
+          />
+        </div>
       ) : divisionGrouping.kind === 'grouped' ? (
-        // Division grouped mode: show glyphs organized into groups (partitivo/cuotativo)
+        // Division exact grouped mode: show glyphs organized into groups (partitivo/cuotativo)
         <div className="flex flex-col items-center gap-1 text-white">
           <div className="flex items-center gap-1 text-slate-400">
             <Equal className="w-4 h-4" strokeWidth={2.5} />
@@ -346,7 +455,7 @@ export function ProgramOutputFlowNode({
         ) : null}
       </div>
     ) : value !== undefined ? (
-      // Resultado numérico
+      // Resultado numérico (pure rational)
       <div className="flex flex-col items-center gap-1 text-white">
         <div className="flex items-center gap-1 text-slate-400">
           <Equal className="w-4 h-4" strokeWidth={2.5} />
@@ -361,7 +470,9 @@ export function ProgramOutputFlowNode({
                 : 'text-center drop-shadow-md max-w-[14rem]'
           }
         >
-          {formatResultCpa(value, viewMode)}
+          {viewMode === 'abstracto' && data.denominator !== undefined && data.denominator !== 1
+            ? formatFraction(data.numerator!, data.denominator)
+            : formatResultCpa(value, viewMode)}
         </div>
       </div>
     ) : (
