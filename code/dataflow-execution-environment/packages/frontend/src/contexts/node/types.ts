@@ -8,7 +8,7 @@ import type {
   ArrayCloseNodeData,
 } from "../../components/dataflow";
 import type { OperatorType } from "../../types/card-types";
-import type { HandleKind } from "../../components/dataflow/handle-kinds";
+import type { HandleKind, HandleAcceptance } from "../../components/dataflow/handle-kinds";
 
 export type DataflowNode =
   | Node<SourceFlowNodeData, "source">
@@ -32,7 +32,7 @@ export type PortDefinition = {
 
 export type PortKindInfo = {
   produces?: HandleKind;
-  accepts?: HandleKind[];
+  acceptance?: HandleAcceptance;
 };
 
 export type ShakingPort = {

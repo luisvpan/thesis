@@ -1,4 +1,8 @@
-import { getBezierPath, type EdgeProps } from '@xyflow/react';
+import { getBezierPath, type Edge, type EdgeProps } from '@xyflow/react';
+
+type DataflowEdgeData = {
+  tolerated?: boolean;
+};
 
 export function DataflowEdge({
   id,
@@ -8,7 +12,8 @@ export function DataflowEdge({
   targetY,
   sourcePosition,
   targetPosition,
-}: EdgeProps) {
+  data,
+}: EdgeProps<Edge<DataflowEdgeData>>) {
   const [edgePath] = getBezierPath({
     sourceX,
     sourceY,
@@ -17,6 +22,9 @@ export function DataflowEdge({
     targetY,
     targetPosition,
   });
+
+  const tolerated = data?.tolerated ?? false;
+  const dashArray = tolerated ? '6 4' : undefined;
 
   return (
     <g>
@@ -28,6 +36,7 @@ export function DataflowEdge({
         fill="none"
         strokeOpacity={0.08}
         strokeLinecap="round"
+        strokeDasharray={dashArray}
       />
       {/* Glow inner */}
       <path
@@ -37,6 +46,7 @@ export function DataflowEdge({
         fill="none"
         strokeOpacity={0.18}
         strokeLinecap="round"
+        strokeDasharray={dashArray}
       />
       {/* Main line */}
       <path
@@ -46,6 +56,7 @@ export function DataflowEdge({
         strokeWidth={2.5}
         fill="none"
         strokeLinecap="round"
+        strokeDasharray={dashArray}
       />
     </g>
   );

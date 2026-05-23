@@ -8,7 +8,8 @@ import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import { useNode } from '@/contexts/NodeContext';
 import type { DataflowNode } from '@/contexts/node/types';
-import type { HandleKind } from './handle-kinds';
+import type { HandleKind, HandleAcceptance } from './handle-kinds';
+import type { PortKindInfo } from '@/contexts/node/types';
 import type { SourceFlowNodeData } from './SourceFlowNode';
 
 export type OperatorFlowNodeData = VisionNodeMeta & {
@@ -31,16 +32,41 @@ function operatorSymbol(operator: OperatorType): string {
 
 /**
  * Determine what kinds a handle accepts based on the operator type.
- * - Filter operators: input "b" (criterion) accepts only "keyword"
- * - All other operators: accept "any"
+ * - Filter operators: input "a" (items) prefers cpa, tolerates rational
+ * - Filter operators: input "b" (criterion) accepts only keyword
+ * - All other operators: accept cpa and rational as primary
  */
-function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[] {
+function getHandleAcceptance(operator: OperatorType, handleId: string): HandleAcceptance {
   if (isFilterOperatorType(operator)) {
-    // For filter: "a" accepts items (any), "b" accepts criterion (keyword)
-    return handleId === 'b' ? ['keyword'] : ['any'];
+    if (handleId === 'b') {
+      return { primary: ['keyword'] };
+    }
+    // items: cpa preferred, rational tolerated
+    return { primary: ['cpa'], tolerated: ['rational'] };
   }
-  // Math and Order operators: both inputs accept any type
-  return ['any'];
+  // Arithmetic and Order operators: both kinds are primary
+  return { primary: ['cpa', 'rational'] };
+}
+
+/**
+ * Hook to compute the output kind dynamically based on connected inputs.
+ * Returns 'cpa' if any input is cpa, otherwise 'rational'.
+ */
+function useOutputKind(
+  nodeId: string,
+  edges: Edge[],
+  getPortKindInfo: (nodeId: string, handleId: string) => PortKindInfo | undefined
+): HandleKind {
+  return useMemo(() => {
+    const inputEdges = edges.filter((e) => e.target === nodeId);
+    for (const edge of inputEdges) {
+      const sourceInfo = getPortKindInfo(edge.source, edge.sourceHandle ?? 'out');
+      if (sourceInfo?.produces === 'cpa') {
+        return 'cpa';
+      }
+    }
+    return 'rational';
+  }, [nodeId, edges, getPortKindInfo]);
 }
 
 /**
@@ -70,14 +96,14 @@ function useDivisionHasCpaInput(
 export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
-  const { registerPortKind, unregisterPortKinds, nodes, edges } = useNode();
+  const { registerPortKind, unregisterPortKinds, nodes, edges, getPortKindInfo } = useNode();
   const { setNodes } = useReactFlow();
 
-  // Determine accepts for each input handle
-  const acceptsA = getHandleAccepts(operator, 'a');
-  const acceptsB = getHandleAccepts(operator, 'b');
-  // Output always produces "any" (could be CPA or rational depending on inputs)
-  const producesOut: HandleKind = 'any';
+  // Determine acceptance for each input handle
+  const acceptanceA = getHandleAcceptance(operator, 'a');
+  const acceptanceB = getHandleAcceptance(operator, 'b');
+  // Output kind computed dynamically based on connected inputs
+  const producesOut = useOutputKind(id, edges, getPortKindInfo);
 
   // Division toggle: only show when input "a" is CPA (not a number)
   const showDivisionToggle = useDivisionHasCpaInput(id, operator, nodes, edges);
@@ -93,13 +119,13 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
     );
   }, [id, divisionMode, setNodes]);
 
-  // Register port kinds when component mounts or operator changes
+  // Register port kinds when component mounts or operator/output changes
   useEffect(() => {
-    registerPortKind(id, 'a', { accepts: acceptsA });
-    registerPortKind(id, 'b', { accepts: acceptsB });
+    registerPortKind(id, 'a', { acceptance: acceptanceA });
+    registerPortKind(id, 'b', { acceptance: acceptanceB });
     registerPortKind(id, 'out', { produces: producesOut });
     return () => unregisterPortKinds(id);
-  }, [id, operator, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
+  }, [id, operator, acceptanceA, acceptanceB, producesOut, registerPortKind, unregisterPortKinds]);
 
   return (
     <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
@@ -120,7 +146,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Left}
         id="a"
         nodeId={id}
-        accepts={acceptsA}
+        acceptance={acceptanceA}
         style={{ top: '25%', transform: 'translateX(-100px)' }}
       />
       <ClickableHandle
@@ -128,7 +154,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Left}
         id="b"
         nodeId={id}
-        accepts={acceptsB}
+        acceptance={acceptanceB}
         style={{ top: '75%', transform: 'translateX(-100px)' }}
       />
       <FlowNodeCard

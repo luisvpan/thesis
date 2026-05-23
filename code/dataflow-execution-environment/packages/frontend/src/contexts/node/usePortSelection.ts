@@ -1,7 +1,7 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { addEdge, type Connection, type Edge } from "@xyflow/react";
 import type { DataflowNode, PortIdentifier, PortKindInfo } from "./types";
-import { acceptsConnection } from "../../components/dataflow/handle-kinds";
+import { checkConnection, type HandleAcceptance } from "../../components/dataflow/handle-kinds";
 
 type SetEdges = Dispatch<SetStateAction<Edge[]>>;
 type SetSelectedPort = Dispatch<SetStateAction<PortIdentifier | null>>;
@@ -64,10 +64,13 @@ export function usePortSelection(
       const sourceInfo = getPortKindInfo(source.nodeId, source.handleId);
       const targetInfo = getPortKindInfo(target.nodeId, target.handleId);
 
-      const sourceKind = sourceInfo?.produces ?? "any";
-      const targetAccepts = targetInfo?.accepts ?? ["any"];
+      const sourceKind = sourceInfo?.produces ?? "rational";
+      const defaultAcceptance: HandleAcceptance = { primary: ["rational", "cpa"] };
+      const targetAcceptance = targetInfo?.acceptance ?? defaultAcceptance;
 
-      if (!acceptsConnection(sourceKind, targetAccepts)) {
+      const match = checkConnection(sourceKind, targetAcceptance);
+
+      if (match === "incompatible") {
         triggerIncompatibleFeedback(target.nodeId, target.handleId);
         setSelectedPort(null);
         return;
@@ -88,7 +91,9 @@ export function usePortSelection(
           ? "arrayZoneEdge"
           : undefined;
 
-      setEdges((eds) => addEdge({ ...connection, type: edgeType }, eds));
+      // Pass tolerated flag to edge data
+      const edgeData = { tolerated: match === "tolerated" };
+      setEdges((eds) => addEdge({ ...connection, type: edgeType, data: edgeData }, eds));
       setSelectedPort(null);
     },
     [selectedPort, setEdges, setSelectedPort, nodes, getPortKindInfo, triggerIncompatibleFeedback]

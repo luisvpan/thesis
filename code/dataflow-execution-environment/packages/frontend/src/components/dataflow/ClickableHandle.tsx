@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { useNode } from "@/contexts/NodeContext";
-import { type HandleKind, acceptsConnection } from "./handle-kinds";
+import { type HandleKind, type HandleAcceptance, checkConnection, handleShape } from "./handle-kinds";
 
 type ClickableHandleProps = {
   type: "source" | "target";
@@ -15,47 +15,46 @@ type ClickableHandleProps = {
   /** For source handles: what kind of data this handle produces */
   produces?: HandleKind;
   /** For target handles: what kinds of data this handle accepts */
-  accepts?: HandleKind[];
+  acceptance?: HandleAcceptance;
 };
 
 /**
- * Get the shape class based on the handle kind.
- * - "rational" → circle (rounded-full)
- * - "cpa" → square with soft corners (rounded-md)
- * - "keyword" → horizontal pill (wider than tall)
- * - "any" or multiple → circle (default)
+ * Get the shape class based on the handle shape.
  */
-function getShapeClass(kind: HandleKind | undefined): string {
-  switch (kind) {
-    case "rational":
+function getShapeClass(shape: "circle" | "square" | "rounded-square" | "pill"): string {
+  switch (shape) {
+    case "circle":
       return "!rounded-full";
-    case "cpa":
+    case "square":
       return "!rounded-md";
-    case "keyword":
+    case "rounded-square":
+      return "!rounded-2xl";
+    case "pill":
       return "!rounded-full !w-28"; // pill: wider than the default square
-    case "any":
-    default:
-      return "!rounded-full";
   }
 }
 
 /**
- * Determine the effective kind for shape purposes.
- * For targets with multiple accepts, use the first specific one or "any".
+ * Determine the shape for this handle based on its type and kind info.
  */
-function getEffectiveKind(
+function getHandleShape(
   type: "source" | "target",
   produces?: HandleKind,
-  accepts?: HandleKind[]
-): HandleKind {
+  acceptance?: HandleAcceptance
+): "circle" | "square" | "rounded-square" | "pill" {
   if (type === "source") {
-    return produces ?? "any";
+    // Source handles: shape based on what they produce
+    if (!produces || produces === "rational") return "circle";
+    if (produces === "cpa") return "square";
+    if (produces === "keyword") return "pill";
+    return "circle";
   }
-  // For targets, if accepts a single specific kind, use that for shape
-  if (accepts && accepts.length === 1 && accepts[0] !== "any") {
-    return accepts[0];
+  // Target handles: use handleShape with primary kinds
+  if (acceptance) {
+    return handleShape(acceptance.primary);
   }
-  return "any";
+  // Default: circle
+  return "circle";
 }
 
 export function ClickableHandle({
@@ -67,7 +66,7 @@ export function ClickableHandle({
   style,
   disabled = false,
   produces,
-  accepts,
+  acceptance,
 }: ClickableHandleProps) {
   const {
     isPortSelected,
@@ -83,8 +82,8 @@ export function ClickableHandle({
   const hideInArrayZone = isNodeInsideArrayZone(nodeId);
 
   // Determine shape based on kind
-  const effectiveKind = getEffectiveKind(type, produces, accepts);
-  const shapeClass = getShapeClass(effectiveKind);
+  const shape = getHandleShape(type, produces, acceptance);
+  const shapeClass = getShapeClass(shape);
 
   // Check if this handle is shaking (incompatible connection attempted)
   const isShaking = shakingPort?.nodeId === nodeId && shakingPort?.handleId === id;
@@ -98,21 +97,26 @@ export function ClickableHandle({
       // Get the selected port's kind info
       const selectedInfo = getPortKindInfo(selectedPort.nodeId, selectedPort.handleId);
 
-      let isCompatible = false;
+      // Default acceptance for handles without explicit acceptance
+      const defaultAcceptance: HandleAcceptance = { primary: ["rational", "cpa"] };
+
+      let match: "compatible" | "tolerated" | "incompatible";
       if (selectedPort.handleType === "source") {
         // Selected is source, this is target
-        const sourceKind = selectedInfo?.produces ?? "any";
-        const targetAccepts = accepts ?? ["any"];
-        isCompatible = acceptsConnection(sourceKind, targetAccepts);
+        const sourceKind = selectedInfo?.produces ?? "rational";
+        const targetAcceptance = acceptance ?? defaultAcceptance;
+        match = checkConnection(sourceKind, targetAcceptance);
       } else {
         // Selected is target, this is source
-        const sourceKind = produces ?? "any";
-        const targetAccepts = selectedInfo?.accepts ?? ["any"];
-        isCompatible = acceptsConnection(sourceKind, targetAccepts);
+        const sourceKind = produces ?? "rational";
+        const targetAcceptance = selectedInfo?.acceptance ?? defaultAcceptance;
+        match = checkConnection(sourceKind, targetAcceptance);
       }
 
-      if (isCompatible) {
+      if (match === "compatible") {
         compatibilityClass = "ring-2 ring-green-400 ring-opacity-75";
+      } else if (match === "tolerated") {
+        compatibilityClass = "ring-2 ring-amber-400 ring-opacity-40";
       } else {
         compatibilityClass = "opacity-30";
       }
