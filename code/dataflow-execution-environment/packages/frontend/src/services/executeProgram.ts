@@ -9,6 +9,7 @@ import {
 } from "@dataflow/interpreter";
 import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
+import { dataWithoutVisionMeta } from "@/contexts/node/visionNodeMeta";
 import type { Edge } from "@xyflow/react";
 import { logger } from "@/lib/logger";
 
@@ -452,13 +453,16 @@ function describeSubtype(sub: SubtypeGroup): string {
 // ============================================================================
 
 /**
- * Helper to create a hash of the program (nodes + edges) for change detection.
- * Only includes semantically relevant data (not positions).
+ * Hash del programa (nodos + aristas) para detectar cambios semánticos.
+ * Excluye posición en lienzo y metadatos de visión que cambian cada frame WS.
  */
-function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
+export function computeProgramHash(nodes: DataflowNode[], edges: Edge[]): string {
   const nodesKey = nodes
     .filter((n) => n.type === "source" || n.type === "operator" || n.type === "programOutput")
-    .map((n) => `${n.id}:${n.type}:${JSON.stringify(n.data)}`)
+    .map(
+      (n) =>
+        `${n.id}:${n.type}:${JSON.stringify(dataWithoutVisionMeta(n.data))}`
+    )
     .sort()
     .join("|");
   const edgesKey = edges
@@ -466,6 +470,11 @@ function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
     .sort()
     .join("|");
   return `${nodesKey}::${edgesKey}`;
+}
+
+/** @deprecated internal alias */
+function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
+  return computeProgramHash(nodes, edges);
 }
 
 /**

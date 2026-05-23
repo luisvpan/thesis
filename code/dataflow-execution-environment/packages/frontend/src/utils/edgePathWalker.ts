@@ -41,3 +41,10 @@ export function samplePathPoint(
 }
 
 export const DEFAULT_EDGE_WALK_DURATION_MS = 3500;
+
+/** El path SVG ya está en el DOM y tiene longitud medible. */
+export function isWalkerPathReady(path: SVGPathElement | null | undefined): boolean {
+  if (!path) return false;
+  const len = path.getTotalLength();
+  return Number.isFinite(len) && len > 0;
+}

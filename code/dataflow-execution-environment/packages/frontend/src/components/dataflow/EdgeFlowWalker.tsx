@@ -1,10 +1,11 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { EdgeLabelRenderer } from '@xyflow/react';
 import type { DataflowNode } from '@/contexts/node/types';
 import type { ResultViewMode } from './dataflowResultCpa';
 import { EdgeSourceMiniToken } from './EdgeSourceMiniToken';
 import {
   DEFAULT_EDGE_WALK_DURATION_MS,
+  isWalkerPathReady,
   loopEdgeProgress,
   samplePathPoint,
 } from '@/utils/edgePathWalker';
@@ -15,19 +16,34 @@ type EdgeFlowWalkerProps = {
   viewMode: ResultViewMode;
 };
 
+/**
+ * Token que recorre el conector. No usa (0,0) como posición visible: el path debe
+ * estar listo antes de mostrar el contenido, y la posición se actualiza por ref (sin
+ * setState por frame) para evitar parpadeos.
+ */
 export function EdgeFlowWalker({ pathRef, sourceNode, viewMode }: EdgeFlowWalkerProps) {
-  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [showToken, setShowToken] = useState(false);
 
   useEffect(() => {
     let raf = 0;
+    let revealed = false;
+
     const tick = () => {
       const path = pathRef.current;
-      if (path) {
+      const shell = shellRef.current;
+      if (path && shell && isWalkerPathReady(path)) {
         const t = loopEdgeProgress(performance.now(), DEFAULT_EDGE_WALK_DURATION_MS);
-        setPos(samplePathPoint(path, t));
+        const { x, y } = samplePathPoint(path, t);
+        shell.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+        if (!revealed) {
+          revealed = true;
+          setShowToken(true);
+        }
       }
       raf = requestAnimationFrame(tick);
     };
+
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [pathRef]);
@@ -35,13 +51,17 @@ export function EdgeFlowWalker({ pathRef, sourceNode, viewMode }: EdgeFlowWalker
   return (
     <EdgeLabelRenderer>
       <div
+        ref={shellRef}
         className="nodrag nopan pointer-events-none"
         style={{
           position: 'absolute',
-          transform: `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`,
+          visibility: showToken ? 'visible' : 'hidden',
+          transform: 'translate(-9999px, -9999px) translate(-50%, -50%)',
         }}
       >
-        <EdgeSourceMiniToken node={sourceNode} viewMode={viewMode} />
+        {showToken ? (
+          <EdgeSourceMiniToken node={sourceNode} viewMode={viewMode} />
+        ) : null}
       </div>
     </EdgeLabelRenderer>
   );

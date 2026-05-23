@@ -10,6 +10,7 @@ import {
   visionMetaFromCard,
   type VisionNodeMeta,
 } from "./visionNodeMeta";
+import { stabilizeVisionNodeList } from "./stabilizeVisionNodes";
 import { withVisionNodeChrome } from "./visionNodePresentation";
 
 /**
@@ -314,7 +315,8 @@ export function mergeVisionFrameIntoNodes(
     nodesDraggable
   );
 
-  return [...withoutLive, ...additions, ...retainedStale];
+  const merged = [...withoutLive, ...additions, ...retainedStale];
+  return stabilizeVisionNodeList(prev, merged);
 }
 
 /** Nodos `card_*` ausentes del frame pero dentro del TTL — mantienen aristas del usuario. */

@@ -67,6 +67,7 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
           position={Position.Right}
           id="out"
           nodeId={id}
+          handleVariant="input-out"
           produces={produces}
           style={{ transform: 'translateX(100px)' }}
         />

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { Hourglass, Volume2 } from 'lucide-react';
@@ -189,7 +189,13 @@ export function ProgramOutputFlowNode({
   id,
   data,
 }: NodeProps<ProgramOutputFlowNode>) {
-  const { executionError } = useNode();
+  const { executionError, registerPortKind, unregisterPortKinds } = useNode();
+
+  useEffect(() => {
+    registerPortKind(id, 'in', { accepts: ['any'] });
+    registerPortKind(id, 'out', { produces: 'any' });
+    return () => unregisterPortKinds(id);
+  }, [id, registerPortKind, unregisterPortKinds]);
   const { viewMode } = useResultCardUi();
   const shellClass = useFlowNodeShellClass();
   const { headerRight, resultVisual } = buildSinkBody(data, executionError, viewMode);
@@ -207,6 +213,8 @@ export function ProgramOutputFlowNode({
           position={Position.Left}
           id="in"
           nodeId={id}
+          handleVariant="sink-in"
+          accepts={['any']}
           style={{ transform: 'translateX(-100px) translateY(-150%)' }}
         />
         <SinkFlowNodeCard headerRight={headerRight} resultVisual={resultVisual} />
@@ -215,6 +223,8 @@ export function ProgramOutputFlowNode({
           position={Position.Right}
           id="out"
           nodeId={id}
+          handleVariant="sink-out"
+          produces="any"
           style={{ transform: 'translateX(100px) translateY(-150%)' }}
         />
       </div>

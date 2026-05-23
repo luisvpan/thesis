@@ -23,6 +23,10 @@ import { useNodeSpawning } from "./node/useNodeSpawning";
 import { usePortSelection } from "./node/usePortSelection";
 import { useProgramExecutorRef } from "./node/useProgramExecutorRef";
 import { computeNodeIdsInsideActiveArrayZones } from "@/utils/arrayZoneGeometry";
+import {
+  getPortHighlightState as computePortHighlightState,
+  isPortOccupied as checkPortOccupied,
+} from "@/components/dataflow/connectionRules";
 
 export type { DataflowNode, PortDefinition, PortIdentifier, PortKindInfo } from "./node/types";
 
@@ -116,8 +120,24 @@ export function NodeProvider({
     setSelectedPort,
     setEdges,
     nodes,
+    edges,
     getPortKindInfo,
     triggerIncompatibleFeedback
+  );
+
+  const isPortOccupied = useCallback(
+    (nodeId: string, handleId: string, handleType: "source" | "target") =>
+      checkPortOccupied(edges, { nodeId, handleId, handleType }),
+    [edges]
+  );
+
+  const getPortHighlightState = useCallback(
+    (nodeId: string, handleId: string, handleType: "source" | "target") =>
+      computePortHighlightState(
+        { nodeId, handleId, handleType },
+        { nodes, edges, getPortKindInfo, selectedPort }
+      ),
+    [nodes, edges, getPortKindInfo, selectedPort]
   );
 
   const {
@@ -186,6 +206,8 @@ export function NodeProvider({
       unregisterPortKinds,
       getPortKindInfo,
       shakingPort,
+      isPortOccupied,
+      getPortHighlightState,
     }),
     [
       nodes,
@@ -215,6 +237,8 @@ export function NodeProvider({
       unregisterPortKinds,
       getPortKindInfo,
       shakingPort,
+      isPortOccupied,
+      getPortHighlightState,
     ]
   );
 

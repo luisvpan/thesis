@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { loopEdgeProgress, offsetPointAbove } from "./edgePathWalker";
+import { isWalkerPathReady, loopEdgeProgress, offsetPointAbove } from "./edgePathWalker";
 
 describe("edgePathWalker", () => {
   test("loopEdgeProgress wraps at 1", () => {
@@ -19,5 +19,10 @@ describe("edgePathWalker", () => {
     const above = offsetPointAbove(50, 0, 1, 0, 10);
     expect(above.x).toBe(50);
     expect(above.y).toBe(-10);
+  });
+
+  test("isWalkerPathReady is false without a path", () => {
+    expect(isWalkerPathReady(null)).toBe(false);
+    expect(isWalkerPathReady(undefined)).toBe(false);
   });
 });

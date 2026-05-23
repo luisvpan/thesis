@@ -68,6 +68,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Left}
         id="a"
         nodeId={id}
+        handleVariant="operator-in-a"
         accepts={acceptsA}
         style={{ top: '25%', transform: 'translateX(-100px)' }}
       />
@@ -76,6 +77,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Left}
         id="b"
         nodeId={id}
+        handleVariant="operator-in-b"
         accepts={acceptsB}
         style={{ top: '75%', transform: 'translateX(-100px)' }}
       />
@@ -90,6 +92,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Right}
         id="out"
         nodeId={id}
+        handleVariant="operator-out"
         produces={producesOut}
         style={{ transform: 'translateX(100px)' }}
       />
