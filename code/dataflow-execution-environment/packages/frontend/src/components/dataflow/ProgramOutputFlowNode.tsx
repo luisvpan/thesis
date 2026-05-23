@@ -18,7 +18,12 @@ import {
 import type { ResultVisualItem, SingleCpaObjectMeta } from '@/services/executeProgram';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
-import { computeMultiplicationGrouping, type MultiplicationGrouping } from './result-rendering-heuristics';
+import {
+  computeMultiplicationGrouping,
+  computeDivisionGrouping,
+  type MultiplicationGrouping,
+  type DivisionGrouping,
+} from './result-rendering-heuristics';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = VisionNodeMeta & {
@@ -194,6 +199,28 @@ export function ProgramOutputFlowNode({
     return { kind: 'none' };
   }, [viewMode, data, id, nodes, edges]);
 
+  // Compute division grouping for single CPA objects
+  const divisionGrouping: DivisionGrouping = useMemo(() => {
+    if (viewMode === 'abstracto') return { kind: 'none' };
+
+    if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
+      const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
+      if (!inputEdge) return { kind: 'none' };
+
+      const sourceNode = nodes.find((n) => n.id === inputEdge.source);
+      if (!sourceNode) return { kind: 'none' };
+
+      return computeDivisionGrouping(
+        sourceNode,
+        edges,
+        nodes,
+        data.singleCpaObjectMeta.quantity
+      );
+    }
+
+    return { kind: 'none' };
+  }, [viewMode, data, id, nodes, edges]);
+
   // Compute grouping for array results
   const arrayGrouping = useMemo(() => {
     if (viewMode === 'abstracto' || !visualStrip?.length) return undefined;
@@ -229,8 +256,24 @@ export function ProgramOutputFlowNode({
             {data.singleCpaObjectMeta.quantity}
           </div>
         </div>
+      ) : divisionGrouping.kind === 'grouped' ? (
+        // Division grouped mode: show glyphs organized into groups (partitivo/cuotativo)
+        <div className="flex flex-col items-center gap-1 text-white">
+          <div className="flex items-center gap-1 text-slate-400">
+            <Equal className="w-4 h-4" strokeWidth={2.5} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">
+              {modeLabel} · {divisionGrouping.mode === 'partitivo' ? 'Partitiva' : 'Cuotativa'}
+            </span>
+          </div>
+          <GroupedCpaGlyphStrip
+            meta={data.singleCpaObjectMeta}
+            viewMode={viewMode}
+            groupSize={divisionGrouping.groupSize}
+            groupCount={divisionGrouping.groupCount}
+          />
+        </div>
       ) : grouping.kind === 'grouped' ? (
-        // Grouped mode: show glyphs organized into visual groups
+        // Multiplication grouped mode: show glyphs organized into visual groups
         <div className="flex flex-col items-center gap-1 text-white">
           <div className="flex items-center gap-1 text-slate-400">
             <Equal className="w-4 h-4" strokeWidth={2.5} />

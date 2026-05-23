@@ -5,6 +5,9 @@ export type CardCategory = 'operator' | 'number' | 'animal' | 'food' | 'person' 
 // Operadores matemáticos básicos
 export type MathOperatorType = 'adicion' | 'sustraccion' | 'multiplicacion' | 'division';
 
+// Modos de visualización de división (partitivo vs cuotativo)
+export type DivisionMode = 'partitivo' | 'cuotativo';
+
 // Operadores de orden y comparación
 export type OrderOperatorType = 
   | 'orden-mayor-menor'

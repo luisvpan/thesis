@@ -91,3 +91,80 @@ export function computeMultiplicationGrouping(
     groupCount: scalarValue,
   };
 }
+
+export type DivisionGrouping =
+  | { kind: "none" }
+  | { kind: "grouped"; groupSize: number; groupCount: number; mode: "partitivo" | "cuotativo" };
+
+/**
+ * Determines if an operator node is a CPA ÷ scalar division.
+ * Returns grouping info based on the division mode (partitivo or cuotativo).
+ *
+ * @param operatorNode - The operator node to analyze
+ * @param edges - All edges in the graph
+ * @param nodes - All nodes in the graph
+ * @param finalQuantity - The quotient (CPA quantity after division)
+ */
+export function computeDivisionGrouping(
+  operatorNode: DataflowNode,
+  edges: Edge[],
+  nodes: DataflowNode[],
+  finalQuantity: number
+): DivisionGrouping {
+  // 1. Validate it's a division operator
+  if (operatorNode.type !== "operator") {
+    return { kind: "none" };
+  }
+
+  const data = operatorNode.data as OperatorFlowNodeData;
+  if (data.operator !== "division") {
+    return { kind: "none" };
+  }
+
+  // 2. Get the divisor from input "b"
+  const inputEdges = edges.filter((e) => e.target === operatorNode.id);
+  const bEdge = inputEdges.find((e) => e.targetHandle === "b");
+  if (!bEdge) return { kind: "none" };
+
+  const bSource = nodes.find((n) => n.id === bEdge.source);
+  if (!bSource || bSource.type !== "source") return { kind: "none" };
+
+  const bData = bSource.data as SourceFlowNodeData;
+  if (bData.variant !== "number") return { kind: "none" };
+
+  const divisor = bData.value ?? 0;
+  if (!Number.isInteger(divisor) || divisor <= 0) return { kind: "none" };
+
+  // 3. Verify that input "a" is CPA (not a number)
+  const aEdge = inputEdges.find((e) => e.targetHandle === "a");
+  if (!aEdge) return { kind: "none" };
+
+  const aSource = nodes.find((n) => n.id === aEdge.source);
+  if (!aSource) return { kind: "none" };
+
+  let isCpaInput = false;
+  if (aSource.type === "source") {
+    const aData = aSource.data as SourceFlowNodeData;
+    isCpaInput = aData.variant !== "number";
+  } else if (aSource.type === "operator" || aSource.type === "arrayClose") {
+    isCpaInput = true;
+  }
+  if (!isCpaInput) return { kind: "none" };
+
+  // 4. Calculate original quantity and verify integer division
+  const originalQuantity = finalQuantity * divisor;
+  if (!Number.isInteger(originalQuantity)) return { kind: "none" };
+
+  // 5. Return grouping based on mode
+  const mode = data.divisionMode ?? "partitivo";
+
+  if (mode === "partitivo") {
+    // Partitivo: divide into N groups (N = divisor)
+    // 12 ÷ 3 partitivo = 3 groups of 4
+    return { kind: "grouped", groupSize: finalQuantity, groupCount: divisor, mode };
+  } else {
+    // Cuotativo: groups of size N (N = divisor)
+    // 12 ÷ 3 cuotativo = 4 groups of 3
+    return { kind: "grouped", groupSize: divisor, groupCount: finalQuantity, mode };
+  }
+}
