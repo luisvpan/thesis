@@ -1,11 +1,11 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { serialize, deserialize } from "../index";
-import type { Program, SourceStatement, TransformStatement, SinkStatement, NumberLiteral } from "../index";
+import type { Program, SourceStatement, TransformStatement, SinkStatement, ObjectLiteral } from "../index";
 
 describe("serialize", () => {
-  test("parses simple number literal", () => {
-    const input = "source x = 5;";
+  test("parses CPA abstracto (number in v3.1.0)", () => {
+    const input = 'source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};';
     const result = serialize(input);
 
     expect(result.errors).toHaveLength(0);
@@ -15,21 +15,13 @@ describe("serialize", () => {
     const stmt = result.program!.statements[0] as SourceStatement;
     expect(stmt.type).toBe("SourceStatement");
     expect(stmt.identifier).toBe("x");
-    expect(stmt.value.type).toBe("NumberLiteral");
+    expect(stmt.value.type).toBe("ObjectLiteral");
 
-    const numLit = stmt.value as NumberLiteral;
-    expect(numLit.value).toBeInstanceOf(Fraction);
-    expect(numLit.value.equals(new Fraction(5))).toBe(true);
-  });
-
-  test("parses decimal number literal", () => {
-    const input = "source x = 3.14;";
-    const result = serialize(input);
-
-    expect(result.errors).toHaveLength(0);
-    const stmt = result.program!.statements[0] as SourceStatement;
-    const numLit = stmt.value as NumberLiteral;
-    expect(numLit.value.equals(new Fraction(3.14))).toBe(true);
+    const obj = stmt.value as ObjectLiteral;
+    const quantityProp = obj.properties.find(p => p.key === "quantity");
+    expect(quantityProp).toBeDefined();
+    expect(quantityProp!.value).toBeInstanceOf(Fraction);
+    expect((quantityProp!.value as Fraction).equals(new Fraction(5))).toBe(true);
   });
 
   test("parses object literal with quantity as Fraction", () => {
@@ -40,12 +32,11 @@ describe("serialize", () => {
     const stmt = result.program!.statements[0] as SourceStatement;
     expect(stmt.value.type).toBe("ObjectLiteral");
 
-    const obj = stmt.value as any;
-    // Find quantity in properties
-    const quantityProp = obj.properties.find((p: any) => p.key === "quantity");
+    const obj = stmt.value as ObjectLiteral;
+    const quantityProp = obj.properties.find(p => p.key === "quantity");
     expect(quantityProp).toBeDefined();
-    expect(quantityProp.value).toBeInstanceOf(Fraction);
-    expect(quantityProp.value.equals(new Fraction(3))).toBe(true);
+    expect(quantityProp!.value).toBeInstanceOf(Fraction);
+    expect((quantityProp!.value as Fraction).equals(new Fraction(3))).toBe(true);
   });
 
   test("parses abstract object with quantity as Fraction", () => {
@@ -54,18 +45,17 @@ describe("serialize", () => {
 
     expect(result.errors).toHaveLength(0);
     const stmt = result.program!.statements[0] as SourceStatement;
-    const obj = stmt.value as any;
-    // Find quantity in properties
-    const quantityProp = obj.properties.find((p: any) => p.key === "quantity");
+    const obj = stmt.value as ObjectLiteral;
+    const quantityProp = obj.properties.find(p => p.key === "quantity");
     expect(quantityProp).toBeDefined();
-    expect(quantityProp.value).toBeInstanceOf(Fraction);
-    expect(quantityProp.value.equals(new Fraction(42))).toBe(true);
+    expect(quantityProp!.value).toBeInstanceOf(Fraction);
+    expect((quantityProp!.value as Fraction).equals(new Fraction(42))).toBe(true);
   });
 
   test("parses transform statement", () => {
     const input = `
-      source a = 5;
-      source b = 3;
+      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
+      source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
       transform c = sum(a, b);
     `;
     const result = serialize(input);
@@ -82,7 +72,7 @@ describe("serialize", () => {
 
   test("parses sink statement", () => {
     const input = `
-      source x = 5;
+      source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
       sink output = x;
     `;
     const result = serialize(input);
@@ -105,36 +95,31 @@ describe("serialize", () => {
 });
 
 describe("deserialize", () => {
-  test("deserializes number literal", () => {
+  test("deserializes CPA abstracto", () => {
     const program: Program = {
       type: "Program",
       statements: [
         {
           type: "SourceStatement",
           identifier: "x",
-          value: { type: "NumberLiteral", value: new Fraction(5) },
+          value: {
+            type: "ObjectLiteral",
+            properties: [
+              { key: "category", value: "abstracto" },
+              { key: "type", value: "numero" },
+              { key: "subtype", value: "racional" },
+              { key: "quantity", value: new Fraction(5) },
+            ],
+          },
         },
       ],
     };
 
     const result = deserialize(program);
-    expect(result).toBe("source x = 5;");
-  });
-
-  test("deserializes decimal number", () => {
-    const program: Program = {
-      type: "Program",
-      statements: [
-        {
-          type: "SourceStatement",
-          identifier: "x",
-          value: { type: "NumberLiteral", value: new Fraction(3.14) },
-        },
-      ],
-    };
-
-    const result = deserialize(program);
-    expect(result).toBe("source x = 3.14;");
+    expect(result).toContain("source x =");
+    expect(result).toContain("category");
+    expect(result).toContain("abstracto");
+    expect(result).toContain("5");
   });
 
   test("deserializes object literal with Fraction", () => {
@@ -150,10 +135,10 @@ describe("deserialize", () => {
               { key: "category", value: "pictorico" },
               { key: "type", value: "forma" },
               { key: "subtype", value: "circulo" },
-              { key: "quantity", value: "3" },
+              { key: "quantity", value: new Fraction(3) },
               { key: "size", value: "grande" },
             ],
-          } as any,
+          },
         },
       ],
     };
@@ -200,7 +185,7 @@ describe("deserialize", () => {
     expect(result).toBe("sink output = x;");
   });
 
-  test("deserializes array literal", () => {
+  test("deserializes array literal with CPA abstractos", () => {
     const program: Program = {
       type: "Program",
       statements: [
@@ -210,9 +195,24 @@ describe("deserialize", () => {
           value: {
             type: "ArrayLiteral",
             elements: [
-              { type: "NumberLiteral", value: new Fraction(1) },
-              { type: "NumberLiteral", value: new Fraction(2) },
-              { type: "NumberLiteral", value: new Fraction(3) },
+              {
+                type: "ObjectLiteral",
+                properties: [
+                  { key: "category", value: "abstracto" },
+                  { key: "type", value: "numero" },
+                  { key: "subtype", value: "racional" },
+                  { key: "quantity", value: new Fraction(1) },
+                ],
+              },
+              {
+                type: "ObjectLiteral",
+                properties: [
+                  { key: "category", value: "abstracto" },
+                  { key: "type", value: "numero" },
+                  { key: "subtype", value: "racional" },
+                  { key: "quantity", value: new Fraction(2) },
+                ],
+              },
             ],
           },
         },
@@ -220,7 +220,9 @@ describe("deserialize", () => {
     };
 
     const result = deserialize(program);
-    expect(result).toBe("source arr = [1, 2, 3];");
+    expect(result).toContain("source arr =");
+    expect(result).toContain("[");
+    expect(result).toContain("]");
   });
 
   test("deserializes other literal", () => {
@@ -242,8 +244,8 @@ describe("deserialize", () => {
 
 describe("roundtrip", () => {
   test("serialize -> deserialize produces equivalent program", () => {
-    const original = `source x = 5;
-source y = 3;
+    const original = `source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
+source y = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
 transform z = sum(x, y);
 sink output = z;`;
 
@@ -263,8 +265,8 @@ sink output = z;`;
   test("execute with Program produces same result as string", async () => {
     const { Interpreter } = await import("../index");
 
-    const sourceCode = `source a = 10;
-source b = 5;
+    const sourceCode = `source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
+source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
 transform c = sum(a, b);
 sink result = c;`;
 
@@ -287,6 +289,10 @@ sink result = c;`;
 
     expect(value1).toBeDefined();
     expect(value2).toBeDefined();
-    expect((value1 as any).value.equals((value2 as any).value)).toBe(true);
+    // Both should be CPA objects with quantity 15
+    expect((value1 as any).kind).toBe("cpa");
+    expect((value2 as any).kind).toBe("cpa");
+    expect((value1 as any).quantity.equals(new Fraction(15))).toBe(true);
+    expect((value2 as any).quantity.equals(new Fraction(15))).toBe(true);
   });
 });

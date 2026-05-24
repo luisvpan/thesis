@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 import { DataflowLexer } from "../lexer";
 import { parserInstance } from "../parser";
 import { visitorInstance } from "../visitor";
-import type { Program } from "../ast";
+import type { Program, ObjectLiteral, getProperty } from "../ast";
 
 interface ParseResult {
   ast: Program | null;
@@ -32,31 +32,62 @@ function parse(input: string): ParseResult {
   return { ast, errors: [] };
 }
 
-describe("Parser v2.1.0", () => {
-  test("parses rational numbers (decimals)", () => {
-    const result = parse("source x = 3.14;");
+describe("Parser v3.1.0", () => {
+  test("parses CPA abstracto (numbers as objects)", () => {
+    const result = parse('source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};');
     expect(result.errors).toHaveLength(0);
     const stmt = result.ast!.statements[0];
     if (stmt.type === "SourceStatement") {
-      expect(stmt.value).toEqual({ type: "NumberLiteral", value: "3.14" });
+      expect(stmt.value?.type).toBe("ObjectLiteral");
+      const obj = stmt.value as ObjectLiteral;
+      const categoryProp = obj.properties.find(p => p.key === "category");
+      expect(categoryProp?.value).toBe("abstracto");
     }
   });
 
-  test("parses negative decimals", () => {
+  test("parses CPA pictorico", () => {
+    const result = parse('source shapes = {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 3};');
+    expect(result.errors).toHaveLength(0);
+    const stmt = result.ast!.statements[0];
+    if (stmt.type === "SourceStatement") {
+      expect(stmt.value?.type).toBe("ObjectLiteral");
+      const obj = stmt.value as ObjectLiteral;
+      const categoryProp = obj.properties.find(p => p.key === "category");
+      expect(categoryProp?.value).toBe("pictorico");
+    }
+  });
+
+  test("parses CPA concreto", () => {
+    const result = parse('source caps = {"category": "concreto", "type": "tapa", "subtype": "plastico", "quantity": 10};');
+    expect(result.errors).toHaveLength(0);
+    const stmt = result.ast!.statements[0];
+    if (stmt.type === "SourceStatement") {
+      expect(stmt.value?.type).toBe("ObjectLiteral");
+      const obj = stmt.value as ObjectLiteral;
+      const categoryProp = obj.properties.find(p => p.key === "category");
+      expect(categoryProp?.value).toBe("concreto");
+    }
+  });
+
+  test("parses object with decimal quantity", () => {
+    const result = parse('source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3.14};');
+    expect(result.errors).toHaveLength(0);
+    const stmt = result.ast!.statements[0];
+    if (stmt.type === "SourceStatement") {
+      expect(stmt.value?.type).toBe("ObjectLiteral");
+      const obj = stmt.value as ObjectLiteral;
+      const quantityProp = obj.properties.find(p => p.key === "quantity");
+      expect(quantityProp?.value).toBe("3.14");
+    }
+  });
+
+  test("rejects bare number literals", () => {
+    const result = parse("source x = 5;");
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  test("rejects negative number literals", () => {
     const result = parse("source x = -2.5;");
-    expect(result.errors).toHaveLength(0);
-    const stmt = result.ast!.statements[0];
-    if (stmt.type === "SourceStatement") {
-      expect(stmt.value).toEqual({ type: "NumberLiteral", value: "-2.5" });
-    }
-  });
-
-  test("parses CPA object with new JSON-like syntax", () => {
-    const result = parse('source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 42};');
-    expect(result.errors).toHaveLength(0);
-    const stmt = result.ast!.statements[0];
-    if (stmt.type === "SourceStatement") {
-      expect(stmt.value.type).toBe("ObjectLiteral");
-    }
+    expect(result.errors.length).toBeGreaterThan(0);
   });
 });

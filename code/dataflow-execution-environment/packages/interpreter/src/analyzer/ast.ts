@@ -47,12 +47,9 @@ export type IdentifierExpression = {
 };
 
 // Literals
-export type Literal = ObjectLiteral | StringLiteral | ArrayLiteral | NumberLiteral;
-
-export type NumberLiteral = {
-  type: "NumberLiteral";
-  value: string;
-};
+// Note: NumberLiteral is not a top-level literal in grammar v3.1.0
+// Numbers are only allowed inside object kvPairs (for quantity values)
+export type Literal = ObjectLiteral | StringLiteral | ArrayLiteral;
 
 export type StringLiteral = {
   type: "StringLiteral";

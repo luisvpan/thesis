@@ -93,7 +93,7 @@ function astStatementToStatement(stmt: ASTStatement): Statement {
       return {
         type: "SourceStatement",
         identifier: stmt.identifier,
-        value: stmt.value ? astLiteralToLiteral(stmt.value) : { type: "NumberLiteral", value: new Fraction(0) },
+        value: stmt.value ? astLiteralToLiteral(stmt.value) : { type: "OtherLiteral", value: "" },
       };
     case "TransformStatement":
       return {
@@ -120,11 +120,6 @@ function astExpressionToExpression(expr: ASTExpression): Expression {
 
 function astLiteralToLiteral(lit: ASTLiteral): Literal {
   switch (lit.type) {
-    case "NumberLiteral":
-      return {
-        type: "NumberLiteral",
-        value: new Fraction(lit.value),
-      };
     case "ArrayLiteral":
       return {
         type: "ArrayLiteral",
@@ -191,8 +186,6 @@ function deserializeExpression(expr: Expression): string {
 
 function deserializeLiteral(lit: Literal): string {
   switch (lit.type) {
-    case "NumberLiteral":
-      return fractionToString(lit.value);
     case "ArrayLiteral":
       return `[${lit.elements.map(deserializeExpression).join(", ")}]`;
     case "OtherLiteral":

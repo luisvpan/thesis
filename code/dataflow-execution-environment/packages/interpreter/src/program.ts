@@ -41,13 +41,8 @@ export type IdentifierExpression = {
   name: string;
 };
 
-// Literals - NumberLiteral uses Fraction instead of string
-export type Literal = ObjectLiteral | OtherLiteral | ArrayLiteral | NumberLiteral;
-
-export type NumberLiteral = {
-  type: "NumberLiteral";
-  value: Fraction;
-};
+// Literals - Numbers are represented as CPA abstractos in grammar v3.1.0
+export type Literal = ObjectLiteral | OtherLiteral | ArrayLiteral;
 
 export type ArrayLiteral = {
   type: "ArrayLiteral";

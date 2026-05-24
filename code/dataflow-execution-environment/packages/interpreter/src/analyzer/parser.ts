@@ -120,13 +120,13 @@ export class DataflowParser extends CstParser {
     ]);
   });
 
-  // literal ::= object_literal | array_literal | string_literal | number_literal
+  // literal ::= object_literal | array_literal | string_literal
+  // Note: NumberLiteral is only allowed inside object kvPairs (for quantity values)
   private literal = this.RULE("literal", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.objectLiteral) },
       { ALT: () => this.SUBRULE(this.arrayLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
-      { ALT: () => this.CONSUME(NumberLiteral) },
     ]);
   });
 

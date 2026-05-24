@@ -82,10 +82,11 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
       if (data.variant === "number") {
         if (!shouldEmitNumberSource(node.id, nodes)) continue;
+        // Use new grammar v3.1.0: numbers are CPA abstractos
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: { type: "NumberLiteral", value: new Fraction(data.value ?? 0) },
+          value: createCPAObject("abstracto", "numero", "racional", data.value ?? 0, {}),
         });
       } else if (data.variant === "shape") {
         const shapeAttrs: Record<string, string> = {

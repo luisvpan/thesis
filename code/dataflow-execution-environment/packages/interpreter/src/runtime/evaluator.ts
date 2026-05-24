@@ -205,12 +205,6 @@ export class LazyEvaluator {
 
   private evaluateLiteral(literal: Literal): RuntimeValue {
     switch (literal.type) {
-      case "NumberLiteral":
-        return {
-          kind: "racional",
-          value: toFraction(literal.value),
-        };
-
       case "StringLiteral":
         return {
           kind: "otro",

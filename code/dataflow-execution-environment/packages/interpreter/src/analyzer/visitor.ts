@@ -13,7 +13,6 @@ import type {
   ObjectProperty,
   StringLiteral,
   ArrayLiteral,
-  NumberLiteral,
 } from "./ast";
 
 // CST Node types
@@ -84,7 +83,6 @@ interface LiteralCstNode extends CstNode {
     objectLiteral?: CstNode[];
     arrayLiteral?: CstNode[];
     StringLiteral?: IToken[];
-    NumberLiteral?: IToken[];
   };
 }
 
@@ -214,11 +212,6 @@ export class DataflowAstVisitor extends BaseCstVisitor {
         type: "StringLiteral",
         value: unquote(ctx.StringLiteral[0].image),
       } as StringLiteral;
-    } else if (ctx.NumberLiteral) {
-      return {
-        type: "NumberLiteral",
-        value: ctx.NumberLiteral[0].image,
-      } as NumberLiteral;
     }
     throw new Error("Unknown literal type");
   }

@@ -1,23 +1,24 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { Interpreter } from "../index";
-import type { RationalValue, ArrayValue, CPAObject } from "../runtime/types";
+import type { ArrayValue, CPAObject } from "../runtime/types";
 
 describe("Integration", () => {
   describe("Example 1: Simple Addition", () => {
     test("adds two numbers", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source a = 3;
-        source b = 2;
+        source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
+        source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
         transform add = sum(a, b);
         sink result = add;
       `);
 
       expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as RationalValue;
-      expect(sinkResult.kind).toBe("racional");
-      expect(sinkResult.value.equals(new Fraction(5))).toBe(true);
+      const sinkResult = result.results.get("result") as CPAObject;
+      expect(sinkResult.kind).toBe("cpa");
+      expect(sinkResult.category).toBe("abstracto");
+      expect(sinkResult.quantity.equals(new Fraction(5))).toBe(true);
     });
   });
 
@@ -25,10 +26,10 @@ describe("Integration", () => {
     test("computes (3 + 2) * (10 - 6) = 20", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
-        source a = 3;
-        source b = 2;
-        source c = 10;
-        source d = 6;
+        source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
+        source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
+        source c = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
+        source d = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 6};
         transform add = sum(a, b);
         transform difference = substract(c, d);
         transform product = multiply(add, difference);
@@ -36,9 +37,10 @@ describe("Integration", () => {
       `);
 
       expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as RationalValue;
-      expect(sinkResult.kind).toBe("racional");
-      expect(sinkResult.value.equals(new Fraction(20))).toBe(true);
+      const sinkResult = result.results.get("result") as CPAObject;
+      expect(sinkResult.kind).toBe("cpa");
+      expect(sinkResult.category).toBe("abstracto");
+      expect(sinkResult.quantity.equals(new Fraction(20))).toBe(true);
     });
   });
 
@@ -106,7 +108,7 @@ describe("Integration", () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
         source a = {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 12, "size": "mediano"};
-        source b = 4;
+        source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 4};
         transform quotient = divide(a, b);
         sink result = quotient;
       `);
@@ -121,7 +123,7 @@ describe("Integration", () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
         source myShape = {"category": "pictorico", "type": "forma", "subtype": "cuadrado", "quantity": 5, "size": "pequeño"};
-        source factor = 3;
+        source factor = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
         transform scaled = multiply(myShape, factor);
         sink result = scaled;
       `);

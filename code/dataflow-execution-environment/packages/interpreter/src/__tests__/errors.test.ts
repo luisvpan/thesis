@@ -5,7 +5,7 @@ describe("Error handling", () => {
   test("detects circular dependencies", async () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
-      source x = 1;
+      source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 1};
       transform a = sum(b, x);
       transform b = sum(a, x);
       sink result = a;
@@ -17,7 +17,8 @@ describe("Error handling", () => {
   test("detects undefined references", async () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
-      transform a = sum(undefined_var, 1);
+      source one = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 1};
+      transform a = sum(undefined_var, one);
       sink result = a;
     `);
 
@@ -27,8 +28,8 @@ describe("Error handling", () => {
   test("division by zero throws error", async () => {
     const interpreter = new Interpreter();
     const result = await interpreter.execute(`
-      source a = 10;
-      source b = 0;
+      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
+      source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 0};
       transform bad = divide(a, b);
       sink result = bad;
     `);

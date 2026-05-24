@@ -93,26 +93,45 @@ export function multiply(args: RuntimeValue[]): RuntimeValue {
     return { kind: "racional", value: total };
   }
 
-  // Separate CPAs and rationals
-  const cpas: CPAObject[] = [];
-  const rationals: Fraction[] = [];
+  // Separate CPAs by category: abstractos act as scaling factors, others are objects to scale
+  const nonAbstractCPAs: CPAObject[] = [];
+  const scalingFactors: Fraction[] = [];
 
   for (const value of flatValues) {
     if (isRational(value)) {
-      rationals.push(value.value);
+      scalingFactors.push(value.value);
     } else if (isCPAObject(value)) {
-      cpas.push(value);
+      if (value.category === "abstracto") {
+        // CPA abstractos (numbers) act as scaling factors
+        scalingFactors.push(getQuantity(value));
+      } else {
+        nonAbstractCPAs.push(value);
+      }
     }
   }
 
-  // Calculate the product of all rationals (1 if none)
-  const rationalProduct = rationals.length > 0
-    ? rationals.reduce((acc, v) => rational.multiply(acc, v), rational.one())
+  // If all values were scaling factors (rationals or abstractos), multiply them
+  if (nonAbstractCPAs.length === 0) {
+    const total = scalingFactors.reduce(
+      (acc, v) => rational.multiply(acc, v),
+      rational.one()
+    );
+    // Return as CPA abstracto if there were any abstractos, otherwise as racional
+    const abstracto = flatValues.find(v => isCPAObject(v) && (v as CPAObject).category === "abstracto") as CPAObject | undefined;
+    if (abstracto) {
+      return cloneCPAWithQuantity(abstracto, total);
+    }
+    return { kind: "racional", value: total };
+  }
+
+  // Calculate the product of all scaling factors (1 if none)
+  const scalingProduct = scalingFactors.length > 0
+    ? scalingFactors.reduce((acc, v) => rational.multiply(acc, v), rational.one())
     : rational.one();
 
-  // Apply the factor to each CPA individually (NO combining)
-  const scaledCPAs = cpas.map(cpa =>
-    cloneCPAWithQuantity(cpa, rational.multiply(getQuantity(cpa), rationalProduct))
+  // Apply the scaling factor to each non-abstract CPA individually (NO combining)
+  const scaledCPAs = nonAbstractCPAs.map(cpa =>
+    cloneCPAWithQuantity(cpa, rational.multiply(getQuantity(cpa), scalingProduct))
   );
 
   // If there's a single CPA, return it directly
