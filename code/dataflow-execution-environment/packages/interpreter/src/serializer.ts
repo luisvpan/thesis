@@ -12,12 +12,6 @@ import type {
   Expression,
   ObjectLiteral,
   ObjectProperty,
-  NumberLiteral,
-  ArrayLiteral,
-  OtherLiteral,
-  SourceStatement,
-  TransformStatement,
-  SinkStatement,
 } from "./program";
 
 export interface ParseError {
@@ -226,7 +220,7 @@ function deserializeObjectLiteral(obj: ObjectLiteral): string {
  */
 function fractionToString(f: Fraction): string {
   // If it's a whole number, return as integer
-  if (f.d === 1) {
+  if (f.d === 1n) {
     return f.n.toString();
   }
 

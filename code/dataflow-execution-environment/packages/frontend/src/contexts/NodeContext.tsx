@@ -8,7 +8,12 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { useEdgesState, useNodesState, type Edge } from "@xyflow/react";
+import {
+  useEdgesState,
+  useNodesState,
+  type Edge,
+  type NodeChange,
+} from "@xyflow/react";
 import { useVision } from "./VisionContext";
 import { getNodeValue, getRightmostEvaluableNode } from "./node/helpers";
 import type { DataflowNode, NodeContextState, PortIdentifier, PortKindInfo, ShakingPort } from "./node/types";
@@ -18,6 +23,10 @@ import { useNodeSpawning } from "./node/useNodeSpawning";
 import { usePortSelection } from "./node/usePortSelection";
 import { useProgramExecutorRef } from "./node/useProgramExecutorRef";
 import { computeNodeIdsInsideActiveArrayZones } from "@/utils/arrayZoneGeometry";
+import {
+  getPortHighlightState as computePortHighlightState,
+  isPortOccupied as checkPortOccupied,
+} from "@/components/dataflow/connectionRules";
 
 export type { DataflowNode, PortDefinition, PortIdentifier, PortKindInfo } from "./node/types";
 
@@ -39,8 +48,22 @@ export function NodeProvider({
   const { lastCardFrame } = useVision();
   const executorRef = useProgramExecutorRef();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<DataflowNode>([]);
+  const [nodes, setNodes, onNodesChangeBase] = useNodesState<DataflowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<DataflowNode>[]) => {
+      if (nodesDraggable) {
+        onNodesChangeBase(changes);
+        return;
+      }
+      const filtered = changes.filter((c) => c.type !== "position");
+      if (filtered.length > 0) {
+        onNodesChangeBase(filtered);
+      }
+    },
+    [nodesDraggable, onNodesChangeBase]
+  );
   const [selectedPort, setSelectedPort] = useState<PortIdentifier | null>(null);
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -80,6 +103,7 @@ export function NodeProvider({
 
   useFlowGraphEffects({
     visionSyncEnabled,
+    nodesDraggable,
     lastCardFrame,
     flowContainerRef,
     setNodes,
@@ -96,8 +120,24 @@ export function NodeProvider({
     setSelectedPort,
     setEdges,
     nodes,
+    edges,
     getPortKindInfo,
     triggerIncompatibleFeedback
+  );
+
+  const isPortOccupied = useCallback(
+    (nodeId: string, handleId: string, handleType: "source" | "target") =>
+      checkPortOccupied(edges, { nodeId, handleId, handleType }),
+    [edges]
+  );
+
+  const getPortHighlightState = useCallback(
+    (nodeId: string, handleId: string, handleType: "source" | "target") =>
+      computePortHighlightState(
+        { nodeId, handleId, handleType },
+        { nodes, edges, getPortKindInfo, selectedPort }
+      ),
+    [nodes, edges, getPortKindInfo, selectedPort]
   );
 
   const {
@@ -109,7 +149,7 @@ export function NodeProvider({
     spawnDeckYoloClass,
     addArrayOpenNode,
     addArrayCloseNode,
-  } = useNodeSpawning(setNodes);
+  } = useNodeSpawning(setNodes, nodesDraggable);
 
   const executeProgram = useManualExecuteProgram(
     executorRef,
@@ -166,6 +206,8 @@ export function NodeProvider({
       unregisterPortKinds,
       getPortKindInfo,
       shakingPort,
+      isPortOccupied,
+      getPortHighlightState,
     }),
     [
       nodes,
@@ -195,6 +237,8 @@ export function NodeProvider({
       unregisterPortKinds,
       getPortKindInfo,
       shakingPort,
+      isPortOccupied,
+      getPortHighlightState,
     ]
   );
 

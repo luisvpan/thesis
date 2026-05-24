@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { CardCategory } from '@/types/card-types';
 
 type FlowCardFamily = 'input' | 'transformation' | 'sink';
 
@@ -8,8 +9,12 @@ type FlowNodeCardProps = {
   content: ReactNode;
   subtitle?: string;
   className?: string;
+  /** Tipo de carta tangible; permite estilos distintos por categoría sin cambiar la API del nodo. */
+  cardCategory?: CardCategory;
   /** Aviso encima de la fila del título (label), sin alterar el resto de la carta. */
   topNotice?: ReactNode;
+  /** Si false, solo se muestra el contenido (p. ej. dígitos fusionados sin repetir el título). */
+  showHeader?: boolean;
 };
 
 export function FlowNodeCard({
@@ -17,17 +22,23 @@ export function FlowNodeCard({
   title,
   content,
   subtitle: _subtitle,
+  cardCategory: _cardCategory,
   className = '',
   topNotice,
+  showHeader = true,
 }: FlowNodeCardProps) {
   return (
-    <div className={`min-h-48 w-48 p-3 text-white ${className}`}>
+    <div className={` p-3 text-white ${className}`}>
       {topNotice}
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="truncate text-xs font-semibold uppercase tracking-wide text-slate-300">
-          {title}-{content}
-        </span>
-      </div>
+      {showHeader ? (
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="truncate text-xs font-semibold uppercase tracking-wide text-slate-300">
+            {title}-{content}
+          </span>
+        </div>
+      ) : (
+        null
+      )}
     </div>
   );
 }

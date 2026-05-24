@@ -5,11 +5,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n api,web -c cyan,magenta \"bun run dev:api\" \"bun run dev:web\"",
-    "dev:api": "bun run --filter @dataflow/http-api dev",
-    "dev:web": "bun run --filter thesis-frontend dev",
-    "build": "bun run --filter thesis-frontend build && bun run --filter @dataflow/http-api build",
-    "start": "NODE_ENV=production bun packages/http-api/src/main.ts",
+    "dev": "bun run --filter thesis-frontend dev",
+    "build": "bun run --filter thesis-frontend build",
+    "test": "bun run --filter @dataflow/interpreter test && bun run --filter thesis-frontend test",
     "typecheck": "bun tsc --noEmit",
     "lint": "echo 'Lint not configured'",
     "format": "echo 'Format not configured'"

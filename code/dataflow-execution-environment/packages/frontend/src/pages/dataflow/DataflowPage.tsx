@@ -195,7 +195,12 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
 
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
-          <ResultCardUiProvider viewMode={viewMode} orderingStrategy={orderingStrategy} hasExecuted={true}>
+          <ResultCardUiProvider
+            viewMode={viewMode}
+            orderingStrategy={orderingStrategy}
+            hasExecuted={true}
+            showFlowResults={showOperatorResults}
+          >
             <ReactFlow
               nodes={nodes}
               edges={edges}

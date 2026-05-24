@@ -14,7 +14,9 @@ const shapeColors: Record<ShapeColor, { hex: string; gradient: string; name: str
   'rojo': { hex: '#ef4444', gradient: 'linear-gradient(to bottom right, #ef4444, #dc2626)', name: 'Rojo' },
   'azul': { hex: '#3b82f6', gradient: 'linear-gradient(to bottom right, #3b82f6, #2563eb)', name: 'Azul' },
   'amarillo': { hex: '#eab308', gradient: 'linear-gradient(to bottom right, #eab308, #ca8a04)', name: 'Amarillo' },
-  'verde': { hex: '#10b981', gradient: 'linear-gradient(to bottom right, #10b981, #059669)', name: 'Verde' }
+  'verde': { hex: '#10b981', gradient: 'linear-gradient(to bottom right, #10b981, #059669)', name: 'Verde' },
+  'morado': { hex: '#7c3aed', gradient: 'linear-gradient(to bottom right, #7c3aed, #5b21b6)', name: 'Morado' },
+  'naranja': { hex: '#f97316', gradient: 'linear-gradient(to bottom right, #f97316, #ea580c)', name: 'Naranja' },
 };
 
 const shapeNames: Record<ShapeType, string> = {

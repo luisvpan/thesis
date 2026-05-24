@@ -5,7 +5,7 @@ import type {
   CPACategory,
   ExecutionNode,
 } from "./types";
-import type { Statement, Expression, Literal, ObjectLiteral, getProperty } from "../analyzer/ast";
+import type { Statement, Expression, Literal, ObjectLiteral } from "../analyzer/ast";
 import { executeOperation } from "../operations";
 import { toFraction } from "./rational";
 import { RuntimeError } from "./errors";

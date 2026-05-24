@@ -7,12 +7,14 @@ import type { Statement } from "../analyzer/ast";
 
 export type CPACategory = "abstracto" | "pictorico" | "concreto";
 
-// Category enum for taxonomical ordering (lower = higher priority)
-export enum Category {
-  Concreto = 0,
-  Pictorico = 1,
-  Abstracto = 2,
-}
+// Category const for taxonomical ordering (lower = higher priority)
+export const Category = {
+  Concreto: 0,
+  Pictorico: 1,
+  Abstracto: 2,
+} as const;
+
+export type Category = (typeof Category)[keyof typeof Category];
 
 // =============================================================================
 // Generic CPA Object - Unified representation for all CPA types

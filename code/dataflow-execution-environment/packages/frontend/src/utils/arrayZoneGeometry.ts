@@ -76,11 +76,37 @@ export function getFlowCardCenter(
   };
 }
 
+/** AABB de la carta estándar (208×208) anclada en node.position. */
+export function getFlowCardBounds(
+  node: Pick<{ position: { x: number; y: number } }, "position">
+): AxisAlignedBounds {
+  const { x, y } = node.position;
+  return {
+    left: x,
+    right: x + FLOW_CARD_SIZE,
+    top: y,
+    bottom: y + FLOW_CARD_SIZE,
+  };
+}
+
 export function isPointInBoundsInclusive(
   p: Point,
   b: AxisAlignedBounds
 ): boolean {
   return p.x >= b.left && p.x <= b.right && p.y >= b.top && p.y <= b.bottom;
+}
+
+/** Solapa o toca borde (inclusivo): basta con que una parte de la carta entre en la zona. */
+export function doAxisAlignedBoundsOverlap(
+  a: AxisAlignedBounds,
+  b: AxisAlignedBounds
+): boolean {
+  return (
+    a.left <= b.right &&
+    a.right >= b.left &&
+    a.top <= b.bottom &&
+    a.bottom >= b.top
+  );
 }
 
 export function shouldIncludeNodeInArrayZone(
@@ -92,8 +118,7 @@ export function shouldIncludeNodeInArrayZone(
   if (n.id === openId || n.id === closeId) return false;
   if (n.type === "programOutput") return false;
   if (n.type !== "source" && n.type !== "operator") return false;
-  const c = getFlowCardCenter(n);
-  return isPointInBoundsInclusive(c, bounds);
+  return doAxisAlignedBoundsOverlap(getFlowCardBounds(n), bounds);
 }
 
 /** Cartas cuyos handlers se ocultan dentro de la zona (no incluye abrir/cerrar arreglo). */
@@ -106,9 +131,43 @@ function isNodeTypeThatHidesHandlesWhenInArrayZone(n: DataflowNode): boolean {
 }
 
 /**
- * IDs de nodos cuyo centro de carta cae dentro del AABB de algún par abrir→cerrar
- * conectado por `zone-in`. Unión si hay varias zonas.
+ * IDs de nodos cuya carta solapa el AABB de algún par abrir→cerrar conectado por
+ * `zone-in`. Unión si hay varias zonas.
  */
+/**
+ * Nodos fuente/operador dentro de la zona de un `arrayClose`, en el mismo orden
+ * que `flowToProgram` (izquierda→derecha, luego arriba→abajo).
+ */
+export function getOrderedArrayZoneMembers(
+  closeNodeId: string,
+  nodes: DataflowNode[],
+  edges: Edge[]
+): DataflowNode[] {
+  const zoneEdge = edges.find(
+    (e) => e.target === closeNodeId && e.targetHandle === "zone-in"
+  );
+  if (!zoneEdge) return [];
+
+  const openNode = nodes.find(
+    (n) => n.id === zoneEdge.source && n.type === "arrayOpen"
+  );
+  const closeNode = nodes.find(
+    (n) => n.id === closeNodeId && n.type === "arrayClose"
+  );
+  if (!openNode || !closeNode) return [];
+
+  const bounds = getArrayZoneBounds(openNode, closeNode);
+  return nodes
+    .filter((n) =>
+      shouldIncludeNodeInArrayZone(n, openNode.id, closeNode.id, bounds)
+    )
+    .sort((a, b) =>
+      a.position.x !== b.position.x
+        ? a.position.x - b.position.x
+        : a.position.y - b.position.y
+    );
+}
+
 export function computeNodeIdsInsideActiveArrayZones(
   nodes: DataflowNode[],
   edges: Edge[]
@@ -130,8 +189,7 @@ export function computeNodeIdsInsideActiveArrayZones(
 
     for (const n of nodes) {
       if (!isNodeTypeThatHidesHandlesWhenInArrayZone(n)) continue;
-      const c = getFlowCardCenter(n);
-      if (isPointInBoundsInclusive(c, bounds)) {
+      if (doAxisAlignedBoundsOverlap(getFlowCardBounds(n), bounds)) {
         inside.add(n.id);
       }
     }

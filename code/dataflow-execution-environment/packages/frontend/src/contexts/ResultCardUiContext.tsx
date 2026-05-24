@@ -7,6 +7,8 @@ export type ResultCardUiState = {
   viewMode: ResultViewMode;
   orderingStrategy: OrderingStrategy;
   hasExecuted: boolean;
+  /** Muestra miniaturas animadas sobre conectores hacia operadores/sinks. */
+  showFlowResults: boolean;
 };
 
 const ResultCardUiContext = createContext<ResultCardUiState | null>(null);
@@ -15,10 +17,11 @@ export function ResultCardUiProvider({
   viewMode,
   orderingStrategy,
   hasExecuted,
+  showFlowResults,
   children,
 }: ResultCardUiState & { children: ReactNode }) {
   return (
-    <ResultCardUiContext.Provider value={{ viewMode, orderingStrategy, hasExecuted }}>
+    <ResultCardUiContext.Provider value={{ viewMode, orderingStrategy, hasExecuted, showFlowResults }}>
       {children}
     </ResultCardUiContext.Provider>
   );

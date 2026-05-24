@@ -1,7 +1,6 @@
 import type {
   Program,
   Statement,
-  Expression,
   IdentifierExpression,
   Literal,
 } from "../analyzer/ast";

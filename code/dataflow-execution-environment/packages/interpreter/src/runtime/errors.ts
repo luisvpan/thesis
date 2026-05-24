@@ -11,12 +11,13 @@ export type ErrorCode =
   | "ARITY_ERROR";
 
 export class RuntimeError extends Error {
-  constructor(
-    public code: ErrorCode,
-    message: string,
-    public nodeId?: string
-  ) {
+  code: ErrorCode;
+  nodeId?: string;
+
+  constructor(code: ErrorCode, message: string, nodeId?: string) {
     super(`[${code}]${nodeId ? ` at '${nodeId}'` : ""}: ${message}`);
     this.name = "RuntimeError";
+    this.code = code;
+    this.nodeId = nodeId;
   }
 }

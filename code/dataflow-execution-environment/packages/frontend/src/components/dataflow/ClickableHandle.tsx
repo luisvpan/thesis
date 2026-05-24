@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { useNode } from "@/contexts/NodeContext";
-import { type HandleKind, type HandleAcceptance, checkConnection, handleShape } from "./handle-kinds";
+import { type HandleKind } from "./handle-kinds";
+import { FLOW_NODE_INTERACTIVE_CLASS } from "./flowNodeChrome";
+import {
+  type FlowHandleVariant,
+  getHandleVariantShapeClass,
+} from "./flowHandleVariants";
+import type { PortHighlightState } from "./connectionRules";
 
 type ClickableHandleProps = {
   type: "source" | "target";
@@ -10,51 +16,54 @@ type ClickableHandleProps = {
   nodeId: string;
   className?: string;
   style?: React.CSSProperties;
-  /** Sin conexiones ni selección de puerto (reservado para uso interno o futuro). */
   disabled?: boolean;
-  /** For source handles: what kind of data this handle produces */
+  handleVariant?: FlowHandleVariant;
   produces?: HandleKind;
-  /** For target handles: what kinds of data this handle accepts */
-  acceptance?: HandleAcceptance;
+  accepts?: HandleKind[];
 };
 
-/**
- * Get the shape class based on the handle shape.
- */
-function getShapeClass(shape: "circle" | "square" | "rounded-square" | "pill"): string {
-  switch (shape) {
-    case "circle":
+function getShapeClassFromKind(kind: HandleKind | undefined): string {
+  switch (kind) {
+    case "rational":
       return "!rounded-full";
-    case "square":
+    case "cpa":
       return "!rounded-md";
-    case "rounded-square":
-      return "!rounded-2xl";
-    case "pill":
-      return "!rounded-full !w-28"; // pill: wider than the default square
+    case "keyword":
+      return "!rounded-full !w-26 translate-x-[-20%]";
+    case "any":
+    default:
+      return "!rounded-full";
   }
 }
 
-/**
- * Determine the shape for this handle based on its type and kind info.
- */
-function getHandleShape(
+function getEffectiveKind(
   type: "source" | "target",
   produces?: HandleKind,
-  acceptance?: HandleAcceptance
-): "circle" | "square" | "rounded-square" | "pill" {
+  accepts?: HandleKind[]
+): HandleKind {
   if (type === "source") {
-    // Source handles: shape based on what they produce
-    if (!produces || produces === "rational") return "circle";
-    if (produces === "cpa") return "square";
-    if (produces === "keyword") return "pill";
-    return "circle";
+    return produces ?? "any";
   }
-  // Target handles: use handleShape with primary kinds
-  if (acceptance) {
-    return handleShape(acceptance.primary);
+  if (accepts && accepts.length === 1 && accepts[0] !== "any") {
+    return accepts[0];
   }
-  // Default: circle
-  return "circle";
+  return "any";
+}
+
+function highlightColorClass(state: PortHighlightState): string {
+  switch (state) {
+    case "connected":
+      return "!bg-blue-600/50 !border-blue-400/50";
+    case "selected":
+      return "!bg-green-700/50 !border-green-500/50";
+    case "compatible":
+      return "!bg-green-500/50 !border-green-400/50 ring-2 ring-green-400/50";
+    case "incompatible":
+      return "!bg-red-500/50 !border-red-400/50";
+    case "idle":
+    default:
+      return "!bg-slate-600/50 !border-slate-500/50";
+  }
 }
 
 export function ClickableHandle({
@@ -65,86 +74,50 @@ export function ClickableHandle({
   className = "",
   style,
   disabled = false,
+  handleVariant,
   produces,
-  acceptance,
+  accepts,
 }: ClickableHandleProps) {
   const {
     isPortSelected,
     handlePortClick,
     isNodeInsideArrayZone,
-    selectedPort,
-    getPortKindInfo,
     shakingPort,
+    getPortHighlightState,
+    isPortOccupied,
   } = useNode();
   const [isCooldown, setIsCooldown] = useState(false);
 
-  const selected = !disabled && isPortSelected(nodeId, id, type);
+  const occupied = isPortOccupied(nodeId, id, type);
+  const selected = !disabled && !occupied && isPortSelected(nodeId, id, type);
   const hideInArrayZone = isNodeInsideArrayZone(nodeId);
 
-  // Determine shape based on kind
-  const shape = getHandleShape(type, produces, acceptance);
-  const shapeClass = getShapeClass(shape);
+  const variantShapeClass = getHandleVariantShapeClass(handleVariant);
+  const useKindShape = !handleVariant || handleVariant === "input-out";
+  const effectiveKind = getEffectiveKind(type, produces, accepts);
+  const kindShapeClass = useKindShape ? getShapeClassFromKind(effectiveKind) : "";
+  const shapeClass = variantShapeClass || kindShapeClass;
 
-  // Check if this handle is shaking (incompatible connection attempted)
   const isShaking = shakingPort?.nodeId === nodeId && shakingPort?.handleId === id;
 
-  // Calculate compatibility feedback when there's a selected port
-  let compatibilityClass = "";
-  if (selectedPort && !disabled && !selected) {
-    const isOppositeType = selectedPort.handleType !== type;
-
-    if (isOppositeType) {
-      // Get the selected port's kind info
-      const selectedInfo = getPortKindInfo(selectedPort.nodeId, selectedPort.handleId);
-
-      // Default acceptance for handles without explicit acceptance
-      const defaultAcceptance: HandleAcceptance = { primary: ["rational", "cpa"] };
-
-      let match: "compatible" | "tolerated" | "incompatible";
-      if (selectedPort.handleType === "source") {
-        // Selected is source, this is target
-        const sourceKind = selectedInfo?.produces ?? "rational";
-        const targetAcceptance = acceptance ?? defaultAcceptance;
-        match = checkConnection(sourceKind, targetAcceptance);
-      } else {
-        // Selected is target, this is source
-        const sourceKind = produces ?? "rational";
-        const targetAcceptance = selectedInfo?.acceptance ?? defaultAcceptance;
-        match = checkConnection(sourceKind, targetAcceptance);
-      }
-
-      if (match === "compatible") {
-        compatibilityClass = "ring-2 ring-green-400 ring-opacity-75";
-      } else if (match === "tolerated") {
-        compatibilityClass = "ring-2 ring-amber-400 ring-opacity-40";
-      } else {
-        compatibilityClass = "opacity-30";
-      }
-    }
-  }
+  const highlightState = getPortHighlightState(nodeId, id, type);
+  const colorClass = highlightColorClass(
+    selected ? "selected" : highlightState
+  );
 
   const handleClick = (e: React.MouseEvent) => {
-    if (disabled) return;
-    if (isCooldown) return; // Ignorar durante cooldown
+    if (disabled || occupied) return;
+    if (isCooldown) return;
 
     e.stopPropagation();
     e.preventDefault();
     handlePortClick(nodeId, id, type);
 
-    // Activar cooldown para evitar toques accidentales
     setIsCooldown(true);
     setTimeout(() => setIsCooldown(false), 500);
   };
 
-  // Colores más oscuros para no afectar detección de CV
-  const colorClass = selected
-    ? "!bg-green-700 !border-green-500"
-    : "!bg-slate-600 !border-slate-500";
-
-  // Reducir opacidad durante cooldown
   const cooldownClass = isCooldown ? "opacity-50" : "";
-
-  // Shake animation class
   const shakeClass = isShaking ? "animate-shake" : "";
 
   return (
@@ -152,10 +125,14 @@ export function ClickableHandle({
       type={type}
       position={position}
       id={id}
-      className={`nodrag nopan !h-20 !w-20 !border-2 ${shapeClass} ${colorClass} ${cooldownClass} ${compatibilityClass} ${shakeClass} ${
+      className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} !h-20 !w-20 !border-2 ${shapeClass} ${colorClass} ${cooldownClass} ${shakeClass} ${
         hideInArrayZone ? "!invisible !pointer-events-none" : ""
       } ${
-        disabled ? "pointer-events-none cursor-not-allowed opacity-35" : "cursor-pointer"
+        disabled || occupied
+          ? occupied
+            ? "cursor-default"
+            : "!pointer-events-none cursor-not-allowed opacity-35"
+          : "cursor-pointer"
       } ${className}`}
       style={style}
       onClick={handleClick}

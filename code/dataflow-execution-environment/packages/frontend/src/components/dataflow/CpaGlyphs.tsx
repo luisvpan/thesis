@@ -85,12 +85,27 @@ export function StickGlyph({ color, generic = false }: { color: string } & Glyph
   );
 }
 
-export function FormaGlyph({ subtype, generic = false }: { subtype: string } & GlyphProps) {
-  const bgClass = generic ? 'bg-teal-600' : 'bg-slate-600';
+const FORMA_COLOR_CLASSES: Record<string, string> = {
+  verde: 'bg-emerald-500',
+  morado: 'bg-violet-600',
+  rojo: 'bg-red-500',
+  naranja: 'bg-orange-500',
+  azul: 'bg-blue-600',
+  amarillo: 'bg-amber-400',
+};
+
+export function FormaGlyph({
+  subtype,
+  color,
+  generic = false,
+}: { subtype: string; color?: string } & GlyphProps) {
+  const bgClass = generic
+    ? 'bg-teal-600'
+    : (color && FORMA_COLOR_CLASSES[color]) ?? 'bg-slate-600';
   return (
     <span
-      title={subtype}
-      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${bgClass} text-[10px] font-bold uppercase text-white ring-1 ring-white/20`}
+      title={color ? `${subtype} ${color}` : subtype}
+      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${bgClass} text-[10px] font-bold uppercase text-white ring-1 ring-white/20`}
     >
       {subtype.slice(0, 2)}
     </span>

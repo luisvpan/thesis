@@ -9,6 +9,7 @@ import {
 } from "@dataflow/interpreter";
 import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
+import { dataWithoutVisionMeta } from "@/contexts/node/visionNodeMeta";
 import type { Edge } from "@xyflow/react";
 import { logger } from "@/lib/logger";
 
@@ -52,7 +53,12 @@ interface SemanticResult {
 
 /** Unidad visual en la carta de salida (orden = orden del arreglo aplanado). */
 export type ResultVisualMontessori = { kind: "montessori"; color: string };
-export type ResultVisualForma = { kind: "forma"; subtype: string; size: string };
+export type ResultVisualForma = {
+  kind: "forma";
+  subtype: string;
+  size: string;
+  color?: string;
+};
 export type ResultVisualComida = { kind: "comida"; subtype: string; color: string };
 export type ResultVisualCap = { kind: "cap"; color: string };
 export type ResultVisualStick = { kind: "stick"; color: string };
@@ -70,12 +76,12 @@ export type SingleCpaObjectMeta = {
   color: string;
   quantity: number;
   // For exact fraction display (e.g., "13/4" instead of 3.25)
-  numerator: number;
-  denominator: number;
+  numerator: bigint;
+  denominator: bigint;
 };
 
 export type ResultValue =
-  | { kind: "number"; value: number; numerator?: number; denominator?: number }
+  | { kind: "number"; value: number; numerator?: bigint; denominator?: bigint }
   | {
       kind: "semantic";
       result: SemanticResult;
@@ -278,7 +284,7 @@ function buildVisualStrip(elements: unknown[]): ResultVisualItem[] {
             strip.push({ kind: "montessori", color });
             break;
           case "forma":
-            strip.push({ kind: "forma", subtype, size });
+            strip.push({ kind: "forma", subtype, size, color });
             break;
           case "comida":
             strip.push({ kind: "comida", subtype, color });
@@ -452,13 +458,16 @@ function describeSubtype(sub: SubtypeGroup): string {
 // ============================================================================
 
 /**
- * Helper to create a hash of the program (nodes + edges) for change detection.
- * Only includes semantically relevant data (not positions).
+ * Hash del programa (nodos + aristas) para detectar cambios semánticos.
+ * Excluye posición en lienzo y metadatos de visión que cambian cada frame WS.
  */
-function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
+export function computeProgramHash(nodes: DataflowNode[], edges: Edge[]): string {
   const nodesKey = nodes
     .filter((n) => n.type === "source" || n.type === "operator" || n.type === "programOutput")
-    .map((n) => `${n.id}:${n.type}:${JSON.stringify(n.data)}`)
+    .map(
+      (n) =>
+        `${n.id}:${n.type}:${JSON.stringify(dataWithoutVisionMeta(n.data))}`
+    )
     .sort()
     .join("|");
   const edgesKey = edges
@@ -466,6 +475,11 @@ function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
     .sort()
     .join("|");
   return `${nodesKey}::${edgesKey}`;
+}
+
+/** @deprecated internal alias */
+function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
+  return computeProgramHash(nodes, edges);
 }
 
 /**

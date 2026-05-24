@@ -1,7 +1,7 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { addEdge, type Connection, type Edge } from "@xyflow/react";
 import type { DataflowNode, PortIdentifier, PortKindInfo } from "./types";
-import { checkConnection, type HandleAcceptance } from "../../components/dataflow/handle-kinds";
+import { canConnectPorts, isPortOccupied } from "../../components/dataflow/connectionRules";
 
 type SetEdges = Dispatch<SetStateAction<Edge[]>>;
 type SetSelectedPort = Dispatch<SetStateAction<PortIdentifier | null>>;
@@ -13,6 +13,7 @@ export function usePortSelection(
   setSelectedPort: SetSelectedPort,
   setEdges: SetEdges,
   nodes: DataflowNode[],
+  edges: Edge[],
   getPortKindInfo: GetPortKindInfo,
   triggerIncompatibleFeedback: TriggerIncompatibleFeedback
 ) {
@@ -30,8 +31,14 @@ export function usePortSelection(
 
   const handlePortClick = useCallback(
     (nodeId: string, handleId: string, handleType: "source" | "target") => {
+      const port = { nodeId, handleId, handleType };
+
+      if (isPortOccupied(edges, port)) {
+        return;
+      }
+
       if (!selectedPort) {
-        setSelectedPort({ nodeId, handleId, handleType });
+        setSelectedPort(port);
         return;
       }
 
@@ -45,14 +52,20 @@ export function usePortSelection(
       }
 
       const first = selectedPort;
-      const second = { nodeId, handleId, handleType };
+      const second = port;
 
       if (first.handleType === second.handleType) {
+        if (isPortOccupied(edges, second)) {
+          return;
+        }
         setSelectedPort(second);
         return;
       }
 
       if (first.nodeId === second.nodeId) {
+        if (isPortOccupied(edges, second)) {
+          return;
+        }
         setSelectedPort(second);
         return;
       }
@@ -60,17 +73,10 @@ export function usePortSelection(
       const source = first.handleType === "source" ? first : second;
       const target = first.handleType === "target" ? first : second;
 
-      // Validate connection compatibility
-      const sourceInfo = getPortKindInfo(source.nodeId, source.handleId);
-      const targetInfo = getPortKindInfo(target.nodeId, target.handleId);
+      const ctx = { nodes, edges, getPortKindInfo };
+      const result = canConnectPorts(source, target, ctx);
 
-      const sourceKind = sourceInfo?.produces ?? "rational";
-      const defaultAcceptance: HandleAcceptance = { primary: ["rational", "cpa"] };
-      const targetAcceptance = targetInfo?.acceptance ?? defaultAcceptance;
-
-      const match = checkConnection(sourceKind, targetAcceptance);
-
-      if (match === "incompatible") {
+      if (!result.ok) {
         triggerIncompatibleFeedback(target.nodeId, target.handleId);
         setSelectedPort(null);
         return;
@@ -83,7 +89,6 @@ export function usePortSelection(
         targetHandle: target.handleId,
       };
 
-      // Use zone edge type when connecting [ → ]
       const sourceNodeType = nodes.find((n) => n.id === source.nodeId)?.type;
       const targetNodeType = nodes.find((n) => n.id === target.nodeId)?.type;
       const edgeType =
@@ -91,12 +96,18 @@ export function usePortSelection(
           ? "arrayZoneEdge"
           : undefined;
 
-      // Pass tolerated flag to edge data
-      const edgeData = { tolerated: match === "tolerated" };
-      setEdges((eds) => addEdge({ ...connection, type: edgeType, data: edgeData }, eds));
+      setEdges((eds) => addEdge({ ...connection, type: edgeType }, eds));
       setSelectedPort(null);
     },
-    [selectedPort, setEdges, setSelectedPort, nodes, getPortKindInfo, triggerIncompatibleFeedback]
+    [
+      selectedPort,
+      setEdges,
+      setSelectedPort,
+      nodes,
+      edges,
+      getPortKindInfo,
+      triggerIncompatibleFeedback,
+    ]
   );
 
   return { isPortSelected, clearSelection, handlePortClick };

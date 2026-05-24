@@ -20,3 +20,28 @@ body {
 .animate-shake {
   animation: shake 0.15s ease-in-out 2;
 }
+
+/* Flow handle shapes (clip-path); colors are state-driven in ClickableHandle */
+.flow-handle-triangle-open {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.flow-handle-triangle-close {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.flow-handle-hexagon {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+.flow-handle-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.flow-handle-chevron {
+  clip-path: polygon(0 15%, 55% 50%, 0 85%, 25% 50%);
+}
+
+.flow-handle-sink-in {
+  clip-path: polygon(35% 0%, 65% 0%, 65% 100%, 35% 100%);
+}

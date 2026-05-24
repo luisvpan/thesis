@@ -1,12 +1,12 @@
-import { useMemo } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
-import { Equal, LayoutList, Hourglass } from 'lucide-react';
+import { Hourglass, Volume2 } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
-import { formatResultCpa, formatFraction, type ResultViewMode } from './dataflowResultCpa';
-import { FlowNodeCard } from './FlowNodeCard';
+import { formatResultCpa, type ResultViewMode } from './dataflowResultCpa';
+import { SinkFlowNodeCard } from './SinkFlowNodeCard';
 import { ResultArrayVisual } from './ResultArrayVisual';
 import {
   MontessoriCubeGlyph,
@@ -18,6 +18,11 @@ import {
 import type { ResultVisualItem, SingleCpaObjectMeta } from '@/services/executeProgram';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import { FLOW_NODE_INTERACTIVE_CLASS } from './flowNodeChrome';
+import { useFlowNodeShellClass } from './useFlowNodeShellClass';
+import { speakSpanish } from '@/utils/speakSpanish';
+import { buildSinkResultSpeechText } from '@/utils/sinkResultSpeech';
+// Imports for result rendering heuristics - available for future use
 import {
   computeMultiplicationGrouping,
   computeDivisionGrouping,
@@ -45,8 +50,8 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   /** Metadata for single CPA object rendering */
   singleCpaObjectMeta?: SingleCpaObjectMeta;
   /** For exact fraction display of pure rationals (e.g., "13/4" instead of 3.25) */
-  numerator?: number;
-  denominator?: number;
+  numerator?: bigint;
+  denominator?: bigint;
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
@@ -63,8 +68,6 @@ function SingleCpaGlyphStrip({
   const { type, subtype, color, quantity } = meta;
   const count = Math.min(quantity, MAX_GLYPHS);
   const overflow = quantity - count;
-
-  // In "pictorico" mode, use generic (teal) appearance
   const generic = viewMode === 'pictorico';
 
   const glyphs = Array.from({ length: count }, (_, i) => {
@@ -77,7 +80,9 @@ function SingleCpaGlyphStrip({
       case 'stick':
         return <StickGlyph key={key} color={color} generic={generic} />;
       case 'forma':
-        return <FormaGlyph key={key} subtype={subtype} generic={generic} />;
+        return (
+          <FormaGlyph key={key} subtype={subtype} color={color} generic={generic} />
+        );
       case 'comida':
         return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} />;
       default:
@@ -86,410 +91,182 @@ function SingleCpaGlyphStrip({
   });
 
   if (count === 0) {
-    return <span className="text-slate-500 text-lg italic">vacío</span>;
+    return <span className="text-slate-500 text-sm italic">vacío</span>;
   }
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex flex-wrap justify-center gap-1.5 max-w-44">
-        {glyphs}
-      </div>
-      {overflow > 0 && (
+    <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-wrap justify-start gap-1.5">{glyphs}</div>
+      {overflow > 0 ? (
         <span className="text-[10px] font-medium text-slate-400">+{overflow} más</span>
-      )}
+      ) : null}
     </div>
   );
 }
 
-/**
- * Renders CPA glyphs organized into visual groups (for multiplication results).
- */
-function GroupedCpaGlyphStrip({
-  meta,
-  viewMode,
-  groupSize,
-  groupCount,
-}: {
-  meta: SingleCpaObjectMeta;
-  viewMode: ResultViewMode;
-  groupSize: number;
-  groupCount: number;
-}) {
-  const { type, subtype, color } = meta;
-  const generic = viewMode === 'pictorico';
-  const totalGlyphs = groupSize * groupCount;
-  const maxTotal = MAX_GLYPHS;
-
-  const renderGlyph = (key: string) => {
-    switch (type) {
-      case 'montessori':
-        return <MontessoriCubeGlyph key={key} color={color} generic={generic} />;
-      case 'cap':
-        return <CapGlyph key={key} color={color} generic={generic} />;
-      case 'stick':
-        return <StickGlyph key={key} color={color} generic={generic} />;
-      case 'forma':
-        return <FormaGlyph key={key} subtype={subtype} generic={generic} />;
-      case 'comida':
-        return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} />;
-      default:
-        return null;
-    }
+function singleCpaHeaderText(meta: SingleCpaObjectMeta, viewMode: ResultViewMode): string {
+  if (viewMode === 'abstracto') {
+    return String(meta.quantity);
+  }
+  const colorPart = meta.color ? meta.color.toUpperCase() : '';
+  const typeLabels: Record<string, string> = {
+    montessori: 'cubos',
+    cap: 'tapas',
+    stick: 'palitos',
+    forma: meta.subtype,
+    comida: meta.subtype,
   };
-
-  // Distribute glyphs across groups (respecting max)
-  let rendered = 0;
-  const groups: React.ReactNode[] = [];
-
-  for (let g = 0; g < groupCount && rendered < maxTotal; g++) {
-    const glyphsInGroup = Math.min(groupSize, maxTotal - rendered);
-    groups.push(
-      <div
-        key={`group-${g}`}
-        className="flex flex-wrap justify-center gap-1 p-1.5 rounded-md bg-slate-700/40 ring-1 ring-slate-600/50"
-      >
-        {Array.from({ length: glyphsInGroup }, (_, i) => renderGlyph(`g${g}-${i}`))}
-      </div>
-    );
-    rendered += glyphsInGroup;
+  const label = typeLabels[meta.type] ?? meta.type;
+  if (colorPart) {
+    return `${meta.quantity} ${label} ${colorPart}`.trim();
   }
-
-  const overflow = totalGlyphs - rendered;
-
-  if (groups.length === 0) {
-    return <span className="text-slate-500 text-lg italic">vacío</span>;
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex flex-wrap justify-center gap-4 max-w-52">
-        {groups}
-      </div>
-      {overflow > 0 && (
-        <span className="text-[10px] font-medium text-slate-400">+{overflow} más</span>
-      )}
-    </div>
-  );
+  return `${meta.quantity} ${label}`.trim();
 }
 
-/**
- * Renders CPA glyphs organized into visual groups with a remainder box (for division results).
- */
-function GroupedCpaGlyphStripWithRemainder({
-  meta,
-  viewMode,
-  groupSize,
-  groupCount,
-  remainderQty,
-}: {
-  meta: SingleCpaObjectMeta;
-  viewMode: ResultViewMode;
-  groupSize: number;
-  groupCount: number;
-  remainderQty: number;
-}) {
-  const { type, subtype, color } = meta;
-  const generic = viewMode === 'pictorico';
-  const totalGlyphs = groupSize * groupCount + remainderQty;
-  const maxTotal = MAX_GLYPHS;
+type SinkBodyParts = {
+  headerRight: ReactNode;
+  resultVisual?: ReactNode;
+};
 
-  const renderGlyph = (key: string) => {
-    switch (type) {
-      case 'montessori':
-        return <MontessoriCubeGlyph key={key} color={color} generic={generic} />;
-      case 'cap':
-        return <CapGlyph key={key} color={color} generic={generic} />;
-      case 'stick':
-        return <StickGlyph key={key} color={color} generic={generic} />;
-      case 'forma':
-        return <FormaGlyph key={key} subtype={subtype} generic={generic} />;
-      case 'comida':
-        return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} />;
-      default:
-        return null;
+function buildSinkBody(
+  data: ProgramOutputFlowNodeData,
+  executionError: string | null | undefined,
+  viewMode: ResultViewMode
+): SinkBodyParts {
+  if (executionError) {
+    return {
+      headerRight: (
+        <p className="text-sm font-semibold leading-snug text-red-400 whitespace-pre-wrap">
+          {executionError}
+        </p>
+      ),
+    };
+  }
+
+  if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
+    const meta = data.singleCpaObjectMeta;
+    if (viewMode === 'abstracto') {
+      return {
+        headerRight: (
+          <span className="text-3xl font-black tabular-nums text-white">{meta.quantity}</span>
+        ),
+      };
     }
+    return {
+      headerRight: singleCpaHeaderText(meta, viewMode),
+      resultVisual: <SingleCpaGlyphStrip meta={meta} viewMode={viewMode} />,
+    };
+  }
+
+  if (data.description) {
+    return {
+      headerRight: data.description,
+      resultVisual:
+        data.visualStrip && data.visualStrip.length > 0 ? (
+          <ResultArrayVisual items={data.visualStrip} align="start" />
+        ) : undefined,
+    };
+  }
+
+  if (data.value !== undefined) {
+    if (viewMode === 'pictorico' && Number.isInteger(data.value) && data.value >= 0 && data.value <= 24) {
+      return {
+        headerRight: <span className="tabular-nums text-white">{data.value}</span>,
+        resultVisual: (
+          <div className="flex justify-start">{formatResultCpa(data.value, viewMode)}</div>
+        ),
+      };
+    }
+    return {
+      headerRight: (
+        <span
+          className={
+            viewMode === 'abstracto'
+              ? 'text-6xl font-black tabular-nums text-white'
+              : 'text-lg font-bold text-sky-300'
+          }
+        >
+          {formatResultCpa(data.value, viewMode)}
+        </span>
+      ),
+    };
+  }
+
+  return {
+    headerRight: (
+      <span className="flex items-center justify-end gap-1.5 text-slate-500 italic">
+        <Hourglass className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+        Sin resultado
+      </span>
+    ),
   };
-
-  // Distribute glyphs across groups (respecting max)
-  let rendered = 0;
-  const groups: React.ReactNode[] = [];
-
-  for (let g = 0; g < groupCount && rendered < maxTotal; g++) {
-    const glyphsInGroup = Math.min(groupSize, maxTotal - rendered);
-    groups.push(
-      <div
-        key={`group-${g}`}
-        className="flex flex-wrap justify-center gap-1 p-1.5 rounded-md bg-slate-700/40 ring-1 ring-slate-600/50"
-      >
-        {Array.from({ length: glyphsInGroup }, (_, i) => renderGlyph(`g${g}-${i}`))}
-      </div>
-    );
-    rendered += glyphsInGroup;
-  }
-
-  // Render remainder box with dashed border
-  const remainderRendered = Math.min(remainderQty, maxTotal - rendered);
-  const remainderBox = remainderRendered > 0 ? (
-    <div className="flex flex-col items-center gap-0.5">
-      <div className="flex flex-wrap justify-center gap-1 p-1.5 rounded-md border-2 border-dashed border-slate-500 bg-slate-800/30">
-        {Array.from({ length: remainderRendered }, (_, i) => renderGlyph(`rem-${i}`))}
-      </div>
-      <span className="text-[9px] text-slate-500 italic">resto</span>
-    </div>
-  ) : null;
-
-  const overflow = totalGlyphs - rendered - remainderRendered;
-
-  if (groups.length === 0 && remainderRendered === 0) {
-    return <span className="text-slate-500 text-lg italic">vacío</span>;
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex flex-wrap justify-center gap-4 max-w-52">
-        {groups}
-      </div>
-      {remainderBox}
-      {overflow > 0 && (
-        <span className="text-[10px] font-medium text-slate-400">+{overflow} más</span>
-      )}
-    </div>
-  );
 }
+
+// Re-export types for external use
+export type { MultiplicationGrouping, DivisionGrouping };
+
+// Re-export functions for external use
+export {
+  computeMultiplicationGrouping,
+  computeDivisionGrouping,
+  sortByQuantity,
+  buildVisualStripFromElements,
+  generateDescriptionFromElements,
+};
 
 export function ProgramOutputFlowNode({
   id,
   data,
 }: NodeProps<ProgramOutputFlowNode>) {
-  const { executionError, nodes, edges } = useNode();
-  const { viewMode, orderingStrategy } = useResultCardUi();
+  const { executionError, registerPortKind, unregisterPortKinds } = useNode();
 
-  const value = data.value;
-  const description = data.description;
-  const visualStrip = data.visualStrip;
-
-  const modeLabel = viewMode === 'pictorico' ? 'P' : viewMode === 'concreto' ? 'C' : 'A';
-
-  // Detect if this output comes from an ordering operation
-  const orderOperation = useMemo(() => {
-    const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
-    if (!inputEdge) return null;
-
-    const sourceNode = nodes.find((n) => n.id === inputEdge.source);
-    if (!sourceNode || sourceNode.type !== 'operator') return null;
-
-    const op = (sourceNode.data as { operation?: string }).operation;
-    if (op === 'order_asc') return 'asc' as const;
-    if (op === 'order_desc') return 'desc' as const;
-    return null;
-  }, [id, nodes, edges]);
-
-  // Apply numerical post-ordering if strategy is 'numerical' and this is an ordering operation
-  const { effectiveVisualStrip, effectiveDescription } = useMemo(() => {
-    if (
-      orderOperation === null ||
-      orderingStrategy !== 'numerical' ||
-      !data.originalElements?.length
-    ) {
-      return { effectiveVisualStrip: visualStrip, effectiveDescription: description };
-    }
-
-    const sorted = sortByQuantity(data.originalElements, orderOperation);
-    return {
-      effectiveVisualStrip: buildVisualStripFromElements(sorted),
-      effectiveDescription: generateDescriptionFromElements(sorted),
-    };
-  }, [orderOperation, orderingStrategy, visualStrip, description, data.originalElements]);
-
-  // Compute grouping for single CPA objects
-  const grouping: MultiplicationGrouping = useMemo(() => {
-    // Only applies in pictoric/concrete modes
-    if (viewMode === 'abstracto') return { kind: 'none' };
-
-    // For single CPA objects
-    if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
-      const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
-      if (!inputEdge) return { kind: 'none' };
-
-      const sourceNode = nodes.find((n) => n.id === inputEdge.source);
-      if (!sourceNode) return { kind: 'none' };
-
-      return computeMultiplicationGrouping(
-        sourceNode,
-        edges,
-        nodes,
-        data.singleCpaObjectMeta.quantity
-      );
-    }
-
-    return { kind: 'none' };
-  }, [viewMode, data, id, nodes, edges]);
-
-  // Compute division grouping for single CPA objects
-  const divisionGrouping: DivisionGrouping = useMemo(() => {
-    if (viewMode === 'abstracto') return { kind: 'none' };
-
-    if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
-      const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
-      if (!inputEdge) return { kind: 'none' };
-
-      const sourceNode = nodes.find((n) => n.id === inputEdge.source);
-      if (!sourceNode) return { kind: 'none' };
-
-      return computeDivisionGrouping(
-        sourceNode,
-        edges,
-        nodes,
-        data.singleCpaObjectMeta.quantity,
-        data.singleCpaObjectMeta.numerator,
-        data.singleCpaObjectMeta.denominator
-      );
-    }
-
-    return { kind: 'none' };
-  }, [viewMode, data, id, nodes, edges]);
-
-  // Compute grouping for array results
-  const arrayGrouping = useMemo(() => {
-    if (viewMode === 'abstracto' || !effectiveVisualStrip?.length) return undefined;
-
-    const inputEdge = edges.find((e) => e.target === id && e.targetHandle === 'in');
-    if (!inputEdge) return undefined;
-
-    const sourceNode = nodes.find((n) => n.id === inputEdge.source);
-    if (!sourceNode) return undefined;
-
-    const result = computeMultiplicationGrouping(sourceNode, edges, nodes, effectiveVisualStrip.length);
-
-    return result.kind === 'grouped'
-      ? { groupSize: result.groupSize, groupCount: result.groupCount }
-      : undefined;
-  }, [viewMode, effectiveVisualStrip, id, nodes, edges]);
-
-  const display =
-    executionError ? (
-      <p className="max-h-48 overflow-y-auto text-left text-sm font-semibold leading-snug text-red-400 whitespace-pre-wrap px-1">
-        {executionError}
-      </p>
-    ) : (data.isSingleCpaObject && data.singleCpaObjectMeta) ? (
-      // Single CPA Object - viewMode-aware rendering
-      viewMode === 'abstracto' ? (
-        // Abstract mode: show fraction (e.g., "13/4") or integer
-        <div className="flex flex-col items-center gap-1 text-white">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Equal className="w-4 h-4" strokeWidth={2.5} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
-          </div>
-          <div className="text-5xl font-black text-white tabular-nums drop-shadow-lg">
-            {data.singleCpaObjectMeta.denominator !== 1
-              ? formatFraction(data.singleCpaObjectMeta.numerator, data.singleCpaObjectMeta.denominator)
-              : data.singleCpaObjectMeta.quantity}
-          </div>
-        </div>
-      ) : divisionGrouping.kind === 'grouped-with-remainder' ? (
-        // Division with remainder mode: show groups + remainder box
-        <div className="flex flex-col items-center gap-1 text-white">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Equal className="w-4 h-4" strokeWidth={2.5} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">
-              {modeLabel} · {divisionGrouping.mode === 'partitivo' ? 'Partitiva' : 'Cuotativa'}
-            </span>
-          </div>
-          <GroupedCpaGlyphStripWithRemainder
-            meta={data.singleCpaObjectMeta}
-            viewMode={viewMode}
-            groupSize={divisionGrouping.groupSize}
-            groupCount={divisionGrouping.groupCount}
-            remainderQty={divisionGrouping.remainderQty}
-          />
-        </div>
-      ) : divisionGrouping.kind === 'grouped' ? (
-        // Division exact grouped mode: show glyphs organized into groups (partitivo/cuotativo)
-        <div className="flex flex-col items-center gap-1 text-white">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Equal className="w-4 h-4" strokeWidth={2.5} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">
-              {modeLabel} · {divisionGrouping.mode === 'partitivo' ? 'Partitiva' : 'Cuotativa'}
-            </span>
-          </div>
-          <GroupedCpaGlyphStrip
-            meta={data.singleCpaObjectMeta}
-            viewMode={viewMode}
-            groupSize={divisionGrouping.groupSize}
-            groupCount={divisionGrouping.groupCount}
-          />
-        </div>
-      ) : grouping.kind === 'grouped' ? (
-        // Multiplication grouped mode: show glyphs organized into visual groups
-        <div className="flex flex-col items-center gap-1 text-white">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Equal className="w-4 h-4" strokeWidth={2.5} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
-          </div>
-          <GroupedCpaGlyphStrip
-            meta={data.singleCpaObjectMeta}
-            viewMode={viewMode}
-            groupSize={grouping.groupSize}
-            groupCount={grouping.groupCount}
-          />
-        </div>
-      ) : (
-        // Non-grouped: show N glyphs without grouping
-        <div className="flex flex-col items-center gap-1 text-white">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Equal className="w-4 h-4" strokeWidth={2.5} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
-          </div>
-          <SingleCpaGlyphStrip meta={data.singleCpaObjectMeta} viewMode={viewMode} />
-        </div>
-      )
-    ) : effectiveDescription ? (
-      // Resultado semántico (arreglo de objetos)
-      <div className="flex flex-col items-center gap-0.5 text-white">
-        <LayoutList className="w-5 h-5 text-slate-400" strokeWidth={2} />
-        <p className="text-lg text-center text-teal-200 leading-snug px-1">
-          {effectiveDescription}
-        </p>
-        {effectiveVisualStrip && effectiveVisualStrip.length > 0 ? (
-          <ResultArrayVisual items={effectiveVisualStrip} grouping={arrayGrouping} />
-        ) : null}
-      </div>
-    ) : value !== undefined ? (
-      // Resultado numérico (pure rational)
-      <div className="flex flex-col items-center gap-1 text-white">
-        <div className="flex items-center gap-1 text-slate-400">
-          <Equal className="w-4 h-4" strokeWidth={2.5} />
-          <span className="text-[10px] font-semibold uppercase tracking-wider">{modeLabel}</span>
-        </div>
-        <div
-          className={
-            viewMode === 'abstracto'
-              ? 'text-5xl font-black text-white tabular-nums drop-shadow-lg'
-              : viewMode === 'concreto'
-                ? 'text-3xl font-bold text-sky-300 text-center drop-shadow-md'
-                : 'text-center drop-shadow-md max-w-[14rem]'
-          }
-        >
-          {viewMode === 'abstracto' && data.denominator !== undefined && data.denominator !== 1
-            ? formatFraction(data.numerator!, data.denominator)
-            : formatResultCpa(value, viewMode)}
-        </div>
-      </div>
-    ) : (
-      <div className="flex flex-col items-center gap-2 text-slate-500">
-        <Hourglass className="w-6 h-6" strokeWidth={1.5} />
-        <p className="text-sm text-center italic px-2">Sin resultado</p>
-      </div>
-    );
-
+  useEffect(() => {
+    registerPortKind(id, 'in', { accepts: ['any'] });
+    registerPortKind(id, 'out', { produces: 'any' });
+    return () => unregisterPortKinds(id);
+  }, [id, registerPortKind, unregisterPortKinds]);
+  const { viewMode } = useResultCardUi();
+  const shellClass = useFlowNodeShellClass();
+  const { headerRight, resultVisual } = buildSinkBody(data, executionError, viewMode);
   const trackId = readTrackId(data);
+  const speechText = buildSinkResultSpeechText(data, executionError, viewMode);
 
   return (
-    <div className="relative h-65 w-52 -translate-x-[30%] -translate-y-[80%]">
-      <TrackIdBadge trackId={trackId} />
-      <ClickableHandle type="target" position={Position.Left} id="in" nodeId={id} style={{ transform: 'translateX(-100px)' }} />
-      <FlowNodeCard family="sink" title="Salida" content={<span className="text-xs font-black text-slate-100">{display}</span>} />
-      <ClickableHandle type="source" position={Position.Right} id="out" nodeId={id} style={{ transform: 'translateX(100px)' }} />
+    <div
+      className={`relative flex w-70 -translate-x-[10%] -translate-y-[40%] flex-col-reverse gap-2 ${shellClass}`}
+    >
+      <div className="pointer-events-none relative h-65 w-full">
+        <TrackIdBadge trackId={trackId} />
+        <ClickableHandle
+          type="target"
+          position={Position.Left}
+          id="in"
+          nodeId={id}
+          handleVariant="sink-in"
+          accepts={['any']}
+          style={{ transform: 'translateX(-100px) translateY(-150%)' }}
+        />
+        <SinkFlowNodeCard headerRight={headerRight} resultVisual={resultVisual} />
+        <ClickableHandle
+          type="source"
+          position={Position.Right}
+          id="out"
+          nodeId={id}
+          handleVariant="sink-out"
+          produces="any"
+          style={{ transform: 'translateX(100px) translateY(-150%)' }}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          if (speechText) speakSpanish(speechText);
+        }}
+        className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} w-20 h-20 relative z-30 flex shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-teal-600 bg-teal-800 px-3 py-2 text-sm font-semibold text-teal-50 shadow transition-colors hover:bg-teal-700`}
+        title={speechText ? 'Escuchar el resultado' : 'Sin resultado para reproducir'}
+      >
+        <Volume2 className="h-10 w-10 shrink-0" strokeWidth={2} aria-hidden />
+      </button>
     </div>
   );
 }

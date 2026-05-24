@@ -15,11 +15,13 @@ import type {
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
+import { isPictorialColorYoloClass } from "../data/pictorialColors";
 import type { DataflowNode } from "../contexts/node/types";
+import { getOrderedArrayZoneMembers } from "./arrayZoneGeometry";
 import {
-  getArrayZoneBounds,
-  shouldIncludeNodeInArrayZone,
-} from "./arrayZoneGeometry";
+  resolveNumberSourceId,
+  shouldEmitNumberSource,
+} from "./numberTouchMerge";
 import { logger } from "@/lib/logger";
 
 const OPERATOR_MAP: Record<string, Operation> = {
@@ -79,18 +81,29 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
       const data = node.data as SourceFlowNodeData;
 
       if (data.variant === "number") {
+        if (!shouldEmitNumberSource(node.id, nodes)) continue;
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
           value: { type: "NumberLiteral", value: new Fraction(data.value ?? 0) },
         });
       } else if (data.variant === "shape") {
+        const shapeAttrs: Record<string, string> = {
+          size: normalizeSize(data.size),
+        };
+        if (isPictorialColorYoloClass(data.yoloClass)) {
+          shapeAttrs.color = data.color;
+        }
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject("pictorico", "forma", data.shape ?? "circulo", 1, {
-            size: normalizeSize(data.size),
-          }),
+          value: createCPAObject(
+            "pictorico",
+            "forma",
+            data.shape ?? "circulo",
+            1,
+            shapeAttrs
+          ),
         });
       } else if (data.variant === "food") {
         statements.push({
@@ -130,29 +143,16 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
   // 2a. Array pairs: each edge from arrayOpen → arrayClose (zone-in) defines an array.
   //     AABB entre handlers zone-out (abrir) y zone-in (cerrar); miembros = fuentes/operadores
-  //     cuyo centro de carta cae dentro (inclusive).
+  //     cuya carta solapa la zona (inclusive en el borde).
   for (const edge of edges) {
     if (edge.targetHandle !== "zone-in") continue;
 
-    const openNode = nodes.find(
-      (n) => n.id === edge.source && n.type === "arrayOpen"
-    );
     const closeNode = nodes.find(
       (n) => n.id === edge.target && n.type === "arrayClose"
     );
-    if (!openNode || !closeNode) continue;
+    if (!closeNode) continue;
 
-    const bounds = getArrayZoneBounds(openNode, closeNode);
-
-    const inner = nodes
-      .filter((n) =>
-        shouldIncludeNodeInArrayZone(n, openNode.id, closeNode.id, bounds)
-      )
-      .sort((a, b) =>
-        a.position.x !== b.position.x
-          ? a.position.x - b.position.x
-          : a.position.y - b.position.y
-      );
+    const inner = getOrderedArrayZoneMembers(closeNode.id, nodes, edges);
 
     if (inner.length === 0) continue;
 
@@ -182,7 +182,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
       const args = sortedEdges.map((e) => ({
         type: "Identifier" as const,
-        name: e.source,
+        name: resolveNumberSourceId(e.source, nodes),
       }));
 
       statements.push({
@@ -219,7 +219,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
     statements.push({
       type: "SinkStatement",
       identifier: `output_${node.id}`,
-      sourceIdentifier: inputEdge.source,
+      sourceIdentifier: resolveNumberSourceId(inputEdge.source, nodes),
     });
   }
 

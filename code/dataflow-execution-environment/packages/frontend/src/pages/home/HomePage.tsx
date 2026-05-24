@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
 import { AnimatedMenuBackground } from '@/components/AnimatedMenuBackground';
-import { ApiHealthBadge } from '@/components/ApiHealthBadge';
 import { useHomePage } from './useHomePage';
 
 export default function HomePage() {
@@ -10,9 +9,6 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-100 flex flex-col items-center justify-center p-6 md:p-8">
-      <div className="fixed bottom-4 right-4 z-20">
-        <ApiHealthBadge />
-      </div>
       <AnimatedMenuBackground />
       <div className="relative z-10 flex flex-col items-center w-full">
       <motion.h1

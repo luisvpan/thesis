@@ -7,9 +7,9 @@ import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import { useNode } from '@/contexts/NodeContext';
-import type { DataflowNode } from '@/contexts/node/types';
-import type { HandleKind, HandleAcceptance } from './handle-kinds';
-import type { PortKindInfo } from '@/contexts/node/types';
+import type { DataflowNode, PortKindInfo } from '@/contexts/node/types';
+import type { HandleKind } from './handle-kinds';
+import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 import type { SourceFlowNodeData } from './SourceFlowNode';
 
 export type OperatorFlowNodeData = VisionNodeMeta & {
@@ -32,20 +32,20 @@ function operatorSymbol(operator: OperatorType): string {
 
 /**
  * Determine what kinds a handle accepts based on the operator type.
- * - Filter operators: input "a" (items) prefers cpa, tolerates rational
+ * - Filter operators: input "a" (items) accepts cpa
  * - Filter operators: input "b" (criterion) accepts only keyword
- * - All other operators: accept cpa and rational as primary
+ * - All other operators: accept cpa and rational
  */
-function getHandleAcceptance(operator: OperatorType, handleId: string): HandleAcceptance {
+function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[] {
   if (isFilterOperatorType(operator)) {
     if (handleId === 'b') {
-      return { primary: ['keyword'] };
+      return ['keyword'];
     }
-    // items: cpa preferred, rational tolerated
-    return { primary: ['cpa'], tolerated: ['rational'] };
+    // items: cpa preferred
+    return ['cpa'];
   }
-  // Arithmetic and Order operators: both kinds are primary
-  return { primary: ['cpa', 'rational'] };
+  // Arithmetic and Order operators: both kinds accepted
+  return ['cpa', 'rational'];
 }
 
 /**
@@ -98,10 +98,11 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const operator = d.operator ?? 'adicion';
   const { registerPortKind, unregisterPortKinds, nodes, edges, getPortKindInfo } = useNode();
   const { setNodes } = useReactFlow();
+  const shellClass = useFlowNodeShellClass();
 
-  // Determine acceptance for each input handle
-  const acceptanceA = getHandleAcceptance(operator, 'a');
-  const acceptanceB = getHandleAcceptance(operator, 'b');
+  // Determine accepts for each input handle
+  const acceptsA = getHandleAccepts(operator, 'a');
+  const acceptsB = getHandleAccepts(operator, 'b');
   // Output kind computed dynamically based on connected inputs
   const producesOut = useOutputKind(id, edges, getPortKindInfo);
 
@@ -121,14 +122,14 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
 
   // Register port kinds when component mounts or operator/output changes
   useEffect(() => {
-    registerPortKind(id, 'a', { acceptance: acceptanceA });
-    registerPortKind(id, 'b', { acceptance: acceptanceB });
+    registerPortKind(id, 'a', { accepts: acceptsA });
+    registerPortKind(id, 'b', { accepts: acceptsB });
     registerPortKind(id, 'out', { produces: producesOut });
     return () => unregisterPortKinds(id);
-  }, [id, operator, acceptanceA, acceptanceB, producesOut, registerPortKind, unregisterPortKinds]);
+  }, [id, operator, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
 
   return (
-    <div className="relative h-52 w-52 -translate-x-[30%] -translate-y-[25%]">
+    <div className={`relative h-52 w-30 -translate-x-[15%] -translate-y-[45%] ${shellClass}`}>
       <TrackIdBadge trackId={readTrackId(d)} />
       {/* Toggle partitivo/cuotativo para divisiones CPA */}
       {showDivisionToggle && (
@@ -146,7 +147,8 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Left}
         id="a"
         nodeId={id}
-        acceptance={acceptanceA}
+        handleVariant="operator-in-a"
+        accepts={acceptsA}
         style={{ top: '25%', transform: 'translateX(-100px)' }}
       />
       <ClickableHandle
@@ -154,7 +156,8 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Left}
         id="b"
         nodeId={id}
-        acceptance={acceptanceB}
+        handleVariant="operator-in-b"
+        accepts={acceptsB}
         style={{ top: '75%', transform: 'translateX(-100px)' }}
       />
       <FlowNodeCard
@@ -168,10 +171,10 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         position={Position.Right}
         id="out"
         nodeId={id}
+        handleVariant="operator-out"
         produces={producesOut}
         style={{ transform: 'translateX(100px)' }}
       />
     </div>
   );
 }
-
