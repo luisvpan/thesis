@@ -22,9 +22,9 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     proxy: {
-      // TypeScript API (Elysia) - compile/execute endpoints
+      // Python IDE relay (cv-stack) - vision ingest HTTP
       '/api': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://127.0.0.1:8765',
         changeOrigin: true,
       },
       // Python IDE relay (cv-stack) - vision/touch WebSockets

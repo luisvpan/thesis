@@ -121,12 +121,6 @@ export const logger = {
   /** Frontend to interpreter communication: [frontend→interpreter] */
   interpreter: createLogger("frontend→interpreter"),
 
-  /** Socket.IO lifecycle: [Socket] */
-  socket: createLogger("Socket"),
-
-  /** Socket.IO events: [backend:socket.io] */
-  socketBackend: createLogger("backend:socket.io"),
-
   /** Touch system: [touch] */
   touch: createLogger("touch"),
 
