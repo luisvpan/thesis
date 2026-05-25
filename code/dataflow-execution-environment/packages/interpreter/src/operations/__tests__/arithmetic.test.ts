@@ -290,4 +290,64 @@ describe("divide (unit)", () => {
     const a = createAbstractNumber(10);
     expect(() => divide([a])).toThrow();
   });
+
+  test("handles ArrayValue with implicit sum", () => {
+    const arr: ArrayValue = {
+      kind: "arreglo",
+      elements: [createAbstractNumber(6), createAbstractNumber(6)],
+    };
+    const divisor = createAbstractNumber(4);
+    const result = divide([arr, divisor]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(3))).toBe(true); // (6+6)/4 = 3
+  });
+
+  test("handles ArrayValue as divisor with implicit sum", () => {
+    const dividend = createAbstractNumber(12);
+    const arr: ArrayValue = {
+      kind: "arreglo",
+      elements: [createAbstractNumber(2), createAbstractNumber(2)],
+    };
+    const result = divide([dividend, arr]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(3))).toBe(true); // 12/(2+2) = 3
+  });
+});
+
+describe("substract with ArrayValue (unit)", () => {
+  test("handles ArrayValue minuend with implicit sum", () => {
+    const arr: ArrayValue = {
+      kind: "arreglo",
+      elements: [createAbstractNumber(7), createAbstractNumber(3)],
+    };
+    const subtrahend = createAbstractNumber(5);
+    const result = substract([arr, subtrahend]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(5))).toBe(true); // (7+3)-5 = 5
+  });
+
+  test("handles ArrayValue subtrahend with implicit sum", () => {
+    const minuend = createAbstractNumber(10);
+    const arr: ArrayValue = {
+      kind: "arreglo",
+      elements: [createAbstractNumber(2), createAbstractNumber(1)],
+    };
+    const result = substract([minuend, arr]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(7))).toBe(true); // 10-(2+1) = 7
+  });
+
+  test("handles both arguments as ArrayValue", () => {
+    const arr1: ArrayValue = {
+      kind: "arreglo",
+      elements: [createAbstractNumber(5), createAbstractNumber(5)],
+    };
+    const arr2: ArrayValue = {
+      kind: "arreglo",
+      elements: [createAbstractNumber(3), createAbstractNumber(4)],
+    };
+    const result = substract([arr1, arr2]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(3))).toBe(true); // (5+5)-(3+4) = 3
+  });
 });

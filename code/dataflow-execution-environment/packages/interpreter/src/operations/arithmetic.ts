@@ -6,6 +6,7 @@ import type {
 } from "../runtime/types";
 import {
   isCPAObject,
+  isArray,
   getCPAKey,
 } from "../runtime/types";
 import { RuntimeError } from "../runtime/errors";
@@ -131,8 +132,35 @@ export function multiply(args: RuntimeValue[]): RuntimeValue {
 }
 
 /**
+ * Resolves a RuntimeValue to a CPAObject for binary arithmetic operations.
+ * - CPAObject: return as-is
+ * - ArrayValue: implicit sum of elements, return resulting CPAObject
+ * - OtherValue: return null (ignored)
+ */
+function resolveToSingleCPA(val: RuntimeValue): CPAObject | null {
+  if (isCPAObject(val)) {
+    return val;
+  }
+  if (isArray(val)) {
+    // Implicit sum of array elements
+    const result = sum(val.elements);
+    if (isCPAObject(result)) {
+      return result;
+    }
+    // If sum returns an array (heterogeneous), take first element
+    if (isArray(result) && result.elements.length > 0 && isCPAObject(result.elements[0])) {
+      return result.elements[0] as CPAObject;
+    }
+    return null;
+  }
+  // OtherValue - ignored
+  return null;
+}
+
+/**
  * Substract operation (binary, arity = 2):
  * - a - b for amounts/values
+ * - Supports ArrayValue (implicit sum) and OtherValue (ignored)
  */
 export function substract(args: RuntimeValue[]): RuntimeValue {
   if (args.length !== 2) {
@@ -142,14 +170,21 @@ export function substract(args: RuntimeValue[]): RuntimeValue {
     );
   }
 
-  const [a, b] = args;
+  const [rawA, rawB] = args;
+  const a = resolveToSingleCPA(rawA);
+  const b = resolveToSingleCPA(rawB);
 
-  // Both must be CPA objects
-  if (!isCPAObject(a) || !isCPAObject(b)) {
-    throw new RuntimeError(
-      "TYPE_ERROR",
-      "substract requires CPA objects"
-    );
+  // If both are null (OtherValue), return first arg as-is
+  if (a === null && b === null) {
+    return rawA;
+  }
+  // If a is null, return b as-is
+  if (a === null) {
+    return b!;
+  }
+  // If b is null, return a as-is
+  if (b === null) {
+    return a;
   }
 
   const diff = rational.subtract(getQuantity(a), getQuantity(b));
@@ -159,6 +194,7 @@ export function substract(args: RuntimeValue[]): RuntimeValue {
 /**
  * Divide operation (binary, arity = 2):
  * - a / b for amounts/values
+ * - Supports ArrayValue (implicit sum) and OtherValue (ignored)
  */
 export function divide(args: RuntimeValue[]): RuntimeValue {
   if (args.length !== 2) {
@@ -168,14 +204,21 @@ export function divide(args: RuntimeValue[]): RuntimeValue {
     );
   }
 
-  const [a, b] = args;
+  const [rawA, rawB] = args;
+  const a = resolveToSingleCPA(rawA);
+  const b = resolveToSingleCPA(rawB);
 
-  // Both must be CPA objects
-  if (!isCPAObject(a) || !isCPAObject(b)) {
-    throw new RuntimeError(
-      "TYPE_ERROR",
-      "divide requires CPA objects"
-    );
+  // If both are null (OtherValue), return first arg as-is
+  if (a === null && b === null) {
+    return rawA;
+  }
+  // If a is null, return b as-is
+  if (a === null) {
+    return b!;
+  }
+  // If b is null, return a as-is (can't divide by nothing)
+  if (b === null) {
+    return a;
   }
 
   const divisor = getQuantity(b);
