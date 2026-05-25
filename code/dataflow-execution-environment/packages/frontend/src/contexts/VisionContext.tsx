@@ -99,20 +99,20 @@ export function VisionProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // if (typ === "cardDetections") {
-        //   const frame = data as CardDetectionsPayload;
-        //   setLastCardFrame(frame);
-        //   logger.vision.debug("Card detections", {
-        //     count: frame.cards.length,
-        //     t: frame.t,
-        //     cards: frame.cards.map((c) => ({
-        //       label: c.label,
-        //       trackId: c.trackId,
-        //       x: c.position.x,
-        //       y: c.position.y,
-        //     })),
-        //   });
-        // }
+        if (typ === "cardDetections") {
+          const frame = data as CardDetectionsPayload;
+          setLastCardFrame(frame);
+          logger.vision.debug("Card detections", {
+            count: frame.cards.length,
+            t: frame.t,
+            cards: frame.cards.map((c) => ({
+              label: c.label,
+              trackId: c.trackId,
+              x: c.position.x,
+              y: c.position.y,
+            })),
+          });
+        }
       } catch (e) {
         logger.vision.warn("Invalid JSON", {
           error: e instanceof Error ? e.message : String(e),

@@ -47,7 +47,7 @@ export function ArrayCloseNode({ id, data }: NodeProps<ArrayCloseNode>) {
         position={Position.Right}
         id="out"
         nodeId={id}
-        handleVariant="zone-close-triangle"
+        handleVariant="zone-close-out"
         produces="any"
         style={{
           top: `${ARRAY_CLOSE_ZONE_IN_TOP_FRAC * 100}%`,

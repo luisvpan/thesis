@@ -9,7 +9,10 @@ export type FlowHandleVariant =
   | "sink-in"
   | "sink-out"
   | "zone-open-triangle"
-  | "zone-close-triangle";
+  | "zone-close-triangle"
+  | "zone-close-out";
+
+const FLOW_HANDLE_ROUNDED = "!rounded-md";
 
 /** clip-path / border-radius classes per variant */
 export function getHandleVariantShapeClass(variant: FlowHandleVariant | undefined): string {
@@ -19,19 +22,18 @@ export function getHandleVariantShapeClass(variant: FlowHandleVariant | undefine
     case "input-out":
       return ""; // falls through to HandleKind shape in ClickableHandle
     case "operator-in-a":
-      return "flow-handle-hexagon !rounded-none";
     case "operator-in-b":
-      return "flow-handle-diamond !rounded-none";
+      return `flow-handle-hexagon ${FLOW_HANDLE_ROUNDED}`;
     case "operator-out":
-      return "flow-handle-chevron !rounded-none";
+    case "zone-close-out":
     case "sink-in":
-      return "flow-handle-sink-in !rounded-sm";
+      return `!rounded-full ${FLOW_HANDLE_ROUNDED}`;
     case "sink-out":
-      return "!rounded-md";
+      return `flow-handle-arrow ${FLOW_HANDLE_ROUNDED}`;
     case "zone-open-triangle":
-      return "flow-handle-triangle-open !rounded-none";
+      return `flow-handle-triangle-open ${FLOW_HANDLE_ROUNDED}`;
     case "zone-close-triangle":
-      return "flow-handle-triangle-close !rounded-none";
+      return `flow-handle-triangle-close ${FLOW_HANDLE_ROUNDED}`;
     default:
       return "";
   }

@@ -50,8 +50,8 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   /** Metadata for single CPA object rendering */
   singleCpaObjectMeta?: SingleCpaObjectMeta;
   /** For exact fraction display of pure rationals (e.g., "13/4" instead of 3.25) */
-  numerator?: bigint;
-  denominator?: bigint;
+  numerator?: number;
+  denominator?: number;
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;

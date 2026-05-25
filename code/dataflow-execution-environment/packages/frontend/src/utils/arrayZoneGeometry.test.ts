@@ -31,16 +31,17 @@ describe("arrayZoneGeometry", () => {
     expect(c.y).toBe(200 + ARRAY_CLOSE_ZONE_IN_TOP_FRAC * FLOW_CARD_SIZE);
   });
 
-  test("getArrayZoneBounds is axis-aligned min/max of both handle centers", () => {
+  test("getArrayZoneBounds unions both handle AABBs (80×80)", () => {
     const open = { position: { x: 0, y: 0 } };
     const close = { position: { x: 400, y: 200 } };
     const b = getArrayZoneBounds(open, close);
     const p0 = getArrayOpenZoneOutCenter(open);
     const p1 = getArrayCloseZoneInCenter(close);
-    expect(b.left).toBe(Math.min(p0.x, p1.x));
-    expect(b.right).toBe(Math.max(p0.x, p1.x));
-    expect(b.top).toBe(Math.min(p0.y, p1.y));
-    expect(b.bottom).toBe(Math.max(p0.y, p1.y));
+    const half = FLOW_HANDLE_SIZE / 2;
+    expect(b.left).toBe(Math.min(p0.x, p1.x) - half);
+    expect(b.right).toBe(Math.max(p0.x, p1.x) + half);
+    expect(b.top).toBe(Math.min(p0.y, p1.y) - half);
+    expect(b.bottom).toBe(Math.max(p0.y, p1.y) + half);
   });
 
   test("shouldIncludeNodeInArrayZone excludes pair ends and programOutput", () => {

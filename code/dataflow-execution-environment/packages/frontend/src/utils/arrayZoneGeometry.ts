@@ -50,18 +50,28 @@ export function getArrayCloseZoneInCenter(
   };
 }
 
-/** AABB entre los dos handlers del enlace de zona (orden abrir → cerrar). */
+function axisAlignedBoundsFromCenter(center: Point): AxisAlignedBounds {
+  const half = FLOW_HANDLE_SIZE / 2;
+  return {
+    left: center.x - half,
+    right: center.x + half,
+    top: center.y - half,
+    bottom: center.y + half,
+  };
+}
+
+/** AABB que cubre ambos handlers zone-out / zone-in (cartas 80×80). */
 export function getArrayZoneBounds(
   openNode: Pick<{ position: { x: number; y: number } }, "position">,
   closeNode: Pick<{ position: { x: number; y: number } }, "position">
 ): AxisAlignedBounds {
-  const p0 = getArrayOpenZoneOutCenter(openNode);
-  const p1 = getArrayCloseZoneInCenter(closeNode);
+  const openHandle = axisAlignedBoundsFromCenter(getArrayOpenZoneOutCenter(openNode));
+  const closeHandle = axisAlignedBoundsFromCenter(getArrayCloseZoneInCenter(closeNode));
   return {
-    left: Math.min(p0.x, p1.x),
-    right: Math.max(p0.x, p1.x),
-    top: Math.min(p0.y, p1.y),
-    bottom: Math.max(p0.y, p1.y),
+    left: Math.min(openHandle.left, closeHandle.left),
+    right: Math.max(openHandle.right, closeHandle.right),
+    top: Math.min(openHandle.top, closeHandle.top),
+    bottom: Math.max(openHandle.bottom, closeHandle.bottom),
   };
 }
 
