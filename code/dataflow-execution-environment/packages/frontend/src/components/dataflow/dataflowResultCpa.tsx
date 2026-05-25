@@ -36,9 +36,19 @@ const numberNames: Record<number, string> = {
   9: 'Nueve',
 };
 
-export function formatResultCpa(value: number, mode: ResultViewMode): ReactNode {
+export function formatResultCpa(
+  value: number,
+  mode: ResultViewMode,
+  numerator?: string,
+  denominator?: string
+): ReactNode {
   if (!Number.isFinite(value)) {
     return String(value);
+  }
+
+  // En modo abstracto, mostrar fracción si tenemos numerator/denominator
+  if (mode === 'abstracto' && numerator !== undefined && denominator !== undefined) {
+    return formatFraction(numerator, denominator);
   }
 
   const isInt = Number.isInteger(value);
@@ -79,10 +89,11 @@ export function formatResultCpa(value: number, mode: ResultViewMode): ReactNode 
 
 /**
  * Formats a fraction as "numerator/denominator" for abstract mode display.
- * Returns just the numerator if denominator is 1 (integer result).
+ * Returns just the numerator if denominator is "1" (integer result).
+ * Uses strings to preserve precision with BigInts.
  */
-export function formatFraction(numerator: number, denominator: number): ReactNode {
-  if (denominator === 1) {
+export function formatFraction(numerator: string, denominator: string): ReactNode {
+  if (denominator === '1') {
     return <span className="tabular-nums">{numerator}</span>;
   }
   return (

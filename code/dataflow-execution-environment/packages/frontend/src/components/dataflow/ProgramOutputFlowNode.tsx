@@ -5,7 +5,7 @@ import { Hourglass, Volume2 } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
-import { formatResultCpa, type ResultViewMode } from './dataflowResultCpa';
+import { formatResultCpa, formatFraction, type ResultViewMode } from './dataflowResultCpa';
 import { SinkFlowNodeCard } from './SinkFlowNodeCard';
 import { ResultArrayVisual } from './ResultArrayVisual';
 import {
@@ -146,9 +146,13 @@ function buildSinkBody(
   if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
     const meta = data.singleCpaObjectMeta;
     if (viewMode === 'abstracto') {
+      const num = data.numerator ?? String(meta.quantity);
+      const den = data.denominator ?? '1';
       return {
         headerRight: (
-          <span className="text-3xl font-black tabular-nums text-white">{meta.quantity}</span>
+          <span className="text-3xl font-black tabular-nums text-white">
+            {formatFraction(num, den)}
+          </span>
         ),
       };
     }
@@ -173,7 +177,9 @@ function buildSinkBody(
       return {
         headerRight: <span className="tabular-nums text-white">{data.value}</span>,
         resultVisual: (
-          <div className="flex justify-start">{formatResultCpa(data.value, viewMode)}</div>
+          <div className="flex justify-start">
+            {formatResultCpa(data.value, viewMode, data.numerator, data.denominator)}
+          </div>
         ),
       };
     }
@@ -186,7 +192,7 @@ function buildSinkBody(
               : 'text-lg font-bold text-sky-300'
           }
         >
-          {formatResultCpa(data.value, viewMode)}
+          {formatResultCpa(data.value, viewMode, data.numerator, data.denominator)}
         </span>
       ),
     };
