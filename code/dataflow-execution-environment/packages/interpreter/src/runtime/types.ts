@@ -36,16 +36,6 @@ export type CPAObject = GenericCPAObject;
 // Other Runtime Value Types
 // =============================================================================
 
-export type RationalValue = {
-  kind: "racional";
-  value: Fraction;
-};
-
-export type BooleanValue = {
-  kind: "booleano";
-  value: boolean;
-};
-
 export type ArrayValue = {
   kind: "arreglo";
   elements: RuntimeValue[];
@@ -58,8 +48,6 @@ export type OtherValue = {
 
 // All possible runtime values
 export type RuntimeValue =
-  | RationalValue
-  | BooleanValue
   | CPAObject
   | ArrayValue
   | OtherValue;
@@ -83,10 +71,6 @@ export interface ExecutionNode {
 // Type Guards
 // =============================================================================
 
-export function isRational(val: RuntimeValue): val is RationalValue {
-  return val.kind === "racional";
-}
-
 export function isArray(val: RuntimeValue): val is ArrayValue {
   return val.kind === "arreglo";
 }
@@ -97,10 +81,6 @@ export function isCPAObject(val: RuntimeValue): val is CPAObject {
 
 export function isOther(val: RuntimeValue): val is OtherValue {
   return val.kind === "otro";
-}
-
-export function isBoolean(val: RuntimeValue): val is BooleanValue {
-  return val.kind === "booleano";
 }
 
 // =============================================================================
@@ -135,7 +115,6 @@ export function getCategoryOrder(val: RuntimeValue): Category {
       case "abstracto": return Category.Abstracto;
     }
   }
-  if (val.kind === "racional") return Category.Abstracto;
   return Category.Abstracto;
 }
 
@@ -146,7 +125,6 @@ export function getTypeKey(val: RuntimeValue): string {
   if (isCPAObject(val)) {
     return `${val.type}:${val.subtype}`;
   }
-  if (val.kind === "racional") return "racional";
   return "otro";
 }
 

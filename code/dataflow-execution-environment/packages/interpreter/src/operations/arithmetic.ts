@@ -2,43 +2,46 @@ import type Fraction from "fraction.js";
 import * as rational from "../runtime/rational";
 import type {
   RuntimeValue,
-  RationalValue,
   CPAObject,
 } from "../runtime/types";
 import {
-  isRational,
   isCPAObject,
   getCPAKey,
 } from "../runtime/types";
 import { RuntimeError } from "../runtime/errors";
 import { flattenArrays, getQuantity, cloneCPAWithQuantity } from "./utils";
+import { createAbstractNumber } from "../utils";
+
+/**
+ * Check if a value is an abstract number (CPA abstracto with type "numero")
+ */
+function isAbstractNumber(val: RuntimeValue): val is CPAObject {
+  return isCPAObject(val) && val.category === "abstracto" && val.type === "numero";
+}
 
 /**
  * Sum operation (variadic):
  * - Flatten all input arrays
- * - For rationals: add all values
+ * - For abstract numbers: add all values
  * - For CPA objects: aggregate by (category+type+subtype), sum amounts
  */
 export function sum(args: RuntimeValue[]): RuntimeValue {
   const flatValues = flattenArrays(args);
 
-  // If all rationals, sum them
-  if (flatValues.every(isRational)) {
+  // If all abstract numbers, sum them and return abstract number
+  if (flatValues.every(isAbstractNumber)) {
     const total = flatValues.reduce(
-      (acc, v) => rational.add(acc, (v as RationalValue).value),
+      (acc, v) => rational.add(acc, getQuantity(v as CPAObject)),
       rational.zero()
     );
-    return { kind: "racional", value: total };
+    return createAbstractNumber(total);
   }
 
   // CPA aggregation: group by key, sum quantities
   const groups = new Map<string, CPAObject>();
-  const rationals: Fraction[] = [];
 
   for (const value of flatValues) {
-    if (isRational(value)) {
-      rationals.push(value.value);
-    } else if (isCPAObject(value)) {
+    if (isCPAObject(value)) {
       const key = getCPAKey(value);
       const existing = groups.get(key);
 
@@ -51,16 +54,7 @@ export function sum(args: RuntimeValue[]): RuntimeValue {
     }
   }
 
-  // If we have both rationals and CPA objects, return array
   const resultElements: RuntimeValue[] = Array.from(groups.values());
-
-  if (rationals.length > 0) {
-    const rationalSum = rationals.reduce(
-      (acc, v) => rational.add(acc, v),
-      rational.zero()
-    );
-    resultElements.push({ kind: "racional", value: rationalSum });
-  }
 
   if (resultElements.length === 1) {
     return resultElements[0];
@@ -72,25 +66,25 @@ export function sum(args: RuntimeValue[]): RuntimeValue {
 /**
  * Multiply operation (variadic):
  * - Flatten all input arrays
- * - For rationals only: multiply all values
- * - For CPA objects: apply rational factor to each CPA individually
+ * - For abstract numbers only: multiply all values
+ * - For CPA objects: apply scaling factor to each CPA individually
  *
  * DESIGN NOTE (Scratch-style, Plan C): CPA objects are NEVER combined with
  * each other. Multiplying two CPAs (e.g., cap × cap) is semantically ambiguous
  * (what is "caps²"?). Instead, CPAs are returned as-is in an array, with any
- * rational factors applied to each individually. Visual blocking will be
+ * scaling factors applied to each individually. Visual blocking will be
  * enforced in the frontend.
  */
 export function multiply(args: RuntimeValue[]): RuntimeValue {
   const flatValues = flattenArrays(args);
 
-  // If all rationals, multiply them
-  if (flatValues.every(isRational)) {
+  // If all abstract numbers, multiply them
+  if (flatValues.every(isAbstractNumber)) {
     const total = flatValues.reduce(
-      (acc, v) => rational.multiply(acc, (v as RationalValue).value),
+      (acc, v) => rational.multiply(acc, getQuantity(v as CPAObject)),
       rational.one()
     );
-    return { kind: "racional", value: total };
+    return createAbstractNumber(total);
   }
 
   // Separate CPAs by category: abstractos act as scaling factors, others are objects to scale
@@ -98,9 +92,7 @@ export function multiply(args: RuntimeValue[]): RuntimeValue {
   const scalingFactors: Fraction[] = [];
 
   for (const value of flatValues) {
-    if (isRational(value)) {
-      scalingFactors.push(value.value);
-    } else if (isCPAObject(value)) {
+    if (isCPAObject(value)) {
       if (value.category === "abstracto") {
         // CPA abstractos (numbers) act as scaling factors
         scalingFactors.push(getQuantity(value));
@@ -110,18 +102,13 @@ export function multiply(args: RuntimeValue[]): RuntimeValue {
     }
   }
 
-  // If all values were scaling factors (rationals or abstractos), multiply them
+  // If all values were scaling factors (abstractos), multiply them
   if (nonAbstractCPAs.length === 0) {
     const total = scalingFactors.reduce(
       (acc, v) => rational.multiply(acc, v),
       rational.one()
     );
-    // Return as CPA abstracto if there were any abstractos, otherwise as racional
-    const abstracto = flatValues.find(v => isCPAObject(v) && (v as CPAObject).category === "abstracto") as CPAObject | undefined;
-    if (abstracto) {
-      return cloneCPAWithQuantity(abstracto, total);
-    }
-    return { kind: "racional", value: total };
+    return createAbstractNumber(total);
   }
 
   // Calculate the product of all scaling factors (1 if none)
@@ -157,30 +144,16 @@ export function substract(args: RuntimeValue[]): RuntimeValue {
 
   const [a, b] = args;
 
-  // Rational - Rational
-  if (isRational(a) && isRational(b)) {
-    return {
-      kind: "racional",
-      value: rational.subtract(a.value, b.value),
-    };
+  // Both must be CPA objects
+  if (!isCPAObject(a) || !isCPAObject(b)) {
+    throw new RuntimeError(
+      "TYPE_ERROR",
+      "substract requires CPA objects"
+    );
   }
 
-  // CPA - CPA (subtract quantities)
-  if (isCPAObject(a) && isCPAObject(b)) {
-    const diff = rational.subtract(getQuantity(a), getQuantity(b));
-    return cloneCPAWithQuantity(a, diff);
-  }
-
-  // CPA - Rational (subtract from quantity)
-  if (isCPAObject(a) && isRational(b)) {
-    const diff = rational.subtract(getQuantity(a), b.value);
-    return cloneCPAWithQuantity(a, diff);
-  }
-
-  throw new RuntimeError(
-    "TYPE_ERROR",
-    "substract requires compatible numeric types"
-  );
+  const diff = rational.subtract(getQuantity(a), getQuantity(b));
+  return cloneCPAWithQuantity(a, diff);
 }
 
 /**
@@ -197,32 +170,15 @@ export function divide(args: RuntimeValue[]): RuntimeValue {
 
   const [a, b] = args;
 
-  // Get divisor value
-  let divisor: Fraction;
-  if (isRational(b)) {
-    divisor = b.value;
-  } else if (isCPAObject(b)) {
-    divisor = getQuantity(b);
-  } else {
-    throw new RuntimeError("TYPE_ERROR", "divide requires numeric divisor");
+  // Both must be CPA objects
+  if (!isCPAObject(a) || !isCPAObject(b)) {
+    throw new RuntimeError(
+      "TYPE_ERROR",
+      "divide requires CPA objects"
+    );
   }
 
-  // Rational / Rational
-  if (isRational(a)) {
-    return {
-      kind: "racional",
-      value: rational.divide(a.value, divisor),
-    };
-  }
-
-  // CPA / value (divide quantity)
-  if (isCPAObject(a)) {
-    const quotient = rational.divide(getQuantity(a), divisor);
-    return cloneCPAWithQuantity(a, quotient);
-  }
-
-  throw new RuntimeError(
-    "TYPE_ERROR",
-    "divide requires compatible numeric types"
-  );
+  const divisor = getQuantity(b);
+  const quotient = rational.divide(getQuantity(a), divisor);
+  return cloneCPAWithQuantity(a, quotient);
 }

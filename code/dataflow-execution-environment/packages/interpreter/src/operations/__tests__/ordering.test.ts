@@ -1,22 +1,23 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { orderAsc, orderDesc } from "../ordering";
-import type { RationalValue, CPAObject, ArrayValue } from "../../runtime/types";
+import type { CPAObject, ArrayValue } from "../../runtime/types";
+import { createAbstractNumber } from "../../utils";
 
 describe("orderAsc (unit)", () => {
-  test("sorts rationals in ascending order", () => {
-    const values: RationalValue[] = [
-      { kind: "racional", value: new Fraction(5) },
-      { kind: "racional", value: new Fraction(2) },
-      { kind: "racional", value: new Fraction(8) },
-      { kind: "racional", value: new Fraction(1) },
+  test("sorts abstract numbers in ascending order", () => {
+    const values = [
+      createAbstractNumber(5),
+      createAbstractNumber(2),
+      createAbstractNumber(8),
+      createAbstractNumber(1),
     ];
     const result = orderAsc(values) as ArrayValue;
     expect(result.kind).toBe("arreglo");
-    expect((result.elements[0] as RationalValue).value.equals(new Fraction(1))).toBe(true);
-    expect((result.elements[1] as RationalValue).value.equals(new Fraction(2))).toBe(true);
-    expect((result.elements[2] as RationalValue).value.equals(new Fraction(5))).toBe(true);
-    expect((result.elements[3] as RationalValue).value.equals(new Fraction(8))).toBe(true);
+    expect((result.elements[0] as CPAObject).quantity.equals(new Fraction(1))).toBe(true);
+    expect((result.elements[1] as CPAObject).quantity.equals(new Fraction(2))).toBe(true);
+    expect((result.elements[2] as CPAObject).quantity.equals(new Fraction(5))).toBe(true);
+    expect((result.elements[3] as CPAObject).quantity.equals(new Fraction(8))).toBe(true);
   });
 
   test("sorts by category: Concrete < Pictorial < Abstract", () => {
@@ -107,27 +108,27 @@ describe("orderAsc (unit)", () => {
   });
 
   test("returns single element unchanged", () => {
-    const value: RationalValue = { kind: "racional", value: new Fraction(5) };
-    const result = orderAsc([value]) as RationalValue;
-    expect(result.kind).toBe("racional");
-    expect(result.value.equals(new Fraction(5))).toBe(true);
+    const value = createAbstractNumber(5);
+    const result = orderAsc([value]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(5))).toBe(true);
   });
 });
 
 describe("orderDesc (unit)", () => {
-  test("sorts rationals in descending order", () => {
-    const values: RationalValue[] = [
-      { kind: "racional", value: new Fraction(5) },
-      { kind: "racional", value: new Fraction(2) },
-      { kind: "racional", value: new Fraction(8) },
-      { kind: "racional", value: new Fraction(1) },
+  test("sorts abstract numbers in descending order", () => {
+    const values = [
+      createAbstractNumber(5),
+      createAbstractNumber(2),
+      createAbstractNumber(8),
+      createAbstractNumber(1),
     ];
     const result = orderDesc(values) as ArrayValue;
     expect(result.kind).toBe("arreglo");
-    expect((result.elements[0] as RationalValue).value.equals(new Fraction(8))).toBe(true);
-    expect((result.elements[1] as RationalValue).value.equals(new Fraction(5))).toBe(true);
-    expect((result.elements[2] as RationalValue).value.equals(new Fraction(2))).toBe(true);
-    expect((result.elements[3] as RationalValue).value.equals(new Fraction(1))).toBe(true);
+    expect((result.elements[0] as CPAObject).quantity.equals(new Fraction(8))).toBe(true);
+    expect((result.elements[1] as CPAObject).quantity.equals(new Fraction(5))).toBe(true);
+    expect((result.elements[2] as CPAObject).quantity.equals(new Fraction(2))).toBe(true);
+    expect((result.elements[3] as CPAObject).quantity.equals(new Fraction(1))).toBe(true);
   });
 
   test("sorts by category in reverse: Abstract > Pictorial > Concrete", () => {
@@ -218,9 +219,9 @@ describe("orderDesc (unit)", () => {
   });
 
   test("returns single element unchanged", () => {
-    const value: RationalValue = { kind: "racional", value: new Fraction(5) };
-    const result = orderDesc([value]) as RationalValue;
-    expect(result.kind).toBe("racional");
-    expect(result.value.equals(new Fraction(5))).toBe(true);
+    const value = createAbstractNumber(5);
+    const result = orderDesc([value]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(5))).toBe(true);
   });
 });

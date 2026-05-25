@@ -7,18 +7,12 @@ import type { RuntimeValue, CPAObject, ArrayValue } from "./runtime/types";
  */
 export function formatValue(value: RuntimeValue): string {
   switch (value.kind) {
-    case "racional":
-      return value.value.toString();
-    case "booleano":
-      return value.value ? "true" : "false";
     case "cpa":
       return formatCPAObject(value);
     case "arreglo":
       return formatArray(value);
     case "otro":
       return `"${value.value}"`;
-    default:
-      return JSON.stringify(value);
   }
 }
 

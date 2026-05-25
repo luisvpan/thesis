@@ -15,9 +15,6 @@ function getQuantity(elem: unknown): number {
   if (!elem || typeof elem !== 'object') return 0;
   const obj = elem as RuntimeElement;
 
-  if (obj.kind === 'racional' && obj.value) {
-    return Number((obj.value as { valueOf(): number }).valueOf());
-  }
   if (obj.kind === 'cpa' && obj.quantity) {
     return Number((obj.quantity as { valueOf(): number }).valueOf());
   }
@@ -28,8 +25,6 @@ function getCategory(elem: unknown): 'abstracto' | 'pictorico' | 'concreto' {
   if (!elem || typeof elem !== 'object') return 'abstracto';
   const obj = elem as RuntimeElement;
 
-  if (obj.kind === 'racional') return 'abstracto';
-
   if (obj.kind === 'cpa' && obj.category) {
     return obj.category as 'abstracto' | 'pictorico' | 'concreto';
   }
@@ -38,16 +33,14 @@ function getCategory(elem: unknown): 'abstracto' | 'pictorico' | 'concreto' {
 }
 
 function getType(elem: unknown): string {
-  if (!elem || typeof elem !== 'object') return 'racional';
+  if (!elem || typeof elem !== 'object') return 'numero';
   const obj = elem as RuntimeElement;
-
-  if (obj.kind === 'racional') return 'racional';
 
   if (obj.kind === 'cpa' && obj.type) {
     return obj.type as string;
   }
 
-  return 'racional';
+  return 'numero';
 }
 
 function getSubtype(elem: unknown): string | null {
@@ -173,7 +166,7 @@ const PLURALS: Record<string, string> = {
   montessori: 'montessoris',
   cap: 'tapas',
   stick: 'palitos',
-  racional: 'racionales',
+  numero: 'números',
   cuadrado: 'cuadrados',
   circulo: 'círculos',
   triangulo: 'triángulos',
@@ -253,7 +246,7 @@ function groupElementsForDescription(elements: unknown[]): {
     }
     typeGroup.totalAmount += amount;
 
-    if (type === 'racional') {
+    if (type === 'numero') {
       typeGroup.rationalValue = (typeGroup.rationalValue ?? 0) + amount;
     }
 
@@ -304,7 +297,7 @@ function describeSubtype(sub: SubtypeGroup): string {
 function describeType(type: TypeGroup): string {
   const typeName = pluralize(type.type, type.totalAmount);
 
-  if (type.type === 'racional') {
+  if (type.type === 'numero') {
     const val = type.rationalValue ?? type.totalAmount;
     if (type.totalAmount === 1) {
       return `el número ${val}`;

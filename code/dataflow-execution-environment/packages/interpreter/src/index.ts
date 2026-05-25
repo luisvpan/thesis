@@ -20,10 +20,15 @@ export type {
   Expression,
   IdentifierExpression,
   Literal,
-  NumberLiteral,
   ArrayLiteral,
   OtherLiteral,
   ObjectLiteral,
   ObjectProperty,
   Operation,
 } from "./program";
+
+export {
+  createAbstractNumber,
+  createPictoricObject,
+  createConcreteObject,
+} from "./utils";

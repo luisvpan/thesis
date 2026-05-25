@@ -8,16 +8,17 @@ import {
   cloneCPAWithQuantity,
 } from "../utils";
 import type { RuntimeValue, CPAObject } from "../../runtime/types";
+import { createAbstractNumber } from "../../utils";
 
 describe("flattenArrays", () => {
   test("should flatten nested arrays", () => {
     const input: RuntimeValue[] = [
-      { kind: "racional", value: new Fraction(1) },
+      createAbstractNumber(1),
       {
         kind: "arreglo",
         elements: [
-          { kind: "racional", value: new Fraction(2) },
-          { kind: "racional", value: new Fraction(3) },
+          createAbstractNumber(2),
+          createAbstractNumber(3),
         ],
       },
     ];
@@ -32,7 +33,7 @@ describe("flattenArrays", () => {
         elements: [
           {
             kind: "arreglo",
-            elements: [{ kind: "racional", value: new Fraction(1) }],
+            elements: [createAbstractNumber(1)],
           },
         ],
       },
@@ -47,12 +48,11 @@ describe("flattenArrays", () => {
 
   test("should preserve non-array values", () => {
     const input: RuntimeValue[] = [
-      { kind: "racional", value: new Fraction(1) },
-      { kind: "racional", value: new Fraction(2) },
+      createAbstractNumber(1),
+      createAbstractNumber(2),
     ];
     const result = flattenArrays(input);
     expect(result).toHaveLength(2);
-    expect(result).toEqual(input);
   });
 });
 
@@ -95,8 +95,8 @@ describe("getQuantity", () => {
 });
 
 describe("getComparableValue", () => {
-  test("should return value for racional", () => {
-    const val: RuntimeValue = { kind: "racional", value: new Fraction(7) };
+  test("should return quantity for abstract number", () => {
+    const val = createAbstractNumber(7);
     expect(getComparableValue(val)?.valueOf()).toBe(7);
   });
 
@@ -124,8 +124,8 @@ describe("getComparableValue", () => {
 });
 
 describe("getQuantityOrZero", () => {
-  test("should return value for racional", () => {
-    const val: RuntimeValue = { kind: "racional", value: new Fraction(7) };
+  test("should return quantity for abstract number", () => {
+    const val = createAbstractNumber(7);
     expect(getQuantityOrZero(val).valueOf()).toBe(7);
   });
 

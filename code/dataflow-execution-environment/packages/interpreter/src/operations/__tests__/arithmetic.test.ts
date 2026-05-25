@@ -1,26 +1,28 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { sum, multiply, substract, divide } from "../arithmetic";
-import type { RationalValue, CPAObject, ArrayValue } from "../../runtime/types";
+import type { CPAObject, ArrayValue } from "../../runtime/types";
+import { createAbstractNumber } from "../../utils";
 
 describe("sum (unit)", () => {
-  test("adds two rationals", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(2) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(3) };
-    const result = sum([a, b]) as RationalValue;
-    expect(result.kind).toBe("racional");
-    expect(result.value.equals(new Fraction(5))).toBe(true);
+  test("adds two abstract numbers", () => {
+    const a = createAbstractNumber(2);
+    const b = createAbstractNumber(3);
+    const result = sum([a, b]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.category).toBe("abstracto");
+    expect(result.quantity.equals(new Fraction(5))).toBe(true);
   });
 
-  test("adds multiple rationals (variadic)", () => {
-    const values: RationalValue[] = [
-      { kind: "racional", value: new Fraction(1) },
-      { kind: "racional", value: new Fraction(2) },
-      { kind: "racional", value: new Fraction(3) },
-      { kind: "racional", value: new Fraction(4) },
+  test("adds multiple abstract numbers (variadic)", () => {
+    const values = [
+      createAbstractNumber(1),
+      createAbstractNumber(2),
+      createAbstractNumber(3),
+      createAbstractNumber(4),
     ];
-    const result = sum(values) as RationalValue;
-    expect(result.value.equals(new Fraction(10))).toBe(true);
+    const result = sum(values) as CPAObject;
+    expect(result.quantity.equals(new Fraction(10))).toBe(true);
   });
 
   test("aggregates CPA objects by key", () => {
@@ -68,35 +70,36 @@ describe("sum (unit)", () => {
   });
 
   test("flattens nested arrays", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(1) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(2) };
+    const a = createAbstractNumber(1);
+    const b = createAbstractNumber(2);
     const nested: ArrayValue = { kind: "arreglo", elements: [a, b] };
-    const c: RationalValue = { kind: "racional", value: new Fraction(3) };
-    const result = sum([nested, c]) as RationalValue;
-    expect(result.value.equals(new Fraction(6))).toBe(true);
+    const c = createAbstractNumber(3);
+    const result = sum([nested, c]) as CPAObject;
+    expect(result.quantity.equals(new Fraction(6))).toBe(true);
   });
 });
 
 describe("multiply (unit)", () => {
-  test("multiplies two rationals", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(4) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(3) };
-    const result = multiply([a, b]) as RationalValue;
-    expect(result.kind).toBe("racional");
-    expect(result.value.equals(new Fraction(12))).toBe(true);
+  test("multiplies two abstract numbers", () => {
+    const a = createAbstractNumber(4);
+    const b = createAbstractNumber(3);
+    const result = multiply([a, b]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.category).toBe("abstracto");
+    expect(result.quantity.equals(new Fraction(12))).toBe(true);
   });
 
-  test("multiplies multiple rationals (variadic)", () => {
-    const values: RationalValue[] = [
-      { kind: "racional", value: new Fraction(2) },
-      { kind: "racional", value: new Fraction(3) },
-      { kind: "racional", value: new Fraction(4) },
+  test("multiplies multiple abstract numbers (variadic)", () => {
+    const values = [
+      createAbstractNumber(2),
+      createAbstractNumber(3),
+      createAbstractNumber(4),
     ];
-    const result = multiply(values) as RationalValue;
-    expect(result.value.equals(new Fraction(24))).toBe(true);
+    const result = multiply(values) as CPAObject;
+    expect(result.quantity.equals(new Fraction(24))).toBe(true);
   });
 
-  test("scales CPA object by rational factor", () => {
+  test("scales CPA object by abstract number factor", () => {
     const shape: CPAObject = {
       kind: "cpa",
       category: "pictorico",
@@ -105,7 +108,7 @@ describe("multiply (unit)", () => {
       quantity: new Fraction(5),
       attributes: { size: "pequeño" },
     };
-    const factor: RationalValue = { kind: "racional", value: new Fraction(3) };
+    const factor = createAbstractNumber(3);
     const result = multiply([shape, factor]) as CPAObject;
     expect(result.kind).toBe("cpa");
     expect(result.quantity.equals(new Fraction(15))).toBe(true);
@@ -157,7 +160,7 @@ describe("multiply (unit)", () => {
     expect(result.elements).toHaveLength(2);
   });
 
-  test("applies rational factor to multiple CPAs", () => {
+  test("applies abstract number factor to multiple CPAs", () => {
     const cap1: CPAObject = {
       kind: "cpa",
       category: "concreto",
@@ -174,7 +177,7 @@ describe("multiply (unit)", () => {
       quantity: new Fraction(2),
       attributes: { color: "azul" },
     };
-    const factor: RationalValue = { kind: "racional", value: new Fraction(2) };
+    const factor = createAbstractNumber(2);
     const result = multiply([cap1, cap2, factor]) as ArrayValue;
     expect(result.kind).toBe("arreglo");
     expect(result.elements).toHaveLength(2);
@@ -182,22 +185,24 @@ describe("multiply (unit)", () => {
     expect((result.elements[1] as CPAObject).quantity.equals(new Fraction(4))).toBe(true);  // 2*2
   });
 
-  test("rationals multiply together (regression)", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(3) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(2) };
-    const result = multiply([a, b]) as RationalValue;
-    expect(result.kind).toBe("racional");
-    expect(result.value.equals(new Fraction(6))).toBe(true);
+  test("abstract numbers multiply together (regression)", () => {
+    const a = createAbstractNumber(3);
+    const b = createAbstractNumber(2);
+    const result = multiply([a, b]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.category).toBe("abstracto");
+    expect(result.quantity.equals(new Fraction(6))).toBe(true);
   });
 });
 
 describe("substract (unit)", () => {
-  test("subtracts two rationals", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(10) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(3) };
-    const result = substract([a, b]) as RationalValue;
-    expect(result.kind).toBe("racional");
-    expect(result.value.equals(new Fraction(7))).toBe(true);
+  test("subtracts two abstract numbers", () => {
+    const a = createAbstractNumber(10);
+    const b = createAbstractNumber(3);
+    const result = substract([a, b]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.category).toBe("abstracto");
+    expect(result.quantity.equals(new Fraction(7))).toBe(true);
   });
 
   test("subtracts CPA object amounts", () => {
@@ -222,7 +227,7 @@ describe("substract (unit)", () => {
     expect(result.quantity.equals(new Fraction(7))).toBe(true);
   });
 
-  test("subtracts rational from CPA object", () => {
+  test("subtracts abstract number from CPA object", () => {
     const shape: CPAObject = {
       kind: "cpa",
       category: "pictorico",
@@ -231,28 +236,29 @@ describe("substract (unit)", () => {
       quantity: new Fraction(12),
       attributes: { size: "mediano" },
     };
-    const value: RationalValue = { kind: "racional", value: new Fraction(4) };
+    const value = createAbstractNumber(4);
     const result = substract([shape, value]) as CPAObject;
     expect(result.kind).toBe("cpa");
     expect(result.quantity.equals(new Fraction(8))).toBe(true);
   });
 
   test("throws error for wrong arity", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(10) };
+    const a = createAbstractNumber(10);
     expect(() => substract([a])).toThrow();
   });
 });
 
 describe("divide (unit)", () => {
-  test("divides two rationals", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(12) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(4) };
-    const result = divide([a, b]) as RationalValue;
-    expect(result.kind).toBe("racional");
-    expect(result.value.equals(new Fraction(3))).toBe(true);
+  test("divides two abstract numbers", () => {
+    const a = createAbstractNumber(12);
+    const b = createAbstractNumber(4);
+    const result = divide([a, b]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.category).toBe("abstracto");
+    expect(result.quantity.equals(new Fraction(3))).toBe(true);
   });
 
-  test("divides CPA object by rational", () => {
+  test("divides CPA object by abstract number", () => {
     const shape: CPAObject = {
       kind: "cpa",
       category: "pictorico",
@@ -261,27 +267,27 @@ describe("divide (unit)", () => {
       quantity: new Fraction(12),
       attributes: { size: "mediano" },
     };
-    const divisor: RationalValue = { kind: "racional", value: new Fraction(4) };
+    const divisor = createAbstractNumber(4);
     const result = divide([shape, divisor]) as CPAObject;
     expect(result.kind).toBe("cpa");
     expect(result.quantity.equals(new Fraction(3))).toBe(true);
   });
 
   test("handles fractional results", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(1) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(3) };
-    const result = divide([a, b]) as RationalValue;
-    expect(result.value.equals(new Fraction(1, 3))).toBe(true);
+    const a = createAbstractNumber(1);
+    const b = createAbstractNumber(3);
+    const result = divide([a, b]) as CPAObject;
+    expect(result.quantity.equals(new Fraction(1, 3))).toBe(true);
   });
 
   test("throws error for division by zero", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(10) };
-    const b: RationalValue = { kind: "racional", value: new Fraction(0) };
+    const a = createAbstractNumber(10);
+    const b = createAbstractNumber(0);
     expect(() => divide([a, b])).toThrow();
   });
 
   test("throws error for wrong arity", () => {
-    const a: RationalValue = { kind: "racional", value: new Fraction(10) };
+    const a = createAbstractNumber(10);
     expect(() => divide([a])).toThrow();
   });
 });

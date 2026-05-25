@@ -1,6 +1,6 @@
 import type Fraction from "fraction.js";
 import type { RuntimeValue, CPAObject } from "../runtime/types";
-import { isArray, isCPAObject, isRational } from "../runtime/types";
+import { isArray, isCPAObject } from "../runtime/types";
 import * as rational from "../runtime/rational";
 
 /**
@@ -31,9 +31,6 @@ export function getQuantity(obj: CPAObject): Fraction {
  * Returns null if the value is not comparable.
  */
 export function getComparableValue(val: RuntimeValue): Fraction | null {
-  if (isRational(val)) {
-    return val.value;
-  }
   if (isCPAObject(val)) {
     return getQuantity(val);
   }
@@ -45,9 +42,6 @@ export function getComparableValue(val: RuntimeValue): Fraction | null {
  * Used for ordering operations.
  */
 export function getQuantityOrZero(val: RuntimeValue): Fraction {
-  if (isRational(val)) {
-    return val.value;
-  }
   if (isCPAObject(val)) {
     return getQuantity(val);
   }

@@ -31,7 +31,7 @@ interface TypeGroup {
   type: string;
   subtypes: SubtypeGroup[];
   totalAmount: number;
-  // Para racionales, guardamos el valor directo
+  // Para números abstractos, guardamos el valor directo
   rationalValue?: number;
 }
 
@@ -142,12 +142,7 @@ function getAmount(elem: unknown): number {
   if (!elem || typeof elem !== "object") return 1;
   const obj = elem as Record<string, unknown>;
 
-  // Handle rational values
-  if (obj.kind === "racional" && obj.value) {
-    return Number((obj.value as { valueOf(): number }).valueOf());
-  }
-
-  // Handle unified CPA objects (new format)
+  // Handle CPA objects
   if (obj.kind === "cpa" && obj.quantity) {
     return Number((obj.quantity as { valueOf(): number }).valueOf());
   }
@@ -159,9 +154,7 @@ function getCategory(elem: unknown): "abstracto" | "pictorico" | "concreto" {
   if (!elem || typeof elem !== "object") return "abstracto";
   const obj = elem as Record<string, unknown>;
 
-  if (obj.kind === "racional") return "abstracto";
-
-  // Handle unified CPA objects (new format)
+  // Handle CPA objects
   if (obj.kind === "cpa" && obj.category) {
     return obj.category as "abstracto" | "pictorico" | "concreto";
   }
@@ -170,17 +163,15 @@ function getCategory(elem: unknown): "abstracto" | "pictorico" | "concreto" {
 }
 
 function getType(elem: unknown): string {
-  if (!elem || typeof elem !== "object") return "racional";
+  if (!elem || typeof elem !== "object") return "numero";
   const obj = elem as Record<string, unknown>;
 
-  if (obj.kind === "racional") return "racional";
-
-  // Handle unified CPA objects (new format)
+  // Handle CPA objects
   if (obj.kind === "cpa" && obj.type) {
     return obj.type as string;
   }
 
-  return "racional";
+  return "numero";
 }
 
 function getSubtype(elem: unknown): string | null {
@@ -217,7 +208,7 @@ const PLURALS: Record<string, string> = {
   montessori: "montessoris",
   cap: "tapas",
   stick: "palitos",
-  racional: "racionales",
+  numero: "números",
   cuadrado: "cuadrados",
   circulo: "círculos",
   triangulo: "triángulos",
@@ -339,8 +330,8 @@ function groupElements(elements: unknown[]): SemanticResult {
     }
     typeGroup.totalAmount += amount;
 
-    // Para racionales, acumulamos el valor
-    if (type === "racional") {
+    // Para números abstractos, acumulamos el valor
+    if (type === "numero") {
       typeGroup.rationalValue = (typeGroup.rationalValue ?? 0) + amount;
     }
 
@@ -404,8 +395,8 @@ function generateDescription(
 function describeType(type: TypeGroup): string {
   const typeName = pluralize(type.type, type.totalAmount);
 
-  // Racional: mostrar el valor
-  if (type.type === "racional") {
+  // Número abstracto: mostrar el valor
+  if (type.type === "numero") {
     const val = type.rationalValue ?? type.totalAmount;
     if (type.totalAmount === 1) {
       return `el número ${val}`;
@@ -555,20 +546,24 @@ export function createProgramExecutor() {
           // Extract the programOutput node ID: "output_card_76" → "card_76"
           const outputNodeId = sinkId.replace("output_", "");
 
-          if (output.kind === "racional") {
-            const value = Number(output.value.valueOf());
-            resultsMap.set(outputNodeId, {
-              kind: "number",
-              value,
-              numerator: output.value.n,
-              denominator: output.value.d,
-            });
-          } else if (output.kind === "arreglo") {
+          if (output.kind === "arreglo") {
             const semantic = groupElements(output.elements);
             resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
           } else if (output.kind === "cpa") {
-            // Single CPA object - extract metadata for viewMode-aware rendering
             const quantity = Number(output.quantity.valueOf());
+
+            // Abstract numbers render as plain numbers
+            if (output.category === "abstracto" && output.type === "numero") {
+              resultsMap.set(outputNodeId, {
+                kind: "number",
+                value: quantity,
+                numerator: output.quantity.n,
+                denominator: output.quantity.d,
+              });
+              continue;
+            }
+
+            // Non-abstract CPA objects render semantically
             const semantic = groupElements([output]);
             resultsMap.set(outputNodeId, {
               kind: "semantic",
