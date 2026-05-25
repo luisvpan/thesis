@@ -110,7 +110,7 @@ const LEVELS: Record<WorldId, Record<LevelId, LevelConfig>> = {
 export const SANDBOX_CONFIG: LevelConfig = {
   title: 'Sandbox',
   subtitle: 'Modo libre: explora sumas y restas',
-  rule: 'En el sandbox no hay restricciones. Usa el canvas para explorar; las cartas se agregan desde el backend por socket.',
+  rule: 'En el sandbox no hay restricciones. Usa el canvas para explorar; las cartas aparecen al detectarlas con visión (YOLO).',
   numbers: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
   operators: ['adicion', 'sustraccion'],
 };

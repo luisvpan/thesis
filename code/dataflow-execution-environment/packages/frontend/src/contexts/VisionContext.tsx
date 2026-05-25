@@ -80,38 +80,38 @@ export function VisionProvider({ children }: { children: ReactNode }) {
       setError("WebSocket visión: error de conexión");
     };
     ws.onmessage = (ev) => {
-      logger.vision.debug("Raw message", { data: ev.data });
+      // logger.vision.debug("Raw message", { data: ev.data });
       try {
         const data = JSON.parse(ev.data as string) as unknown;
-        logger.vision.debug("Parsed message", { data });
+        // logger.vision.debug("Parsed message", { data });
         if (typeof data !== "object" || data === null) return;
 
         const typ = (data as { type?: string }).type;
         if (typ === "detectedNumber") {
           const det = data as DetectedNumberPayload;
           setLast(det);
-          logger.vision.debug("Detection", {
-            number: det.number,
-            label: det.label,
-            confidence: det.confidence,
-            position: det.position,
-          });
+          // logger.vision.debug("Detection", {
+          //   number: det.number,
+          //   label: det.label,
+          //   confidence: det.confidence,
+          //   position: det.position,
+          // });
           return;
         }
 
         if (typ === "cardDetections") {
           const frame = data as CardDetectionsPayload;
           setLastCardFrame(frame);
-          logger.vision.debug("Card detections", {
-            count: frame.cards.length,
-            t: frame.t,
-            cards: frame.cards.map((c) => ({
-              label: c.label,
-              trackId: c.trackId,
-              x: c.position.x,
-              y: c.position.y,
-            })),
-          });
+          // logger.vision.debug("Card detections", {
+          //   count: frame.cards.length,
+          //   t: frame.t,
+          //   cards: frame.cards.map((c) => ({
+          //     label: c.label,
+          //     trackId: c.trackId,
+          //     x: c.position.x,
+          //     y: c.position.y,
+          //   })),
+          // });
         }
       } catch (e) {
         logger.vision.warn("Invalid JSON", {

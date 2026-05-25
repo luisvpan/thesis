@@ -22,6 +22,21 @@ describe("Lazy evaluation", () => {
     // 5 + 5 = 10, 10 + 10 = 20, 20 + 20 = 40
     expect(sinkResult.quantity.equals(new Fraction(40))).toBe(true);
   });
+
+  test("exposes transform results in results map", async () => {
+    const interpreter = new Interpreter();
+    const result = await interpreter.execute(`
+      source x = ${num(2)};
+      source y = ${num(3)};
+      transform mid = sum(x, y);
+      sink result = mid;
+    `);
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.results.has("mid")).toBe(true);
+    const mid = result.results.get("mid") as CPAObject;
+    expect(mid.quantity.equals(new Fraction(5))).toBe(true);
+  });
 });
 
 describe("Incremental re-evaluation", () => {

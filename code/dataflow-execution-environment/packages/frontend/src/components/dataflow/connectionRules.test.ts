@@ -11,12 +11,14 @@ import {
 
 const noopKind = () => undefined;
 
-function nodes(...specs: Array<{ id: string; type: DataflowNode["type"] }>): DataflowNode[] {
+function nodes(
+  ...specs: Array<{ id: string; type: DataflowNode["type"]; data?: Record<string, unknown> }>
+): DataflowNode[] {
   return specs.map((s) => ({
     id: s.id,
     type: s.type,
     position: { x: 0, y: 0 },
-    data: {},
+    data: s.data ?? {},
   })) as DataflowNode[];
 }
 
@@ -154,6 +156,49 @@ describe("connectionRules", () => {
       canConnectPorts(
         { nodeId: "s", handleId: "out", handleType: "source" },
         { nodeId: "o", handleId: "b", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(false);
+  });
+
+  test("order operator accepts only arrayClose out", () => {
+    const ns = nodes(
+      { id: "open", type: "arrayOpen" },
+      { id: "close", type: "arrayClose" },
+      { id: "s", type: "source" },
+      { id: "ord", type: "operator", data: { operator: "orden-menor-mayor" } }
+    );
+    const zonePair: Edge[] = [
+      {
+        id: "z",
+        source: "open",
+        target: "close",
+        sourceHandle: "zone-out",
+        targetHandle: "zone-in",
+      },
+    ];
+    const ctx = { nodes: ns, edges: zonePair };
+
+    expect(
+      canConnectStructurally(
+        { nodeId: "close", handleId: "out", handleType: "source" },
+        { nodeId: "ord", handleId: "a", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(true);
+
+    expect(
+      canConnectStructurally(
+        { nodeId: "s", handleId: "out", handleType: "source" },
+        { nodeId: "ord", handleId: "a", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(false);
+
+    expect(
+      canConnectStructurally(
+        { nodeId: "close", handleId: "out", handleType: "source" },
+        { nodeId: "ord", handleId: "b", handleType: "target" },
         ctx
       ).ok
     ).toBe(false);

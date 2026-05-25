@@ -1,4 +1,7 @@
-import type { ProgramOutputFlowNodeData } from "@/components/dataflow";
+import type {
+  OperatorFlowNodeData,
+  ProgramOutputFlowNodeData,
+} from "@/components/dataflow";
 import { parseVisionLabel, visionOperatorToMathOperator } from "@/types/vision-card";
 import type { CardDetectionsPayload } from "../VisionContext";
 import { VISION_CARD_NODE_TTL_MS, VISION_FLOW_MIN_SIZE } from "./constants";
@@ -82,16 +85,23 @@ export function mergeVisionFrameIntoNodes(
     }
 
     if (parsed.type === "operator") {
+      const prevOp = prevNode?.data as OperatorFlowNodeData | undefined;
       additions.push(
         withVisionNodeChrome(
           {
             id: nodeId,
             type: "operator" as const,
             position,
-            data: {
-              operator: visionOperatorToMathOperator(parsed.operator),
-              ...meta,
-            },
+            data: prevOp
+              ? {
+                  ...prevOp,
+                  operator: visionOperatorToMathOperator(parsed.operator),
+                  ...meta,
+                }
+              : {
+                  operator: visionOperatorToMathOperator(parsed.operator),
+                  ...meta,
+                },
           },
           meta,
           nodesDraggable
@@ -102,16 +112,16 @@ export function mergeVisionFrameIntoNodes(
     }
 
     if (parsed.type === "operatorCanvas") {
+      const prevOp = prevNode?.data as OperatorFlowNodeData | undefined;
       additions.push(
         withVisionNodeChrome(
           {
             id: nodeId,
             type: "operator" as const,
             position,
-            data: {
-              operator: parsed.operator,
-              ...meta,
-            },
+            data: prevOp
+              ? { ...prevOp, operator: parsed.operator, ...meta }
+              : { operator: parsed.operator, ...meta },
           },
           meta,
           nodesDraggable

@@ -3,6 +3,10 @@
  * Used by ResultArrayVisual and ProgramOutputFlowNode.
  */
 
+import { foodEmoji } from '@/data/foodEmoji';
+import type { FoodType, ShapeColor, ShapeSize, ShapeType } from '@/types/card-types';
+import { MiniShapeGlyph } from './MiniShapeGlyph';
+
 // =============================================================================
 // Color Palettes
 // =============================================================================
@@ -85,39 +89,71 @@ export function StickGlyph({ color, generic = false }: { color: string } & Glyph
   );
 }
 
-const FORMA_COLOR_CLASSES: Record<string, string> = {
-  verde: 'bg-emerald-500',
-  morado: 'bg-violet-600',
-  rojo: 'bg-red-500',
-  naranja: 'bg-orange-500',
-  azul: 'bg-blue-600',
-  amarillo: 'bg-amber-400',
+const SHAPE_SIZE_MAP: Record<string, ShapeSize> = {
+  pequeño: 'pequeño',
+  pequeña: 'pequeño',
+  mediano: 'mediano',
+  mediana: 'mediano',
+  grande: 'grande',
 };
+
+function normalizeShapeSize(size?: string): ShapeSize {
+  if (!size) return 'mediano';
+  return SHAPE_SIZE_MAP[size] ?? 'mediano';
+}
 
 export function FormaGlyph({
   subtype,
   color,
+  size,
   generic = false,
-}: { subtype: string; color?: string } & GlyphProps) {
-  const bgClass = generic
-    ? 'bg-teal-600'
-    : (color && FORMA_COLOR_CLASSES[color]) ?? 'bg-slate-600';
+}: { subtype: string; color?: string; size?: string } & GlyphProps) {
+  if (!generic) {
+    const shape = subtype as ShapeType;
+    const shapeSize = normalizeShapeSize(size);
+    const shapeColor = (color as ShapeColor | undefined) ?? 'amarillo';
+    return (
+      <span className="inline-flex shrink-0 items-center justify-center" title={`${subtype} ${shapeSize}`}>
+        <MiniShapeGlyph shape={shape} size={shapeSize} color={shapeColor} generic={false} />
+      </span>
+    );
+  }
+
   return (
-    <span
-      title={color ? `${subtype} ${color}` : subtype}
-      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${bgClass} text-[10px] font-bold uppercase text-white ring-1 ring-white/20`}
-    >
-      {subtype.slice(0, 2)}
+    <span className="inline-flex shrink-0 items-center justify-center" title={subtype}>
+      <MiniShapeGlyph
+        shape={subtype as ShapeType}
+        size={normalizeShapeSize(size)}
+        color="amarillo"
+        generic
+      />
     </span>
   );
 }
 
-export function ComidaGlyph({ subtype, color, generic = false }: { subtype: string; color: string } & GlyphProps) {
-  const dot = generic ? GENERIC_DOT : FOOD_DOT_COLORS[color] ?? 'bg-slate-400';
-  const bgClass = generic ? 'bg-teal-700' : 'bg-slate-700';
+export function ComidaGlyph({
+  subtype,
+  color,
+  generic = false,
+}: { subtype: string; color: string } & GlyphProps) {
+  if (!generic) {
+    return (
+      <span
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-xl leading-none"
+        role="img"
+        aria-label={subtype}
+        title={`${subtype} ${color}`}
+      >
+        {foodEmoji(subtype as FoodType)}
+      </span>
+    );
+  }
+
+  const dot = GENERIC_DOT;
+  const bgClass = 'bg-teal-700';
   return (
     <span
-      title={generic ? subtype : `${subtype} ${color}`}
+      title={subtype}
       className={`relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${bgClass} ring-1 ring-white/20`}
     >
       <span className={`absolute bottom-1 h-2 w-2 rounded-full ${dot}`} />

@@ -15,6 +15,7 @@ import type {
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
+import { isOrderOperatorType } from "../types/card-types";
 import { isPictorialColorYoloClass } from "../data/pictorialColors";
 import type { DataflowNode } from "../contexts/node/types";
 import { getOrderedArrayZoneMembers } from "./arrayZoneGeometry";
@@ -29,6 +30,8 @@ const OPERATOR_MAP: Record<string, Operation> = {
   sustraccion: "substract",
   multiplicacion: "multiply",
   division: "divide",
+  "orden-menor-mayor": "order_asc",
+  "orden-mayor-menor": "order_desc",
 };
 
 // Normalizar tamaños a formas masculinas (el intérprete solo entiende masculino)
@@ -48,6 +51,18 @@ function normalizeSize(size: string | undefined): string {
 /**
  * Creates a CPA ObjectLiteral with the new properties-based format.
  */
+/** Identificador en el programa para un nodo origen de arista (fuente, operador o salida). */
+export function resolveFlowSourceId(
+  nodeId: string,
+  nodes: DataflowNode[]
+): string {
+  const node = nodes.find((n) => n.id === nodeId);
+  if (node?.type === "programOutput") {
+    return `output_${nodeId}`;
+  }
+  return resolveNumberSourceId(nodeId, nodes);
+}
+
 function createCPAObject(
   category: string,
   type: string,
@@ -174,16 +189,17 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
       const operator = data.operator ?? "adicion";
       const inputEdges = edges.filter((e) => e.target === node.id);
 
-      // Sort by targetHandle: "a" first, "b" second
-      const sortedEdges = inputEdges.sort((a, b) => {
-        if (a.targetHandle === "a") return -1;
-        if (b.targetHandle === "a") return 1;
-        return 0;
-      });
+      const sortedEdges = isOrderOperatorType(operator)
+        ? inputEdges.filter((e) => e.targetHandle === "a" || e.targetHandle == null)
+        : inputEdges.sort((a, b) => {
+            if (a.targetHandle === "a") return -1;
+            if (b.targetHandle === "a") return 1;
+            return 0;
+          });
 
       const args = sortedEdges.map((e) => ({
         type: "Identifier" as const,
-        name: resolveNumberSourceId(e.source, nodes),
+        name: resolveFlowSourceId(e.source, nodes),
       }));
 
       statements.push({
@@ -220,7 +236,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
     statements.push({
       type: "SinkStatement",
       identifier: `output_${node.id}`,
-      sourceIdentifier: resolveNumberSourceId(inputEdge.source, nodes),
+      sourceIdentifier: resolveFlowSourceId(inputEdge.source, nodes),
     });
   }
 

@@ -16,6 +16,7 @@ import {
 } from "@xyflow/react";
 import { useVision } from "./VisionContext";
 import { getNodeValue, getRightmostEvaluableNode } from "./node/helpers";
+import type { ResultValue } from "@/services/executeProgram";
 import type { DataflowNode, NodeContextState, PortIdentifier, PortKindInfo, ShakingPort } from "./node/types";
 import { useFlowGraphEffects } from "./node/useFlowGraphEffects";
 import { useManualExecuteProgram } from "./node/useManualExecuteProgram";
@@ -69,6 +70,9 @@ export function NodeProvider({
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResult, setExecutionResult] = useState<number | null>(null);
   const [executionError, setExecutionError] = useState<string | null>(null);
+  const [evalResults, setEvalResults] = useState<Map<string, ResultValue>>(
+    () => new Map()
+  );
   const [shakingPort, setShakingPort] = useState<ShakingPort>(null);
 
   // Port kind registry: Map<"nodeId:handleId", PortKindInfo>
@@ -113,6 +117,7 @@ export function NodeProvider({
     executorRef,
     setExecutionError,
     setExecutionResult,
+    setEvalResults,
   });
 
   const { isPortSelected, clearSelection, handlePortClick } = usePortSelection(
@@ -158,7 +163,8 @@ export function NodeProvider({
     setNodes,
     setIsExecuting,
     setExecutionError,
-    setExecutionResult
+    setExecutionResult,
+    setEvalResults
   );
 
   const getExecutionResult = useCallback(() => {
@@ -185,6 +191,7 @@ export function NodeProvider({
       isExecuting,
       executionResult,
       executionError,
+      evalResults,
       getNodePorts,
       isPortSelected,
       isNodeInsideArrayZone,
@@ -216,6 +223,7 @@ export function NodeProvider({
       isExecuting,
       executionResult,
       executionError,
+      evalResults,
       getNodePorts,
       isPortSelected,
       isNodeInsideArrayZone,

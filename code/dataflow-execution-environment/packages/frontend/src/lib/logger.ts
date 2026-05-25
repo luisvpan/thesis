@@ -7,58 +7,10 @@
  */
 
 import pino from "pino";
-import type Fraction from "fraction.js";
+import { toJsonSafe } from "@/utils/jsonReplacer";
 
-// ---------------------------------------------------------------------------
-// Fraction.js / BigInt Serialization
-// ---------------------------------------------------------------------------
-
-/**
- * Duck-type check for Fraction.js instances.
- * Checks for internal properties (s, d, n) and the toFraction method.
- */
-const isFraction = (obj: unknown): obj is Fraction =>
-  obj !== null &&
-  typeof obj === "object" &&
-  "s" in obj &&
-  "d" in obj &&
-  "n" in obj &&
-  typeof (obj as Fraction).toFraction === "function";
-
-/**
- * JSON replacer that handles Fraction.js and BigInt values.
- * - Fraction.js: converts to "3/4" or "3" if integer
- * - BigInt: converts to "123n" string
- */
-const replacer = (_key: string, value: unknown): unknown => {
-  if (isFraction(value)) {
-    // If denominator is 1, it's an integer - show as number string
-    // Otherwise show as fraction string like "3/4"
-    return value.d === 1n ? String(value.n * value.s) : value.toFraction();
-  }
-  if (typeof value === "bigint") {
-    return `${value}n`;
-  }
-  return value;
-};
-
-/**
- * Pre-serialize objects containing Fraction.js or BigInt before passing to Pino.
- * This avoids Pino's internal serializer throwing on BigInt.
- */
-const serialize = (obj: unknown): unknown => {
-  if (obj === null || obj === undefined) return obj;
-  if (isFraction(obj)) return replacer("", obj);
-  if (typeof obj === "bigint") return `${obj}n`;
-  if (typeof obj !== "object") return obj;
-
-  try {
-    return JSON.parse(JSON.stringify(obj, replacer));
-  } catch {
-    // If serialization fails, return a safe representation
-    return { _serializationError: true, type: typeof obj };
-  }
-};
+/** Pre-serialize objects containing Fraction.js or BigInt before passing to Pino. */
+const serialize = (obj: unknown): unknown => toJsonSafe(obj);
 
 // ---------------------------------------------------------------------------
 // Pino Configuration
@@ -120,12 +72,6 @@ export const logger = {
 
   /** Frontend to interpreter communication: [frontend→interpreter] */
   interpreter: createLogger("frontend→interpreter"),
-
-  /** Socket.IO lifecycle: [Socket] */
-  socket: createLogger("Socket"),
-
-  /** Socket.IO events: [backend:socket.io] */
-  socketBackend: createLogger("backend:socket.io"),
 
   /** Touch system: [touch] */
   touch: createLogger("touch"),

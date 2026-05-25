@@ -25,14 +25,16 @@ type ClickableHandleProps = {
 function getShapeClassFromKind(kind: HandleKind | undefined): string {
   switch (kind) {
     case "rational":
-      return "!rounded-full";
+      return "!rounded-full !rounded-md";
     case "cpa":
       return "!rounded-md";
     case "keyword":
-      return "!rounded-full !w-26 translate-x-[-20%]";
+      return "!rounded-full !rounded-md !w-26 translate-x-[-20%]";
+    case "group":
+      return "!rounded-sm !border-2 !border-dashed";
     case "any":
     default:
-      return "!rounded-full";
+      return "!rounded-full !rounded-md";
   }
 }
 

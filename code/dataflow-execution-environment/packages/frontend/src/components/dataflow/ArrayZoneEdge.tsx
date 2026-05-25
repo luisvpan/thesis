@@ -1,6 +1,8 @@
 import { getBezierPath, type EdgeProps } from '@xyflow/react';
+import { FLOW_HANDLE_SIZE } from '@/utils/arrayZoneGeometry';
 
 const MIN_RECT_DIM = 8;
+const HANDLE_HALF = FLOW_HANDLE_SIZE / 2;
 
 export function ArrayZoneEdge({
   id: _id,
@@ -20,10 +22,10 @@ export function ArrayZoneEdge({
     targetPosition,
   });
 
-  const rawW = Math.abs(targetX - sourceX);
-  const rawH = Math.abs(targetY - sourceY);
-  const rectX = Math.min(sourceX, targetX);
-  const rectY = Math.min(sourceY, targetY);
+  const rectX = Math.min(sourceX, targetX) - HANDLE_HALF;
+  const rectY = Math.min(sourceY, targetY) - HANDLE_HALF;
+  const rawW = Math.abs(targetX - sourceX) + FLOW_HANDLE_SIZE;
+  const rawH = Math.abs(targetY - sourceY) + FLOW_HANDLE_SIZE;
   const rectW = Math.max(rawW, MIN_RECT_DIM);
   const rectH = Math.max(rawH, MIN_RECT_DIM);
   const shiftX = rawW < MIN_RECT_DIM ? (MIN_RECT_DIM - rawW) / 2 : 0;

@@ -23,11 +23,33 @@ export const VISION_META_KEYS: (keyof VisionNodeMeta)[] = [
   "lostSinceMs",
 ];
 
+/** Resultados de ejecución en `node.data`; no deben invalidar el hash del programa. */
+export const EVAL_RESULT_DISPLAY_KEYS = [
+  "value",
+  "description",
+  "visualStrip",
+  "originalElements",
+  "isSingleCpaObject",
+  "singleCpaObjectMeta",
+  "numerator",
+  "denominator",
+  "result",
+] as const;
+
 /** Copia de `data` sin metadatos de tracking (para hashes / comparación estable). */
 export function dataWithoutVisionMeta(data: unknown): Record<string, unknown> {
   if (!data || typeof data !== "object") return {};
   const out = { ...(data as Record<string, unknown>) };
   for (const key of VISION_META_KEYS) {
+    delete out[key];
+  }
+  return out;
+}
+
+/** Copia de `data` para el hash del programa (sin visión ni resultados ya calculados). */
+export function dataForProgramHash(data: unknown): Record<string, unknown> {
+  const out = dataWithoutVisionMeta(data);
+  for (const key of EVAL_RESULT_DISPLAY_KEYS) {
     delete out[key];
   }
   return out;
