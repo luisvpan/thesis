@@ -21,7 +21,7 @@ export function ArrayCloseNode({ id, data }: NodeProps<ArrayCloseNode>) {
 
   useEffect(() => {
     registerPortKind(id, 'zone-in', { accepts: ['any'] });
-    registerPortKind(id, 'out', { produces: 'any' });
+    registerPortKind(id, 'out', { produces: 'group' });
     return () => unregisterPortKinds(id);
   }, [id, registerPortKind, unregisterPortKinds]);
 
@@ -48,7 +48,7 @@ export function ArrayCloseNode({ id, data }: NodeProps<ArrayCloseNode>) {
         id="out"
         nodeId={id}
         handleVariant="zone-close-out"
-        produces="any"
+        produces="group"
         style={{
           top: `${ARRAY_CLOSE_ZONE_IN_TOP_FRAC * 100}%`,
           transform: 'translateX(100px)',

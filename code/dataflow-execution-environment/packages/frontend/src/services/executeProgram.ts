@@ -9,9 +9,10 @@ import {
 } from "@dataflow/interpreter";
 import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
-import { dataWithoutVisionMeta } from "@/contexts/node/visionNodeMeta";
+import { dataForProgramHash } from "@/contexts/node/visionNodeMeta";
 import type { Edge } from "@xyflow/react";
 import { logger } from "@/lib/logger";
+import { jsonReplacer, toJsonSafe } from "@/utils/jsonReplacer";
 
 // ============================================================================
 // Tipos para agrupación jerárquica de resultados
@@ -76,12 +77,12 @@ export type SingleCpaObjectMeta = {
   color: string;
   quantity: number;
   // For exact fraction display (e.g., "13/4" instead of 3.25)
-  numerator: bigint;
-  denominator: bigint;
+  numerator: string;
+  denominator: string;
 };
 
 export type ResultValue =
-  | { kind: "number"; value: number; numerator?: bigint; denominator?: bigint }
+  | { kind: "number"; value: number; numerator?: string; denominator?: string }
   | {
       kind: "semantic";
       result: SemanticResult;
@@ -133,6 +134,50 @@ export type ExecuteResult = {
   results?: Map<string, ResultValue>;
   error?: string;
 };
+
+type RuntimeOutput = {
+  kind: string;
+  value?: { valueOf(): number | bigint; n?: unknown; d?: unknown };
+  elements?: unknown[];
+  quantity?: { valueOf(): number | bigint; n?: unknown; d?: unknown };
+  type?: string;
+  subtype?: string;
+  attributes?: { color?: string };
+};
+
+function runtimeOutputToResultValue(output: RuntimeOutput): ResultValue | undefined {
+  if (output.kind === "racional" && output.value) {
+    const value = Number(output.value.valueOf());
+    return {
+      kind: "number",
+      value,
+      numerator: String(output.value.n),
+      denominator: String(output.value.d),
+    };
+  }
+  if (output.kind === "arreglo" && output.elements) {
+    const semantic = groupElements(output.elements);
+    return { kind: "semantic", result: semantic };
+  }
+  if (output.kind === "cpa" && output.quantity) {
+    const quantity = Number(output.quantity.valueOf());
+    const semantic = groupElements([output]);
+    return {
+      kind: "semantic",
+      result: semantic,
+      isSingleCpaObject: true,
+      singleCpaObjectMeta: {
+        type: output.type ?? "",
+        subtype: output.subtype ?? "",
+        color: output.attributes?.color ?? "",
+        quantity,
+        numerator: String(output.quantity.n),
+        denominator: String(output.quantity.d),
+      },
+    };
+  }
+  return undefined;
+}
 
 // ============================================================================
 // Helpers para extraer información de RuntimeValue
@@ -368,7 +413,13 @@ function groupElements(elements: unknown[]): SemanticResult {
   const description = generateDescription(categories, totalAmount);
   const visualStrip = buildVisualStrip(elements);
 
-  return { categories, totalAmount, description, visualStrip, originalElements: elements };
+  return {
+    categories,
+    totalAmount,
+    description,
+    visualStrip,
+    originalElements: toJsonSafe(elements),
+  };
 }
 
 // ============================================================================
@@ -466,7 +517,7 @@ export function computeProgramHash(nodes: DataflowNode[], edges: Edge[]): string
     .filter((n) => n.type === "source" || n.type === "operator" || n.type === "programOutput")
     .map(
       (n) =>
-        `${n.id}:${n.type}:${JSON.stringify(dataWithoutVisionMeta(n.data))}`
+        `${n.id}:${n.type}:${JSON.stringify(dataForProgramHash(n.data), jsonReplacer)}`
     )
     .sort()
     .join("|");
@@ -544,49 +595,19 @@ export function createProgramExecutor() {
           return { success: false, error: errorMsg };
         }
 
-        // Collect all sink results
         const resultsMap = new Map<string, ResultValue>();
 
-        for (const [sinkId, output] of results) {
-          if (!sinkId.startsWith("output_")) {
-            continue;
-          }
-
-          // Extract the programOutput node ID: "output_card_76" → "card_76"
-          const outputNodeId = sinkId.replace("output_", "");
-
-          if (output.kind === "racional") {
-            const value = Number(output.value.valueOf());
-            resultsMap.set(outputNodeId, {
-              kind: "number",
-              value,
-              numerator: output.value.n,
-              denominator: output.value.d,
-            });
-          } else if (output.kind === "arreglo") {
-            const semantic = groupElements(output.elements);
-            resultsMap.set(outputNodeId, { kind: "semantic", result: semantic });
-          } else if (output.kind === "cpa") {
-            // Single CPA object - extract metadata for viewMode-aware rendering
-            const quantity = Number(output.quantity.valueOf());
-            const semantic = groupElements([output]);
-            resultsMap.set(outputNodeId, {
-              kind: "semantic",
-              result: semantic,
-              isSingleCpaObject: true,
-              singleCpaObjectMeta: {
-                type: output.type,
-                subtype: output.subtype,
-                color: output.attributes.color ?? '',
-                quantity,
-                numerator: output.quantity.n,
-                denominator: output.quantity.d,
-              },
-            });
+        for (const [resultId, output] of results) {
+          const nodeId = resultId.startsWith("output_")
+            ? resultId.replace("output_", "")
+            : resultId;
+          const converted = runtimeOutputToResultValue(output as RuntimeOutput);
+          if (converted) {
+            resultsMap.set(nodeId, converted);
           } else {
             logger.execute.warn("Unknown output type", {
-              outputNodeId,
-              kind: output.kind,
+              nodeId,
+              kind: (output as RuntimeOutput).kind,
             });
           }
         }

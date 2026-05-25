@@ -90,28 +90,28 @@ export function VisionProvider({ children }: { children: ReactNode }) {
         if (typ === "detectedNumber") {
           const det = data as DetectedNumberPayload;
           setLast(det);
-          logger.vision.debug("Detection", {
-            number: det.number,
-            label: det.label,
-            confidence: det.confidence,
-            position: det.position,
-          });
+          // logger.vision.debug("Detection", {
+          //   number: det.number,
+          //   label: det.label,
+          //   confidence: det.confidence,
+          //   position: det.position,
+          // });
           return;
         }
 
         if (typ === "cardDetections") {
           const frame = data as CardDetectionsPayload;
           setLastCardFrame(frame);
-          logger.vision.debug("Card detections", {
-            count: frame.cards.length,
-            t: frame.t,
-            cards: frame.cards.map((c) => ({
-              label: c.label,
-              trackId: c.trackId,
-              x: c.position.x,
-              y: c.position.y,
-            })),
-          });
+          // logger.vision.debug("Card detections", {
+          //   count: frame.cards.length,
+          //   t: frame.t,
+          //   cards: frame.cards.map((c) => ({
+          //     label: c.label,
+          //     trackId: c.trackId,
+          //     x: c.position.x,
+          //     y: c.position.y,
+          //   })),
+          // });
         }
       } catch (e) {
         logger.vision.warn("Invalid JSON", {

@@ -2,7 +2,12 @@ import { useEffect, useMemo, useCallback } from 'react';
 import type { Node, NodeProps, Edge } from '@xyflow/react';
 import { Position, useReactFlow } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
-import { type OperatorType, type DivisionMode, isFilterOperatorType } from '@/types/card-types';
+import {
+  type OperatorType,
+  type DivisionMode,
+  isFilterOperatorType,
+  isOrderOperatorType,
+} from '@/types/card-types';
 import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
@@ -11,14 +16,26 @@ import type { DataflowNode, PortKindInfo } from '@/contexts/node/types';
 import type { HandleKind } from './handle-kinds';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 import type { SourceFlowNodeData } from './SourceFlowNode';
+import type { ProgramOutputFlowNodeData } from './ProgramOutputFlowNode';
 
-export type OperatorFlowNodeData = VisionNodeMeta & {
-  operator: OperatorType;
-  result?: number;
-  value?: number;
-  /** Modo de visualización para división: partitivo o cuotativo. Solo aplica cuando operator === 'division'. */
-  divisionMode?: DivisionMode;
-};
+export type OperatorFlowNodeData = VisionNodeMeta &
+  Pick<
+    ProgramOutputFlowNodeData,
+    | 'value'
+    | 'description'
+    | 'visualStrip'
+    | 'originalElements'
+    | 'isSingleCpaObject'
+    | 'singleCpaObjectMeta'
+    | 'numerator'
+    | 'denominator'
+  > & {
+    operator: OperatorType;
+    /** Resumen numérico en la carta del operador (sincronizado con `value`). */
+    result?: number;
+    /** Modo de visualización para división: partitivo o cuotativo. Solo aplica cuando operator === 'division'. */
+    divisionMode?: DivisionMode;
+  };
 
 export type OperatorFlowNode = Node<OperatorFlowNodeData, 'operator'>;
 
@@ -37,14 +54,15 @@ function operatorSymbol(operator: OperatorType): string {
  * - All other operators: accept cpa and rational
  */
 function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[] {
+  if (isOrderOperatorType(operator)) {
+    return ['group'];
+  }
   if (isFilterOperatorType(operator)) {
     if (handleId === 'b') {
       return ['keyword'];
     }
-    // items: cpa preferred
     return ['cpa'];
   }
-  // Arithmetic and Order operators: both kinds accepted
   return ['cpa', 'rational'];
 }
 
@@ -54,10 +72,14 @@ function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[
  */
 function useOutputKind(
   nodeId: string,
+  operator: OperatorType,
   edges: Edge[],
   getPortKindInfo: (nodeId: string, handleId: string) => PortKindInfo | undefined
 ): HandleKind {
   return useMemo(() => {
+    if (isOrderOperatorType(operator)) {
+      return 'group';
+    }
     const inputEdges = edges.filter((e) => e.target === nodeId);
     for (const edge of inputEdges) {
       const sourceInfo = getPortKindInfo(edge.source, edge.sourceHandle ?? 'out');
@@ -66,7 +88,7 @@ function useOutputKind(
       }
     }
     return 'rational';
-  }, [nodeId, edges, getPortKindInfo]);
+  }, [nodeId, operator, edges, getPortKindInfo]);
 }
 
 /**
@@ -96,15 +118,14 @@ function useDivisionHasCpaInput(
 export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
+  const isOrderOp = isOrderOperatorType(operator);
   const { registerPortKind, unregisterPortKinds, nodes, edges, getPortKindInfo } = useNode();
   const { setNodes } = useReactFlow();
   const shellClass = useFlowNodeShellClass();
 
-  // Determine accepts for each input handle
   const acceptsA = getHandleAccepts(operator, 'a');
   const acceptsB = getHandleAccepts(operator, 'b');
-  // Output kind computed dynamically based on connected inputs
-  const producesOut = useOutputKind(id, edges, getPortKindInfo);
+  const producesOut = useOutputKind(id, operator, edges, getPortKindInfo);
 
   // Division toggle: only show when input "a" is CPA (not a number)
   const showDivisionToggle = useDivisionHasCpaInput(id, operator, nodes, edges);
@@ -123,10 +144,12 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   // Register port kinds when component mounts or operator/output changes
   useEffect(() => {
     registerPortKind(id, 'a', { accepts: acceptsA });
-    registerPortKind(id, 'b', { accepts: acceptsB });
+    if (!isOrderOp) {
+      registerPortKind(id, 'b', { accepts: acceptsB });
+    }
     registerPortKind(id, 'out', { produces: producesOut });
     return () => unregisterPortKinds(id);
-  }, [id, operator, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
+  }, [id, operator, isOrderOp, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
 
   return (
     <div className={`relative h-52 w-30 -translate-x-[15%] -translate-y-[45%] ${shellClass}`}>
@@ -149,17 +172,22 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         nodeId={id}
         handleVariant="operator-in-a"
         accepts={acceptsA}
-        style={{ top: '25%', transform: 'translateX(-100px)' }}
+        style={{
+          top: isOrderOp ? '50%' : '25%',
+          transform: 'translateX(-100px)',
+        }}
       />
-      <ClickableHandle
-        type="target"
-        position={Position.Left}
-        id="b"
-        nodeId={id}
-        handleVariant="operator-in-b"
-        accepts={acceptsB}
-        style={{ top: '75%', transform: 'translateX(-100px)' }}
-      />
+      {!isOrderOp ? (
+        <ClickableHandle
+          type="target"
+          position={Position.Left}
+          id="b"
+          nodeId={id}
+          handleVariant="operator-in-b"
+          accepts={acceptsB}
+          style={{ top: '75%', transform: 'translateX(-100px)' }}
+        />
+      ) : null}
       <FlowNodeCard
         family="transformation"
         title={operator}

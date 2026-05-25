@@ -1,54 +1,72 @@
-import type { ProgramOutputFlowNodeData } from "@/components/dataflow";
+import type { OperatorFlowNodeData } from "@/components/dataflow";
 import type { ResultValue } from "@/services/executeProgram";
+import {
+  resultValueToDisplayData,
+  type FlowResultDisplayData,
+} from "@/utils/evalResultDisplay";
+import { logger } from "@/lib/logger";
+import { safeJsonStringify } from "@/utils/jsonReplacer";
 import type { DataflowNode } from "./types";
 
-/** Aplica resultados del intérprete a nodos `programOutput` sin tocar posiciones ni otros tipos. */
+function displayDataUnchanged(
+  current: FlowResultDisplayData,
+  next: FlowResultDisplayData
+): boolean {
+  return (
+    current.value === next.value &&
+    current.description === next.description &&
+    safeJsonStringify(current.visualStrip) === safeJsonStringify(next.visualStrip) &&
+    current.isSingleCpaObject === next.isSingleCpaObject &&
+    safeJsonStringify(current.singleCpaObjectMeta) ===
+      safeJsonStringify(next.singleCpaObjectMeta) &&
+    current.numerator === next.numerator &&
+    current.denominator === next.denominator
+  );
+}
+
+/** Aplica resultados del intérprete a nodos `programOutput` y `operator`. */
 export function mergeProgramOutputsFromResults(
   nodes: DataflowNode[],
   results: Map<string, ResultValue>
 ): DataflowNode[] {
-  let changed = false;
-  const updated = nodes.map((n) => {
-    if (n.type !== "programOutput") return n;
-    const resultValue = results.get(n.id);
-    if (resultValue === undefined) return n;
+  try {
+    let changed = false;
+    const updated = nodes.map((n) => {
+      if (n.type !== "programOutput" && n.type !== "operator") return n;
+      const resultValue = results.get(n.id);
+      if (resultValue === undefined) return n;
 
-    const currentData = n.data as ProgramOutputFlowNodeData;
-    let newData: ProgramOutputFlowNodeData;
+      const newData = resultValueToDisplayData(resultValue);
+      const currentData = n.data as FlowResultDisplayData & OperatorFlowNodeData;
 
-    if (resultValue.kind === "number") {
-      newData = {
-        value: resultValue.value,
-        description: undefined,
-        visualStrip: undefined,
-        numerator: resultValue.numerator,
-        denominator: resultValue.denominator,
-      };
-    } else {
-      newData = {
-        value: resultValue.result.totalAmount,
-        description: resultValue.result.description,
-        visualStrip: resultValue.result.visualStrip,
-        originalElements: resultValue.result.originalElements,
-        isSingleCpaObject: resultValue.isSingleCpaObject,
-        singleCpaObjectMeta: resultValue.singleCpaObjectMeta,
-      };
-    }
+      if (displayDataUnchanged(currentData, newData)) {
+        return n;
+      }
 
-    if (
-      currentData.value === newData.value &&
-      currentData.description === newData.description &&
-      JSON.stringify(currentData.visualStrip) === JSON.stringify(newData.visualStrip) &&
-      currentData.isSingleCpaObject === newData.isSingleCpaObject &&
-      JSON.stringify(currentData.singleCpaObjectMeta) === JSON.stringify(newData.singleCpaObjectMeta) &&
-      currentData.numerator === newData.numerator &&
-      currentData.denominator === newData.denominator
-    ) {
-      return n;
-    }
+      changed = true;
+      if (n.type === "operator") {
+        const opData = n.data as OperatorFlowNodeData;
+        return {
+          ...n,
+          data: {
+            ...opData,
+            ...newData,
+            result:
+              newData.value ??
+              (resultValue.kind === "semantic"
+                ? resultValue.result.totalAmount
+                : undefined),
+          },
+        };
+      }
 
-    changed = true;
-    return { ...n, data: { ...n.data, ...newData } };
-  });
-  return changed ? updated : nodes;
+      return { ...n, data: { ...n.data, ...newData } };
+    });
+    return changed ? updated : nodes;
+  } catch (err) {
+    logger.nodeProvider.error("Failed to merge program outputs", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return nodes;
+  }
 }

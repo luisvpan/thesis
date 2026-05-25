@@ -3,7 +3,7 @@
  * Defines what type of data a handle produces or accepts.
  */
 
-export type HandleKind = "rational" | "cpa" | "keyword" | "any";
+export type HandleKind = "rational" | "cpa" | "keyword" | "group" | "any";
 
 /**
  * Checks if a source handle can connect to a target handle based on their kinds.

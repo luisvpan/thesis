@@ -30,6 +30,8 @@ function getShapeClassFromKind(kind: HandleKind | undefined): string {
       return "!rounded-md";
     case "keyword":
       return "!rounded-full !rounded-md !w-26 translate-x-[-20%]";
+    case "group":
+      return "!rounded-sm !border-2 !border-dashed";
     case "any":
     default:
       return "!rounded-full !rounded-md";

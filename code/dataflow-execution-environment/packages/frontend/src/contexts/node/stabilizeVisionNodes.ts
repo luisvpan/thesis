@@ -1,5 +1,6 @@
 import type { DataflowNode } from "./types";
 import { readVisionMeta, type VisionNodeMeta } from "./visionNodeMeta";
+import { safeJsonStringify } from "@/utils/jsonReplacer";
 
 const POSITION_EPS_PX = 1;
 
@@ -24,8 +25,8 @@ function stripEphemeralMeta(data: unknown): Record<string, unknown> {
 function nodePayloadEqual(a: DataflowNode, b: DataflowNode): boolean {
   if (a.type !== b.type) return false;
   return (
-    JSON.stringify(stripEphemeralMeta(a.data)) ===
-    JSON.stringify(stripEphemeralMeta(b.data))
+    safeJsonStringify(stripEphemeralMeta(a.data)) ===
+    safeJsonStringify(stripEphemeralMeta(b.data))
   );
 }
 

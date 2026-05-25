@@ -1,7 +1,9 @@
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode, PortIdentifier } from "@/contexts/node/types";
+import { isOrderOperatorType, type OperatorType } from "@/types/card-types";
 import { acceptsConnection } from "./handle-kinds";
 import type { PortKindInfo } from "@/contexts/node/types";
+import type { OperatorFlowNodeData } from "./OperatorFlowNode";
 
 export type PortRef = PortIdentifier;
 
@@ -40,8 +42,31 @@ export function isArrayClosePairedWithOpen(
   });
 }
 
-function isOperatorInputHandle(handleId: string): boolean {
+function operatorType(nodes: DataflowNode[], nodeId: string): OperatorType | undefined {
+  const node = nodes.find((n) => n.id === nodeId);
+  if (node?.type !== "operator") return undefined;
+  return (node.data as OperatorFlowNodeData | undefined)?.operator;
+}
+
+function isOperatorInputHandle(
+  nodes: DataflowNode[],
+  operatorNodeId: string,
+  handleId: string
+): boolean {
+  const op = operatorType(nodes, operatorNodeId);
+  if (op && isOrderOperatorType(op)) {
+    return handleId === "a";
+  }
   return handleId === "a" || handleId === "b";
+}
+
+function isOrderOperatorTarget(
+  nodes: DataflowNode[],
+  targetNodeId: string,
+  targetHandle: string
+): boolean {
+  const op = operatorType(nodes, targetNodeId);
+  return op != null && isOrderOperatorType(op) && targetHandle === "a";
 }
 
 /**
@@ -68,10 +93,16 @@ export function canConnectStructurally(
     return { ok: false, reason: "unknown-node" };
   }
 
-  // (a) Entrada → solo operador (a|b)
+  // (a) Entrada → solo operador (a|b), excepto ordenar (solo grupos)
   if (srcType === "source") {
     if (srcHandle !== "out") return { ok: false, reason: "source-handle" };
-    if (tgtType === "operator" && isOperatorInputHandle(tgtHandle)) {
+    if (tgtType === "operator" && isOrderOperatorTarget(ctx.nodes, target.nodeId, tgtHandle)) {
+      return { ok: false, reason: "order-requires-group" };
+    }
+    if (
+      tgtType === "operator" &&
+      isOperatorInputHandle(ctx.nodes, target.nodeId, tgtHandle)
+    ) {
       return { ok: true };
     }
     return { ok: false, reason: "source-target" };
@@ -90,7 +121,7 @@ export function canConnectStructurally(
     if (tgtType === "programOutput" && tgtHandle === "in") {
       return { ok: true };
     }
-    if (tgtType === "operator" && isOperatorInputHandle(tgtHandle)) {
+    if (tgtType === "operator" && isOperatorInputHandle(ctx.nodes, target.nodeId, tgtHandle)) {
       if (isArrayClosePairedWithOpen(source.nodeId, ctx.edges, ctx.nodes)) {
         return { ok: true };
       }
@@ -104,15 +135,22 @@ export function canConnectStructurally(
     if (tgtType === "programOutput" && tgtHandle === "in") {
       return { ok: true };
     }
-    if (tgtType === "operator" && isOperatorInputHandle(tgtHandle)) {
+    if (tgtType === "operator" && isOperatorInputHandle(ctx.nodes, target.nodeId, tgtHandle)) {
+      if (isOrderOperatorTarget(ctx.nodes, target.nodeId, tgtHandle)) {
+        if (srcType === "operator") return { ok: true };
+        return { ok: false, reason: "order-requires-group" };
+      }
       return { ok: true };
     }
     return { ok: false, reason: "operator-out-target" };
   }
 
-  // Salida out → solo operador a|b
+  // Salida out → solo operador a|b (no a ordenar: solo grupos)
   if (srcType === "programOutput" && srcHandle === "out") {
-    if (tgtType === "operator" && isOperatorInputHandle(tgtHandle)) {
+    if (tgtType === "operator" && isOrderOperatorTarget(ctx.nodes, target.nodeId, tgtHandle)) {
+      return { ok: false, reason: "order-requires-group" };
+    }
+    if (tgtType === "operator" && isOperatorInputHandle(ctx.nodes, target.nodeId, tgtHandle)) {
       return { ok: true };
     }
     return { ok: false, reason: "sink-out-target" };

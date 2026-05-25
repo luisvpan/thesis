@@ -50,6 +50,15 @@ export class LazyEvaluator {
       }
     }
 
+    // Expose evaluated transforms so UIs can show intermediate results on edges.
+    for (const [nodeId, node] of this.graph.nodes) {
+      if (node.statement.type !== "TransformStatement") continue;
+      const cached = this.resultsCache.get(nodeId);
+      if (cached !== undefined) {
+        results.set(nodeId, cached);
+      }
+    }
+
     return { results, errors };
   }
 

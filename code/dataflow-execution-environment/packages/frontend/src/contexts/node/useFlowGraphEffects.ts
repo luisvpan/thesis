@@ -7,13 +7,14 @@ import {
   type SetStateAction,
 } from "react";
 import type { Edge } from "@xyflow/react";
-import type { ProgramExecutor } from "@/services/executeProgram";
+import type { ProgramExecutor, ResultValue } from "@/services/executeProgram";
 import { computeProgramHash } from "@/services/executeProgram";
 import type { CardDetectionsPayload } from "../VisionContext";
 import { VISION_FLOW_MIN_SIZE } from "./constants";
 import { mergeProgramOutputsFromResults } from "./mergeProgramOutputsFromResults";
 import { mergeVisionFrameIntoNodes } from "./mergeVisionFrameIntoNodes";
 import { applyNumberTouchMerge } from "@/utils/numberTouchMerge";
+import { logger } from "@/lib/logger";
 import type { DataflowNode } from "./types";
 
 type SetNodes = Dispatch<SetStateAction<DataflowNode[]>>;
@@ -31,6 +32,7 @@ type UseFlowGraphEffectsParams = {
   executorRef: MutableRefObject<ProgramExecutor | null>;
   setExecutionError: (msg: string | null) => void;
   setExecutionResult: (n: number | null) => void;
+  setEvalResults: (results: Map<string, ResultValue>) => void;
 };
 
 export function useFlowGraphEffects({
@@ -45,6 +47,7 @@ export function useFlowGraphEffects({
   executorRef,
   setExecutionError,
   setExecutionResult,
+  setEvalResults,
 }: UseFlowGraphEffectsParams): void {
   const lastProgramHashRef = useRef<string | null>(null);
 
@@ -96,18 +99,31 @@ export function useFlowGraphEffects({
     if (programHash === lastProgramHashRef.current) return;
     lastProgramHashRef.current = programHash;
 
-    executorRef.current.execute(nodes, edges).then((result) => {
-      if (result.success && result.results) {
-        setExecutionError(null);
+    executorRef.current
+      .execute(nodes, edges)
+      .then((result) => {
+        if (result.success && result.results) {
+          setExecutionError(null);
+          setEvalResults(new Map(result.results));
 
-        setNodes((nds) => {
-          const merged = mergeProgramOutputsFromResults(nds, result.results!);
-          return merged === nds ? nds : merged;
+          setNodes((nds) => {
+            const merged = mergeProgramOutputsFromResults(nds, result.results!);
+            return merged === nds ? nds : merged;
+          });
+        } else if (result.error) {
+          setExecutionResult(null);
+          setEvalResults(new Map());
+          setExecutionError(result.error);
+        }
+      })
+      .catch((err) => {
+        logger.execute.error("Unhandled execution error", {
+          error: err instanceof Error ? err.message : String(err),
         });
-      } else if (result.error) {
         setExecutionResult(null);
-        setExecutionError(result.error);
-      }
-    });
-  }, [nodes, edges, setNodes, executorRef, setExecutionError, setExecutionResult]);
+        setExecutionError(
+          err instanceof Error ? err.message : "Error de ejecución"
+        );
+      });
+  }, [nodes, edges, setNodes, executorRef, setExecutionError, setExecutionResult, setEvalResults]);
 }

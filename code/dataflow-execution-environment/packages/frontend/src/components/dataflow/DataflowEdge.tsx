@@ -3,6 +3,14 @@ import { getBezierPath, type EdgeProps } from '@xyflow/react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { EdgeFlowWalker } from './EdgeFlowWalker';
+import { hasEdgeSourceMiniToken } from './EdgeSourceMiniToken';
+
+function isArrayZoneEdge(
+  sourceHandle: string | null | undefined,
+  targetHandle: string | null | undefined
+): boolean {
+  return sourceHandle === 'zone-out' || targetHandle === 'zone-in';
+}
 
 export function DataflowEdge({
   id,
@@ -14,10 +22,12 @@ export function DataflowEdge({
   targetY,
   sourcePosition,
   targetPosition,
+  sourceHandle,
+  targetHandle,
 }: EdgeProps) {
   const pathRef = useRef<SVGPathElement>(null);
   const { showFlowResults, viewMode } = useResultCardUi();
-  const { nodes } = useNode();
+  const { nodes, evalResults } = useNode();
 
   const [edgePath] = getBezierPath({
     sourceX,
@@ -31,13 +41,24 @@ export function DataflowEdge({
   const { sourceNode, showWalker } = useMemo(() => {
     const src = nodes.find((n) => n.id === source);
     const tgt = nodes.find((n) => n.id === target);
+    if (!showFlowResults || !src || !tgt || isArrayZoneEdge(sourceHandle, targetHandle)) {
+      return { sourceNode: src, showWalker: false };
+    }
+    const dataNodeTypes = new Set([
+      'source',
+      'operator',
+      'arrayClose',
+      'programOutput',
+    ]);
     const walker =
-      showFlowResults &&
-      src != null &&
-      tgt != null &&
-      (tgt.type === 'operator' || tgt.type === 'programOutput');
+      dataNodeTypes.has(src.type) &&
+      hasEdgeSourceMiniToken(src, evalResults) &&
+      (tgt.type === 'operator' ||
+        tgt.type === 'programOutput' ||
+        src.type === 'operator' ||
+        src.type === 'programOutput');
     return { sourceNode: src, showWalker: walker };
-  }, [nodes, source, target, showFlowResults]);
+  }, [nodes, source, target, showFlowResults, sourceHandle, targetHandle, evalResults]);
 
   return (
     <>

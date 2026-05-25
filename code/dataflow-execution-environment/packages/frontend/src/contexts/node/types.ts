@@ -10,6 +10,7 @@ import type {
 import type { OperatorType } from "../../types/card-types";
 import type { HandleKind } from "../../components/dataflow/handle-kinds";
 import type { PortHighlightState } from "../../components/dataflow/connectionRules";
+import type { ResultValue } from "../../services/executeProgram";
 
 export type DataflowNode =
   | Node<SourceFlowNodeData, "source">
@@ -49,6 +50,8 @@ export type NodeContextState = {
   isExecuting: boolean;
   executionResult: number | null;
   executionError: string | null;
+  /** Últimos resultados por id de nodo (operador / salida); no se pierden al sincronizar visión. */
+  evalResults: Map<string, ResultValue>;
 
   getNodePorts: (nodeType: "source" | "operator") => PortDefinition[];
   isPortSelected: (

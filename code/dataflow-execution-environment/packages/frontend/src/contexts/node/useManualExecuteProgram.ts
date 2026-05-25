@@ -1,7 +1,7 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import type { Edge } from "@xyflow/react";
-import type { ProgramOutputFlowNodeData } from "@/components/dataflow";
-import type { ProgramExecutor } from "@/services/executeProgram";
+import type { ProgramExecutor, ResultValue } from "@/services/executeProgram";
+import { mergeProgramOutputsFromResults } from "./mergeProgramOutputsFromResults";
 import type { DataflowNode } from "./types";
 import { logger } from "@/lib/logger";
 
@@ -14,7 +14,8 @@ export function useManualExecuteProgram(
   setNodes: SetNodes,
   setIsExecuting: (v: boolean) => void,
   setExecutionError: (msg: string | null) => void,
-  setExecutionResult: (n: number | null) => void
+  setExecutionResult: (n: number | null) => void,
+  setEvalResults: (results: Map<string, ResultValue>) => void
 ) {
   return useCallback(async () => {
     if (!executorRef.current) {
@@ -25,26 +26,13 @@ export function useManualExecuteProgram(
     setIsExecuting(true);
     setExecutionError(null);
 
-    const syncProgramOutputValue = (num: number | undefined) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.type === "programOutput"
-            ? {
-                ...n,
-                data: {
-                  ...(n.data as ProgramOutputFlowNodeData),
-                  value: num,
-                },
-              }
-            : n
-        )
-      );
-    };
-
     try {
       const result = await executorRef.current.execute(nodes, edges);
 
       if (result.success && result.results && result.results.size > 0) {
+        setEvalResults(new Map(result.results));
+        setNodes((nds) => mergeProgramOutputsFromResults(nds, result.results!));
+
         const firstResult = result.results.values().next().value;
         const numericResult =
           firstResult?.kind === "number"
@@ -52,21 +40,29 @@ export function useManualExecuteProgram(
             : firstResult?.result.totalAmount;
         setExecutionResult(numericResult ?? null);
         setExecutionError(null);
-        syncProgramOutputValue(typeof numericResult === "number" ? numericResult : undefined);
 
         const stats = executorRef.current.getStats();
         logger.executeProgram.debug("Execution stats", { stats });
       } else {
         setExecutionResult(null);
+        setEvalResults(new Map());
         setExecutionError(result.error || "Error desconocido");
-        syncProgramOutputValue(undefined);
       }
     } catch (err) {
       setExecutionResult(null);
+      setEvalResults(new Map());
       setExecutionError(err instanceof Error ? err.message : "Error de ejecución");
-      syncProgramOutputValue(undefined);
     } finally {
       setIsExecuting(false);
     }
-  }, [nodes, edges, setNodes, executorRef, setIsExecuting, setExecutionError, setExecutionResult]);
+  }, [
+    nodes,
+    edges,
+    setNodes,
+    executorRef,
+    setIsExecuting,
+    setExecutionError,
+    setExecutionResult,
+    setEvalResults,
+  ]);
 }

@@ -23,7 +23,14 @@ function renderGlyph(item: ResultVisualItem, index: number) {
     case 'montessori':
       return <MontessoriCubeGlyph key={key} color={item.color} />;
     case 'forma':
-      return <FormaGlyph key={key} subtype={item.subtype} color={item.color} />;
+      return (
+        <FormaGlyph
+          key={key}
+          subtype={item.subtype}
+          size={item.size}
+          color={item.color}
+        />
+      );
     case 'cap':
       return <CapGlyph key={key} color={item.color} />;
     case 'stick':
