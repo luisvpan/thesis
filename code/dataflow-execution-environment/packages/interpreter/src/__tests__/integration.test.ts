@@ -89,11 +89,11 @@ describe("Integration", () => {
       expect(square.quantity.equals(new Fraction(4))).toBe(true);
     });
 
-    test("substract operates on CPA object amounts", async () => {
+    test("substract operates on CPA objects with same key", async () => {
       const interpreter = new Interpreter();
       const result = await interpreter.execute(`
         source a = {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 10, "color": "morado"};
-        source b = {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 3, "color": "rojo"};
+        source b = {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 3, "color": "morado"};
         transform diff = substract(a, b);
         sink result = diff;
       `);

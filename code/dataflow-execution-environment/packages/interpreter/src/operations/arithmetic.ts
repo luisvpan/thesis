@@ -132,35 +132,25 @@ export function multiply(args: RuntimeValue[]): RuntimeValue {
 }
 
 /**
- * Resolves a RuntimeValue to a CPAObject for binary arithmetic operations.
- * - CPAObject: return as-is
- * - ArrayValue: implicit sum of elements, return resulting CPAObject
- * - OtherValue: return null (ignored)
+ * Helper to extract CPAObjects from a RuntimeValue (flattening arrays)
  */
-function resolveToSingleCPA(val: RuntimeValue): CPAObject | null {
+function extractCPAs(val: RuntimeValue): CPAObject[] {
   if (isCPAObject(val)) {
-    return val;
+    return [val];
   }
   if (isArray(val)) {
-    // Implicit sum of array elements
-    const result = sum(val.elements);
-    if (isCPAObject(result)) {
-      return result;
-    }
-    // If sum returns an array (heterogeneous), take first element
-    if (isArray(result) && result.elements.length > 0 && isCPAObject(result.elements[0])) {
-      return result.elements[0] as CPAObject;
-    }
-    return null;
+    const flat = flattenArrays(val.elements);
+    return flat.filter(isCPAObject);
   }
-  // OtherValue - ignored
-  return null;
+  return [];
 }
 
 /**
  * Substract operation (binary, arity = 2):
- * - a - b for amounts/values
- * - Supports ArrayValue (implicit sum) and OtherValue (ignored)
+ * - Groups both arguments by CPA key
+ * - Computes difference per key: quantity_a - quantity_b
+ * - Keys only in b result in negative quantities
+ * - Returns array with all results (or single CPA if only one)
  */
 export function substract(args: RuntimeValue[]): RuntimeValue {
   if (args.length !== 2) {
@@ -171,30 +161,64 @@ export function substract(args: RuntimeValue[]): RuntimeValue {
   }
 
   const [rawA, rawB] = args;
-  const a = resolveToSingleCPA(rawA);
-  const b = resolveToSingleCPA(rawB);
+  const cpasA = extractCPAs(rawA);
+  const cpasB = extractCPAs(rawB);
 
-  // If both are null (OtherValue), return first arg as-is
-  if (a === null && b === null) {
-    return rawA;
-  }
-  // If a is null, return b as-is
-  if (a === null) {
-    return b!;
-  }
-  // If b is null, return a as-is
-  if (b === null) {
-    return a;
+  // Group by CPA key
+  const groupsA = new Map<string, CPAObject>();
+  const groupsB = new Map<string, CPAObject>();
+
+  for (const val of cpasA) {
+    const key = getCPAKey(val);
+    const existing = groupsA.get(key);
+    if (existing) {
+      groupsA.set(key, cloneCPAWithQuantity(existing, rational.add(getQuantity(existing), getQuantity(val))));
+    } else {
+      groupsA.set(key, cloneCPAWithQuantity(val, getQuantity(val)));
+    }
   }
 
-  const diff = rational.subtract(getQuantity(a), getQuantity(b));
-  return cloneCPAWithQuantity(a, diff);
+  for (const val of cpasB) {
+    const key = getCPAKey(val);
+    const existing = groupsB.get(key);
+    if (existing) {
+      groupsB.set(key, cloneCPAWithQuantity(existing, rational.add(getQuantity(existing), getQuantity(val))));
+    } else {
+      groupsB.set(key, cloneCPAWithQuantity(val, getQuantity(val)));
+    }
+  }
+
+  // Compute differences for all keys
+  const allKeys = new Set([...groupsA.keys(), ...groupsB.keys()]);
+  const results: CPAObject[] = [];
+
+  for (const key of allKeys) {
+    const objA = groupsA.get(key);
+    const objB = groupsB.get(key);
+    const qtyA = objA ? getQuantity(objA) : rational.zero();
+    const qtyB = objB ? getQuantity(objB) : rational.zero();
+    const diff = rational.subtract(qtyA, qtyB);
+
+    // Use template from A if exists, otherwise from B
+    const template = objA ?? objB!;
+    results.push(cloneCPAWithQuantity(template, diff));
+  }
+
+  if (results.length === 0) {
+    return { kind: "arreglo", elements: [] };
+  }
+  if (results.length === 1) {
+    return results[0];
+  }
+  return { kind: "arreglo", elements: results };
 }
 
 /**
  * Divide operation (binary, arity = 2):
- * - a / b for amounts/values
- * - Supports ArrayValue (implicit sum) and OtherValue (ignored)
+ * - Extracts only abstract numbers from b and sums them as divisor
+ * - If no abstract numbers in b, divisor is implicitly 1
+ * - Aggregates a by CPA key (implicit sum), then divides each group by the divisor
+ * - Non-number CPAs in b are ignored
  */
 export function divide(args: RuntimeValue[]): RuntimeValue {
   if (args.length !== 2) {
@@ -205,23 +229,55 @@ export function divide(args: RuntimeValue[]): RuntimeValue {
   }
 
   const [rawA, rawB] = args;
-  const a = resolveToSingleCPA(rawA);
-  const b = resolveToSingleCPA(rawB);
+  const cpasA = extractCPAs(rawA);
+  const cpasB = extractCPAs(rawB);
 
-  // If both are null (OtherValue), return first arg as-is
-  if (a === null && b === null) {
-    return rawA;
-  }
-  // If a is null, return b as-is
-  if (a === null) {
-    return b!;
-  }
-  // If b is null, return a as-is (can't divide by nothing)
-  if (b === null) {
-    return a;
+  // Extract only abstract numbers from B and sum them
+  let divisor = rational.zero();
+  let hasAbstractNumber = false;
+
+  for (const val of cpasB) {
+    if (val.category === "abstracto" && val.type === "numero") {
+      divisor = rational.add(divisor, getQuantity(val));
+      hasAbstractNumber = true;
+    }
   }
 
-  const divisor = getQuantity(b);
-  const quotient = rational.divide(getQuantity(a), divisor);
-  return cloneCPAWithQuantity(a, quotient);
+  // If no abstract numbers, divisor is implicitly 1
+  if (!hasAbstractNumber) {
+    divisor = rational.one();
+  }
+
+  // Check for division by zero
+  if (divisor.equals(rational.zero())) {
+    throw new RuntimeError("DIVISION_BY_ZERO", "Cannot divide by zero");
+  }
+
+  // Aggregate A by CPA key (implicit sum for same-key elements)
+  const groupsA = new Map<string, CPAObject>();
+  for (const val of cpasA) {
+    const key = getCPAKey(val);
+    const existing = groupsA.get(key);
+    if (existing) {
+      groupsA.set(key, cloneCPAWithQuantity(existing, rational.add(getQuantity(existing), getQuantity(val))));
+    } else {
+      groupsA.set(key, cloneCPAWithQuantity(val, getQuantity(val)));
+    }
+  }
+
+  // Divide each aggregated group by the divisor
+  const results: CPAObject[] = [];
+
+  for (const cpa of groupsA.values()) {
+    const quotient = rational.divide(getQuantity(cpa), divisor);
+    results.push(cloneCPAWithQuantity(cpa, quotient));
+  }
+
+  if (results.length === 0) {
+    return { kind: "arreglo", elements: [] };
+  }
+  if (results.length === 1) {
+    return results[0];
+  }
+  return { kind: "arreglo", elements: results };
 }

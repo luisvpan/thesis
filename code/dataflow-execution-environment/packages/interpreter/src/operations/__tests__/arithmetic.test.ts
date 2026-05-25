@@ -205,7 +205,7 @@ describe("substract (unit)", () => {
     expect(result.quantity.equals(new Fraction(7))).toBe(true);
   });
 
-  test("subtracts CPA object amounts", () => {
+  test("subtracts CPA objects with same key", () => {
     const grape1: CPAObject = {
       kind: "cpa",
       category: "concreto",
@@ -218,16 +218,44 @@ describe("substract (unit)", () => {
       kind: "cpa",
       category: "concreto",
       type: "comida",
-      subtype: "manzana",
+      subtype: "uva",
       quantity: new Fraction(3),
-      attributes: { color: "rojo" },
+      attributes: { color: "morado" },
     };
     const result = substract([grape1, grape2]) as CPAObject;
     expect(result.kind).toBe("cpa");
     expect(result.quantity.equals(new Fraction(7))).toBe(true);
   });
 
-  test("subtracts abstract number from CPA object", () => {
+  test("subtracts CPA objects with different keys returns array", () => {
+    const grape: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "comida",
+      subtype: "uva",
+      quantity: new Fraction(10),
+      attributes: { color: "morado" },
+    };
+    const apple: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "comida",
+      subtype: "manzana",
+      quantity: new Fraction(3),
+      attributes: { color: "rojo" },
+    };
+    const result = substract([grape, apple]) as ArrayValue;
+    expect(result.kind).toBe("arreglo");
+    expect(result.elements).toHaveLength(2);
+    // uva: 10 - 0 = 10
+    const uvaResult = result.elements.find(e => (e as CPAObject).subtype === "uva") as CPAObject;
+    expect(uvaResult.quantity.equals(new Fraction(10))).toBe(true);
+    // manzana: 0 - 3 = -3
+    const appleResult = result.elements.find(e => (e as CPAObject).subtype === "manzana") as CPAObject;
+    expect(appleResult.quantity.equals(new Fraction(-3))).toBe(true);
+  });
+
+  test("subtracts abstract number from CPA object returns array with both", () => {
     const shape: CPAObject = {
       kind: "cpa",
       category: "pictorico",
@@ -237,9 +265,15 @@ describe("substract (unit)", () => {
       attributes: { size: "mediano" },
     };
     const value = createAbstractNumber(4);
-    const result = substract([shape, value]) as CPAObject;
-    expect(result.kind).toBe("cpa");
-    expect(result.quantity.equals(new Fraction(8))).toBe(true);
+    const result = substract([shape, value]) as ArrayValue;
+    expect(result.kind).toBe("arreglo");
+    expect(result.elements).toHaveLength(2);
+    // shape: 12 - 0 = 12 (unchanged)
+    const shapeResult = result.elements.find(e => (e as CPAObject).subtype === "circulo") as CPAObject;
+    expect(shapeResult.quantity.equals(new Fraction(12))).toBe(true);
+    // numero: 0 - 4 = -4
+    const numResult = result.elements.find(e => (e as CPAObject).type === "numero") as CPAObject;
+    expect(numResult.quantity.equals(new Fraction(-4))).toBe(true);
   });
 
   test("throws error for wrong arity", () => {
@@ -349,5 +383,183 @@ describe("substract with ArrayValue (unit)", () => {
     const result = substract([arr1, arr2]) as CPAObject;
     expect(result.kind).toBe("cpa");
     expect(result.quantity.equals(new Fraction(3))).toBe(true); // (5+5)-(3+4) = 3
+  });
+
+  test("handles heterogeneous arrays (per-key subtraction)", () => {
+    const red1: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(1),
+      attributes: { color: "rojo" },
+    };
+    const orange1: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(3),
+      attributes: { color: "naranja" },
+    };
+    const red2: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(2),
+      attributes: { color: "rojo" },
+    };
+    const blue1: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(1),
+      attributes: { color: "azul" },
+    };
+    const orange2: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(1),
+      attributes: { color: "naranja" },
+    };
+
+    const arrA: ArrayValue = { kind: "arreglo", elements: [red1, orange1] };
+    const arrB: ArrayValue = { kind: "arreglo", elements: [red2, blue1, orange2] };
+
+    const result = substract([arrA, arrB]) as ArrayValue;
+    expect(result.kind).toBe("arreglo");
+    expect(result.elements).toHaveLength(3);
+
+    // rojo: 1 - 2 = -1
+    const redResult = result.elements.find(
+      e => (e as CPAObject).attributes.color === "rojo"
+    ) as CPAObject;
+    expect(redResult.quantity.equals(new Fraction(-1))).toBe(true);
+
+    // naranja: 3 - 1 = 2
+    const orangeResult = result.elements.find(
+      e => (e as CPAObject).attributes.color === "naranja"
+    ) as CPAObject;
+    expect(orangeResult.quantity.equals(new Fraction(2))).toBe(true);
+
+    // azul: 0 - 1 = -1 (only in B)
+    const blueResult = result.elements.find(
+      e => (e as CPAObject).attributes.color === "azul"
+    ) as CPAObject;
+    expect(blueResult.quantity.equals(new Fraction(-1))).toBe(true);
+  });
+});
+
+describe("divide with heterogeneous arrays (unit)", () => {
+  test("divides heterogeneous array by number", () => {
+    const red: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(6),
+      attributes: { color: "rojo" },
+    };
+    const blue: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(9),
+      attributes: { color: "azul" },
+    };
+    const arr: ArrayValue = { kind: "arreglo", elements: [red, blue] };
+    const divisor = createAbstractNumber(3);
+
+    const result = divide([arr, divisor]) as ArrayValue;
+    expect(result.kind).toBe("arreglo");
+    expect(result.elements).toHaveLength(2);
+
+    // rojo: 6 / 3 = 2
+    const redResult = result.elements.find(
+      e => (e as CPAObject).attributes.color === "rojo"
+    ) as CPAObject;
+    expect(redResult.quantity.equals(new Fraction(2))).toBe(true);
+
+    // azul: 9 / 3 = 3
+    const blueResult = result.elements.find(
+      e => (e as CPAObject).attributes.color === "azul"
+    ) as CPAObject;
+    expect(blueResult.quantity.equals(new Fraction(3))).toBe(true);
+  });
+
+  test("ignores non-number CPAs in divisor", () => {
+    const red: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(6),
+      attributes: { color: "rojo" },
+    };
+    const blue: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(1),
+      attributes: { color: "azul" },
+    };
+    const divisor = createAbstractNumber(2);
+
+    const arrB: ArrayValue = { kind: "arreglo", elements: [blue, divisor] };
+    const result = divide([red, arrB]) as CPAObject;
+
+    // Only the abstract number (2) is used as divisor, blue is ignored
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(3))).toBe(true); // 6 / 2 = 3
+  });
+
+  test("uses divisor 1 when no abstract numbers in b", () => {
+    const red: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(6),
+      attributes: { color: "rojo" },
+    };
+    const blue: CPAObject = {
+      kind: "cpa",
+      category: "concreto",
+      type: "objeto",
+      subtype: "palito",
+      quantity: new Fraction(1),
+      attributes: { color: "azul" },
+    };
+
+    const result = divide([red, blue]) as CPAObject;
+
+    // No abstract numbers in b, so divisor is implicitly 1
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(6))).toBe(true); // 6 / 1 = 6
+  });
+
+  test("sums multiple abstract numbers in divisor", () => {
+    const shape: CPAObject = {
+      kind: "cpa",
+      category: "pictorico",
+      type: "forma",
+      subtype: "circulo",
+      quantity: new Fraction(12),
+      attributes: { size: "mediano" },
+    };
+    const arr: ArrayValue = {
+      kind: "arreglo",
+      elements: [createAbstractNumber(2), createAbstractNumber(2)],
+    };
+
+    const result = divide([shape, arr]) as CPAObject;
+    expect(result.kind).toBe("cpa");
+    expect(result.quantity.equals(new Fraction(3))).toBe(true); // 12 / (2+2) = 3
   });
 });
