@@ -139,12 +139,46 @@ type RuntimeOutput = {
   kind: string;
   value?: { valueOf(): number | bigint; n?: unknown; d?: unknown };
   elements?: unknown[];
-  quantity?: { valueOf(): number | bigint; n?: unknown; d?: unknown };
+  quantity?: { valueOf(): number | bigint; n?: unknown; d?: unknown; s?: unknown; toFraction?: () => string };
   category?: string;
   type?: string;
   subtype?: string;
   attributes?: { color?: string };
 };
+
+/**
+ * Extracts numerator and denominator from a Fraction.js object.
+ * Handles BigInt properties (.n, .d, .s) and falls back to toFraction() or decimal.
+ */
+function extractFraction(
+  qty: { valueOf(): number | bigint; n?: unknown; d?: unknown; s?: unknown; toFraction?: () => string }
+): { numerator: string; denominator: string } {
+  // Fraction.js stores n, d, s as bigints
+  if (typeof qty.n === "bigint" && typeof qty.d === "bigint") {
+    const sign = (qty.s as bigint) === -1n ? -1n : 1n;
+    return {
+      numerator: String((qty.n as bigint) * sign),
+      denominator: String(qty.d),
+    };
+  }
+
+  // Fallback: try toFraction() method if available
+  if (typeof qty.toFraction === "function") {
+    const frac = qty.toFraction();
+    const parts = frac.split("/");
+    return {
+      numerator: parts[0],
+      denominator: parts[1] ?? "1",
+    };
+  }
+
+  // Last resort: use decimal value
+  const value = Number(qty.valueOf());
+  return {
+    numerator: String(value),
+    denominator: "1",
+  };
+}
 
 function runtimeOutputToResultValue(output: RuntimeOutput): ResultValue | undefined {
   if (output.kind === "arreglo" && output.elements) {
@@ -153,14 +187,15 @@ function runtimeOutputToResultValue(output: RuntimeOutput): ResultValue | undefi
   }
   if (output.kind === "cpa" && output.quantity) {
     const quantity = Number(output.quantity.valueOf());
+    const { numerator, denominator } = extractFraction(output.quantity);
 
     // Abstract numbers render as plain numbers
     if (output.category === "abstracto" && output.type === "numero") {
       return {
         kind: "number",
         value: quantity,
-        numerator: String(output.quantity.n),
-        denominator: String(output.quantity.d),
+        numerator,
+        denominator,
       };
     }
 
@@ -175,8 +210,8 @@ function runtimeOutputToResultValue(output: RuntimeOutput): ResultValue | undefi
         subtype: output.subtype ?? "",
         color: output.attributes?.color ?? "",
         quantity,
-        numerator: String(output.quantity.n),
-        denominator: String(output.quantity.d),
+        numerator,
+        denominator,
       },
     };
   }

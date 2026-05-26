@@ -146,8 +146,8 @@ function buildSinkBody(
   if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
     const meta = data.singleCpaObjectMeta;
     if (viewMode === 'abstracto') {
-      const num = data.numerator ?? String(meta.quantity);
-      const den = data.denominator ?? '1';
+      const num = data.numerator ?? meta.numerator ?? String(meta.quantity);
+      const den = data.denominator ?? meta.denominator ?? '1';
       return {
         headerRight: (
           <span className="text-3xl font-black tabular-nums text-white">
