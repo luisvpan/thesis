@@ -24,6 +24,7 @@ interface SubtypeGroup {
     size?: string;
     color?: string;
     amount: number;
+    fractionStr: string;
   }>;
   totalAmount: number;
 }
@@ -34,6 +35,7 @@ interface TypeGroup {
   totalAmount: number;
   // Para números abstractos, guardamos el valor directo
   rationalValue?: number;
+  rationalFractionStr?: string;
 }
 
 interface CategoryGroup {
@@ -234,6 +236,29 @@ function getAmount(elem: unknown): number {
   return 1;
 }
 
+function getFractionString(elem: unknown): string {
+  if (!elem || typeof elem !== "object") return "1";
+  const obj = elem as Record<string, unknown>;
+
+  if (obj.kind === "cpa" && obj.quantity) {
+    const qty = obj.quantity as { n?: unknown; d?: unknown; s?: unknown; valueOf(): number };
+
+    // Fraction.js BigInt properties
+    if (typeof qty.n === "bigint" && typeof qty.d === "bigint") {
+      const sign = (qty.s as bigint) === -1n ? "-" : "";
+      if (qty.d === 1n) {
+        return `${sign}${qty.n}`;
+      }
+      return `${sign}${qty.n}/${qty.d}`;
+    }
+
+    // Fallback to decimal
+    return String(Number(qty.valueOf()));
+  }
+
+  return "1";
+}
+
 function getCategory(elem: unknown): "abstracto" | "pictorico" | "concreto" {
   if (!elem || typeof elem !== "object") return "abstracto";
   const obj = elem as Record<string, unknown>;
@@ -417,6 +442,15 @@ function groupElements(elements: unknown[]): SemanticResult {
     // Para números abstractos, acumulamos el valor
     if (type === "numero") {
       typeGroup.rationalValue = (typeGroup.rationalValue ?? 0) + amount;
+      // Para un solo número, guardamos su fracción exacta
+      // Usamos "" como marcador de "múltiples números"
+      const fractionStr = getFractionString(elem);
+      if (typeGroup.rationalFractionStr === undefined) {
+        typeGroup.rationalFractionStr = fractionStr;
+      } else if (typeGroup.rationalFractionStr !== "") {
+        // Segundo número: marcamos como múltiples (usaremos decimal)
+        typeGroup.rationalFractionStr = "";
+      }
     }
 
     // Crear o actualizar subtipo (para CPA objects)
@@ -435,6 +469,7 @@ function groupElements(elements: unknown[]): SemanticResult {
         size: attributes.size,
         color: attributes.color,
         amount,
+        fractionStr: getFractionString(elem),
       });
     }
   }
@@ -487,10 +522,13 @@ function describeType(type: TypeGroup): string {
 
   // Número abstracto: mostrar el valor
   if (type.type === "numero") {
-    const val = type.rationalValue ?? type.totalAmount;
-    if (type.totalAmount === 1) {
+    // Usar fracción exacta si tenemos un solo número, sino usar decimal
+    const val = type.rationalFractionStr || String(type.rationalValue ?? type.totalAmount);
+    // Un solo número: "el número X"
+    if (type.rationalFractionStr && type.rationalFractionStr !== "") {
       return `el número ${val}`;
     }
+    // Múltiples números: mostrar suma
     return `${type.totalAmount} ${typeName} (suma: ${val})`;
   }
 
@@ -512,22 +550,23 @@ function describeType(type: TypeGroup): string {
 function describeSubtype(sub: SubtypeGroup): string {
   const name = pluralize(sub.subtype, sub.totalAmount);
 
-  // Un solo item: incluir tamaño/color
+  // Un solo item: incluir tamaño/color, usar fracción exacta
   if (sub.items.length === 1) {
     const item = sub.items[0];
-    if (item.size) return `${sub.totalAmount} ${name} ${item.size}`;
-    if (item.color) return `${sub.totalAmount} ${name} ${item.color}`;
-    return `${sub.totalAmount} ${name}`;
+    const amt = item.fractionStr;
+    if (item.size) return `${amt} ${name} ${item.size}`;
+    if (item.color) return `${amt} ${name} ${item.color}`;
+    return `${amt} ${name}`;
   }
 
   // Múltiples items del mismo subtipo con diferentes atributos
   if (sub.items.some((i) => i.size)) {
-    const sizeDescs = sub.items.map((i) => `${i.amount} ${i.size}`);
+    const sizeDescs = sub.items.map((i) => `${i.fractionStr} ${i.size}`);
     return `${sub.totalAmount} ${name} (${sizeDescs.join(", ")})`;
   }
 
   if (sub.items.some((i) => i.color)) {
-    const colorDescs = sub.items.map((i) => `${i.amount} ${i.color}`);
+    const colorDescs = sub.items.map((i) => `${i.fractionStr} ${i.color}`);
     return `${sub.totalAmount} ${name} (${colorDescs.join(", ")})`;
   }
 
