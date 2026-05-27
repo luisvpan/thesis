@@ -13,6 +13,7 @@ import type {
   ObjectProperty,
   StringLiteral,
   ArrayLiteral,
+  GroupLiteral,
 } from "./ast";
 
 // CST Node types
@@ -81,8 +82,15 @@ interface ExpressionCstNode extends CstNode {
 interface LiteralCstNode extends CstNode {
   children: {
     objectLiteral?: CstNode[];
+    group?: CstNode[];
     arrayLiteral?: CstNode[];
     StringLiteral?: IToken[];
+  };
+}
+
+interface GroupCstNode extends CstNode {
+  children: {
+    objectLiteral?: CstNode[];
   };
 }
 
@@ -205,6 +213,8 @@ export class DataflowAstVisitor extends BaseCstVisitor {
   literal(ctx: LiteralCstNode["children"]): Literal {
     if (ctx.objectLiteral) {
       return this.visit(ctx.objectLiteral[0]);
+    } else if (ctx.group) {
+      return this.visit(ctx.group[0]);
     } else if (ctx.arrayLiteral) {
       return this.visit(ctx.arrayLiteral[0]);
     } else if (ctx.StringLiteral) {
@@ -214,6 +224,15 @@ export class DataflowAstVisitor extends BaseCstVisitor {
       } as StringLiteral;
     }
     throw new Error("Unknown literal type");
+  }
+
+  group(ctx: GroupCstNode["children"]): GroupLiteral {
+    return {
+      type: "GroupLiteral",
+      elements: ctx.objectLiteral
+        ? ctx.objectLiteral.map((obj) => this.visit(obj))
+        : [],
+    };
   }
 
   arrayLiteral(ctx: ArrayLiteralCstNode["children"]): ArrayLiteral {

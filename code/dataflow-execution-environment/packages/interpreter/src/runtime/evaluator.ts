@@ -5,7 +5,7 @@ import type {
   CPACategory,
   ExecutionNode,
 } from "./types";
-import type { Statement, Expression, Literal, ObjectLiteral } from "../analyzer/ast";
+import type { Statement, Expression, Literal, ObjectLiteral, GroupLiteral } from "../analyzer/ast";
 import { executeOperation } from "../operations";
 import { toFraction } from "./rational";
 import { RuntimeError } from "./errors";
@@ -222,6 +222,12 @@ export class LazyEvaluator {
 
       case "ObjectLiteral":
         return this.evaluateObjectLiteral(literal);
+
+      case "GroupLiteral":
+        return {
+          kind: "arreglo",
+          elements: literal.elements.map((obj) => this.evaluateObjectLiteral(obj)),
+        };
 
       case "ArrayLiteral":
         return {

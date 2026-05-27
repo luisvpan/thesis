@@ -120,14 +120,41 @@ export class DataflowParser extends CstParser {
     ]);
   });
 
-  // literal ::= object_literal | array_literal | string_literal
+  // literal ::= object_literal | group | array_literal | string_literal
   // Note: NumberLiteral is only allowed inside object kvPairs (for quantity values)
+  // Note: group must come before arrayLiteral to prioritize object-only arrays
   private literal = this.RULE("literal", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.objectLiteral) },
+      {
+        GATE: () => this.isGroupAhead(),
+        ALT: () => this.SUBRULE(this.group),
+      },
       { ALT: () => this.SUBRULE(this.arrayLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
     ]);
+  });
+
+  // Helper to check if we're looking at a group (array of objects only)
+  private isGroupAhead(): boolean {
+    // Look ahead: [ followed by { or ]
+    const tokens = this.LA(1);
+    if (tokens.tokenType !== LBracket) return false;
+    const next = this.LA(2);
+    return next.tokenType === LBrace || next.tokenType === RBracket;
+  }
+
+  // group ::= "[" (object_literal ("," object_literal)*)? "]"
+  private group = this.RULE("group", () => {
+    this.CONSUME(LBracket);
+    this.OPTION(() => {
+      this.SUBRULE(this.objectLiteral);
+      this.MANY(() => {
+        this.CONSUME(Comma);
+        this.SUBRULE2(this.objectLiteral);
+      });
+    });
+    this.CONSUME(RBracket);
   });
 
   // array_literal ::= "[" (expression ("," expression)*)? "]"

@@ -1,6 +1,6 @@
 # Dataflow Language - Formal Grammar Specification
 
-**Version:** 3.1.0
+**Version:** 3.2.0
 **Date:** 2026-05-18  
 **Notation:** W3C Extended Backus-Naur Form (EBNF)
 
@@ -10,7 +10,7 @@
 program             ::= statement*
 statement           ::= source_decl | transform_decl | sink_decl
 
-source_decl         ::= "source" identifier "=" object_literal? ";"
+source_decl         ::= "source" identifier "=" (object_literal | group)? ";"
 transform_decl      ::= "transform" identifier "=" (operation "(" argument_list? ")")? ";"
 sink_decl           ::= "sink" identifier "=" identifier? ";"
 
@@ -20,7 +20,9 @@ operation           ::= "sum" | "substract" | "multiply" | "divide"
                       | "less_than" | "greater_than" 
                       | "order_asc" | "order_desc" | "filter"
 
-object_literal      ::= "{" '"' category '"' ":" category_type "," '"' type '"' ":" string_literal "," '"' subtype '"' ":" string_literal "," '"' quantity '"' ":" rational_literal ("," kv_pairs)? "}"
+group               ::= "[" (object_literal ("," object_literal)*)? "]"
+
+object_literal      ::= "{" '"category"' ":" category_type "," '"type"' ":" string_literal "," '"subtype"' ":" string_literal "," '"quantity"' ":" rational_literal ("," kv_pairs)? "}"
 
 category_type       ::= '"abstracto"' | '"pictorico"' | '"concreto"'
 
@@ -28,7 +30,6 @@ kv_pairs            ::= string_literal ":" kv_value ("," string_literal ":" kv_v
 kv_value            ::= string_literal | rational_literal
 
 rational_literal    ::= "-"? digit+ ("." digit+)?
-
 string_literal      ::= '"' [a-zA-Z0-9_-]* '"'
 identifier          ::= [a-zA-Z] [a-zA-Z0-9_-]*
 digit               ::= [0-9]

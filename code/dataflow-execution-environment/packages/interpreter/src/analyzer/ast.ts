@@ -49,7 +49,7 @@ export type IdentifierExpression = {
 // Literals
 // Note: NumberLiteral is not a top-level literal in grammar v3.1.0
 // Numbers are only allowed inside object kvPairs (for quantity values)
-export type Literal = ObjectLiteral | StringLiteral | ArrayLiteral;
+export type Literal = ObjectLiteral | StringLiteral | ArrayLiteral | GroupLiteral;
 
 export type StringLiteral = {
   type: "StringLiteral";
@@ -59,6 +59,12 @@ export type StringLiteral = {
 export type ArrayLiteral = {
   type: "ArrayLiteral";
   elements: Expression[];
+};
+
+// Group Literal - array containing only ObjectLiterals (CPA objects)
+export type GroupLiteral = {
+  type: "GroupLiteral";
+  elements: ObjectLiteral[];
 };
 
 // Generic Object Literal with key-value pairs
