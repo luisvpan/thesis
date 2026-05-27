@@ -10,6 +10,8 @@ import type {
   Expression,
   Literal,
   ObjectLiteral,
+  DataLiteral,
+  CriteriaLiteral,
   ObjectProperty,
   StringLiteral,
   ArrayLiteral,
@@ -110,6 +112,13 @@ interface KvPairCstNode extends CstNode {
   children: {
     StringLiteral: IToken[];
     NumberLiteral?: IToken[];
+    kvArrayLiteral?: CstNode[];
+  };
+}
+
+interface KvArrayLiteralCstNode extends CstNode {
+  children: {
+    StringLiteral?: IToken[];
   };
 }
 
@@ -243,27 +252,62 @@ export class DataflowAstVisitor extends BaseCstVisitor {
   }
 
   objectLiteral(ctx: ObjectLiteralCstNode["children"]): ObjectLiteral {
-    const properties: ObjectProperty[] = [];
+    const rawProps: ObjectProperty[] = [];
 
     if (ctx.kvPair) {
       for (const kvPairCst of ctx.kvPair) {
-        properties.push(this.visit(kvPairCst));
+        rawProps.push(this.visit(kvPairCst));
       }
     }
 
-    return {
-      type: "ObjectLiteral",
-      properties,
+    // Discriminate by "sourceType" field
+    const sourceTypeProp = rawProps.find(p => p.key === "sourceType");
+    const sourceType = sourceTypeProp?.value;
+
+    if (sourceType === "criteria") {
+      // CriteriaLiteral
+      const propertiesProp = rawProps.find(p => p.key === "properties");
+      const properties = Array.isArray(propertiesProp?.value)
+        ? propertiesProp.value
+        : [];
+
+      return {
+        type: "CriteriaLiteral",
+        sourceType: "criteria",
+        properties,
+        values: rawProps.filter(p => !["sourceType", "properties"].includes(p.key)),
+      } as CriteriaLiteral;
+    }
+
+    // Default: DataLiteral
+    const getValue = (key: string): string => {
+      const prop = rawProps.find(p => p.key === key);
+      return typeof prop?.value === "string" ? prop.value : "";
     };
+
+    return {
+      type: "DataLiteral",
+      sourceType: "data",
+      category: getValue("category"),
+      objType: getValue("type"),
+      subtype: getValue("subtype"),
+      quantity: getValue("quantity") || "1",
+      attributes: rawProps.filter(p =>
+        !["sourceType", "category", "type", "subtype", "quantity"].includes(p.key)
+      ),
+    } as DataLiteral;
   }
 
   kvPair(ctx: KvPairCstNode["children"]): ObjectProperty {
     // First StringLiteral is the key
     const key = unquote(ctx.StringLiteral[0].image);
 
-    // Value can be second StringLiteral or NumberLiteral
-    let value: string;
-    if (ctx.StringLiteral.length > 1) {
+    // Value can be array, second StringLiteral, or NumberLiteral
+    let value: string | string[];
+
+    if (ctx.kvArrayLiteral) {
+      value = this.visit(ctx.kvArrayLiteral[0]);
+    } else if (ctx.StringLiteral.length > 1) {
       value = unquote(ctx.StringLiteral[1].image);
     } else if (ctx.NumberLiteral) {
       value = ctx.NumberLiteral[0].image;
@@ -272,6 +316,11 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     }
 
     return { key, value };
+  }
+
+  kvArrayLiteral(ctx: KvArrayLiteralCstNode["children"]): string[] {
+    if (!ctx.StringLiteral) return [];
+    return ctx.StringLiteral.map(token => unquote(token.image));
   }
 }
 

@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 import { DataflowLexer } from "../lexer";
 import { parserInstance } from "../parser";
 import { visitorInstance } from "../visitor";
-import type { Program, ObjectLiteral, getProperty } from "../ast";
+import type { Program, DataLiteral } from "../ast";
 
 interface ParseResult {
   ast: Program | null;
@@ -32,16 +32,15 @@ function parse(input: string): ParseResult {
   return { ast, errors: [] };
 }
 
-describe("Parser v3.1.0", () => {
+describe("Parser v4.0.0", () => {
   test("parses CPA abstracto (numbers as objects)", () => {
     const result = parse('source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};');
     expect(result.errors).toHaveLength(0);
     const stmt = result.ast!.statements[0];
     if (stmt.type === "SourceStatement") {
-      expect(stmt.value?.type).toBe("ObjectLiteral");
-      const obj = stmt.value as ObjectLiteral;
-      const categoryProp = obj.properties.find(p => p.key === "category");
-      expect(categoryProp?.value).toBe("abstracto");
+      expect(stmt.value?.type).toBe("DataLiteral");
+      const obj = stmt.value as DataLiteral;
+      expect(obj.category).toBe("abstracto");
     }
   });
 
@@ -50,10 +49,9 @@ describe("Parser v3.1.0", () => {
     expect(result.errors).toHaveLength(0);
     const stmt = result.ast!.statements[0];
     if (stmt.type === "SourceStatement") {
-      expect(stmt.value?.type).toBe("ObjectLiteral");
-      const obj = stmt.value as ObjectLiteral;
-      const categoryProp = obj.properties.find(p => p.key === "category");
-      expect(categoryProp?.value).toBe("pictorico");
+      expect(stmt.value?.type).toBe("DataLiteral");
+      const obj = stmt.value as DataLiteral;
+      expect(obj.category).toBe("pictorico");
     }
   });
 
@@ -62,10 +60,9 @@ describe("Parser v3.1.0", () => {
     expect(result.errors).toHaveLength(0);
     const stmt = result.ast!.statements[0];
     if (stmt.type === "SourceStatement") {
-      expect(stmt.value?.type).toBe("ObjectLiteral");
-      const obj = stmt.value as ObjectLiteral;
-      const categoryProp = obj.properties.find(p => p.key === "category");
-      expect(categoryProp?.value).toBe("concreto");
+      expect(stmt.value?.type).toBe("DataLiteral");
+      const obj = stmt.value as DataLiteral;
+      expect(obj.category).toBe("concreto");
     }
   });
 
@@ -74,10 +71,9 @@ describe("Parser v3.1.0", () => {
     expect(result.errors).toHaveLength(0);
     const stmt = result.ast!.statements[0];
     if (stmt.type === "SourceStatement") {
-      expect(stmt.value?.type).toBe("ObjectLiteral");
-      const obj = stmt.value as ObjectLiteral;
-      const quantityProp = obj.properties.find(p => p.key === "quantity");
-      expect(quantityProp?.value).toBe("3.14");
+      expect(stmt.value?.type).toBe("DataLiteral");
+      const obj = stmt.value as DataLiteral;
+      expect(obj.quantity).toBe("3.14");
     }
   });
 

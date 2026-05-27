@@ -2,10 +2,19 @@ import type { DependencyGraph } from "./graph";
 import type {
   RuntimeValue,
   CPAObject,
+  CriteriaObject,
   CPACategory,
   ExecutionNode,
 } from "./types";
-import type { Statement, Expression, Literal, ObjectLiteral, GroupLiteral } from "../analyzer/ast";
+import type {
+  Statement,
+  Expression,
+  Literal,
+  ObjectLiteral,
+  DataLiteral,
+  CriteriaLiteral,
+  GroupLiteral,
+} from "../analyzer/ast";
 import { executeOperation } from "../operations";
 import { toFraction } from "./rational";
 import { RuntimeError } from "./errors";
@@ -220,8 +229,11 @@ export class LazyEvaluator {
           value: literal.value,
         };
 
-      case "ObjectLiteral":
-        return this.evaluateObjectLiteral(literal);
+      case "DataLiteral":
+        return this.evaluateDataLiteral(literal);
+
+      case "CriteriaLiteral":
+        return this.evaluateCriteriaLiteral(literal);
 
       case "GroupLiteral":
         return {
@@ -247,59 +259,76 @@ export class LazyEvaluator {
   }
 
   /**
-   * Evaluates an ObjectLiteral to a GenericCPAObject.
-   * Uses the new unified format with properties array.
+   * Evaluates an ObjectLiteral (DataLiteral or CriteriaLiteral) to runtime value.
    */
-  private evaluateObjectLiteral(obj: ObjectLiteral): CPAObject {
-    // Extract properties from the ObjectLiteral
-    const props = new Map<string, string>();
-    for (const prop of obj.properties) {
-      props.set(prop.key, prop.value);
+  private evaluateObjectLiteral(obj: ObjectLiteral): CPAObject | CriteriaObject {
+    if (obj.type === "CriteriaLiteral") {
+      return this.evaluateCriteriaLiteral(obj);
     }
+    return this.evaluateDataLiteral(obj);
+  }
 
-    // Get required fields
-    const category = props.get("category") as CPACategory | undefined;
-    const type = props.get("type");
-    const subtype = props.get("subtype");
-    const quantity = props.get("quantity");
+  /**
+   * Evaluates a DataLiteral to a CPAObject.
+   */
+  private evaluateDataLiteral(obj: DataLiteral): CPAObject {
+    const category = obj.category as CPACategory;
 
-    // Validate required fields (with defaults for backwards compatibility)
+    // Validate required fields
     if (!category) {
       throw new RuntimeError(
         "INVALID_OBJECT",
-        "Object must have a 'category' property"
+        "DataLiteral must have a 'category' property"
       );
     }
 
-    if (!type) {
+    if (!obj.objType) {
       throw new RuntimeError(
         "INVALID_OBJECT",
-        "Object must have a 'type' property"
+        "DataLiteral must have a 'type' property"
       );
     }
 
-    if (!subtype) {
+    if (!obj.subtype) {
       throw new RuntimeError(
         "INVALID_OBJECT",
-        "Object must have a 'subtype' property"
+        "DataLiteral must have a 'subtype' property"
       );
     }
 
-    // Extract additional attributes (everything except category, type, subtype, quantity)
+    // Extract additional attributes
     const attributes: Record<string, string> = {};
-    for (const [key, value] of props) {
-      if (!["category", "type", "subtype", "quantity"].includes(key)) {
-        attributes[key] = value;
+    for (const prop of obj.attributes) {
+      // Only include string values, not arrays
+      if (typeof prop.value === "string") {
+        attributes[prop.key] = prop.value;
       }
     }
 
     return {
       kind: "cpa",
       category,
-      type,
-      subtype,
-      quantity: toFraction(quantity ?? "1"),
+      type: obj.objType,
+      subtype: obj.subtype,
+      quantity: toFraction(obj.quantity || "1"),
       attributes,
+    };
+  }
+
+  /**
+   * Evaluates a CriteriaLiteral to a CriteriaObject.
+   */
+  private evaluateCriteriaLiteral(obj: CriteriaLiteral): CriteriaObject {
+    const values: Record<string, string | string[]> = {};
+
+    for (const prop of obj.values) {
+      values[prop.key] = prop.value;
+    }
+
+    return {
+      kind: "criteria",
+      properties: obj.properties,
+      values,
     };
   }
 }

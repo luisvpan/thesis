@@ -1,7 +1,52 @@
 import type Fraction from "fraction.js";
-import type { RuntimeValue, CPAObject } from "../runtime/types";
-import { isArray, isCPAObject } from "../runtime/types";
+import type { RuntimeValue, CPAObject, CriteriaObject } from "../runtime/types";
+import { isArray, isCPAObject, isCriteria } from "../runtime/types";
 import * as rational from "../runtime/rational";
+
+/**
+ * Result of separating arguments into data items and criteria elements.
+ */
+export interface SeparatedArgs {
+  dataItems: CPAObject[];
+  criteriaElements: (CriteriaObject | CriteriaObject[])[]; // Singles or groups
+}
+
+/**
+ * Separates arguments into data items and criteria elements.
+ * - Data items (CPAObject) are flattened from groups
+ * - Criteria elements (CriteriaObject) preserve group structure for AND logic
+ */
+export function separationPass(args: RuntimeValue[]): SeparatedArgs {
+  const dataItems: CPAObject[] = [];
+  const criteriaElements: (CriteriaObject | CriteriaObject[])[] = [];
+
+  for (const arg of args) {
+    if (isArray(arg)) {
+      // Inspect the group
+      if (arg.elements.length === 0) continue;
+
+      const first = arg.elements[0];
+      if (isCPAObject(first)) {
+        // Data group: flatten into dataItems
+        for (const el of arg.elements) {
+          if (isCPAObject(el)) dataItems.push(el);
+        }
+      } else if (isCriteria(first)) {
+        // Criteria group: preserve as array for AND logic
+        const criteriaGroup = arg.elements.filter(isCriteria);
+        if (criteriaGroup.length > 0) {
+          criteriaElements.push(criteriaGroup);
+        }
+      }
+    } else if (isCPAObject(arg)) {
+      dataItems.push(arg);
+    } else if (isCriteria(arg)) {
+      criteriaElements.push(arg); // Single criteria
+    }
+  }
+
+  return { dataItems, criteriaElements };
+}
 
 /**
  * Recursively flattens nested arrays into a single-level array.

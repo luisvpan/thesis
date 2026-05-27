@@ -1,6 +1,6 @@
 # Dataflow Language - Formal Grammar Specification
 
-**Version:** 3.2.0
+**Version:** 4.0.0
 **Date:** 2026-05-18  
 **Notation:** W3C Extended Backus-Naur Form (EBNF)
 
@@ -22,13 +22,17 @@ operation           ::= "sum" | "substract" | "multiply" | "divide"
 
 group               ::= "[" (object_literal ("," object_literal)*)? "]"
 
-object_literal      ::= "{" '"category"' ":" category_type "," '"type"' ":" string_literal "," '"subtype"' ":" string_literal "," '"quantity"' ":" rational_literal ("," kv_pairs)? "}"
+object_literal      ::= data_literal | criteria_literal
+
+data_literal      ::= "{" '"sourceType" : "data"' "," '"category"' ":" category_type "," '"type"' ":" string_literal "," '"subtype"' ":" string_literal "," '"quantity"' ":" rational_literal ("," kv_pair)* "}"
+criteria_literal    ::= "{" '"sourceType" : "criteria"' "," '"properties"' ":" array_literal ("," kv_pair)* "}"
 
 category_type       ::= '"abstracto"' | '"pictorico"' | '"concreto"'
 
-kv_pairs            ::= string_literal ":" kv_value ("," string_literal ":" kv_value)*
-kv_value            ::= string_literal | rational_literal
+kv_pair             ::= string_literal ":" kv_value
+kv_value            ::= string_literal | rational_literal | array_literal
 
+array_literal       ::= "[" (string_literal ("," string_literal)*)? "]"
 rational_literal    ::= "-"? digit+ ("." digit+)?
 string_literal      ::= '"' [a-zA-Z0-9_-]* '"'
 identifier          ::= [a-zA-Z] [a-zA-Z0-9_-]*

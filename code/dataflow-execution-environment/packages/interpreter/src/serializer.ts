@@ -4,7 +4,17 @@ import Fraction from "fraction.js";
 import { DataflowLexer } from "./analyzer/lexer";
 import { parserInstance } from "./analyzer/parser";
 import { visitorInstance } from "./analyzer/visitor";
-import type { Program as ASTProgram, Statement as ASTStatement, Literal as ASTLiteral, Expression as ASTExpression, ObjectLiteral as ASTObjectLiteral, ObjectProperty as ASTObjectProperty } from "./analyzer/ast";
+import type {
+  Program as ASTProgram,
+  Statement as ASTStatement,
+  Literal as ASTLiteral,
+  Expression as ASTExpression,
+  ObjectLiteral as ASTObjectLiteral,
+  DataLiteral as ASTDataLiteral,
+  CriteriaLiteral as ASTCriteriaLiteral,
+  ObjectProperty as ASTObjectProperty,
+  GroupLiteral as ASTGroupLiteral,
+} from "./analyzer/ast";
 import type {
   Program,
   Statement,
@@ -130,13 +140,31 @@ function astLiteralToLiteral(lit: ASTLiteral): Literal {
         type: "OtherLiteral",
         value: lit.value,
       };
-    case "ObjectLiteral":
+    case "DataLiteral":
+    case "CriteriaLiteral":
       return astObjectLiteralToObjectLiteral(lit);
+    case "GroupLiteral":
+      return {
+        type: "ArrayLiteral",
+        elements: lit.elements.map(astObjectLiteralToObjectLiteral),
+      };
   }
 }
 
 function astObjectLiteralToObjectLiteral(obj: ASTObjectLiteral): ObjectLiteral {
-  const properties: ObjectProperty[] = obj.properties.map((prop: ASTObjectProperty) => {
+  // Get raw properties based on object type
+  const rawProps: ASTObjectProperty[] = obj.type === "DataLiteral"
+    ? obj.attributes
+    : obj.values;
+
+  const properties: ObjectProperty[] = rawProps.map((prop: ASTObjectProperty) => {
+    // Handle array values (e.g., "tier": ["premium", "regular"])
+    if (Array.isArray(prop.value)) {
+      return {
+        key: prop.key,
+        value: prop.value.join(","), // Serialize array as comma-separated string
+      };
+    }
     // Check if value looks like a number
     const numValue = parseFloat(prop.value);
     if (!isNaN(numValue) && prop.value.trim() === String(numValue)) {
@@ -150,6 +178,23 @@ function astObjectLiteralToObjectLiteral(obj: ASTObjectLiteral): ObjectLiteral {
       value: prop.value,
     };
   });
+
+  // For DataLiteral, add core properties
+  if (obj.type === "DataLiteral") {
+    // Add category, type, subtype as properties
+    if (obj.category) properties.unshift({ key: "category", value: obj.category });
+    if (obj.objType) properties.splice(1, 0, { key: "type", value: obj.objType });
+    if (obj.subtype) properties.splice(2, 0, { key: "subtype", value: obj.subtype });
+    if (obj.quantity && obj.quantity !== "1") {
+      properties.push({ key: "quantity", value: new Fraction(obj.quantity) });
+    }
+  }
+
+  // For CriteriaLiteral, add sourceType and properties array
+  if (obj.type === "CriteriaLiteral") {
+    properties.unshift({ key: "sourceType", value: "criteria" });
+    properties.splice(1, 0, { key: "properties", value: obj.properties.join(",") });
+  }
 
   // Add convenience quantity accessor
   const quantityProp = properties.find(p => p.key === "quantity");

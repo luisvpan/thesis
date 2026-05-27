@@ -111,7 +111,7 @@ describe("filter (unit)", () => {
     expect(() => filter([shape])).toThrow();
   });
 
-  test("throws error for non-keyword criterion", () => {
+  test("ignores unknown criterion types and returns all data (v4.0.0)", () => {
     const shape: CPAObject = {
       kind: "cpa",
       category: "pictorico",
@@ -120,7 +120,11 @@ describe("filter (unit)", () => {
       quantity: new Fraction(1),
       attributes: { size: "grande" },
     };
+    // Unknown criterion type - ignored by separationPass
     const badCriterion = { kind: "racional", value: new Fraction(5) };
-    expect(() => filter([shape, badCriterion as any])).toThrow();
+    const result = filter([shape, badCriterion as any]) as CPAObject;
+    // With no valid criteria, all data items are returned
+    expect(result.kind).toBe("cpa");
+    expect(result.subtype).toBe("circulo");
   });
 });

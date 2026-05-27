@@ -184,14 +184,29 @@ export class DataflowParser extends CstParser {
     this.CONSUME(RBrace);
   });
 
-  // kv_pair ::= string_literal ":" (string_literal | number_literal)
+  // kv_pair ::= string_literal ":" kv_value
+  // kv_value ::= string_literal | rational_literal | array_literal
   private kvPair = this.RULE("kvPair", () => {
     this.CONSUME(StringLiteral);
     this.CONSUME(Colon);
     this.OR([
+      { ALT: () => this.SUBRULE(this.kvArrayLiteral) },  // ["a", "b", "c"]
       { ALT: () => this.CONSUME2(StringLiteral) },
       { ALT: () => this.CONSUME(NumberLiteral) },
     ]);
+  });
+
+  // array_literal for kv_value ::= "[" (string_literal ("," string_literal)*)? "]"
+  private kvArrayLiteral = this.RULE("kvArrayLiteral", () => {
+    this.CONSUME(LBracket);
+    this.OPTION(() => {
+      this.CONSUME(StringLiteral);
+      this.MANY(() => {
+        this.CONSUME(Comma);
+        this.CONSUME2(StringLiteral);
+      });
+    });
+    this.CONSUME(RBracket);
   });
 }
 

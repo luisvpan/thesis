@@ -1,4 +1,4 @@
-// AST Node Types for the Dataflow Language v3.0.0
+// AST Node Types for the Dataflow Language v4.0.0
 
 export type Program = {
   type: "Program";
@@ -67,36 +67,65 @@ export type GroupLiteral = {
   elements: ObjectLiteral[];
 };
 
-// Generic Object Literal with key-value pairs
-// All properties are stored as strings (keys without quotes, values as-is)
-export type ObjectLiteral = {
-  type: "ObjectLiteral";
-  properties: ObjectProperty[];
+// =============================================================================
+// Object Literals (v4.0.0) - Discriminated by sourceType
+// =============================================================================
+
+// ObjectLiteral is a union of DataLiteral and CriteriaLiteral
+export type ObjectLiteral = DataLiteral | CriteriaLiteral;
+
+// Data Literal - CPA objects with category, type, subtype, quantity
+export type DataLiteral = {
+  type: "DataLiteral";
+  sourceType: "data";
+  category: string;
+  objType: string;      // "type" in source, renamed to avoid keyword
+  subtype: string;
+  quantity: string;
+  attributes: ObjectProperty[];
 };
 
+// Criteria Literal - For filter and order operations
+export type CriteriaLiteral = {
+  type: "CriteriaLiteral";
+  sourceType: "criteria";
+  properties: string[];       // Properties to match/order by
+  values: ObjectProperty[];   // Key-value pairs for criteria values
+};
+
+// Key-value pair (value can be string or array of strings)
 export type ObjectProperty = {
-  key: string;    // Property name without quotes
-  value: string;  // Property value without quotes (or number as string)
+  key: string;
+  value: string | string[];
 };
 
 // Helper type for CPA categories (for type checking)
 export type CPACategory = "abstracto" | "pictorico" | "concreto";
 
-// Helper function to get a property value from an ObjectLiteral
-export function getProperty(obj: ObjectLiteral, key: string): string | undefined {
-  const prop = obj.properties.find(p => p.key === key);
+// =============================================================================
+// Type Guards for ObjectLiteral
+// =============================================================================
+
+export function isDataLiteral(obj: ObjectLiteral): obj is DataLiteral {
+  return obj.type === "DataLiteral";
+}
+
+export function isCriteriaLiteral(obj: ObjectLiteral): obj is CriteriaLiteral {
+  return obj.type === "CriteriaLiteral";
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+// Helper function to get a property value from a DataLiteral's attributes
+export function getDataAttribute(obj: DataLiteral, key: string): string | string[] | undefined {
+  const prop = obj.attributes.find(p => p.key === key);
   return prop?.value;
 }
 
-// Helper function to check if an ObjectLiteral has all required CPA fields
-export function isValidCPAObject(obj: ObjectLiteral): boolean {
-  const category = getProperty(obj, "category");
-  const type = getProperty(obj, "type");
-  const subtype = getProperty(obj, "subtype");
-  const quantity = getProperty(obj, "quantity");
-
-  return category !== undefined &&
-         type !== undefined &&
-         subtype !== undefined &&
-         quantity !== undefined;
+// Helper function to get a value from a CriteriaLiteral
+export function getCriteriaValue(obj: CriteriaLiteral, key: string): string | string[] | undefined {
+  const prop = obj.values.find(p => p.key === key);
+  return prop?.value;
 }

@@ -33,6 +33,16 @@ export interface GenericCPAObject {
 export type CPAObject = GenericCPAObject;
 
 // =============================================================================
+// Criteria Object - For filter and order operations (v4.0.0)
+// =============================================================================
+
+export interface CriteriaObject {
+  kind: "criteria";
+  properties: string[];                      // Properties to evaluate/order by
+  values: Record<string, string | string[]>; // Criterion values (can be arrays for sequences)
+}
+
+// =============================================================================
 // Other Runtime Value Types
 // =============================================================================
 
@@ -49,6 +59,7 @@ export type OtherValue = {
 // All possible runtime values
 export type RuntimeValue =
   | CPAObject
+  | CriteriaObject
   | ArrayValue
   | OtherValue;
 
@@ -79,8 +90,19 @@ export function isCPAObject(val: RuntimeValue): val is CPAObject {
   return val.kind === "cpa";
 }
 
+export function isCriteria(val: RuntimeValue): val is CriteriaObject {
+  return val.kind === "criteria";
+}
+
 export function isOther(val: RuntimeValue): val is OtherValue {
   return val.kind === "otro";
+}
+
+/**
+ * Check if a criteria object is complete (has values for all its properties)
+ */
+export function isCriteriaComplete(criteria: CriteriaObject): boolean {
+  return criteria.properties.every(prop => prop in criteria.values);
 }
 
 // =============================================================================
