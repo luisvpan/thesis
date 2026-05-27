@@ -4,6 +4,9 @@ import { sum, substract, multiply, divide } from "./arithmetic";
 import { lessThan, greaterThan } from "./comparison";
 import { orderAsc, orderDesc } from "./ordering";
 import { filter } from "./filtering";
+import { first, last } from "./accessor";
+import { count } from "./aggregation";
+import { compare } from "./equality";
 import { RuntimeError } from "../runtime/errors";
 
 type OperationFn = (args: RuntimeValue[]) => RuntimeValue;
@@ -18,6 +21,10 @@ const OPERATION_REGISTRY: Record<Operation, OperationFn> = {
   order_asc: orderAsc,
   order_desc: orderDesc,
   filter,
+  first,
+  last,
+  count,
+  compare,
 };
 
 export function executeOperation(
@@ -36,3 +43,6 @@ export { sum, substract, multiply, divide } from "./arithmetic";
 export { lessThan, greaterThan } from "./comparison";
 export { orderAsc, orderDesc } from "./ordering";
 export { filter } from "./filtering";
+export { first, last } from "./accessor";
+export { count } from "./aggregation";
+export { compare } from "./equality";

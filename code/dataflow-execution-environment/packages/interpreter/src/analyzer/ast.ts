@@ -36,7 +36,11 @@ export type Operation =
   | "greater_than"
   | "order_asc"
   | "order_desc"
-  | "filter";
+  | "filter"
+  | "first"
+  | "last"
+  | "count"
+  | "compare";
 
 // Expressions
 export type Expression = IdentifierExpression | Literal;

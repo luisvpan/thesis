@@ -13,6 +13,10 @@ import {
   OrderAsc,
   OrderDesc,
   Filter,
+  First,
+  Last,
+  Count,
+  Compare,
   Equals,
   Semicolon,
   Comma,
@@ -88,7 +92,7 @@ export class DataflowParser extends CstParser {
     this.CONSUME(Semicolon);
   });
 
-  // operation ::= "sum" | "substract" | "multiply" | "divide" | "less_than" | "greater_than" | "order_asc" | "order_desc" | "filter"
+  // operation ::= "sum" | "substract" | "multiply" | "divide" | "less_than" | "greater_than" | "order_asc" | "order_desc" | "filter" | "first" | "last" | "count" | "compare"
   private operation = this.RULE("operation", () => {
     this.OR([
       { ALT: () => this.CONSUME(Sum) },
@@ -100,6 +104,10 @@ export class DataflowParser extends CstParser {
       { ALT: () => this.CONSUME(OrderAsc) },
       { ALT: () => this.CONSUME(OrderDesc) },
       { ALT: () => this.CONSUME(Filter) },
+      { ALT: () => this.CONSUME(First) },
+      { ALT: () => this.CONSUME(Last) },
+      { ALT: () => this.CONSUME(Count) },
+      { ALT: () => this.CONSUME(Compare) },
     ]);
   });
 

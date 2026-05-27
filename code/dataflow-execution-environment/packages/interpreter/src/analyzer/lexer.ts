@@ -35,6 +35,10 @@ export const GreaterThan = createToken({ name: "GreaterThan", pattern: /greater_
 export const OrderAsc = createToken({ name: "OrderAsc", pattern: /order_asc/, longer_alt: Identifier });
 export const OrderDesc = createToken({ name: "OrderDesc", pattern: /order_desc/, longer_alt: Identifier });
 export const Filter = createToken({ name: "Filter", pattern: /filter/, longer_alt: Identifier });
+export const First = createToken({ name: "First", pattern: /first/, longer_alt: Identifier });
+export const Last = createToken({ name: "Last", pattern: /last/, longer_alt: Identifier });
+export const Count = createToken({ name: "Count", pattern: /count/, longer_alt: Identifier });
+export const Compare = createToken({ name: "Compare", pattern: /compare/, longer_alt: Identifier });
 
 // Symbols
 export const Equals = createToken({ name: "Equals", pattern: /=/ });
@@ -81,6 +85,10 @@ export const allTokens = [
   OrderAsc,
   OrderDesc,
   Filter,
+  First,
+  Last,
+  Count,
+  Compare,
 
   // Symbols
   Equals,

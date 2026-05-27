@@ -65,6 +65,10 @@ interface OperationCstNode extends CstNode {
     OrderAsc?: IToken[];
     OrderDesc?: IToken[];
     Filter?: IToken[];
+    First?: IToken[];
+    Last?: IToken[];
+    Count?: IToken[];
+    Compare?: IToken[];
   };
 }
 
@@ -200,6 +204,10 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     if (ctx.OrderAsc) return "order_asc";
     if (ctx.OrderDesc) return "order_desc";
     if (ctx.Filter) return "filter";
+    if (ctx.First) return "first";
+    if (ctx.Last) return "last";
+    if (ctx.Count) return "count";
+    if (ctx.Compare) return "compare";
     throw new Error("Unknown operation");
   }
 

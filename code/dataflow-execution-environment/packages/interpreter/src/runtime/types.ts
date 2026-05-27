@@ -56,12 +56,18 @@ export type OtherValue = {
   value: string;
 };
 
+export type BooleanValue = {
+  kind: "booleano";
+  value: boolean;
+};
+
 // All possible runtime values
 export type RuntimeValue =
   | CPAObject
   | CriteriaObject
   | ArrayValue
-  | OtherValue;
+  | OtherValue
+  | BooleanValue;
 
 // =============================================================================
 // Execution Graph Types
@@ -96,6 +102,10 @@ export function isCriteria(val: RuntimeValue): val is CriteriaObject {
 
 export function isOther(val: RuntimeValue): val is OtherValue {
   return val.kind === "otro";
+}
+
+export function isBoolean(val: RuntimeValue): val is BooleanValue {
+  return val.kind === "booleano";
 }
 
 /**
