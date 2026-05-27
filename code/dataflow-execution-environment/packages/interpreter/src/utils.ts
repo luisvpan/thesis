@@ -1,8 +1,9 @@
 import Fraction from "fraction.js";
 import type { CPAObject, CPACategory } from "./runtime/types";
+import type { DataLiteral, CriteriaLiteral } from "./program";
 
 // ============================================================================
-// Internal generic creator
+// Runtime object helpers (for internal use)
 // ============================================================================
 
 interface CreateObjectParams {
@@ -30,11 +31,11 @@ const createObject = ({
   }) satisfies CPAObject;
 
 // ============================================================================
-// Public helpers for each CPA category
+// Runtime helpers for each CPA category
 // ============================================================================
 
 /**
- * Creates a CPA abstracto representing a rational number.
+ * Creates a runtime CPA abstracto representing a rational number.
  */
 export const createAbstractNumber = (
   quantity: number | string | Fraction,
@@ -49,7 +50,7 @@ export const createAbstractNumber = (
   }) satisfies CPAObject;
 
 /**
- * Creates a CPA pictórico (visual representation).
+ * Creates a runtime CPA pictórico (visual representation).
  */
 export const createPictoricObject = (
   type: string,
@@ -66,7 +67,7 @@ export const createPictoricObject = (
   }) satisfies CPAObject;
 
 /**
- * Creates a CPA concreto (physical object).
+ * Creates a runtime CPA concreto (physical object).
  */
 export const createConcreteObject = (
   type: string,
@@ -81,3 +82,77 @@ export const createConcreteObject = (
     quantity,
     attributes,
   }) satisfies CPAObject;
+
+// ============================================================================
+// AST Literal helpers (for building programs programmatically)
+// ============================================================================
+
+/**
+ * Creates an AST DataLiteral for an abstract number.
+ */
+export const createAbstractDataLiteral = (
+  quantity: number | Fraction,
+  attributes?: Record<string, string>
+): DataLiteral => ({
+  type: "DataLiteral",
+  sourceType: "data",
+  category: "abstracto",
+  objType: "numero",
+  subtype: "racional",
+  quantity: quantity instanceof Fraction ? quantity : new Fraction(quantity),
+  attributes: attributes ?? {},
+});
+
+/**
+ * Creates an AST DataLiteral for a pictórico (visual representation).
+ */
+export const createPictoricDataLiteral = (
+  objType: string,
+  subtype: string,
+  quantity: number | Fraction,
+  attributes?: Record<string, string>
+): DataLiteral => ({
+  type: "DataLiteral",
+  sourceType: "data",
+  category: "pictorico",
+  objType,
+  subtype,
+  quantity: quantity instanceof Fraction ? quantity : new Fraction(quantity),
+  attributes: attributes ?? {},
+});
+
+/**
+ * Creates an AST DataLiteral for a concreto (physical object).
+ */
+export const createConcreteDataLiteral = (
+  objType: string,
+  subtype: string,
+  quantity: number | Fraction,
+  attributes?: Record<string, string>
+): DataLiteral => ({
+  type: "DataLiteral",
+  sourceType: "data",
+  category: "concreto",
+  objType,
+  subtype,
+  quantity: quantity instanceof Fraction ? quantity : new Fraction(quantity),
+  attributes: attributes ?? {},
+});
+
+/**
+ * Creates an AST CriteriaLiteral for filter/order operations.
+ * Uses const type parameter for tuple inference.
+ *
+ * @example
+ * const criteria = createCriteriaLiteral({
+ *   properties: ["color", "size"],  // Infiere P = "color" | "size"
+ *   values: { color: "rojo" }       // Solo acepta "color" | "size" como keys
+ * });
+ */
+export const createCriteriaLiteral = <const P extends string>(
+  criteria: Omit<CriteriaLiteral<P>, "type" | "sourceType">
+): CriteriaLiteral<P> => ({
+  type: "CriteriaLiteral",
+  sourceType: "criteria",
+  ...criteria,
+});

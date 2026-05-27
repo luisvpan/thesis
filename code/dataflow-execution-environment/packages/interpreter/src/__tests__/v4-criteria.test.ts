@@ -53,7 +53,7 @@ describe("v4.0.0 Criteria - Parser/AST", () => {
     const stmt = program!.statements[0];
     expect(stmt.type).toBe("SourceStatement");
     if (stmt.type === "SourceStatement") {
-      expect(stmt.value.type).toBe("ObjectLiteral");
+      expect(stmt.value.type).toBe("DataLiteral");
     }
   });
 

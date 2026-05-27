@@ -12,8 +12,6 @@ import type {
   ObjectLiteral as ASTObjectLiteral,
   DataLiteral as ASTDataLiteral,
   CriteriaLiteral as ASTCriteriaLiteral,
-  ObjectProperty as ASTObjectProperty,
-  GroupLiteral as ASTGroupLiteral,
 } from "./analyzer/ast";
 import type {
   Program,
@@ -21,7 +19,8 @@ import type {
   Literal,
   Expression,
   ObjectLiteral,
-  ObjectProperty,
+  DataLiteral,
+  CriteriaLiteral,
 } from "./program";
 
 export interface ParseError {
@@ -152,60 +151,43 @@ function astLiteralToLiteral(lit: ASTLiteral): Literal {
 }
 
 function astObjectLiteralToObjectLiteral(obj: ASTObjectLiteral): ObjectLiteral {
-  // Get raw properties based on object type
-  const rawProps: ASTObjectProperty[] = obj.type === "DataLiteral"
-    ? obj.attributes
-    : obj.values;
-
-  const properties: ObjectProperty[] = rawProps.map((prop: ASTObjectProperty) => {
-    // Handle array values (e.g., "tier": ["premium", "regular"])
-    if (Array.isArray(prop.value)) {
-      return {
-        key: prop.key,
-        value: prop.value.join(","), // Serialize array as comma-separated string
-      };
-    }
-    // Check if value looks like a number
-    const numValue = parseFloat(prop.value);
-    if (!isNaN(numValue) && prop.value.trim() === String(numValue)) {
-      return {
-        key: prop.key,
-        value: new Fraction(prop.value),
-      };
-    }
-    return {
-      key: prop.key,
-      value: prop.value,
-    };
-  });
-
-  // For DataLiteral, add core properties
   if (obj.type === "DataLiteral") {
-    // Add category, type, subtype as properties
-    if (obj.category) properties.unshift({ key: "category", value: obj.category });
-    if (obj.objType) properties.splice(1, 0, { key: "type", value: obj.objType });
-    if (obj.subtype) properties.splice(2, 0, { key: "subtype", value: obj.subtype });
-    if (obj.quantity && obj.quantity !== "1") {
-      properties.push({ key: "quantity", value: new Fraction(obj.quantity) });
-    }
+    return astDataLiteralToDataLiteral(obj);
   }
+  return astCriteriaLiteralToCriteriaLiteral(obj);
+}
 
-  // For CriteriaLiteral, add sourceType and properties array
-  if (obj.type === "CriteriaLiteral") {
-    properties.unshift({ key: "sourceType", value: "criteria" });
-    properties.splice(1, 0, { key: "properties", value: obj.properties.join(",") });
+function astDataLiteralToDataLiteral(obj: ASTDataLiteral): DataLiteral {
+  // Convert attributes array to Record
+  const attributes: Record<string, string> = {};
+  for (const prop of obj.attributes) {
+    // For DataLiteral attributes, value should be string (not array)
+    attributes[prop.key] = Array.isArray(prop.value) ? prop.value[0] : prop.value;
   }
-
-  // Add convenience quantity accessor
-  const quantityProp = properties.find(p => p.key === "quantity");
-  const quantity = quantityProp && quantityProp.value instanceof Fraction
-    ? quantityProp.value
-    : undefined;
 
   return {
-    type: "ObjectLiteral",
-    properties,
-    quantity,
+    type: "DataLiteral",
+    sourceType: "data",
+    category: obj.category,
+    objType: obj.objType,
+    subtype: obj.subtype,
+    quantity: new Fraction(obj.quantity || "1"),
+    attributes,
+  };
+}
+
+function astCriteriaLiteralToCriteriaLiteral(obj: ASTCriteriaLiteral): CriteriaLiteral {
+  // Convert values array to Record
+  const values: Record<string, string | string[]> = {};
+  for (const prop of obj.values) {
+    values[prop.key] = prop.value;
+  }
+
+  return {
+    type: "CriteriaLiteral",
+    sourceType: "criteria",
+    properties: [...obj.properties],
+    values,
   };
 }
 
@@ -235,18 +217,44 @@ function deserializeLiteral(lit: Literal): string {
       return `[${lit.elements.map(deserializeExpression).join(", ")}]`;
     case "OtherLiteral":
       return `"${lit.value}"`;
-    case "ObjectLiteral":
-      return deserializeObjectLiteral(lit);
+    case "DataLiteral":
+      return deserializeDataLiteral(lit);
+    case "CriteriaLiteral":
+      return deserializeCriteriaLiteral(lit);
   }
 }
 
-function deserializeObjectLiteral(obj: ObjectLiteral): string {
-  const props: string[] = obj.properties.map(prop => {
-    if (prop.value instanceof Fraction) {
-      return `"${prop.key}": ${fractionToString(prop.value)}`;
+function deserializeDataLiteral(obj: DataLiteral): string {
+  const props: string[] = [
+    `"sourceType": "data"`,
+    `"category": "${obj.category}"`,
+    `"type": "${obj.objType}"`,
+    `"subtype": "${obj.subtype}"`,
+    `"quantity": ${fractionToString(obj.quantity)}`,
+  ];
+
+  // Add attributes
+  for (const [key, value] of Object.entries(obj.attributes)) {
+    props.push(`"${key}": "${value}"`);
+  }
+
+  return `{${props.join(", ")}}`;
+}
+
+function deserializeCriteriaLiteral(obj: CriteriaLiteral): string {
+  const props: string[] = [
+    `"sourceType": "criteria"`,
+    `"properties": [${obj.properties.map(p => `"${p}"`).join(", ")}]`,
+  ];
+
+  // Add values
+  for (const [key, value] of Object.entries(obj.values)) {
+    if (Array.isArray(value)) {
+      props.push(`"${key}": [${value.map(v => `"${v}"`).join(", ")}]`);
+    } else {
+      props.push(`"${key}": "${value}"`);
     }
-    return `"${prop.key}": "${prop.value}"`;
-  });
+  }
 
   return `{${props.join(", ")}}`;
 }

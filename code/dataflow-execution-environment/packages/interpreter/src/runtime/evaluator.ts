@@ -13,7 +13,6 @@ import type {
   ObjectLiteral,
   DataLiteral,
   CriteriaLiteral,
-  GroupLiteral,
 } from "../analyzer/ast";
 import { executeOperation } from "../operations";
 import { toFraction } from "./rational";

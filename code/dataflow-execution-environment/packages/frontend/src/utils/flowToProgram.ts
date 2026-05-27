@@ -2,7 +2,6 @@
  * Converts ReactFlow nodes/edges to the interpreter's Program format.
  */
 
-import Fraction from "fraction.js";
 import type {
   Program,
   SourceStatement,
@@ -10,8 +9,11 @@ import type {
   SinkStatement,
   Operation,
   ArrayLiteral,
-  ObjectLiteral,
-  ObjectProperty,
+} from "@dataflow/interpreter";
+import {
+  createAbstractDataLiteral,
+  createPictoricDataLiteral,
+  createConcreteDataLiteral,
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
@@ -48,9 +50,6 @@ function normalizeSize(size: string | undefined): string {
   return SIZE_MAP[size] ?? size;
 }
 
-/**
- * Creates a CPA ObjectLiteral with the new properties-based format.
- */
 /** Identificador en el programa para un nodo origen de arista (fuente, operador o salida). */
 export function resolveFlowSourceId(
   nodeId: string,
@@ -61,25 +60,6 @@ export function resolveFlowSourceId(
     return `output_${nodeId}`;
   }
   return resolveNumberSourceId(nodeId, nodes);
-}
-
-function createCPAObject(
-  category: string,
-  type: string,
-  subtype: string,
-  quantity: number,
-  attributes: Record<string, string> = {}
-): ObjectLiteral {
-  const properties: ObjectProperty[] = [
-    { key: "category", value: category },
-    { key: "type", value: type },
-    { key: "subtype", value: subtype },
-    { key: "quantity", value: new Fraction(quantity) },
-  ];
-  for (const [k, v] of Object.entries(attributes)) {
-    properties.push({ key: k, value: v });
-  }
-  return { type: "ObjectLiteral", properties };
 }
 
 /**
@@ -97,11 +77,11 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
       if (data.variant === "number") {
         if (!shouldEmitNumberSource(node.id, nodes)) continue;
-        // Use new grammar v3.1.0: numbers are CPA abstractos
+        // Use new v4.0.0 helpers: numbers are CPA abstractos
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject("abstracto", "numero", "racional", data.value ?? 0, {}),
+          value: createAbstractDataLiteral(data.value ?? 0),
         });
       } else if (data.variant === "shape") {
         const shapeAttrs: Record<string, string> = {
@@ -113,8 +93,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject(
-            "pictorico",
+          value: createPictoricDataLiteral(
             "forma",
             data.shape ?? "circulo",
             1,
@@ -125,7 +104,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject("concreto", "comida", data.food ?? "manzana", 1, {
+          value: createConcreteDataLiteral("comida", data.food ?? "manzana", 1, {
             color: "verde",
           }),
         });
@@ -133,7 +112,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject("concreto", "montessori", data.color ?? "azul", 1, {
+          value: createConcreteDataLiteral("montessori", data.color ?? "azul", 1, {
             color: data.color ?? "azul",
           }),
         });
@@ -141,7 +120,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject("concreto", "cap", data.color ?? "azul", 1, {
+          value: createConcreteDataLiteral("cap", data.color ?? "azul", 1, {
             color: data.color ?? "azul",
           }),
         });
@@ -149,7 +128,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createCPAObject("concreto", "stick", data.color ?? "rojo", 1, {
+          value: createConcreteDataLiteral("stick", data.color ?? "rojo", 1, {
             color: data.color ?? "rojo",
           }),
         });

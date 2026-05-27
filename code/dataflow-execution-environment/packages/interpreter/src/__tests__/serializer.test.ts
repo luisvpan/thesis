@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
 import { serialize, deserialize } from "../index";
-import type { Program, SourceStatement, TransformStatement, SinkStatement, ObjectLiteral } from "../index";
+import type { Program, SourceStatement, TransformStatement, SinkStatement, DataLiteral } from "../index";
 
 describe("serialize", () => {
   test("parses CPA abstracto (number in v3.1.0)", () => {
@@ -15,13 +15,14 @@ describe("serialize", () => {
     const stmt = result.program!.statements[0] as SourceStatement;
     expect(stmt.type).toBe("SourceStatement");
     expect(stmt.identifier).toBe("x");
-    expect(stmt.value.type).toBe("ObjectLiteral");
+    expect(stmt.value.type).toBe("DataLiteral");
 
-    const obj = stmt.value as ObjectLiteral;
-    const quantityProp = obj.properties.find(p => p.key === "quantity");
-    expect(quantityProp).toBeDefined();
-    expect(quantityProp!.value).toBeInstanceOf(Fraction);
-    expect((quantityProp!.value as Fraction).equals(new Fraction(5))).toBe(true);
+    const obj = stmt.value as DataLiteral;
+    expect(obj.category).toBe("abstracto");
+    expect(obj.objType).toBe("numero");
+    expect(obj.subtype).toBe("racional");
+    expect(obj.quantity).toBeInstanceOf(Fraction);
+    expect(obj.quantity.equals(new Fraction(5))).toBe(true);
   });
 
   test("parses object literal with quantity as Fraction", () => {
@@ -30,13 +31,15 @@ describe("serialize", () => {
 
     expect(result.errors).toHaveLength(0);
     const stmt = result.program!.statements[0] as SourceStatement;
-    expect(stmt.value.type).toBe("ObjectLiteral");
+    expect(stmt.value.type).toBe("DataLiteral");
 
-    const obj = stmt.value as ObjectLiteral;
-    const quantityProp = obj.properties.find(p => p.key === "quantity");
-    expect(quantityProp).toBeDefined();
-    expect(quantityProp!.value).toBeInstanceOf(Fraction);
-    expect((quantityProp!.value as Fraction).equals(new Fraction(3))).toBe(true);
+    const obj = stmt.value as DataLiteral;
+    expect(obj.category).toBe("pictorico");
+    expect(obj.objType).toBe("forma");
+    expect(obj.subtype).toBe("circulo");
+    expect(obj.quantity).toBeInstanceOf(Fraction);
+    expect(obj.quantity.equals(new Fraction(3))).toBe(true);
+    expect(obj.attributes.size).toBe("grande");
   });
 
   test("parses abstract object with quantity as Fraction", () => {
@@ -45,11 +48,9 @@ describe("serialize", () => {
 
     expect(result.errors).toHaveLength(0);
     const stmt = result.program!.statements[0] as SourceStatement;
-    const obj = stmt.value as ObjectLiteral;
-    const quantityProp = obj.properties.find(p => p.key === "quantity");
-    expect(quantityProp).toBeDefined();
-    expect(quantityProp!.value).toBeInstanceOf(Fraction);
-    expect((quantityProp!.value as Fraction).equals(new Fraction(42))).toBe(true);
+    const obj = stmt.value as DataLiteral;
+    expect(obj.quantity).toBeInstanceOf(Fraction);
+    expect(obj.quantity.equals(new Fraction(42))).toBe(true);
   });
 
   test("parses transform statement", () => {
@@ -95,7 +96,7 @@ describe("serialize", () => {
 });
 
 describe("deserialize", () => {
-  test("deserializes CPA abstracto", () => {
+  test("deserializes DataLiteral (CPA abstracto)", () => {
     const program: Program = {
       type: "Program",
       statements: [
@@ -103,13 +104,13 @@ describe("deserialize", () => {
           type: "SourceStatement",
           identifier: "x",
           value: {
-            type: "ObjectLiteral",
-            properties: [
-              { key: "category", value: "abstracto" },
-              { key: "type", value: "numero" },
-              { key: "subtype", value: "racional" },
-              { key: "quantity", value: new Fraction(5) },
-            ],
+            type: "DataLiteral",
+            sourceType: "data",
+            category: "abstracto",
+            objType: "numero",
+            subtype: "racional",
+            quantity: new Fraction(5),
+            attributes: {},
           },
         },
       ],
@@ -122,7 +123,7 @@ describe("deserialize", () => {
     expect(result).toContain("5");
   });
 
-  test("deserializes object literal with Fraction", () => {
+  test("deserializes DataLiteral with attributes", () => {
     const program: Program = {
       type: "Program",
       statements: [
@@ -130,14 +131,13 @@ describe("deserialize", () => {
           type: "SourceStatement",
           identifier: "shapes",
           value: {
-            type: "ObjectLiteral",
-            properties: [
-              { key: "category", value: "pictorico" },
-              { key: "type", value: "forma" },
-              { key: "subtype", value: "circulo" },
-              { key: "quantity", value: new Fraction(3) },
-              { key: "size", value: "grande" },
-            ],
+            type: "DataLiteral",
+            sourceType: "data",
+            category: "pictorico",
+            objType: "forma",
+            subtype: "circulo",
+            quantity: new Fraction(3),
+            attributes: { size: "grande" },
           },
         },
       ],
@@ -147,6 +147,8 @@ describe("deserialize", () => {
     expect(result).toContain("source shapes =");
     expect(result).toContain("category");
     expect(result).toContain("pictorico");
+    expect(result).toContain("size");
+    expect(result).toContain("grande");
   });
 
   test("deserializes transform statement", () => {
@@ -185,7 +187,7 @@ describe("deserialize", () => {
     expect(result).toBe("sink output = x;");
   });
 
-  test("deserializes array literal with CPA abstractos", () => {
+  test("deserializes array literal with DataLiterals", () => {
     const program: Program = {
       type: "Program",
       statements: [
@@ -196,22 +198,22 @@ describe("deserialize", () => {
             type: "ArrayLiteral",
             elements: [
               {
-                type: "ObjectLiteral",
-                properties: [
-                  { key: "category", value: "abstracto" },
-                  { key: "type", value: "numero" },
-                  { key: "subtype", value: "racional" },
-                  { key: "quantity", value: new Fraction(1) },
-                ],
+                type: "DataLiteral",
+                sourceType: "data",
+                category: "abstracto",
+                objType: "numero",
+                subtype: "racional",
+                quantity: new Fraction(1),
+                attributes: {},
               },
               {
-                type: "ObjectLiteral",
-                properties: [
-                  { key: "category", value: "abstracto" },
-                  { key: "type", value: "numero" },
-                  { key: "subtype", value: "racional" },
-                  { key: "quantity", value: new Fraction(2) },
-                ],
+                type: "DataLiteral",
+                sourceType: "data",
+                category: "abstracto",
+                objType: "numero",
+                subtype: "racional",
+                quantity: new Fraction(2),
+                attributes: {},
               },
             ],
           },

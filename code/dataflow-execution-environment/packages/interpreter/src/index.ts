@@ -23,12 +23,27 @@ export type {
   ArrayLiteral,
   OtherLiteral,
   ObjectLiteral,
+  // v4.0.0 discriminated types
+  DataLiteral,
+  CriteriaLiteral,
+  // Legacy (deprecated)
   ObjectProperty,
   Operation,
 } from "./program";
 
 export {
+  isDataLiteral,
+  isCriteriaLiteral,
+} from "./program";
+
+export {
+  // Runtime helpers
   createAbstractNumber,
   createPictoricObject,
   createConcreteObject,
+  // AST helpers (v4.0.0)
+  createAbstractDataLiteral,
+  createPictoricDataLiteral,
+  createConcreteDataLiteral,
+  createCriteriaLiteral,
 } from "./utils";
