@@ -1,27 +1,43 @@
 import type { SourceFlowNodeData } from '../SourceFlowNode';
-import { isPictorialColorYoloClass } from '@/data/pictorialColors';
-
-/** Cartas pictóricas de tamaño sin forma explícita (distintas de sm_/md_/lg_* + figura). */
-const PICTORIAL_SIZE_ONLY_YOLO = new Set(['small', 'medium', 'large']);
 
 export function sourceTitle(data: SourceFlowNodeData): string {
-  if (data.variant === 'number') return 'Numero';
-  if (data.variant === 'shape' && isPictorialColorYoloClass(data.yoloClass)) return 'Color';
-  if (data.variant === 'shape' && PICTORIAL_SIZE_ONLY_YOLO.has(data.yoloClass)) return 'Tamaño';
-  if (data.variant === 'shape') return 'Forma';
-  if (data.variant === 'montessori') return 'Cubo';
-  if (data.variant === 'cap') return 'Tapa';
-  if (data.variant === 'stick') return 'Palito';
-  return 'Comida';
+  switch (data.variant) {
+    case 'number':
+      return 'Numero';
+    case 'shape':
+      return 'Forma';
+    case 'montessori':
+      return 'Cubo';
+    case 'cap':
+      return 'Tapa';
+    case 'stick':
+      return 'Palito';
+    case 'food':
+      return 'Comida';
+    case 'criteria':
+      if (data.properties.includes('size')) return 'Tamaño';
+      if (data.properties.includes('color')) return 'Color';
+      return 'Criterio';
+  }
 }
 
 export function sourceMain(data: SourceFlowNodeData): string {
-  if (data.variant === 'number') return String(data.value);
-  if (data.variant === 'shape' && isPictorialColorYoloClass(data.yoloClass)) return data.color;
-  if (data.variant === 'shape' && PICTORIAL_SIZE_ONLY_YOLO.has(data.yoloClass)) return data.size;
-  if (data.variant === 'shape') return `${data.shape} ${data.size}`;
-  if (data.variant === 'montessori') return data.color;
-  if (data.variant === 'cap') return data.color;
-  if (data.variant === 'stick') return data.color;
-  return data.food;
+  switch (data.variant) {
+    case 'number':
+      return String(data.value);
+    case 'shape':
+      return `${data.shape} ${data.size}`;
+    case 'montessori':
+      return data.color;
+    case 'cap':
+      return data.color;
+    case 'stick':
+      return data.color ?? 'palito';
+    case 'food':
+      return data.food;
+    case 'criteria':
+      if (data.values.size) return data.values.size;
+      if (data.values.color) return data.values.color;
+      return data.yoloClass;
+  }
 }

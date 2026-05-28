@@ -295,6 +295,29 @@ export function mergeVisionFrameIntoNodes(
       continue;
     }
 
+    if (parsed.type === "deckCriteria") {
+      additions.push(
+        withVisionNodeChrome(
+          {
+            id: nodeId,
+            type: "source" as const,
+            position,
+            data: {
+              variant: "criteria",
+              yoloClass: parsed.yoloClass,
+              properties: parsed.properties,
+              values: parsed.values,
+              ...meta,
+            },
+          },
+          meta,
+          nodesDraggable
+        )
+      );
+      idx++;
+      continue;
+    }
+
     if (parsed.type === "unknown") {
       additions.push(
         withVisionNodeChrome(

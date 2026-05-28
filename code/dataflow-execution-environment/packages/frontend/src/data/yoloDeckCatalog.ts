@@ -1,11 +1,10 @@
 import type { CapColor, FoodType, MontessoriColor, OperatorType, ShapeColor, ShapeSize, ShapeType, StickColor } from '@/types/card-types';
-import { isPictorialColorYoloClass, YOLO_CLASS_TO_SHAPE_COLOR } from './pictorialColors';
 
 export type DeckSectionId = 'numbers' | 'operators' | 'figures' | 'foods' | 'montessori' | 'caps' | 'sticks' | 'arrayMarkers';
 
 export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
   numbers: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'],
-  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'filter', 'sink'],
+  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'smallest_to_largest', 'largest_to_smallest', 'filter', 'compare', 'sink'],
   figures: [
     'sm_circle',
     'sm_square',
@@ -16,6 +15,7 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
     'lg_circle',
     'lg_square',
     'lg_triangle',
+    // Criteria cards (size/color)
     'small',
     'medium',
     'large',
@@ -27,7 +27,7 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
   foods: ['apple', 'burger', 'pear', 'grapes'],
   montessori: ['cube_blue', 'cube_red', 'cube_yellow'],
   caps: ['cap_blue', 'cap_white'],
-  sticks: ['stick_cyan', 'stick_orange', 'stick_red'],
+  sticks: ['stick_cyan', 'stick_orange', 'stick_red', 'stick_wooden'],
   arrayMarkers: ['open', 'close'],
 };
 
@@ -82,34 +82,47 @@ export const CPA_YOLO_SIDEBAR_SECTIONS: ReadonlyArray<{
 export function deckLabel(yoloClass: string): string {
   const m: Record<string, string> = {
     zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9',
-    add: '+', subtract: '-', multiply: 'x', division: '÷', ascending: 'Asc', descending: 'Desc', filter: 'Filtrar',
+    add: '+', subtract: '-', multiply: 'x', division: '÷',
+    ascending: 'Asc', descending: 'Desc',
+    smallest_to_largest: '↑ Tamaño', largest_to_smallest: '↓ Tamaño',
+    filter: 'Filtrar', compare: '=?',
     sink: 'Resultado', output: 'Resultado', result: 'Resultado',
     open: 'Abrir', close: 'Cerrar',
-    small: 'pequeño', medium: 'mediano', large: 'grande',
+    // Criteria de tamaño
+    small: 'Pequeño', medium: 'Mediano', large: 'Grande',
+    // Criteria de color
+    green: 'Verde', purple: 'Morado', red: 'Rojo', orange: 'Naranja',
+    // Figuras
     sm_circle: 'Circulo P', sm_square: 'Cuadrado P', sm_triangle: 'Triángulo P',
     md_circle: 'Circulo M', md_square: 'Cuadrado M', md_triangle: 'Triángulo M',
     lg_circle: 'Circulo G', lg_square: 'Cuadrado G', lg_triangle: 'Triángulo G',
-    green: 'Verde',
-    purple: 'Morado',
-    red: 'Rojo',
-    orange: 'Naranja (color)',
-    apple: 'Manzana',
-    burger: 'Hamburguesa',
-    pear: 'Pera',
-    grapes: 'Uvas',
+    // Alimentos
+    apple: 'Manzana', burger: 'Hamburguesa', pear: 'Pera', grapes: 'Uvas',
     // Cubos Montessori
     cube_blue: 'Cubo Azul', cube_red: 'Cubo Rojo', cube_yellow: 'Cubo Amarillo',
     // Tapas
     cap_blue: 'Tapa Azul', cap_white: 'Tapa Blanca',
     // Palitos
-    stick_cyan: 'Palito Cian', stick_orange: 'Palito Naranja', stick_red: 'Palito Rojo',
+    stick_cyan: 'Palito Cian', stick_orange: 'Palito Naranja', stick_red: 'Palito Rojo', stick_wooden: 'Palito',
   };
   return m[yoloClass] ?? yoloClass;
 }
 
+export type CriteriaProperty = 'size' | 'color';
+
+export type CriteriaValues = {
+  size?: 'pequeño' | 'mediano' | 'grande';
+  color?: 'verde' | 'morado' | 'rojo' | 'naranja';
+};
+
+export type OrderCriterio = {
+  property: CriteriaProperty;
+  sequence: string[];
+};
+
 export type DeckSpawnAction =
   | { kind: 'number'; value: number }
-  | { kind: 'operator'; operator: OperatorType }
+  | { kind: 'operator'; operator: OperatorType; criterio?: OrderCriterio }
   | { kind: 'resultCard' }
   | { kind: 'arrayOpen' }
   | { kind: 'arrayClose' }
@@ -117,7 +130,8 @@ export type DeckSpawnAction =
   | { kind: 'food'; yoloClass: string; food: FoodType }
   | { kind: 'montessori'; yoloClass: string; color: MontessoriColor }
   | { kind: 'cap'; yoloClass: string; color: CapColor }
-  | { kind: 'stick'; yoloClass: string; color: StickColor };
+  | { kind: 'stick'; yoloClass: string; color?: StickColor }
+  | { kind: 'criteria'; yoloClass: string; properties: CriteriaProperty[]; values: CriteriaValues };
 
 export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   const x = raw.trim().toLowerCase();
@@ -127,6 +141,7 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   if (x === 'open') return { kind: 'arrayOpen' };
   if (x === 'close') return { kind: 'arrayClose' };
 
+  // Operadores básicos
   const op: Record<string, OperatorType> = {
     add: 'adicion',
     subtract: 'sustraccion',
@@ -135,19 +150,59 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     ascending: 'orden-menor-mayor',
     descending: 'orden-mayor-menor',
     filter: 'filtrar-general',
+    compare: 'comparar',
   };
   if (x in op) return { kind: 'operator', operator: op[x] };
 
-  if (isPictorialColorYoloClass(x)) {
+  // Operadores de ordenamiento por size (con criterio implícito)
+  const SIZE_SEQUENCE = ['pequeño', 'mediano', 'grande'];
+  if (x === 'smallest_to_largest') {
     return {
-      kind: 'shape',
-      yoloClass: x,
-      shape: 'circulo',
-      size: 'mediano',
-      color: YOLO_CLASS_TO_SHAPE_COLOR[x],
+      kind: 'operator',
+      operator: 'orden-menor-mayor',
+      criterio: { property: 'size', sequence: SIZE_SEQUENCE },
+    };
+  }
+  if (x === 'largest_to_smallest') {
+    return {
+      kind: 'operator',
+      operator: 'orden-mayor-menor',
+      criterio: { property: 'size', sequence: SIZE_SEQUENCE },
     };
   }
 
+  // Colores pictóricos → Criteria literals (no shapes)
+  const colorCriteria: Record<string, CriteriaValues['color']> = {
+    green: 'verde',
+    purple: 'morado',
+    red: 'rojo',
+    orange: 'naranja',
+  };
+  if (x in colorCriteria) {
+    return {
+      kind: 'criteria',
+      yoloClass: x,
+      properties: ['color'],
+      values: { color: colorCriteria[x] },
+    };
+  }
+
+  // Tamaños → Criteria literals (no shapes)
+  const sizeCriteria: Record<string, CriteriaValues['size']> = {
+    small: 'pequeño',
+    medium: 'mediano',
+    large: 'grande',
+  };
+  if (x in sizeCriteria) {
+    return {
+      kind: 'criteria',
+      yoloClass: x,
+      properties: ['size'],
+      values: { size: sizeCriteria[x] },
+    };
+  }
+
+  // Figuras con tamaño específico (estas sí son shapes)
   const fig: Record<string, { shape: ShapeType; size: ShapeSize; color: ShapeColor }> = {
     sm_circle: { shape: 'circulo', size: 'pequeño', color: 'amarillo' },
     md_circle: { shape: 'circulo', size: 'mediano', color: 'amarillo' },
@@ -158,9 +213,6 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     sm_triangle: { shape: 'triangulo', size: 'pequeño', color: 'amarillo' },
     md_triangle: { shape: 'triangulo', size: 'mediano', color: 'amarillo' },
     lg_triangle: { shape: 'triangulo', size: 'grande', color: 'amarillo' },
-    small: { shape: 'circulo', size: 'pequeño', color: 'amarillo' },
-    medium: { shape: 'circulo', size: 'mediano', color: 'amarillo' },
-    large: { shape: 'circulo', size: 'grande', color: 'amarillo' },
   };
   if (x in fig) return { kind: 'shape', yoloClass: x, ...fig[x] };
 
@@ -186,6 +238,9 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     stick_red: 'rojo',
   };
   if (x in sticks) return { kind: 'stick', yoloClass: x, color: sticks[x] };
+
+  // Palito sin color (stick_wooden)
+  if (x === 'stick_wooden') return { kind: 'stick', yoloClass: x };
 
   const food: Record<string, FoodType> = {
     apple: 'manzana',

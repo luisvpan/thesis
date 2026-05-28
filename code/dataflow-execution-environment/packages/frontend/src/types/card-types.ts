@@ -1,6 +1,6 @@
 // Tipos de cartas para el IDE de programación tangible
 
-export type CardCategory = 'operator' | 'number' | 'animal' | 'food' | 'person' | 'car' | 'shape' | 'montessori' | 'cap' | 'stick';
+export type CardCategory = 'operator' | 'number' | 'animal' | 'food' | 'person' | 'car' | 'shape' | 'montessori' | 'cap' | 'stick' | 'criteria';
 
 // Operadores matemáticos básicos
 export type MathOperatorType = 'adicion' | 'sustraccion' | 'multiplicacion' | 'division';
@@ -9,9 +9,10 @@ export type MathOperatorType = 'adicion' | 'sustraccion' | 'multiplicacion' | 'd
 export type DivisionMode = 'partitivo' | 'cuotativo';
 
 // Operadores de orden y comparación
-export type OrderOperatorType = 
+export type OrderOperatorType =
   | 'orden-mayor-menor'
   | 'orden-menor-mayor'
+  | 'comparar'
   | 'comparar-figuras'
   | 'comparar-carros'
   | 'comparar-comidas'
@@ -47,7 +48,7 @@ export function isFilterOperatorType(op: OperatorType): op is FilterOperatorType
 }
 
 export function isOrderOperatorType(op: OperatorType): op is OrderOperatorType {
-  return op === 'orden-mayor-menor' || op === 'orden-menor-mayor';
+  return op === 'orden-mayor-menor' || op === 'orden-menor-mayor' || op === 'comparar';
 }
 
 export type AnimalType = 'gato' | 'perro' | 'tortuga' | 'elefante' | 'jirafa';

@@ -14,6 +14,7 @@ import {
   createAbstractDataLiteral,
   createPictoricDataLiteral,
   createConcreteDataLiteral,
+  createCriteriaLiteral,
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
@@ -34,6 +35,7 @@ const OPERATOR_MAP: Record<string, Operation> = {
   division: "divide",
   "orden-menor-mayor": "order_asc",
   "orden-mayor-menor": "order_desc",
+  comparar: "compare",
 };
 
 // Normalizar tamaños a formas masculinas (el intérprete solo entiende masculino)
@@ -130,6 +132,15 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           identifier: node.id,
           value: createConcreteDataLiteral("stick", data.color ?? "rojo", 1, {
             color: data.color ?? "rojo",
+          }),
+        });
+      } else if (data.variant === "criteria") {
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createCriteriaLiteral({
+            properties: data.properties,
+            values: data.values ?? {},
           }),
         });
       }

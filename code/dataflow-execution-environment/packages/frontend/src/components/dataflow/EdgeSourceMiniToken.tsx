@@ -100,8 +100,11 @@ function resolveEvalDisplayData(
     if (hasFlowResultDisplay(d)) {
       return d;
     }
-    if (node.type === 'operator' && d.result !== undefined) {
-      return { value: d.result };
+    if (node.type === 'operator') {
+      const opData = node.data as OperatorFlowNodeData;
+      if (opData.result !== undefined) {
+        return { value: opData.result };
+      }
     }
   }
   return null;

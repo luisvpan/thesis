@@ -13,6 +13,8 @@ export function formatValue(value: RuntimeValue): string {
       return formatArray(value);
     case "criteria":
       return formatCriteria(value);
+    case "booleano":
+      return value.value ? "verdadero" : "falso";
     case "otro":
       return `"${value.value}"`;
   }

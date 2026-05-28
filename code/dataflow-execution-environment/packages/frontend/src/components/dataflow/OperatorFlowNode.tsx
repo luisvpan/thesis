@@ -44,6 +44,7 @@ function operatorSymbol(operator: OperatorType): string {
   if (operator === 'sustraccion') return '-';
   if (operator === 'multiplicacion') return '*';
   if (operator === 'division') return '/';
+  if (operator === 'comparar') return '=?';
   return operator;
 }
 

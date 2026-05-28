@@ -3,6 +3,7 @@ import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
 import type { ShapeType, ShapeSize, ShapeColor, FoodType, MontessoriColor, CapColor, StickColor } from '@/types/card-types';
+import type { CriteriaProperty, CriteriaValues } from '@/data/yoloDeckCatalog';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import { useNode } from '@/contexts/NodeContext';
@@ -32,7 +33,8 @@ export type SourceFlowNodeData = VisionSynced &
     | { variant: 'food'; yoloClass: string; food: FoodType }
     | { variant: 'montessori'; yoloClass: string; color: MontessoriColor }
     | { variant: 'cap'; yoloClass: string; color: CapColor }
-    | { variant: 'stick'; yoloClass: string; color: StickColor }
+    | { variant: 'stick'; yoloClass: string; color?: StickColor }
+    | { variant: 'criteria'; yoloClass: string; properties: CriteriaProperty[]; values: CriteriaValues }
   );
 
 export type SourceFlowNode = Node<SourceFlowNodeData, 'source'>;
@@ -41,7 +43,7 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   const d = (data ?? { variant: 'number', value: 0 }) as SourceFlowNodeData;
   const { registerPortKind, unregisterPortKinds } = useNode();
 
-  const produces: HandleKind = d.variant === 'number' ? 'rational' : 'cpa';
+  const produces: HandleKind = d.variant === 'number' ? 'rational' : d.variant === 'criteria' ? 'keyword' : 'cpa';
   const wrapperClass = SOURCE_NODE_WRAPPER_CLASS[d.variant];
   const shellClass = useFlowNodeShellClass();
 

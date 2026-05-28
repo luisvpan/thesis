@@ -5,6 +5,7 @@ import { MontessoriSourceFlowNode } from './MontessoriSourceFlowNode';
 import { CapSourceFlowNode } from './CapSourceFlowNode';
 import { StickSourceFlowNode } from './StickSourceFlowNode';
 import { FoodSourceFlowNode } from './FoodSourceFlowNode';
+import { CriteriaSourceFlowNode } from './CriteriaSourceFlowNode';
 
 export function renderSourceFlowNodeBody(data: SourceFlowNodeData, nodeId: string) {
   switch (data.variant) {
@@ -20,5 +21,7 @@ export function renderSourceFlowNodeBody(data: SourceFlowNodeData, nodeId: strin
       return <StickSourceFlowNode data={data} />;
     case 'food':
       return <FoodSourceFlowNode data={data} />;
+    case 'criteria':
+      return <CriteriaSourceFlowNode data={data} />;
   }
 }

@@ -3,7 +3,7 @@
  */
 
 import type { CapColor, FoodType, MontessoriColor, OperatorType, ShapeColor, ShapeSize, ShapeType, StickColor } from '@/types/card-types';
-import { spawnActionForYoloClass } from '../data/yoloDeckCatalog';
+import { spawnActionForYoloClass, type CriteriaProperty, type CriteriaValues, type OrderCriterio } from '../data/yoloDeckCatalog';
 
 /** Operadores matemáticos soportados */
 export type VisionOperator = 'addition' | 'subtraction' | 'multiplication' | 'division';
@@ -18,7 +18,7 @@ export type VisionCardType = 'number' | 'operator';
 export type ParsedVisionCard =
   | { type: 'number'; value: VisionDigit }
   | { type: 'operator'; operator: VisionOperator }
-  | { type: 'operatorCanvas'; operator: OperatorType }
+  | { type: 'operatorCanvas'; operator: OperatorType; criterio?: OrderCriterio }
   | { type: 'programResultCard' }
   | { type: 'visionArrayOpen' }
   | { type: 'visionArrayClose' }
@@ -26,7 +26,8 @@ export type ParsedVisionCard =
   | { type: 'deckFood'; yoloClass: string; food: FoodType }
   | { type: 'deckMontessori'; yoloClass: string; color: MontessoriColor }
   | { type: 'deckCap'; yoloClass: string; color: CapColor }
-  | { type: 'deckStick'; yoloClass: string; color: StickColor }
+  | { type: 'deckStick'; yoloClass: string; color?: StickColor }
+  | { type: 'deckCriteria'; yoloClass: string; properties: CriteriaProperty[]; values: CriteriaValues }
   | { type: 'unknown'; label: string };
 
 /**
@@ -100,7 +101,11 @@ export function parseVisionLabel(label: string): ParsedVisionCard {
       if (op === 'sustraccion') return { type: 'operator', operator: 'subtraction' };
       if (op === 'multiplicacion') return { type: 'operator', operator: 'multiplication' };
       if (op === 'division') return { type: 'operator', operator: 'division' };
-      return { type: 'operatorCanvas', operator: op };
+      // Operadores canvas con criterio opcional (ej: smallest_to_largest con criterio size)
+      return { type: 'operatorCanvas', operator: op, criterio: spawn.criterio };
+    }
+    if (spawn.kind === 'criteria') {
+      return { type: 'deckCriteria', yoloClass: spawn.yoloClass, properties: spawn.properties, values: spawn.values };
     }
     if (spawn.kind === 'shape') {
       return { type: 'deckShape', yoloClass: spawn.yoloClass, shape: spawn.shape, size: spawn.size, color: spawn.color };

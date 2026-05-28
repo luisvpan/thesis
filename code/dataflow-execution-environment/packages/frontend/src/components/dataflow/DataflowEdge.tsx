@@ -22,8 +22,8 @@ export function DataflowEdge({
   targetY,
   sourcePosition,
   targetPosition,
-  sourceHandle,
-  targetHandle,
+  sourceHandleId: sourceHandle,
+  targetHandleId: targetHandle,
 }: EdgeProps) {
   const pathRef = useRef<SVGPathElement>(null);
   const { showFlowResults, viewMode } = useResultCardUi();

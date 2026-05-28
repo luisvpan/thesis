@@ -1,5 +1,5 @@
 import type Fraction from "fraction.js";
-import type { RuntimeValue, BooleanValue, CPAObject } from "../runtime/types";
+import type { RuntimeValue, BooleanValue } from "../runtime/types";
 import { isArray, isCPAObject, getCPAKey } from "../runtime/types";
 import * as rational from "../runtime/rational";
 import { RuntimeError } from "../runtime/errors";
