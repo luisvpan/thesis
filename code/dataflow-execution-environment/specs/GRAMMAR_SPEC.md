@@ -1,6 +1,6 @@
 # Dataflow Language - Formal Grammar Specification
 
-**Version:** 4.0.0
+**Version:** 4.1.0
 **Date:** 2026-05-18  
 **Notation:** W3C Extended Backus-Naur Form (EBNF)
 
@@ -19,6 +19,7 @@ argument_list       ::= identifier ("," identifier)*
 operation           ::= "sum" | "substract" | "multiply" | "divide" 
                       | "less_than" | "greater_than" 
                       | "order_asc" | "order_desc" | "filter"
+                      | "first" | "last" | "count" | "compare"
 
 group               ::= "[" (object_literal ("," object_literal)*)? "]"
 
@@ -52,6 +53,7 @@ digit               ::= [0-9]
 * `sum`, `substract`, `multiply`, `divide`
 * `less_than`, `greater_than`
 * `order_asc`, `order_desc`, `filter`
+* `first`, `last`, `count`, `compare`
 
 ### Built-In Structural String Values
 
