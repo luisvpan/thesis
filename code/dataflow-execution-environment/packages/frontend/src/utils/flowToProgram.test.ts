@@ -107,11 +107,12 @@ describe("flowToProgram order operators", () => {
     expect(stmt?.type).toBe("TransformStatement");
     if (stmt?.type !== "TransformStatement") return;
     expect(stmt.operation).toBe("order_asc");
-    expect(stmt.arguments).toHaveLength(1);
+    expect(stmt.arguments).toHaveLength(2);
     expect(stmt.arguments[0]?.type).toBe("Identifier");
     if (stmt.arguments[0]?.type === "Identifier") {
       expect(stmt.arguments[0].name).toBe("grp");
     }
+    expect(stmt.arguments[1]?.type).toBe("CriteriaLiteral");
   });
 });
 

@@ -18,7 +18,7 @@ import {
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
-import { isOrderOperatorType } from "../types/card-types";
+import { isOrderOperatorType, resolveStickColor } from "../types/card-types";
 import { isPictorialColorYoloClass } from "../data/pictorialColors";
 import type { DataflowNode } from "../contexts/node/types";
 import { getOrderedArrayZoneMembers } from "./arrayZoneGeometry";
@@ -47,6 +47,12 @@ const OPERATOR_MAP: Record<string, Operation> = {
 function resolveOperation(operator: string): Operation {
   return OPERATOR_MAP[operator] ?? "sum";
 }
+
+/** Ordenar números abstractos por cantidad cuando no hay criterio explícito (p. ej. size). */
+const DEFAULT_QUANTITY_ORDER_CRITERION = createCriteriaLiteral({
+  properties: ["quantity"],
+  values: { quantity: "sort" },
+});
 
 // Normalizar tamaños a formas masculinas (el intérprete solo entiende masculino)
 const SIZE_MAP: Record<string, string> = {
@@ -146,11 +152,12 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           }),
         });
       } else if (data.variant === "stick") {
+        const stickColor = resolveStickColor(data.color, data.yoloClass);
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createConcreteDataLiteral("stick", data.color ?? "rojo", 1, {
-            color: data.color ?? "rojo",
+          value: createConcreteDataLiteral("stick", stickColor, 1, {
+            color: stickColor,
           }),
         });
       } else if (data.variant === "criteria") {
@@ -214,14 +221,17 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
         name: resolveFlowSourceId(e.source, nodes),
       }));
 
-      // If this is an order operator with an implicit criterio, add it as an argument
-      if (isOrderOperatorType(operator) && data.criterio) {
-        args.push(
-          createCriteriaLiteral({
-            properties: [data.criterio.property],
-            values: { [data.criterio.property]: data.criterio.sequence },
-          })
-        );
+      if (isOrderOperatorType(operator)) {
+        if (data.criterio) {
+          args.push(
+            createCriteriaLiteral({
+              properties: [data.criterio.property],
+              values: { [data.criterio.property]: data.criterio.sequence },
+            })
+          );
+        } else {
+          args.push(DEFAULT_QUANTITY_ORDER_CRITERION);
+        }
       }
 
       statements.push({

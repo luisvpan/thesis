@@ -5,7 +5,12 @@ import { Hourglass, Volume2 } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
-import { formatResultCpa, formatFraction, type ResultViewMode } from './dataflowResultCpa';
+import {
+  formatResultCpa,
+  formatFraction,
+  formatFractionText,
+  type ResultViewMode,
+} from './dataflowResultCpa';
 import { SinkFlowNodeCard } from './SinkFlowNodeCard';
 import { ResultArrayVisual } from './ResultArrayVisual';
 import {
@@ -116,7 +121,7 @@ function singleCpaHeaderText(meta: SingleCpaObjectMeta, viewMode: ResultViewMode
   const typeLabels: Record<string, string> = {
     montessori: 'cubos',
     cap: 'tapas',
-    stick: 'palitos',
+    stick: 'paletas',
     forma: meta.subtype,
     comida: meta.subtype,
   };
@@ -150,7 +155,7 @@ function buildSinkBody(
   // Ordered array of abstract numbers (e.g., from order_asc/order_desc)
   if (data.numberArrayValues && data.numberArrayValues.length > 0) {
     const formatted = data.numberArrayValues.map((item) =>
-      formatFraction(item.numerator, item.denominator)
+      formatFractionText(item.numerator, item.denominator)
     );
     return {
       headerRight: (

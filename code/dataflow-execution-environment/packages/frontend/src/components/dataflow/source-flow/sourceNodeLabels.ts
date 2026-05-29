@@ -1,3 +1,4 @@
+import { resolveStickColor } from '@/types/card-types';
 import type { SourceFlowNodeData } from '../SourceFlowNode';
 
 export function sourceTitle(data: SourceFlowNodeData): string {
@@ -11,7 +12,7 @@ export function sourceTitle(data: SourceFlowNodeData): string {
     case 'cap':
       return 'Tapa';
     case 'stick':
-      return 'Palito';
+      return 'Paleta';
     case 'food':
       return 'Comida';
     case 'criteria':
@@ -33,7 +34,7 @@ export function sourceMain(data: SourceFlowNodeData): string {
     case 'cap':
       return data.color;
     case 'stick':
-      return data.color ?? 'palito';
+      return resolveStickColor(data.color, data.yoloClass);
     case 'food':
       return data.food;
     case 'criteria':

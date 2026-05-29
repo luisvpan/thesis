@@ -107,8 +107,11 @@ export function deckLabel(yoloClass: string): string {
     cube_blue: 'Cubo Azul', cube_red: 'Cubo Rojo', cube_yellow: 'Cubo Amarillo',
     // Tapas
     cap_blue: 'Tapa Azul', cap_white: 'Tapa Blanca',
-    // Palitos
-    stick_cyan: 'Palito Cian', stick_orange: 'Palito Naranja', stick_red: 'Palito Rojo', stick_wooden: 'Palito',
+    // Paletas
+    stick_cyan: 'Paleta Cian',
+    stick_orange: 'Paleta Naranja',
+    stick_red: 'Paleta Roja',
+    stick_wooden: 'Paleta de Madera',
   };
   return m[yoloClass] ?? yoloClass;
 }
@@ -254,7 +257,7 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   };
   if (x in caps) return { kind: 'cap', yoloClass: x, color: caps[x] };
 
-  // Palitos (stick_cyan, stick_orange, stick_red)
+  // Paletas de color (stick_cyan, stick_orange, stick_red)
   const sticks: Record<string, StickColor> = {
     stick_cyan: 'cian',
     stick_orange: 'naranja',
@@ -262,8 +265,8 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   };
   if (x in sticks) return { kind: 'stick', yoloClass: x, color: sticks[x] };
 
-  // Palito sin color (stick_wooden)
-  if (x === 'stick_wooden') return { kind: 'stick', yoloClass: x };
+  // Paleta de madera (stick_wooden)
+  if (x === 'stick_wooden') return { kind: 'stick', yoloClass: x, color: 'madera' };
 
   const food: Record<string, FoodType> = {
     apple: 'manzana',

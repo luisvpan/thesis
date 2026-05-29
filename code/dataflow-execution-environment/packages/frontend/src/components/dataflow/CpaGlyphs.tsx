@@ -29,6 +29,7 @@ export const STICK_COLORS: Record<string, string> = {
   cian: 'bg-cyan-400 shadow-cyan-900/50',
   naranja: 'bg-orange-500 shadow-orange-900/50',
   rojo: 'bg-red-500 shadow-red-900/50',
+  madera: 'bg-amber-200 shadow-amber-900/40',
 };
 
 export const FOOD_DOT_COLORS: Record<string, string> = {
@@ -83,7 +84,7 @@ export function StickGlyph({ color, generic = false }: { color: string } & Glyph
     : STICK_COLORS[color] ?? FALLBACK_PALETTE;
   return (
     <span
-      title={generic ? 'palito' : `Palito ${color}`}
+      title={generic ? 'paleta' : `Paleta ${color}`}
       className={`inline-block h-7 w-2 shrink-0 rounded-sm shadow-lg ring-1 ring-white/25 ${palette}`}
     />
   );

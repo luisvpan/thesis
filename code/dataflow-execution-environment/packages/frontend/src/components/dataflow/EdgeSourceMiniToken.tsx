@@ -1,4 +1,4 @@
-import type { ShapeColor, ShapeSize } from '@/types/card-types';
+import { resolveStickColor, type ShapeColor, type ShapeSize } from '@/types/card-types';
 import type { DataflowNode } from '@/contexts/node/types';
 import { useNode } from '@/contexts/NodeContext';
 import type { OperatorFlowNodeData } from './OperatorFlowNode';
@@ -41,7 +41,12 @@ function SourceMiniContent({
     case 'cap':
       return <CapGlyph color={data.color ?? 'azul'} generic={false} />;
     case 'stick':
-      return <StickGlyph color={data.color ?? 'rojo'} generic={false} />;
+      return (
+        <StickGlyph
+          color={resolveStickColor(data.color, data.yoloClass)}
+          generic={false}
+        />
+      );
     case 'food':
       return (
         <span className="text-2xl leading-none" role="img" aria-label={data.food}>

@@ -80,8 +80,14 @@ export type MontessoriColor = 'azul' | 'rojo' | 'amarillo';
 // Colores de tapas (cap_blue, cap_white)
 export type CapColor = 'azul' | 'blanco';
 
-// Colores de palitos (stick_cyan, stick_orange, stick_red)
-export type StickColor = 'cian' | 'naranja' | 'rojo';
+// Colores de paletas (stick_cyan, stick_orange, stick_red, stick_wooden)
+export type StickColor = 'cian' | 'naranja' | 'rojo' | 'madera';
+
+export function resolveStickColor(color?: StickColor, yoloClass?: string): StickColor {
+  if (color) return color;
+  if (yoloClass === 'stick_wooden') return 'madera';
+  return 'rojo';
+}
 
 export interface BaseCard {
   id: string;

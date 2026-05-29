@@ -92,6 +92,14 @@ export function formatResultCpa(
  * Returns just the numerator if denominator is "1" (integer result).
  * Uses strings to preserve precision with BigInts.
  */
+/** Texto plano para listas o speech (no usar `.join()` con `formatFraction`). */
+export function formatFractionText(numerator: string, denominator: string): string {
+  if (denominator === '1') {
+    return numerator;
+  }
+  return `${numerator}/${denominator}`;
+}
+
 export function formatFraction(numerator: string, denominator: string): ReactNode {
   if (denominator === '1') {
     return <span className="tabular-nums">{numerator}</span>;

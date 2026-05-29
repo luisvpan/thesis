@@ -348,7 +348,7 @@ const PLURALS: Record<string, string> = {
   comida: "comidas",
   montessori: "montessoris",
   cap: "tapas",
-  stick: "palitos",
+  stick: "paletas",
   numero: "números",
   cuadrado: "cuadrados",
   circulo: "círculos",
@@ -634,15 +634,23 @@ function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
   return computeProgramHash(nodes, edges);
 }
 
+function resultValueFingerprint(v: ResultValue): string {
+  switch (v.kind) {
+    case "number":
+      return `num:${v.value}`;
+    case "numberArray":
+      return `arr:${v.values.map((item) => item.value).join(",")}`;
+    case "semantic":
+      return `sem:${v.result.description}`;
+  }
+}
+
 /**
  * Helper to create a hash of results for change detection.
  */
 function hashResults(results: Map<string, ResultValue>): string {
   return Array.from(results.entries())
-    .map(([k, v]) => {
-      if (v.kind === "number") return `${k}:num:${v.value}`;
-      return `${k}:sem:${v.result.description}`;
-    })
+    .map(([k, v]) => `${k}:${resultValueFingerprint(v)}`)
     .sort()
     .join("|");
 }
@@ -726,7 +734,7 @@ export function createProgramExecutor() {
           // Log summary of what changed
           const summary = Array.from(resultsMap.entries()).map(([id, val]) => ({
             id,
-            value: val.kind === "number" ? val.value : val.result.description,
+            value: resultValueFingerprint(val),
           }));
           logger.execute.info("Results updated", { results: summary });
           lastResultsHash = currentResultsHash;

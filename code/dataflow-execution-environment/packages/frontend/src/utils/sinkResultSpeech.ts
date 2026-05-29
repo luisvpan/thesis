@@ -15,7 +15,7 @@ function singleCpaSpeechText(meta: SingleCpaObjectMeta): string {
   const typeLabels: Record<string, string> = {
     montessori: 'cubos',
     cap: 'tapas',
-    stick: 'palitos',
+    stick: 'paletas',
     forma: meta.subtype,
     comida: meta.subtype,
   };

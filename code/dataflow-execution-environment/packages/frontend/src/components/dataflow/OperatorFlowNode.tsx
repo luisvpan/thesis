@@ -6,6 +6,7 @@ import {
   type OperatorType,
   type DivisionMode,
   isFilterOperatorType,
+  isMathOperatorType,
   isOrderOperatorType,
 } from '@/types/card-types';
 import type { OrderCriterio } from '@/data/yoloDeckCatalog';
@@ -53,9 +54,10 @@ function operatorSymbol(operator: OperatorType): string {
 
 /**
  * Determine what kinds a handle accepts based on the operator type.
+ * - Math operators (+ − × ÷): groups, CPA objects, and numbers; not criteria keywords
  * - Filter operators: input "a" (items) accepts groups and CPA
  * - Filter operators: input "b" (criterion) accepts criteria keywords
- * - All other operators: accept cpa and rational
+ * - Other operators: CPA and rational only
  */
 function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[] {
   if (isOrderOperatorType(operator)) {
@@ -66,6 +68,9 @@ function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[
       return ['keyword'];
     }
     return ['group', 'cpa'];
+  }
+  if (isMathOperatorType(operator)) {
+    return ['group', 'cpa', 'rational'];
   }
   return ['cpa', 'rational'];
 }

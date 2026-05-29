@@ -246,6 +246,112 @@ describe("connectionRules", () => {
     ).toBe(true);
   });
 
+  test("addition accepts arrayClose group on inputs a and b", () => {
+    const ns = nodes(
+      { id: "open", type: "arrayOpen" },
+      { id: "close", type: "arrayClose" },
+      { id: "add", type: "operator", data: { operator: "adicion" } }
+    );
+    const zonePair: Edge[] = [
+      {
+        id: "z",
+        source: "open",
+        target: "close",
+        sourceHandle: "zone-out",
+        targetHandle: "zone-in",
+      },
+    ];
+    const ctx = {
+      nodes: ns,
+      edges: zonePair,
+      getPortKindInfo: (nodeId: string, handleId: string) => {
+        if (nodeId === "close" && handleId === "out") return { produces: "group" as const };
+        if (nodeId === "add" && (handleId === "a" || handleId === "b")) {
+          return { accepts: ["group", "cpa", "rational"] as const };
+        }
+        return undefined;
+      },
+    };
+
+    expect(
+      canConnectPorts(
+        { nodeId: "close", handleId: "out", handleType: "source" },
+        { nodeId: "add", handleId: "a", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(true);
+
+    expect(
+      canConnectPorts(
+        { nodeId: "close", handleId: "out", handleType: "source" },
+        { nodeId: "add", handleId: "b", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(true);
+  });
+
+  test("addition rejects criteria keyword on inputs", () => {
+    const ns = nodes(
+      { id: "red", type: "source", data: { variant: "criteria", yoloClass: "red" } },
+      { id: "add", type: "operator", data: { operator: "adicion" } }
+    );
+    const ctx = {
+      nodes: ns,
+      edges: [] as Edge[],
+      getPortKindInfo: (nodeId: string, handleId: string) => {
+        if (nodeId === "red" && handleId === "out") return { produces: "keyword" as const };
+        if (nodeId === "add" && (handleId === "a" || handleId === "b")) {
+          return { accepts: ["group", "cpa", "rational"] as const };
+        }
+        return undefined;
+      },
+    };
+
+    expect(
+      canConnectPorts(
+        { nodeId: "red", handleId: "out", handleType: "source" },
+        { nodeId: "add", handleId: "a", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(false);
+  });
+
+  test("addition accepts shape CPA but not standalone shape criteria", () => {
+    const ns = nodes(
+      { id: "tri", type: "source", data: { variant: "shape", yoloClass: "lg_triangle" } },
+      { id: "crit", type: "source", data: { variant: "criteria", yoloClass: "triangle" } },
+      { id: "add", type: "operator", data: { operator: "adicion" } }
+    );
+    const ctx = {
+      nodes: ns,
+      edges: [] as Edge[],
+      getPortKindInfo: (nodeId: string, handleId: string) => {
+        if (nodeId === "tri" && handleId === "out") return { produces: "cpa" as const };
+        if (nodeId === "crit" && handleId === "out") return { produces: "keyword" as const };
+        if (nodeId === "add" && (handleId === "a" || handleId === "b")) {
+          return { accepts: ["group", "cpa", "rational"] as const };
+        }
+        return undefined;
+      },
+    };
+
+    expect(
+      canConnectPorts(
+        { nodeId: "tri", handleId: "out", handleType: "source" },
+        { nodeId: "add", handleId: "a", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(true);
+
+    expect(
+      canConnectPorts(
+        { nodeId: "crit", handleId: "out", handleType: "source" },
+        { nodeId: "add", handleId: "b", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(false);
+  });
+
   test("filter operator accepts criteria keyword on input b", () => {
     const ns = nodes(
       { id: "crit", type: "source", data: { variant: "criteria" } },

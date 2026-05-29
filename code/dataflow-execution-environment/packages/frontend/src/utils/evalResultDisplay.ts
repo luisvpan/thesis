@@ -34,6 +34,9 @@ export function resultValueToDisplayData(
       numberArrayValues: resultValue.values,
     };
   }
+  if (resultValue.kind !== "semantic") {
+    return { value: undefined, description: undefined, visualStrip: undefined };
+  }
   return {
     value: resultValue.result.totalAmount,
     description: resultValue.result.description,
