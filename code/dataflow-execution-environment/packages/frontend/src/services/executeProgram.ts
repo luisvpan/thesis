@@ -83,8 +83,16 @@ export type SingleCpaObjectMeta = {
   denominator: string;
 };
 
+/** Single number value in an ordered array */
+export type NumberArrayItem = {
+  value: number;
+  numerator: string;
+  denominator: string;
+};
+
 export type ResultValue =
   | { kind: "number"; value: number; numerator?: string; denominator?: string }
+  | { kind: "numberArray"; values: NumberArrayItem[] }
   | {
       kind: "semantic";
       result: SemanticResult;
@@ -182,8 +190,32 @@ function extractFraction(
   };
 }
 
+function isAbstractNumberElement(el: unknown): boolean {
+  if (!el || typeof el !== "object") return false;
+  const obj = el as Record<string, unknown>;
+  return (
+    obj.kind === "cpa" &&
+    obj.category === "abstracto" &&
+    obj.type === "numero"
+  );
+}
+
 function runtimeOutputToResultValue(output: RuntimeOutput): ResultValue | undefined {
   if (output.kind === "arreglo" && output.elements) {
+    // Check if all elements are abstract numbers - preserve order, don't aggregate
+    if (output.elements.length > 0 && output.elements.every(isAbstractNumberElement)) {
+      const values: NumberArrayItem[] = output.elements.map((el) => {
+        const obj = el as RuntimeOutput;
+        const qty = obj.quantity!;
+        return {
+          value: Number(qty.valueOf()),
+          ...extractFraction(qty),
+        };
+      });
+      return { kind: "numberArray", values };
+    }
+
+    // Mixed or non-abstract arrays: use semantic grouping
     const semantic = groupElements(output.elements);
     return { kind: "semantic", result: semantic };
   }

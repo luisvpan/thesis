@@ -30,6 +30,13 @@ import {
   type DivisionGrouping,
 } from './result-rendering-heuristics';
 
+/** Item in an ordered number array */
+export type NumberArrayDisplayItem = {
+  value: number;
+  numerator: string;
+  denominator: string;
+};
+
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   /** Valor numérico para resultados racionales */
@@ -47,6 +54,8 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   /** For exact fraction display of pure rationals (e.g., "13/4" instead of 3.25) */
   numerator?: string;
   denominator?: string;
+  /** Ordered array of abstract numbers (e.g., from order_asc/order_desc) */
+  numberArrayValues?: NumberArrayDisplayItem[];
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
@@ -134,6 +143,20 @@ function buildSinkBody(
         <p className="text-sm font-semibold leading-snug text-red-400 whitespace-pre-wrap">
           {executionError}
         </p>
+      ),
+    };
+  }
+
+  // Ordered array of abstract numbers (e.g., from order_asc/order_desc)
+  if (data.numberArrayValues && data.numberArrayValues.length > 0) {
+    const formatted = data.numberArrayValues.map((item) =>
+      formatFraction(item.numerator, item.denominator)
+    );
+    return {
+      headerRight: (
+        <span className="text-2xl font-black tabular-nums text-white">
+          [{formatted.join(', ')}]
+        </span>
       ),
     };
   }

@@ -20,7 +20,9 @@ function displayDataUnchanged(
     safeJsonStringify(current.singleCpaObjectMeta) ===
       safeJsonStringify(next.singleCpaObjectMeta) &&
     current.numerator === next.numerator &&
-    current.denominator === next.denominator
+    current.denominator === next.denominator &&
+    safeJsonStringify(current.numberArrayValues) ===
+      safeJsonStringify(next.numberArrayValues)
   );
 }
 
@@ -46,16 +48,22 @@ export function mergeProgramOutputsFromResults(
       changed = true;
       if (n.type === "operator") {
         const opData = n.data as OperatorFlowNodeData;
+        // Determine result value for edge display
+        let operatorResult: number | undefined = newData.value;
+        if (operatorResult === undefined) {
+          if (resultValue.kind === "semantic") {
+            operatorResult = resultValue.result.totalAmount;
+          } else if (resultValue.kind === "numberArray") {
+            // For number arrays, show count
+            operatorResult = resultValue.values.length;
+          }
+        }
         return {
           ...n,
           data: {
             ...opData,
             ...newData,
-            result:
-              newData.value ??
-              (resultValue.kind === "semantic"
-                ? resultValue.result.totalAmount
-                : undefined),
+            result: operatorResult,
           },
         };
       }

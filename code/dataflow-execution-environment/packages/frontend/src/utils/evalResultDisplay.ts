@@ -11,6 +11,7 @@ export type FlowResultDisplayData = Pick<
   | "singleCpaObjectMeta"
   | "numerator"
   | "denominator"
+  | "numberArrayValues"
 >;
 
 export function resultValueToDisplayData(
@@ -23,6 +24,14 @@ export function resultValueToDisplayData(
       visualStrip: undefined,
       numerator: resultValue.numerator,
       denominator: resultValue.denominator,
+    };
+  }
+  if (resultValue.kind === "numberArray") {
+    return {
+      value: undefined,
+      description: undefined,
+      visualStrip: undefined,
+      numberArrayValues: resultValue.values,
     };
   }
   return {
@@ -39,6 +48,7 @@ export function hasFlowResultDisplay(data: FlowResultDisplayData): boolean {
   return (
     data.value !== undefined ||
     Boolean(data.description) ||
-    (data.visualStrip != null && data.visualStrip.length > 0)
+    (data.visualStrip != null && data.visualStrip.length > 0) ||
+    (data.numberArrayValues != null && data.numberArrayValues.length > 0)
   );
 }

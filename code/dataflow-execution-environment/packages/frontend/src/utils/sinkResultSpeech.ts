@@ -37,6 +37,12 @@ export function buildSinkResultSpeechText(
     return executionError.trim();
   }
 
+  // Ordered array of abstract numbers
+  if (data.numberArrayValues && data.numberArrayValues.length > 0) {
+    const spoken = data.numberArrayValues.map((item) => spokenNumber(item.value));
+    return spoken.join(', ');
+  }
+
   if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
     return singleCpaSpeechText(data.singleCpaObjectMeta);
   }
