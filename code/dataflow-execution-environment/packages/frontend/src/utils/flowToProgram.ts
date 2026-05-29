@@ -62,6 +62,14 @@ function normalizeSize(size: string | undefined): string {
   return SIZE_MAP[size] ?? size;
 }
 
+// Mapeo de tipo de comida a su color natural
+const FOOD_COLOR_MAP: Record<string, string> = {
+  manzana: "rojo",
+  pera: "verde",
+  uva: "morado",
+  hamburguesa: "naranja",
+};
+
 /** Identificador en el programa para un nodo origen de arista (fuente, operador o salida). */
 export function resolveFlowSourceId(
   nodeId: string,
@@ -113,11 +121,12 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           ),
         });
       } else if (data.variant === "food") {
+        const foodType = data.food ?? "manzana";
         statements.push({
           type: "SourceStatement",
           identifier: node.id,
-          value: createConcreteDataLiteral("comida", data.food ?? "manzana", 1, {
-            color: "verde",
+          value: createConcreteDataLiteral("comida", foodType, 1, {
+            color: FOOD_COLOR_MAP[foodType] ?? "verde",
           }),
         });
       } else if (data.variant === "montessori") {
