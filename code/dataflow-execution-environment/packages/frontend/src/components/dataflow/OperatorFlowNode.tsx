@@ -53,8 +53,8 @@ function operatorSymbol(operator: OperatorType): string {
 
 /**
  * Determine what kinds a handle accepts based on the operator type.
- * - Filter operators: input "a" (items) accepts cpa
- * - Filter operators: input "b" (criterion) accepts only keyword
+ * - Filter operators: input "a" (items) accepts groups and CPA
+ * - Filter operators: input "b" (criterion) accepts criteria keywords
  * - All other operators: accept cpa and rational
  */
 function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[] {
@@ -65,7 +65,7 @@ function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[
     if (handleId === 'b') {
       return ['keyword'];
     }
-    return ['cpa'];
+    return ['group', 'cpa'];
   }
   return ['cpa', 'rational'];
 }
@@ -86,7 +86,13 @@ function useOutputKind(
     }
     const inputEdges = edges.filter((e) => e.target === nodeId);
     for (const edge of inputEdges) {
+      if (isFilterOperatorType(operator) && edge.targetHandle === 'b') {
+        continue;
+      }
       const sourceInfo = getPortKindInfo(edge.source, edge.sourceHandle ?? 'out');
+      if (sourceInfo?.produces === 'group') {
+        return 'group';
+      }
       if (sourceInfo?.produces === 'cpa') {
         return 'cpa';
       }

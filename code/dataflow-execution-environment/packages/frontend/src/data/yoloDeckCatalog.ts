@@ -15,7 +15,7 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
     'lg_circle',
     'lg_square',
     'lg_triangle',
-    // Criteria cards (size/color)
+    // Criteria cards (size/color/subtype)
     'small',
     'medium',
     'large',
@@ -23,6 +23,9 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
     'purple',
     'red',
     'orange',
+    'circle',
+    'square',
+    'triangle',
   ],
   foods: ['apple', 'burger', 'pear', 'grapes'],
   montessori: ['cube_blue', 'cube_red', 'cube_yellow'],
@@ -92,6 +95,8 @@ export function deckLabel(yoloClass: string): string {
     small: 'Pequeño', medium: 'Mediano', large: 'Grande',
     // Criteria de color
     green: 'Verde', purple: 'Morado', red: 'Rojo', orange: 'Naranja',
+    // Criteria de forma
+    circle: 'Círculo', square: 'Cuadrado', triangle: 'Triángulo',
     // Figuras
     sm_circle: 'Circulo P', sm_square: 'Cuadrado P', sm_triangle: 'Triángulo P',
     md_circle: 'Circulo M', md_square: 'Cuadrado M', md_triangle: 'Triángulo M',
@@ -108,11 +113,12 @@ export function deckLabel(yoloClass: string): string {
   return m[yoloClass] ?? yoloClass;
 }
 
-export type CriteriaProperty = 'size' | 'color';
+export type CriteriaProperty = 'size' | 'color' | 'subtype';
 
 export type CriteriaValues = {
   size?: 'pequeño' | 'mediano' | 'grande';
   color?: 'verde' | 'morado' | 'rojo' | 'naranja';
+  subtype?: 'circulo' | 'cuadrado' | 'triangulo';
 };
 
 export type OrderCriterio = {
@@ -199,6 +205,23 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
       yoloClass: x,
       properties: ['size'],
       values: { size: sizeCriteria[x] },
+    };
+  }
+
+  const subtypeCriteria: Record<string, CriteriaValues['subtype']> = {
+    circle: 'circulo',
+    square: 'cuadrado',
+    triangle: 'triangulo',
+    circulo: 'circulo',
+    cuadrado: 'cuadrado',
+    triangulo: 'triangulo',
+  };
+  if (x in subtypeCriteria) {
+    return {
+      kind: 'criteria',
+      yoloClass: x,
+      properties: ['subtype'],
+      values: { subtype: subtypeCriteria[x] },
     };
   }
 

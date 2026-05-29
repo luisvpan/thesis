@@ -114,3 +114,43 @@ describe("flowToProgram order operators", () => {
     }
   });
 });
+
+describe("flowToProgram filter operators", () => {
+  test("filtrar-general emits filter with group and criteria arguments", () => {
+    const nodes = [
+      { id: "grp", type: "arrayClose", position: { x: 0, y: 0 }, data: {} },
+      {
+        id: "crit",
+        type: "source",
+        position: { x: 0, y: 0 },
+        data: {
+          variant: "criteria",
+          yoloClass: "large",
+          properties: ["size"],
+          values: { size: "grande" },
+        },
+      },
+      {
+        id: "flt",
+        type: "operator",
+        position: { x: 0, y: 0 },
+        data: { operator: "filtrar-general" },
+      },
+    ] as DataflowNode[];
+    const edges: Edge[] = [
+      { id: "e1", source: "grp", target: "flt", sourceHandle: "out", targetHandle: "a" },
+      { id: "e2", source: "crit", target: "flt", sourceHandle: "out", targetHandle: "b" },
+    ];
+    const program = flowToProgram(nodes, edges);
+    const stmt = program.statements.find(
+      (s) => s.type === "TransformStatement" && s.identifier === "flt"
+    );
+    expect(stmt?.type).toBe("TransformStatement");
+    if (stmt?.type !== "TransformStatement") return;
+    expect(stmt.operation).toBe("filter");
+    expect(stmt.arguments.map((a) => (a.type === "Identifier" ? a.name : ""))).toEqual([
+      "grp",
+      "crit",
+    ]);
+  });
+});

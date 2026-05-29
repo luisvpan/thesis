@@ -36,7 +36,17 @@ const OPERATOR_MAP: Record<string, Operation> = {
   "orden-menor-mayor": "order_asc",
   "orden-mayor-menor": "order_desc",
   comparar: "compare",
+  "filtrar-general": "filter",
+  "filtrar-figuras": "filter",
+  "filtrar-carros": "filter",
+  "filtrar-comidas": "filter",
+  "filtrar-animales": "filter",
+  "filtrar-personas": "filter",
 };
+
+function resolveOperation(operator: string): Operation {
+  return OPERATOR_MAP[operator] ?? "sum";
+}
 
 // Normalizar tamaños a formas masculinas (el intérprete solo entiende masculino)
 const SIZE_MAP: Record<string, string> = {
@@ -208,7 +218,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
       statements.push({
         type: "TransformStatement",
         identifier: node.id,
-        operation: OPERATOR_MAP[operator] ?? "sum",
+        operation: resolveOperation(operator),
         arguments: args,
       });
     }

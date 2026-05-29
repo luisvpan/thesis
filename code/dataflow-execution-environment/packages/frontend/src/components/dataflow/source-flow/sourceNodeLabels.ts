@@ -17,6 +17,7 @@ export function sourceTitle(data: SourceFlowNodeData): string {
     case 'criteria':
       if (data.properties.includes('size')) return 'Tamaño';
       if (data.properties.includes('color')) return 'Color';
+      if (data.properties.includes('subtype')) return 'Forma';
       return 'Criterio';
   }
 }
@@ -38,6 +39,7 @@ export function sourceMain(data: SourceFlowNodeData): string {
     case 'criteria':
       if (data.values.size) return data.values.size;
       if (data.values.color) return data.values.color;
+      if (data.values.subtype) return data.values.subtype;
       return data.yoloClass;
   }
 }

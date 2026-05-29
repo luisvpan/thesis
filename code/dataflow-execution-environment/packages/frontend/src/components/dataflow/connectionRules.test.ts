@@ -211,4 +211,62 @@ describe("connectionRules", () => {
     const b = { nodeId: "o", handleId: "a", handleType: "target" as const };
     expect(wouldPortsConnect(a, b, ctx)).toBe(true);
   });
+
+  test("filter operator accepts arrayClose group on input a", () => {
+    const ns = nodes(
+      { id: "open", type: "arrayOpen" },
+      { id: "close", type: "arrayClose" },
+      { id: "flt", type: "operator", data: { operator: "filtrar-general" } }
+    );
+    const zonePair: Edge[] = [
+      {
+        id: "z",
+        source: "open",
+        target: "close",
+        sourceHandle: "zone-out",
+        targetHandle: "zone-in",
+      },
+    ];
+    const ctx = {
+      nodes: ns,
+      edges: zonePair,
+      getPortKindInfo: (nodeId: string, handleId: string) => {
+        if (nodeId === "close" && handleId === "out") return { produces: "group" as const };
+        if (nodeId === "flt" && handleId === "a") return { accepts: ["group", "cpa"] as const };
+        return undefined;
+      },
+    };
+
+    expect(
+      canConnectPorts(
+        { nodeId: "close", handleId: "out", handleType: "source" },
+        { nodeId: "flt", handleId: "a", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(true);
+  });
+
+  test("filter operator accepts criteria keyword on input b", () => {
+    const ns = nodes(
+      { id: "crit", type: "source", data: { variant: "criteria" } },
+      { id: "flt", type: "operator", data: { operator: "filtrar-general" } }
+    );
+    const ctx = {
+      nodes: ns,
+      edges: [] as Edge[],
+      getPortKindInfo: (nodeId: string, handleId: string) => {
+        if (nodeId === "crit" && handleId === "out") return { produces: "keyword" as const };
+        if (nodeId === "flt" && handleId === "b") return { accepts: ["keyword"] as const };
+        return undefined;
+      },
+    };
+
+    expect(
+      canConnectPorts(
+        { nodeId: "crit", handleId: "out", handleType: "source" },
+        { nodeId: "flt", handleId: "b", handleType: "target" },
+        ctx
+      ).ok
+    ).toBe(true);
+  });
 });
