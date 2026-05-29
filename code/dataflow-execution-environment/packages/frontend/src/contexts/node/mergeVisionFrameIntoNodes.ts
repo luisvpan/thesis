@@ -120,8 +120,8 @@ export function mergeVisionFrameIntoNodes(
             type: "operator" as const,
             position,
             data: prevOp
-              ? { ...prevOp, operator: parsed.operator, ...meta }
-              : { operator: parsed.operator, ...meta },
+              ? { ...prevOp, operator: parsed.operator, criterio: parsed.criterio, ...meta }
+              : { operator: parsed.operator, criterio: parsed.criterio, ...meta },
           },
           meta,
           nodesDraggable

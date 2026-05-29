@@ -187,10 +187,23 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
             return 0;
           });
 
-      const args = sortedEdges.map((e) => ({
+      const args: (
+        | { type: "Identifier"; name: string }
+        | ReturnType<typeof createCriteriaLiteral>
+      )[] = sortedEdges.map((e) => ({
         type: "Identifier" as const,
         name: resolveFlowSourceId(e.source, nodes),
       }));
+
+      // If this is an order operator with an implicit criterio, add it as an argument
+      if (isOrderOperatorType(operator) && data.criterio) {
+        args.push(
+          createCriteriaLiteral({
+            properties: [data.criterio.property],
+            values: { [data.criterio.property]: data.criterio.sequence },
+          })
+        );
+      }
 
       statements.push({
         type: "TransformStatement",

@@ -197,25 +197,30 @@ describe("v4.0.0 Criteria - Order RTL Compilation", () => {
     expect(subtypes[3]).toBe("manzana");
   });
 
-  test("incomplete criteria are ignored in ordering", () => {
+  test("incomplete criteria are ignored in ordering (no-op)", () => {
     const incomplete = createCriteria(["color"], {}); // No values
     const result = orderAsc([...items, incomplete]) as ArrayValue;
 
     expect(result.kind).toBe("arreglo");
-    // Falls back to taxonomical ordering (category > type > subtype > quantity)
+    // Incomplete criteria = no-op, maintains original order
     expect(result.elements).toHaveLength(4);
+    const subtypes = result.elements.map(e => (e as CPAObject).subtype);
+    expect(subtypes[0]).toBe("manzana"); // First in original order
+    expect(subtypes[1]).toBe("pera");
+    expect(subtypes[2]).toBe("uva");
+    expect(subtypes[3]).toBe("manzana"); // Last in original order
   });
 
-  test("no criteria uses taxonomical fallback", () => {
+  test("no criteria returns original order (no-op)", () => {
     const result = orderAsc([...items]) as ArrayValue;
 
     expect(result.kind).toBe("arreglo");
-    // Taxonomical: all concreto/comida, so by subtype alphabetically
+    // No criteria = no-op, maintains original order
     const subtypes = result.elements.map(e => (e as CPAObject).subtype);
-    expect(subtypes[0]).toBe("manzana");
-    expect(subtypes[1]).toBe("manzana");
-    expect(subtypes[2]).toBe("pera");
-    expect(subtypes[3]).toBe("uva");
+    expect(subtypes[0]).toBe("manzana"); // quantity 3
+    expect(subtypes[1]).toBe("pera");
+    expect(subtypes[2]).toBe("uva");
+    expect(subtypes[3]).toBe("manzana"); // quantity 2
   });
 });
 

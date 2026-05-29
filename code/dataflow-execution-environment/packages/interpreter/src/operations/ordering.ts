@@ -1,38 +1,6 @@
-import * as rational from "../runtime/rational";
 import type { RuntimeValue, CPAObject, CriteriaObject } from "../runtime/types";
-import {
-  getCategoryOrder,
-  getTypeKey,
-  isCriteriaComplete,
-} from "../runtime/types";
-import { separationPass, getQuantityOrZero } from "./utils";
-
-/**
- * Taxonomical comparison (fallback when no criteria):
- * 1. Category: Concrete (0) < Pictorial (1) < Abstract (2)
- * 2. Type/Subtype: Alphabetical
- * 3. Quantity: Value or Amount
- */
-function taxonomicalCompare(a: RuntimeValue, b: RuntimeValue): number {
-  // 1. Category ordering
-  const catA = getCategoryOrder(a);
-  const catB = getCategoryOrder(b);
-  if (catA !== catB) {
-    return catA - catB;
-  }
-
-  // 2. Type/Subtype alphabetical
-  const typeA = getTypeKey(a);
-  const typeB = getTypeKey(b);
-  if (typeA !== typeB) {
-    return typeA.localeCompare(typeB);
-  }
-
-  // 3. Quantity comparison
-  const qtyA = getQuantityOrZero(a);
-  const qtyB = getQuantityOrZero(b);
-  return rational.compare(qtyA, qtyB);
-}
+import { isCriteriaComplete } from "../runtime/types";
+import { separationPass } from "./utils";
 
 /**
  * Get a property value from a CPAObject for comparison.
@@ -138,7 +106,21 @@ function compileCriteriaRTL(criteriaElements: (CriteriaObject | CriteriaObject[]
 }
 
 /**
+ * Wrap result: single element returns unwrapped, multiple as array.
+ */
+function wrapResult(items: CPAObject[]): RuntimeValue {
+  if (items.length === 1) {
+    return items[0];
+  }
+  return { kind: "arreglo", elements: items };
+}
+
+/**
  * Execute ordering with criteria-based sorting.
+ *
+ * Behavior:
+ * - No criteria: returns data in original order (no-op)
+ * - With criteria: stable sort by criteria, ties maintain original order
  */
 function executeOrder(args: RuntimeValue[], isAscending: boolean): RuntimeValue {
   const { dataItems, criteriaElements } = separationPass(args);
@@ -148,57 +130,38 @@ function executeOrder(args: RuntimeValue[], isAscending: boolean): RuntimeValue 
     return { kind: "arreglo", elements: [] };
   }
 
-  // If no criteria, use taxonomical ordering as fallback
+  // No criteria = no-op (return in original order)
   if (criteriaElements.length === 0) {
-    const sorted = [...dataItems].sort((a, b) => {
-      const cmp = taxonomicalCompare(a, b);
-      return isAscending ? cmp : -cmp;
-    });
-
-    if (sorted.length === 1) {
-      return sorted[0];
-    }
-    return { kind: "arreglo", elements: sorted };
+    return wrapResult(dataItems);
   }
 
   // Compile criteria RTL
   const compiled = compileCriteriaRTL(criteriaElements);
 
-  // If no complete criteria after compilation, use taxonomical fallback
+  // No complete criteria after compilation = no-op
   if (compiled.properties.length === 0) {
-    const sorted = [...dataItems].sort((a, b) => {
-      const cmp = taxonomicalCompare(a, b);
-      return isAscending ? cmp : -cmp;
-    });
-
-    if (sorted.length === 1) {
-      return sorted[0];
-    }
-    return { kind: "arreglo", elements: sorted };
+    return wrapResult(dataItems);
   }
 
-  // Sort by compiled criteria
-  const sorted = [...dataItems].sort((a, b) => {
+  // Stable sort: use original index as tiebreaker
+  const indexed = dataItems.map((item, i) => ({ item, i }));
+  indexed.sort((a, b) => {
     for (const prop of compiled.properties) {
-      const cmp = compareByProperty(a, b, prop, compiled.values[prop], isAscending);
+      const cmp = compareByProperty(a.item, b.item, prop, compiled.values[prop], isAscending);
       if (cmp !== 0) return cmp;
     }
-    // Fallback to taxonomical if all criteria equal
-    const cmp = taxonomicalCompare(a, b);
-    return isAscending ? cmp : -cmp;
+    // Tie: maintain original order
+    return a.i - b.i;
   });
 
-  if (sorted.length === 1) {
-    return sorted[0];
-  }
-
-  return { kind: "arreglo", elements: sorted };
+  const sorted = indexed.map(x => x.item);
+  return wrapResult(sorted);
 }
 
 /**
  * Order ascending operation:
- * - Uses criteria-based sorting with RTL compilation
- * - Falls back to taxonomical rules if no criteria
+ * - No criteria: returns data in original order (no-op)
+ * - With criteria: stable sort ascending by criteria properties
  */
 export function orderAsc(args: RuntimeValue[]): RuntimeValue {
   return executeOrder(args, true);
@@ -206,8 +169,8 @@ export function orderAsc(args: RuntimeValue[]): RuntimeValue {
 
 /**
  * Order descending operation:
- * - Uses criteria-based sorting with RTL compilation (reversed)
- * - Falls back to taxonomical rules if no criteria
+ * - No criteria: returns data in original order (no-op)
+ * - With criteria: stable sort descending by criteria properties
  */
 export function orderDesc(args: RuntimeValue[]): RuntimeValue {
   return executeOrder(args, false);

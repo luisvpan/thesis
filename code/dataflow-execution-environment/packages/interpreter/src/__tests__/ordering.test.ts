@@ -1,124 +1,209 @@
 import { describe, test, expect } from "bun:test";
 import Fraction from "fraction.js";
-import { Interpreter } from "../index";
-import type { ArrayValue, CPAObject } from "../runtime/types";
+import { orderAsc, orderDesc } from "../operations/ordering";
+import type { ArrayValue, CPAObject, CriteriaObject } from "../runtime/types";
 
-describe("Ordering operations (integration)", () => {
-  test("order_asc sorts by taxonomical rules", async () => {
-    const interpreter = new Interpreter();
-    const result = await interpreter.execute(`
-      source items = [
-        {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 5, "color": "morado"},
-        {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 3, "size": "grande"},
-        {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 1, "color": "rojo"}
+// Helper to create CPA objects
+function createCPA(
+  category: "concreto" | "pictorico" | "abstracto",
+  type: string,
+  subtype: string,
+  quantity: number,
+  attributes: Record<string, string> = {}
+): CPAObject {
+  return {
+    kind: "cpa",
+    category,
+    type,
+    subtype,
+    quantity: new Fraction(quantity),
+    attributes,
+  };
+}
+
+// Helper to create criteria objects
+function createCriteria(
+  properties: string[],
+  values: Record<string, string | string[]>
+): CriteriaObject {
+  return {
+    kind: "criteria",
+    properties,
+    values,
+  };
+}
+
+describe("Ordering operations (unit)", () => {
+  describe("No criteria = no-op (preserves original order)", () => {
+    test("order_asc without criteria returns items in original order", () => {
+      const items = [
+        createCPA("pictorico", "forma", "circulo", 3, { size: "grande" }),
+        createCPA("concreto", "comida", "uva", 5, { color: "morado" }),
+        createCPA("concreto", "comida", "manzana", 1, { color: "rojo" }),
       ];
-      transform sorted = order_asc(items);
-      sink result = sorted;
-    `);
+      const result = orderAsc(items) as ArrayValue;
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("arreglo");
-    // Concrete (food) < Pictorial (shape)
-    expect((sinkResult.elements[0] as CPAObject).category).toBe("concreto");
-    expect((sinkResult.elements[1] as CPAObject).category).toBe("concreto");
-    expect((sinkResult.elements[2] as CPAObject).category).toBe("pictorico");
+      expect(result.kind).toBe("arreglo");
+      // Should maintain original order (no sorting without criteria)
+      expect((result.elements[0] as CPAObject).subtype).toBe("circulo");
+      expect((result.elements[1] as CPAObject).subtype).toBe("uva");
+      expect((result.elements[2] as CPAObject).subtype).toBe("manzana");
+    });
+
+    test("order_desc without criteria returns items in original order", () => {
+      const items = [
+        createCPA("concreto", "comida", "manzana", 1, { color: "rojo" }),
+        createCPA("pictorico", "forma", "circulo", 3, { size: "grande" }),
+        createCPA("concreto", "comida", "uva", 5, { color: "morado" }),
+      ];
+      const result = orderDesc(items) as ArrayValue;
+
+      expect(result.kind).toBe("arreglo");
+      // Should maintain original order (no sorting without criteria)
+      expect((result.elements[0] as CPAObject).subtype).toBe("manzana");
+      expect((result.elements[1] as CPAObject).subtype).toBe("circulo");
+      expect((result.elements[2] as CPAObject).subtype).toBe("uva");
+    });
+
+    test("single item without criteria returns that item", () => {
+      const item = createCPA("pictorico", "forma", "circulo", 1, { size: "grande" });
+      const result = orderAsc([item]) as CPAObject;
+
+      expect(result.kind).toBe("cpa");
+      expect(result.category).toBe("pictorico");
+      expect(result.subtype).toBe("circulo");
+    });
   });
 
-  test("order_desc sorts by taxonomical rules in reverse", async () => {
-    const interpreter = new Interpreter();
-    const result = await interpreter.execute(`
-      source items = [
-        {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 5, "color": "morado"},
-        {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 3, "size": "grande"},
-        {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 1, "color": "rojo"}
+  describe("With criteria = sort by criteria property", () => {
+    test("order_asc with size criteria sorts by size sequence", () => {
+      const items = [
+        createCPA("pictorico", "forma", "circulo", 1, { size: "grande" }),
+        createCPA("pictorico", "forma", "cuadrado", 1, { size: "pequeño" }),
+        createCPA("pictorico", "forma", "triangulo", 1, { size: "mediano" }),
       ];
-      transform sorted = order_desc(items);
-      sink result = sorted;
-    `);
+      const sizeCriteria = createCriteria(["size"], { size: ["pequeño", "mediano", "grande"] });
+      const result = orderAsc([...items, sizeCriteria]) as ArrayValue;
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect(sinkResult.kind).toBe("arreglo");
-    // Descending: Abstract > Pictorial > Concrete
-    expect((sinkResult.elements[0] as CPAObject).category).toBe("pictorico");
-    expect((sinkResult.elements[1] as CPAObject).category).toBe("concreto");
-    expect((sinkResult.elements[2] as CPAObject).category).toBe("concreto");
+      expect(result.kind).toBe("arreglo");
+      // Ascending by size: pequeño < mediano < grande
+      expect((result.elements[0] as CPAObject).attributes.size).toBe("pequeño");
+      expect((result.elements[1] as CPAObject).attributes.size).toBe("mediano");
+      expect((result.elements[2] as CPAObject).attributes.size).toBe("grande");
+    });
+
+    test("order_desc with size criteria sorts by size sequence in reverse", () => {
+      const items = [
+        createCPA("pictorico", "forma", "circulo", 1, { size: "grande" }),
+        createCPA("pictorico", "forma", "cuadrado", 1, { size: "pequeño" }),
+        createCPA("pictorico", "forma", "triangulo", 1, { size: "mediano" }),
+      ];
+      const sizeCriteria = createCriteria(["size"], { size: ["pequeño", "mediano", "grande"] });
+      const result = orderDesc([...items, sizeCriteria]) as ArrayValue;
+
+      expect(result.kind).toBe("arreglo");
+      // Descending by size: grande > mediano > pequeño
+      expect((result.elements[0] as CPAObject).attributes.size).toBe("grande");
+      expect((result.elements[1] as CPAObject).attributes.size).toBe("mediano");
+      expect((result.elements[2] as CPAObject).attributes.size).toBe("pequeño");
+    });
+
+    test("order_asc with color criteria sorts by color sequence", () => {
+      const items = [
+        createCPA("concreto", "comida", "uva", 1, { color: "morado" }),
+        createCPA("concreto", "comida", "manzana", 1, { color: "rojo" }),
+        createCPA("concreto", "comida", "pera", 1, { color: "verde" }),
+      ];
+      const colorCriteria = createCriteria(["color"], { color: ["verde", "rojo", "morado"] });
+      const result = orderAsc([...items, colorCriteria]) as ArrayValue;
+
+      expect(result.kind).toBe("arreglo");
+      // Ascending by color: verde < rojo < morado
+      expect((result.elements[0] as CPAObject).attributes.color).toBe("verde");
+      expect((result.elements[1] as CPAObject).attributes.color).toBe("rojo");
+      expect((result.elements[2] as CPAObject).attributes.color).toBe("morado");
+    });
   });
 
-  test("order_asc sorts by type alphabetically within category", async () => {
-    const interpreter = new Interpreter();
-    const result = await interpreter.execute(`
-      source items = [
-        {"category": "concreto", "type": "comida", "subtype": "pera", "quantity": 1, "color": "verde"},
-        {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 2, "color": "rojo"},
-        {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 3, "color": "morado"}
+  describe("Stable sort (ties maintain original order)", () => {
+    test("order_asc with ties preserves original order among equal items", () => {
+      const items = [
+        createCPA("pictorico", "forma", "circulo", 1, { size: "mediano" }),
+        createCPA("pictorico", "forma", "cuadrado", 2, { size: "mediano" }),
+        createCPA("pictorico", "forma", "triangulo", 3, { size: "pequeño" }),
+        createCPA("pictorico", "forma", "rombo", 4, { size: "mediano" }),
       ];
-      transform sorted = order_asc(items);
-      sink result = sorted;
-    `);
+      const sizeCriteria = createCriteria(["size"], { size: ["pequeño", "mediano", "grande"] });
+      const result = orderAsc([...items, sizeCriteria]) as ArrayValue;
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect((sinkResult.elements[0] as CPAObject).subtype).toBe("manzana");
-    expect((sinkResult.elements[1] as CPAObject).subtype).toBe("pera");
-    expect((sinkResult.elements[2] as CPAObject).subtype).toBe("uva");
+      expect(result.kind).toBe("arreglo");
+      // pequeño first, then the 3 medianos in original order
+      expect((result.elements[0] as CPAObject).subtype).toBe("triangulo"); // pequeño
+      expect((result.elements[1] as CPAObject).subtype).toBe("circulo");   // mediano (first in original)
+      expect((result.elements[1] as CPAObject).quantity.valueOf()).toBe(1);
+      expect((result.elements[2] as CPAObject).subtype).toBe("cuadrado");  // mediano (second in original)
+      expect((result.elements[3] as CPAObject).subtype).toBe("rombo");     // mediano (third in original)
+      expect((result.elements[3] as CPAObject).quantity.valueOf()).toBe(4);
+    });
+
+    test("order_desc with ties preserves original order among equal items", () => {
+      const items = [
+        createCPA("pictorico", "forma", "circulo", 1, { size: "grande" }),
+        createCPA("pictorico", "forma", "cuadrado", 2, { size: "grande" }),
+        createCPA("pictorico", "forma", "triangulo", 3, { size: "pequeño" }),
+      ];
+      const sizeCriteria = createCriteria(["size"], { size: ["pequeño", "mediano", "grande"] });
+      const result = orderDesc([...items, sizeCriteria]) as ArrayValue;
+
+      expect(result.kind).toBe("arreglo");
+      // grande first (in original order), then pequeño
+      expect((result.elements[0] as CPAObject).subtype).toBe("circulo");   // grande (first)
+      expect((result.elements[1] as CPAObject).subtype).toBe("cuadrado");  // grande (second)
+      expect((result.elements[2] as CPAObject).subtype).toBe("triangulo"); // pequeño
+    });
   });
 
-  test("order_asc sorts by quantity within same type", async () => {
-    const interpreter = new Interpreter();
-    const result = await interpreter.execute(`
-      source items = [
-        {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 10, "color": "morado"},
-        {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 2, "color": "morado"},
-        {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 5, "color": "morado"}
+  describe("Incomplete criteria = no-op", () => {
+    test("order_asc with criteria without values is no-op", () => {
+      const items = [
+        createCPA("pictorico", "forma", "circulo", 3, { size: "grande" }),
+        createCPA("pictorico", "forma", "cuadrado", 1, { size: "pequeño" }),
       ];
-      transform sorted = order_asc(items);
-      sink result = sorted;
-    `);
+      const incompleteCriteria = createCriteria(["size"], {}); // Has property but no value
+      const result = orderAsc([...items, incompleteCriteria]) as ArrayValue;
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect((sinkResult.elements[0] as CPAObject).quantity.equals(new Fraction(2))).toBe(true);
-    expect((sinkResult.elements[1] as CPAObject).quantity.equals(new Fraction(5))).toBe(true);
-    expect((sinkResult.elements[2] as CPAObject).quantity.equals(new Fraction(10))).toBe(true);
+      expect(result.kind).toBe("arreglo");
+      // Should maintain original order (incomplete criteria = no-op)
+      expect((result.elements[0] as CPAObject).subtype).toBe("circulo");
+      expect((result.elements[1] as CPAObject).subtype).toBe("cuadrado");
+    });
   });
 
-  test("order_desc sorts by quantity in reverse within same type", async () => {
-    const interpreter = new Interpreter();
-    const result = await interpreter.execute(`
-      source items = [
-        {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 2, "size": "grande"},
-        {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 10, "size": "grande"},
-        {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 5, "size": "grande"}
-      ];
-      transform sorted = order_desc(items);
-      sink result = sorted;
-    `);
+  describe("Empty input handling", () => {
+    test("order_asc with empty array returns empty array", () => {
+      const result = orderAsc([]) as ArrayValue;
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect((sinkResult.elements[0] as CPAObject).quantity.equals(new Fraction(10))).toBe(true);
-    expect((sinkResult.elements[1] as CPAObject).quantity.equals(new Fraction(5))).toBe(true);
-    expect((sinkResult.elements[2] as CPAObject).quantity.equals(new Fraction(2))).toBe(true);
+      expect(result.kind).toBe("arreglo");
+      expect(result.elements).toHaveLength(0);
+    });
   });
 
-  test("order_desc sorts by type alphabetically in reverse within category", async () => {
-    const interpreter = new Interpreter();
-    const result = await interpreter.execute(`
-      source items = [
-        {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 1, "color": "rojo"},
-        {"category": "concreto", "type": "comida", "subtype": "pera", "quantity": 2, "color": "verde"},
-        {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 3, "color": "morado"}
+  describe("RTL criteria compilation", () => {
+    test("later criteria take priority over earlier ones", () => {
+      const items = [
+        createCPA("pictorico", "forma", "circulo", 1, { size: "grande" }),
+        createCPA("pictorico", "forma", "cuadrado", 1, { size: "pequeño" }),
+        createCPA("pictorico", "forma", "triangulo", 1, { size: "mediano" }),
       ];
-      transform sorted = order_desc(items);
-      sink result = sorted;
-    `);
+      const wrongOrder = createCriteria(["size"], { size: ["grande", "mediano", "pequeño"] });
+      const correctOrder = createCriteria(["size"], { size: ["pequeño", "mediano", "grande"] });
+      const result = orderAsc([...items, wrongOrder, correctOrder]) as ArrayValue;
 
-    expect(result.errors).toHaveLength(0);
-    const sinkResult = result.results.get("result") as ArrayValue;
-    expect((sinkResult.elements[0] as CPAObject).subtype).toBe("uva");
-    expect((sinkResult.elements[1] as CPAObject).subtype).toBe("pera");
-    expect((sinkResult.elements[2] as CPAObject).subtype).toBe("manzana");
+      expect(result.kind).toBe("arreglo");
+      // The second criteria (correctOrder) should override the first
+      expect((result.elements[0] as CPAObject).attributes.size).toBe("pequeño");
+      expect((result.elements[1] as CPAObject).attributes.size).toBe("mediano");
+      expect((result.elements[2] as CPAObject).attributes.size).toBe("grande");
+    });
   });
 });

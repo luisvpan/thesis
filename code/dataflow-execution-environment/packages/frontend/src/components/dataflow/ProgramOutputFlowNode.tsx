@@ -29,11 +29,6 @@ import {
   type MultiplicationGrouping,
   type DivisionGrouping,
 } from './result-rendering-heuristics';
-import {
-  sortByQuantity,
-  buildVisualStripFromElements,
-  generateDescriptionFromElements,
-} from '@/utils/post-ordering';
 
 /** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
 export type ProgramOutputFlowNodeData = VisionNodeMeta & {
@@ -215,9 +210,6 @@ export type { MultiplicationGrouping, DivisionGrouping };
 export {
   computeMultiplicationGrouping,
   computeDivisionGrouping,
-  sortByQuantity,
-  buildVisualStripFromElements,
-  generateDescriptionFromElements,
 };
 
 export function ProgramOutputFlowNode({

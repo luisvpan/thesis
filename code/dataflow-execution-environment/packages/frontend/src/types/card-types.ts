@@ -48,7 +48,8 @@ export function isFilterOperatorType(op: OperatorType): op is FilterOperatorType
 }
 
 export function isOrderOperatorType(op: OperatorType): op is OrderOperatorType {
-  return op === 'orden-mayor-menor' || op === 'orden-menor-mayor' || op === 'comparar';
+  // Note: comparar requires 2 inputs (a and b), so it's NOT an order operator for handle purposes
+  return op === 'orden-mayor-menor' || op === 'orden-menor-mayor';
 }
 
 export type AnimalType = 'gato' | 'perro' | 'tortuga' | 'elefante' | 'jirafa';

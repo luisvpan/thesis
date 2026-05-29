@@ -8,6 +8,7 @@ import {
   isFilterOperatorType,
   isOrderOperatorType,
 } from '@/types/card-types';
+import type { OrderCriterio } from '@/data/yoloDeckCatalog';
 import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
@@ -35,6 +36,8 @@ export type OperatorFlowNodeData = VisionNodeMeta &
     result?: number;
     /** Modo de visualización para división: partitivo o cuotativo. Solo aplica cuando operator === 'division'. */
     divisionMode?: DivisionMode;
+    /** Criterio implícito para operadores de ordenamiento (ej: smallest_to_largest tiene criterio size). */
+    criterio?: OrderCriterio;
   };
 
 export type OperatorFlowNode = Node<OperatorFlowNodeData, 'operator'>;
