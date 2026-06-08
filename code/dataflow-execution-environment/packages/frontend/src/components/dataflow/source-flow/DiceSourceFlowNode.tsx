@@ -24,7 +24,7 @@ export function DiceSourceFlowNode({
   const { setNodes } = useReactFlow();
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const finishRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Local rolling state: not stored in node data so vision frames can't interfere.
+  // Local rolling state: not stored in node data so nothing external can interfere.
   const isRollingRef = useRef(false);
   const [animating, setAnimating] = useState(false);
 
@@ -43,6 +43,19 @@ export function DiceSourceFlowNode({
     clearTimers();
     isRollingRef.current = false;
   }, [clearTimers]);
+
+  // Safety net: if animating is still true after the expected roll duration, force-reset.
+  // Guards against edge cases where the finish timeout is killed (e.g. HMR effect
+  // cleanup firing mid-roll), which would leave the spinner running forever.
+  useEffect(() => {
+    if (!animating) return;
+    const safety = setTimeout(() => {
+      isRollingRef.current = false;
+      setAnimating(false);
+      clearTimers();
+    }, ROLL_DURATION_MS + 200);
+    return () => clearTimeout(safety);
+  }, [animating, clearTimers]);
 
   const rollDice = useCallback(() => {
     if (isRollingRef.current) return;
