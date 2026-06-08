@@ -53,7 +53,11 @@ export const DICE_UI_KEYS = ["isRolling", "previewFace"] as const;
 /** Copia de `data` para el hash del programa (sin visión ni resultados ya calculados). */
 export function dataForProgramHash(data: unknown): Record<string, unknown> {
   const out = dataWithoutVisionMeta(data);
+  const isDice = (out as { variant?: string }).variant === 'dice';
   for (const key of EVAL_RESULT_DISPLAY_KEYS) {
+    // Dice value is user input (rolled result), not a computed display value —
+    // keep it in the hash so rolling triggers re-execution.
+    if (isDice && key === 'value') continue;
     delete out[key];
   }
   for (const key of DICE_UI_KEYS) {
