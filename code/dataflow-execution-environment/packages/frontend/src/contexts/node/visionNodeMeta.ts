@@ -34,6 +34,7 @@ export const EVAL_RESULT_DISPLAY_KEYS = [
   "numerator",
   "denominator",
   "result",
+  "booleanValue",
 ] as const;
 
 /** Copia de `data` sin metadatos de tracking (para hashes / comparación estable). */
@@ -46,10 +47,16 @@ export function dataWithoutVisionMeta(data: unknown): Record<string, unknown> {
   return out;
 }
 
+/** Campos de UI del dado que no deben invalidar el hash del programa. */
+export const DICE_UI_KEYS = ["isRolling", "previewFace"] as const;
+
 /** Copia de `data` para el hash del programa (sin visión ni resultados ya calculados). */
 export function dataForProgramHash(data: unknown): Record<string, unknown> {
   const out = dataWithoutVisionMeta(data);
   for (const key of EVAL_RESULT_DISPLAY_KEYS) {
+    delete out[key];
+  }
+  for (const key of DICE_UI_KEYS) {
     delete out[key];
   }
   return out;

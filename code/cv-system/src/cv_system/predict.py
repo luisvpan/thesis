@@ -1,11 +1,18 @@
 """
 Predicciones en vivo con opción de guardar para entrenamiento YOLO.
 
+Usa PyKinect2 por defecto (HARDWARE_MANAGER=pykinect2). OpenNI2: HARDWARE_MANAGER=openni2.
+
 Uso:
     predict                          # Solo muestra predicciones
-    predict --save                   # Guarda imágenes y labels
+    predict --save                   # Guarda con ESPACIO (manual) o --interval (auto)
+    predict --save --interval 0      # Solo captura manual con ESPACIO
     predict --save --count 50        # Guarda 50 y sale
     predict --save --readable        # También genera labels con nombres
+
+Controles:
+    ESPACIO  Capturar imagen y labels (con --save)
+    q        Salir
 
 Estructura de salida (con --save):
     output_dir/
@@ -19,15 +26,18 @@ Estructura de salida (con --save):
             predict_000000.jpg       # full_annotated con labels y confianza
 """
 import os
+import sys
 import time
+import traceback
 import argparse
 from pathlib import Path
 
 import cv2
+import numpy as np
 from dotenv import load_dotenv
 
 from cv_system.config import load_config
-from cv_system.hardware.manager import HardwareManager
+from cv_system.hardware import HardwareError, HardwareManager, PyKinect2HardwareManager
 from cv_system.calibration.result import CalibrationResult
 from cv_system.transform.rgb_image_transformer import RgbImageTransformer
 from cv_system.detection import CardDetector, CardDetection, E2ECardDetector, RFDETRCardDetector
@@ -76,6 +86,71 @@ def detection_to_readable_line(d: CardDetection, img_w: int, img_h: int) -> str:
     return f"{d.label} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}"
 
 
+def create_hardware_manager(hardware: str) -> HardwareManager | PyKinect2HardwareManager:
+    """Crea el gestor de hardware (pykinect2 por defecto)."""
+    manager_type = hardware.lower()
+    if manager_type == "pykinect2":
+        return PyKinect2HardwareManager()
+    if manager_type == "openni2":
+        return HardwareManager()
+    raise ValueError(
+        f"Hardware desconocido: {manager_type!r}. "
+        "Valores válidos: 'pykinect2', 'openni2'"
+    )
+
+
+def acquire_bird_view(hw, transformer, camera_config) -> np.ndarray:
+    """Captura RGB y aplica homografía en CPU (evita crashes de OpenCL/UMat)."""
+    rgb_frame = hw.get_rgb_frame()
+    rgb_np = rgb_frame.get() if isinstance(rgb_frame, cv2.UMat) else np.asarray(rgb_frame)
+    if rgb_np is None or rgb_np.size == 0:
+        raise RuntimeError("Frame RGB vacío del Kinect")
+
+    out_size = (camera_config.rgb_resolution[1], camera_config.rgb_resolution[0])
+    bird_np = cv2.warpPerspective(rgb_np, transformer.H, out_size)
+    if bird_np is None or bird_np.size == 0:
+        raise RuntimeError("La homografía produjo una imagen vacía")
+    return bird_np
+
+
+def pause_before_exit() -> None:
+    """Mantiene la consola abierta en Windows para leer el error."""
+    if sys.stdin.isatty():
+        try:
+            input("\nPresiona Enter para cerrar...")
+        except EOFError:
+            pass
+
+
+def save_prediction_sample(
+    output_dir: Path,
+    index: int,
+    bird_np,
+    full_annotated,
+    detections: list[CardDetection],
+    readable: bool,
+) -> str:
+    """Guarda imagen, labels YOLO y debug. Devuelve el nombre base del archivo."""
+    filename = f"predict_{index:06d}"
+    img_h, img_w = bird_np.shape[:2]
+
+    cv2.imwrite(str(output_dir / "images" / f"{filename}.jpg"), bird_np)
+
+    labels_path = output_dir / "labels" / f"{filename}.txt"
+    with open(labels_path, "w") as f:
+        for d in detections:
+            f.write(detection_to_yolo_line(d, img_w, img_h) + "\n")
+
+    if readable:
+        readable_path = output_dir / "labels_readable" / f"{filename}.txt"
+        with open(readable_path, "w") as f:
+            for d in detections:
+                f.write(detection_to_readable_line(d, img_w, img_h) + "\n")
+
+    cv2.imwrite(str(output_dir / "debug" / f"{filename}.jpg"), full_annotated)
+    return filename
+
+
 def main():
     load_dotenv()
 
@@ -107,7 +182,17 @@ def main():
     parser.add_argument(
         "--rfdetr", action="store_true", help="Usar RFDETRCardDetector para modelos RF-DETR"
     )
+    parser.add_argument(
+        "--hardware",
+        type=str,
+        default=os.getenv("HARDWARE_MANAGER", "pykinect2"),
+        choices=("pykinect2", "openni2"),
+        help="Backend de cámara (default: pykinect2)",
+    )
     args = parser.parse_args()
+
+    # OpenCL + UMat suele provocar access violation en Windows (AMD/Intel)
+    cv2.ocl.setUseOpenCL(False)
 
     # Crear subdirectorios si guardamos
     output_dir = Path(args.output) if args.save else None
@@ -126,9 +211,35 @@ def main():
     config = load_config(config_path)
     calibration = CalibrationResult.load(calibration_path)
 
-    # Inicializar componentes
-    hw = HardwareManager()
-    hw.initialize(config.camera)
+    hw = None
+    saved = 0
+
+    try:
+        hw = create_hardware_manager(args.hardware)
+    except ValueError as e:
+        print(f"ERROR: {e}", flush=True)
+        pause_before_exit()
+        sys.exit(1)
+
+    print(f"Hardware: {type(hw).__name__}", flush=True)
+    try:
+        hw.initialize(config.camera)
+    except HardwareError as e:
+        print(f"ERROR al inicializar Kinect: {e}", flush=True)
+        if args.hardware == "openni2":
+            print(
+                "Sugerencia: usa PyKinect2 →  uv run predict --hardware pykinect2",
+                flush=True,
+            )
+        pause_before_exit()
+        sys.exit(1)
+
+    if not Path(model_path).is_file():
+        print(f"ERROR: modelo no encontrado: {Path(model_path).resolve()}", flush=True)
+        hw.shutdown()
+        pause_before_exit()
+        sys.exit(1)
+
     transformer = RgbImageTransformer(calibration, config.camera)
     if args.rfdetr:
         DetectorClass = RFDETRCardDetector
@@ -136,11 +247,20 @@ def main():
         DetectorClass = E2ECardDetector
     else:
         DetectorClass = CardDetector
-    detector = DetectorClass(
-        rgb_image_transformer=transformer,
-        model_path=model_path,
-        conf_threshold=args.conf,
-    )
+
+    print(f"Cargando modelo: {model_path}", flush=True)
+    try:
+        detector = DetectorClass(
+            rgb_image_transformer=transformer,
+            model_path=model_path,
+            conf_threshold=args.conf,
+        )
+    except Exception as e:
+        print(f"ERROR al cargar el detector: {e}", flush=True)
+        traceback.print_exc()
+        hw.shutdown()
+        pause_before_exit()
+        sys.exit(1)
 
     try:
         # Encontrar siguiente índice disponible para no sobreescribir
@@ -149,71 +269,76 @@ def main():
         saved = 0
         last_save = 0.0
 
-        print("Ejecutando predicciones en vivo...")
-        print("Presiona 'q' para salir")
+        print("Ejecutando predicciones en vivo...", flush=True)
+        print("Presiona 'q' para salir", flush=True)
         if args.save:
-            print(f"Guardando en formato YOLO: {output_dir}")
+            print(f"Guardando en formato YOLO: {output_dir}", flush=True)
+            if args.interval > 0:
+                print(f"Captura automática cada {args.interval}s", flush=True)
+            print("Presiona ESPACIO para capturar manualmente", flush=True)
             if start_index > 0:
-                print(f"Continuando desde índice {start_index} (archivos existentes detectados)")
+                print(
+                    f"Continuando desde índice {start_index} (archivos existentes detectados)",
+                    flush=True,
+                )
+
+        cv2.namedWindow("Predictions", cv2.WINDOW_NORMAL)
 
         while True:
-            # Capturar y transformar
-            rgb_frame = hw.get_rgb_frame()
-            bird_view = transformer.camera_to_projector(rgb_frame)
+            bird_np = acquire_bird_view(hw, transformer, config.camera)
 
-            # Convertir a numpy
-            bird_np = bird_view.get() if isinstance(bird_view, cv2.UMat) else bird_view
-
-            # Detectar
-            full_annotated, detections = detector.detect(bird_view)
+            # Detectar (UMat solo para la API del detector; datos en CPU)
+            full_annotated, detections = detector.detect(cv2.UMat(bird_np))
 
             # Mostrar info de detecciones
             if detections:
                 labels = [d.label for d in detections]
                 print(f"Detectado: {', '.join(labels)}")
 
-            # Guardar si corresponde
-            if args.save and (time.time() - last_save >= args.interval):
-                filename = f"predict_{current_index:06d}"
-                img_h, img_w = bird_np.shape[:2]
+            cv2.imshow("Predictions", full_annotated)
+            key = cv2.waitKey(1) & 0xFF
 
-                # Guardar imagen raw en images/
-                cv2.imwrite(str(output_dir / "images" / f"{filename}.jpg"), bird_np)
+            if key == ord("q"):
+                break
 
-                # Guardar labels en formato YOLO
-                labels_path = output_dir / "labels" / f"{filename}.txt"
-                with open(labels_path, "w") as f:
-                    for d in detections:
-                        f.write(detection_to_yolo_line(d, img_w, img_h) + "\n")
+            manual_capture = key == ord(" ")
+            auto_capture = (
+                args.save
+                and args.interval > 0
+                and (time.time() - last_save >= args.interval)
+            )
 
-                # Guardar labels legibles si se pidió
-                if args.readable:
-                    readable_path = output_dir / "labels_readable" / f"{filename}.txt"
-                    with open(readable_path, "w") as f:
-                        for d in detections:
-                            f.write(detection_to_readable_line(d, img_w, img_h) + "\n")
-
-                # Guardar debug (full_annotated)
-                cv2.imwrite(str(output_dir / "debug" / f"{filename}.jpg"), full_annotated)
-
+            if args.save and (manual_capture or auto_capture):
+                filename = save_prediction_sample(
+                    output_dir,
+                    current_index,
+                    bird_np,
+                    full_annotated,
+                    detections,
+                    args.readable,
+                )
                 current_index += 1
                 saved += 1
                 last_save = time.time()
-                print(f"[{saved}] Guardado: {filename}")
+                trigger = "ESPACIO" if manual_capture else "intervalo"
+                print(f"[{saved}] Guardado ({trigger}): {filename}")
 
                 if args.count > 0 and saved >= args.count:
                     break
 
-            # Preview
-            cv2.namedWindow("Predictions", cv2.WINDOW_NORMAL)
-            cv2.imshow("Predictions", full_annotated)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-
     except KeyboardInterrupt:
-        print(f"\nTerminado. Imágenes guardadas: {saved}")
+        print(f"\nTerminado. Imágenes guardadas: {saved}", flush=True)
+    except Exception as e:
+        print(f"\nERROR durante la ejecución: {e}", flush=True)
+        traceback.print_exc()
+        pause_before_exit()
+        sys.exit(1)
     finally:
-        hw.shutdown()
+        if hw is not None:
+            try:
+                hw.shutdown()
+            except Exception as e:
+                print(f"Advertencia al cerrar Kinect: {e}", flush=True)
         cv2.destroyAllWindows()
 
 

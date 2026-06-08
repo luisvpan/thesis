@@ -318,6 +318,28 @@ export function mergeVisionFrameIntoNodes(
       continue;
     }
 
+    if (parsed.type === "deckDice") {
+      const prevData = prevNode?.data as { value?: number } | undefined;
+      additions.push(
+        withVisionNodeChrome(
+          {
+            id: nodeId,
+            type: "source" as const,
+            position,
+            data: {
+              variant: "dice",
+              value: prevData?.value,
+              ...meta,
+            },
+          },
+          meta,
+          nodesDraggable
+        )
+      );
+      idx++;
+      continue;
+    }
+
     if (parsed.type === "unknown") {
       additions.push(
         withVisionNodeChrome(

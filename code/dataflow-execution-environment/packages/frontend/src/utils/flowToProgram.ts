@@ -18,7 +18,7 @@ import {
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
-import { isOrderOperatorType, resolveStickColor } from "../types/card-types";
+import { isOrderOperatorType, isSingleInputOperatorType, resolveStickColor } from "../types/card-types";
 import { isPictorialColorYoloClass } from "../data/pictorialColors";
 import type { DataflowNode } from "../contexts/node/types";
 import { getOrderedArrayZoneMembers } from "./arrayZoneGeometry";
@@ -36,6 +36,9 @@ const OPERATOR_MAP: Record<string, Operation> = {
   "orden-menor-mayor": "order_asc",
   "orden-mayor-menor": "order_desc",
   comparar: "compare",
+  primero: "first",
+  ultimo: "last",
+  contar: "count",
   "filtrar-general": "filter",
   "filtrar-figuras": "filter",
   "filtrar-carros": "filter",
@@ -108,6 +111,13 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           type: "SourceStatement",
           identifier: node.id,
           value: createAbstractDataLiteral(data.value ?? 0),
+        });
+      } else if (data.variant === "dice") {
+        if (data.value === undefined) continue;
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createAbstractDataLiteral(data.value),
         });
       } else if (data.variant === "shape") {
         const shapeAttrs: Record<string, string> = {
@@ -205,7 +215,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
       const operator = data.operator ?? "adicion";
       const inputEdges = edges.filter((e) => e.target === node.id);
 
-      const sortedEdges = isOrderOperatorType(operator)
+      const sortedEdges = isSingleInputOperatorType(operator)
         ? inputEdges.filter((e) => e.targetHandle === "a" || e.targetHandle == null)
         : inputEdges.sort((a, b) => {
             if (a.targetHandle === "a") return -1;

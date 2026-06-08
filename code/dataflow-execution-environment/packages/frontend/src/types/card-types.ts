@@ -1,6 +1,6 @@
 // Tipos de cartas para el IDE de programación tangible
 
-export type CardCategory = 'operator' | 'number' | 'animal' | 'food' | 'person' | 'car' | 'shape' | 'montessori' | 'cap' | 'stick' | 'criteria';
+export type CardCategory = 'operator' | 'number' | 'animal' | 'food' | 'person' | 'car' | 'shape' | 'montessori' | 'cap' | 'stick' | 'criteria' | 'dice';
 
 // Operadores matemáticos básicos
 export type MathOperatorType = 'adicion' | 'sustraccion' | 'multiplicacion' | 'division';
@@ -31,8 +31,16 @@ export type FilterOperatorType =
 // Operadores de conjuntos
 export type SetOperatorType = 'union' | 'interseccion' | 'diferencia' | 'complemento';
 
+// Operadores de acceso y agregación (first, last, count)
+export type AccessorOperatorType = 'primero' | 'ultimo' | 'contar';
+
 // Unión de todos los operadores
-export type OperatorType = MathOperatorType | OrderOperatorType | FilterOperatorType | SetOperatorType;
+export type OperatorType =
+  | MathOperatorType
+  | OrderOperatorType
+  | FilterOperatorType
+  | SetOperatorType
+  | AccessorOperatorType;
 
 export function isMathOperatorType(op: OperatorType): op is MathOperatorType {
   return (
@@ -50,6 +58,14 @@ export function isFilterOperatorType(op: OperatorType): op is FilterOperatorType
 export function isOrderOperatorType(op: OperatorType): op is OrderOperatorType {
   // Note: comparar requires 2 inputs (a and b), so it's NOT an order operator for handle purposes
   return op === 'orden-mayor-menor' || op === 'orden-menor-mayor';
+}
+
+export function isAccessorOperatorType(op: OperatorType): op is AccessorOperatorType {
+  return op === 'primero' || op === 'ultimo' || op === 'contar';
+}
+
+export function isSingleInputOperatorType(op: OperatorType): boolean {
+  return isOrderOperatorType(op) || isAccessorOperatorType(op);
 }
 
 export type AnimalType = 'gato' | 'perro' | 'tortuga' | 'elefante' | 'jirafa';

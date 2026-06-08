@@ -4,7 +4,7 @@ export type DeckSectionId = 'numbers' | 'operators' | 'figures' | 'foods' | 'mon
 
 export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
   numbers: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'],
-  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'smallest_to_largest', 'largest_to_smallest', 'filter', 'compare', 'sink'],
+  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'smallest_to_largest', 'largest_to_smallest', 'filter', 'compare', 'first', 'last', 'count', 'sink'],
   figures: [
     'sm_circle',
     'sm_square',
@@ -23,6 +23,8 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
     'purple',
     'red',
     'orange',
+    'yellow',
+    'blue',
     'circle',
     'square',
     'triangle',
@@ -78,7 +80,7 @@ export const CPA_YOLO_SIDEBAR_SECTIONS: ReadonlyArray<{
   {
     id: 'comun',
     title: 'Común',
-    yoloClasses: ['sink', ...DECK_SECTION_ITEMS.arrayMarkers],
+    yoloClasses: ['sink', 'dice', 'first', 'last', 'count', 'compare', ...DECK_SECTION_ITEMS.arrayMarkers],
   },
 ];
 
@@ -89,12 +91,15 @@ export function deckLabel(yoloClass: string): string {
     ascending: 'Asc', descending: 'Desc',
     smallest_to_largest: '↑ Tamaño', largest_to_smallest: '↓ Tamaño',
     filter: 'Filtrar', compare: '=?',
+    first: '1°', last: 'Últ', count: '#',
+    dice: 'Dado',
     sink: 'Resultado', output: 'Resultado', result: 'Resultado',
     open: 'Abrir', close: 'Cerrar',
     // Criteria de tamaño
     small: 'Pequeño', medium: 'Mediano', large: 'Grande',
     // Criteria de color
     green: 'Verde', purple: 'Morado', red: 'Rojo', orange: 'Naranja',
+    yellow: 'Amarillo', blue: 'Azul',
     // Criteria de forma
     circle: 'Círculo', square: 'Cuadrado', triangle: 'Triángulo',
     // Figuras
@@ -120,7 +125,7 @@ export type CriteriaProperty = 'size' | 'color' | 'subtype';
 
 export type CriteriaValues = {
   size?: 'pequeño' | 'mediano' | 'grande';
-  color?: 'verde' | 'morado' | 'rojo' | 'naranja';
+  color?: 'verde' | 'morado' | 'rojo' | 'naranja' | 'amarillo' | 'azul';
   subtype?: 'circulo' | 'cuadrado' | 'triangulo';
 };
 
@@ -140,13 +145,15 @@ export type DeckSpawnAction =
   | { kind: 'montessori'; yoloClass: string; color: MontessoriColor }
   | { kind: 'cap'; yoloClass: string; color: CapColor }
   | { kind: 'stick'; yoloClass: string; color?: StickColor }
-  | { kind: 'criteria'; yoloClass: string; properties: CriteriaProperty[]; values: CriteriaValues };
+  | { kind: 'criteria'; yoloClass: string; properties: CriteriaProperty[]; values: CriteriaValues }
+  | { kind: 'dice' };
 
 export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   const x = raw.trim().toLowerCase();
   const digit: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
   if (x in digit) return { kind: 'number', value: digit[x] };
   if (x === 'sink' || x === 'output' || x === 'result') return { kind: 'resultCard' };
+  if (x === 'dice') return { kind: 'dice' };
   if (x === 'open') return { kind: 'arrayOpen' };
   if (x === 'close') return { kind: 'arrayClose' };
 
@@ -160,6 +167,9 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     descending: 'orden-mayor-menor',
     filter: 'filtrar-general',
     compare: 'comparar',
+    first: 'primero',
+    last: 'ultimo',
+    count: 'contar',
   };
   if (x in op) return { kind: 'operator', operator: op[x] };
 
@@ -186,6 +196,8 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     purple: 'morado',
     red: 'rojo',
     orange: 'naranja',
+    yellow: 'amarillo',
+    blue: 'azul',
   };
   if (x in colorCriteria) {
     return {

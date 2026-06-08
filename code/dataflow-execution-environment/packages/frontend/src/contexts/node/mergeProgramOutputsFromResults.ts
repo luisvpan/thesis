@@ -21,6 +21,7 @@ function displayDataUnchanged(
       safeJsonStringify(next.singleCpaObjectMeta) &&
     current.numerator === next.numerator &&
     current.denominator === next.denominator &&
+    current.booleanValue === next.booleanValue &&
     safeJsonStringify(current.numberArrayValues) ===
       safeJsonStringify(next.numberArrayValues)
   );
@@ -51,7 +52,9 @@ export function mergeProgramOutputsFromResults(
         // Determine result value for edge display
         let operatorResult: number | undefined = newData.value;
         if (operatorResult === undefined) {
-          if (resultValue.kind === "semantic") {
+          if (resultValue.kind === "boolean") {
+            operatorResult = resultValue.value ? 1 : 0;
+          } else if (resultValue.kind === "semantic") {
             operatorResult = resultValue.result.totalAmount;
           } else if (resultValue.kind === "numberArray") {
             // For number arrays, show count

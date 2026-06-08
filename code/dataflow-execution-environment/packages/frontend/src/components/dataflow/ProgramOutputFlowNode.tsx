@@ -61,6 +61,8 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   denominator?: string;
   /** Ordered array of abstract numbers (e.g., from order_asc/order_desc) */
   numberArrayValues?: NumberArrayDisplayItem[];
+  /** Resultado booleano (p. ej. compare). */
+  booleanValue?: boolean;
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
@@ -145,9 +147,17 @@ function buildSinkBody(
   if (executionError) {
     return {
       headerRight: (
-        <p className="text-sm font-semibold leading-snug text-red-400 whitespace-pre-wrap">
-          {executionError}
-        </p>
+        <span className="text-sm font-semibold text-red-400">Error</span>
+      ),
+    };
+  }
+
+  if (data.booleanValue !== undefined) {
+    return {
+      headerRight: (
+        <span className="text-3xl font-black uppercase tracking-wide text-white">
+          {data.booleanValue ? 'verdadero' : 'falso'}
+        </span>
       ),
     };
   }

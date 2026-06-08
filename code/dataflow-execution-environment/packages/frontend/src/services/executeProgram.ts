@@ -93,6 +93,7 @@ export type NumberArrayItem = {
 export type ResultValue =
   | { kind: "number"; value: number; numerator?: string; denominator?: string }
   | { kind: "numberArray"; values: NumberArrayItem[] }
+  | { kind: "boolean"; value: boolean }
   | {
       kind: "semantic";
       result: SemanticResult;
@@ -201,6 +202,9 @@ function isAbstractNumberElement(el: unknown): boolean {
 }
 
 function runtimeOutputToResultValue(output: RuntimeOutput): ResultValue | undefined {
+  if (output.kind === "booleano") {
+    return { kind: "boolean", value: Boolean((output as { value?: boolean }).value) };
+  }
   if (output.kind === "arreglo" && output.elements) {
     // Check if all elements are abstract numbers - preserve order, don't aggregate
     if (output.elements.length > 0 && output.elements.every(isAbstractNumberElement)) {
@@ -640,6 +644,8 @@ function resultValueFingerprint(v: ResultValue): string {
       return `num:${v.value}`;
     case "numberArray":
       return `arr:${v.values.map((item) => item.value).join(",")}`;
+    case "boolean":
+      return `bool:${v.value}`;
     case "semantic":
       return `sem:${v.result.description}`;
   }

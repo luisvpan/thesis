@@ -21,6 +21,18 @@ body {
   animation: shake 0.15s ease-in-out 2;
 }
 
+@keyframes dice-roll {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(90deg) scale(0.92); }
+  50% { transform: rotate(180deg) scale(1.05); }
+  75% { transform: rotate(270deg) scale(0.92); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.animate-dice-roll {
+  animation: dice-roll 0.35s linear infinite;
+}
+
 /* Flow handle shapes (clip-path); colors are state-driven in ClickableHandle */
 .flow-handle-triangle-open {
   clip-path: polygon(0 0, 100% 0, 0 100%);
