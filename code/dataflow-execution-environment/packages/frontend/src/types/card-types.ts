@@ -97,7 +97,7 @@ export type MontessoriColor = 'azul' | 'rojo' | 'amarillo';
 export type CapColor = 'azul' | 'blanco';
 
 // Colores de paletas (stick_cyan, stick_orange, stick_red, stick_wooden)
-export type StickColor = 'cian' | 'naranja' | 'rojo' | 'madera';
+export type StickColor = 'azul' | 'naranja' | 'rojo' | 'madera';
 
 export function resolveStickColor(color?: StickColor, yoloClass?: string): StickColor {
   if (color) return color;

@@ -113,7 +113,7 @@ export function deckLabel(yoloClass: string): string {
     // Tapas
     cap_blue: 'Tapa Azul', cap_white: 'Tapa Blanca',
     // Paletas
-    stick_cyan: 'Paleta Cian',
+    stick_cyan: 'Paleta Azul',
     stick_orange: 'Paleta Naranja',
     stick_red: 'Paleta Roja',
     stick_wooden: 'Paleta de Madera',
@@ -271,7 +271,7 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
 
   // Paletas de color (stick_cyan, stick_orange, stick_red)
   const sticks: Record<string, StickColor> = {
-    stick_cyan: 'cian',
+    stick_cyan: 'azul',
     stick_orange: 'naranja',
     stick_red: 'rojo',
   };

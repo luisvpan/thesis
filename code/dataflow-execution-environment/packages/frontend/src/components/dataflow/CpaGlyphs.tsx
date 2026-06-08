@@ -26,7 +26,7 @@ export const CAP_COLORS: Record<string, string> = {
 };
 
 export const STICK_COLORS: Record<string, string> = {
-  cian: 'bg-cyan-400 shadow-cyan-900/50',
+  azul: 'bg-blue-500 shadow-blue-900/50',
   naranja: 'bg-orange-500 shadow-orange-900/50',
   rojo: 'bg-red-500 shadow-red-900/50',
   madera: 'bg-amber-200 shadow-amber-900/40',
