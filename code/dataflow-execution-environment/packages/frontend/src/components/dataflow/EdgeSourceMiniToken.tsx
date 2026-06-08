@@ -68,10 +68,7 @@ function SourceMiniContent({
     case 'dice':
       return (
         <div className="scale-50 origin-center">
-          <DiceFace
-            value={data.isRolling ? data.previewFace : data.value}
-            spinning={!!data.isRolling}
-          />
+          <DiceFace value={data.value} />
         </div>
       );
     default:
