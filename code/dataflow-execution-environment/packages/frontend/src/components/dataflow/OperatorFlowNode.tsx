@@ -8,7 +8,6 @@ import {
   isFilterOperatorType,
   isMathOperatorType,
   isOrderOperatorType,
-  isAccessorOperatorType,
 } from '@/types/card-types';
 import type { OrderCriterio } from '@/data/yoloDeckCatalog';
 import { FlowNodeCard } from './FlowNodeCard';
@@ -50,9 +49,6 @@ function operatorSymbol(operator: OperatorType): string {
   if (operator === 'multiplicacion') return '*';
   if (operator === 'division') return '/';
   if (operator === 'comparar') return '=?';
-  if (operator === 'primero') return '1°';
-  if (operator === 'ultimo') return 'N°';
-  if (operator === 'contar') return '#';
   return operator;
 }
 
@@ -66,9 +62,6 @@ function operatorSymbol(operator: OperatorType): string {
 function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[] {
   if (isOrderOperatorType(operator)) {
     return ['group'];
-  }
-  if (isAccessorOperatorType(operator)) {
-    return ['group', 'cpa', 'rational'];
   }
   if (isFilterOperatorType(operator)) {
     if (handleId === 'b') {
@@ -141,7 +134,6 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
   const isOrderOp = isOrderOperatorType(operator);
-  const isAccessorOp = isAccessorOperatorType(operator);
   const { registerPortKind, unregisterPortKinds, nodes, edges, getPortKindInfo } = useNode();
   const { setNodes } = useReactFlow();
   const shellClass = useFlowNodeShellClass();
@@ -167,12 +159,12 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   // Register port kinds when component mounts or operator/output changes
   useEffect(() => {
     registerPortKind(id, 'a', { accepts: acceptsA });
-    if (!isOrderOp && !isAccessorOp) {
+    if (!isOrderOp) {
       registerPortKind(id, 'b', { accepts: acceptsB });
     }
     registerPortKind(id, 'out', { produces: producesOut });
     return () => unregisterPortKinds(id);
-  }, [id, operator, isOrderOp, isAccessorOp, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
+  }, [id, operator, isOrderOp, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
 
   return (
     <div className={`relative h-52 w-30 -translate-x-[15%] -translate-y-[45%] ${shellClass}`}>
@@ -196,11 +188,11 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         handleVariant="operator-in-a"
         accepts={acceptsA}
         style={{
-          top: isOrderOp || isAccessorOp ? '50%' : '25%',
+          top: isOrderOp ? '50%' : '25%',
           transform: 'translateX(-100px)',
         }}
       />
-      {!isOrderOp && !isAccessorOp ? (
+      {!isOrderOp ? (
         <ClickableHandle
           type="target"
           position={Position.Left}

@@ -1,10 +1,10 @@
 import type { CapColor, FoodType, MontessoriColor, OperatorType, ShapeColor, ShapeSize, ShapeType, StickColor } from '@/types/card-types';
 
-export type DeckSectionId = 'numbers' | 'operators' | 'figures' | 'foods' | 'montessori' | 'caps' | 'sticks' | 'arrayMarkers' | 'dice';
+export type DeckSectionId = 'numbers' | 'operators' | 'figures' | 'foods' | 'montessori' | 'caps' | 'sticks' | 'arrayMarkers';
 
 export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
   numbers: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'],
-  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'smallest_to_largest', 'largest_to_smallest', 'filter', 'compare', 'first', 'last', 'count', 'sink'],
+  operators: ['add', 'subtract', 'multiply', 'division', 'ascending', 'descending', 'smallest_to_largest', 'largest_to_smallest', 'filter', 'compare', 'sink'],
   figures: [
     'sm_circle',
     'sm_square',
@@ -23,8 +23,6 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
     'purple',
     'red',
     'orange',
-    'blue',
-    'yellow',
     'circle',
     'square',
     'triangle',
@@ -34,11 +32,10 @@ export const DECK_SECTION_ITEMS: Record<DeckSectionId, readonly string[]> = {
   caps: ['cap_blue', 'cap_white'],
   sticks: ['stick_cyan', 'stick_orange', 'stick_red', 'stick_wooden'],
   arrayMarkers: ['open', 'close'],
-  dice: ['dice'],
 };
 
 /** Operadores permitidos en concreto y pictórico (suma, resta, filtrar, ordenar). */
-const YOLO_OPERATORS_CPA_CONCRETE_PICTORIAL = ['add', 'subtract', 'filter', 'ascending', 'descending', 'compare', 'first', 'last', 'count'] as const;
+const YOLO_OPERATORS_CPA_CONCRETE_PICTORIAL = ['add', 'subtract', 'filter', 'ascending', 'descending'] as const;
 
 const YOLO_OPERATORS_ABSTRACT = [
   'add',
@@ -47,10 +44,6 @@ const YOLO_OPERATORS_ABSTRACT = [
   'division',
   'ascending',
   'descending',
-  'compare',
-  'first',
-  'last',
-  'count',
 ] as const;
 
 export type CpaSidebarSectionId = 'concreto' | 'pictorico' | 'abstracto' | 'comun';
@@ -85,7 +78,7 @@ export const CPA_YOLO_SIDEBAR_SECTIONS: ReadonlyArray<{
   {
     id: 'comun',
     title: 'Común',
-    yoloClasses: ['sink', ...DECK_SECTION_ITEMS.arrayMarkers, ...DECK_SECTION_ITEMS.dice],
+    yoloClasses: ['sink', ...DECK_SECTION_ITEMS.arrayMarkers],
   },
 ];
 
@@ -95,14 +88,13 @@ export function deckLabel(yoloClass: string): string {
     add: '+', subtract: '-', multiply: 'x', division: '÷',
     ascending: 'Asc', descending: 'Desc',
     smallest_to_largest: '↑ Tamaño', largest_to_smallest: '↓ Tamaño',
-    filter: 'Filtrar', compare: '=?', first: 'Primero', last: 'Último', count: 'Contar',
+    filter: 'Filtrar', compare: '=?',
     sink: 'Resultado', output: 'Resultado', result: 'Resultado',
     open: 'Abrir', close: 'Cerrar',
-    dice: 'Dado',
     // Criteria de tamaño
     small: 'Pequeño', medium: 'Mediano', large: 'Grande',
     // Criteria de color
-    green: 'Verde', purple: 'Morado', red: 'Rojo', orange: 'Naranja', blue: 'Azul', yellow: 'Amarillo',
+    green: 'Verde', purple: 'Morado', red: 'Rojo', orange: 'Naranja',
     // Criteria de forma
     circle: 'Círculo', square: 'Cuadrado', triangle: 'Triángulo',
     // Figuras
@@ -128,7 +120,7 @@ export type CriteriaProperty = 'size' | 'color' | 'subtype';
 
 export type CriteriaValues = {
   size?: 'pequeño' | 'mediano' | 'grande';
-  color?: 'verde' | 'morado' | 'rojo' | 'naranja' | 'azul' | 'amarillo';
+  color?: 'verde' | 'morado' | 'rojo' | 'naranja';
   subtype?: 'circulo' | 'cuadrado' | 'triangulo';
 };
 
@@ -143,7 +135,6 @@ export type DeckSpawnAction =
   | { kind: 'resultCard' }
   | { kind: 'arrayOpen' }
   | { kind: 'arrayClose' }
-  | { kind: 'dice' }
   | { kind: 'shape'; yoloClass: string; shape: ShapeType; size: ShapeSize; color: ShapeColor }
   | { kind: 'food'; yoloClass: string; food: FoodType }
   | { kind: 'montessori'; yoloClass: string; color: MontessoriColor }
@@ -158,7 +149,6 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   if (x === 'sink' || x === 'output' || x === 'result') return { kind: 'resultCard' };
   if (x === 'open') return { kind: 'arrayOpen' };
   if (x === 'close') return { kind: 'arrayClose' };
-  if (x === 'dice') return { kind: 'dice' };
 
   // Operadores básicos
   const op: Record<string, OperatorType> = {
@@ -170,9 +160,6 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     descending: 'orden-mayor-menor',
     filter: 'filtrar-general',
     compare: 'comparar',
-    first: 'primero',
-    last: 'ultimo',
-    count: 'contar',
   };
   if (x in op) return { kind: 'operator', operator: op[x] };
 
@@ -199,8 +186,6 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     purple: 'morado',
     red: 'rojo',
     orange: 'naranja',
-    blue: 'azul',
-    yellow: 'amarillo',
   };
   if (x in colorCriteria) {
     return {

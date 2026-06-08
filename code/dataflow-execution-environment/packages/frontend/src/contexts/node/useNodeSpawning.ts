@@ -217,22 +217,6 @@ export function useNodeSpawning(setNodes: SetNodes, nodesDraggable = false) {
             nodesDraggable
           ),
         ]);
-        return;
-      }
-      if (spawn.kind === "dice") {
-        const diceValue = Math.floor(Math.random() * 6) + 1;
-        setNodes((nds) => [
-          ...nds,
-          devSpawnNode(
-            {
-              id: `deck_dice_${Date.now()}`,
-              type: "source" as const,
-              position: { x: 120, y: 200 + (nds.length % 6) * 28 },
-              data: { variant: "dice", diceValue },
-            },
-            nodesDraggable
-          ),
-        ]);
       }
     },
     [addNumberNode, addOperatorNode, addResultCard, setNodes, nodesDraggable]

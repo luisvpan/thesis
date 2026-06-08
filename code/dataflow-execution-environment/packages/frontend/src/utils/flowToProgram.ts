@@ -42,9 +42,6 @@ const OPERATOR_MAP: Record<string, Operation> = {
   "filtrar-comidas": "filter",
   "filtrar-animales": "filter",
   "filtrar-personas": "filter",
-  primero: "first",
-  ultimo: "last",
-  contar: "count",
 };
 
 function resolveOperation(operator: string): Operation {
@@ -171,12 +168,6 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
             properties: data.properties,
             values: data.values ?? {},
           }),
-        });
-      } else if (data.variant === "dice") {
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createAbstractDataLiteral(data.diceValue ?? 1),
         });
       }
     }
