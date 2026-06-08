@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { FlowNodeCard } from '../FlowNodeCard';
 import { FLOW_NODE_INTERACTIVE_CLASS } from '../flowNodeChrome';
@@ -24,6 +24,9 @@ export function DiceSourceFlowNode({
   const { setNodes } = useReactFlow();
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const finishRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Local rolling state: not stored in node data so vision frames can't interfere.
+  const isRollingRef = useRef(false);
+  const [animating, setAnimating] = useState(false);
 
   const clearTimers = useCallback(() => {
     if (tickRef.current) {
@@ -36,10 +39,15 @@ export function DiceSourceFlowNode({
     }
   }, []);
 
-  useEffect(() => () => clearTimers(), [clearTimers]);
+  useEffect(() => () => {
+    clearTimers();
+    isRollingRef.current = false;
+  }, [clearTimers]);
 
   const rollDice = useCallback(() => {
-    if (data.isRolling) return;
+    if (isRollingRef.current) return;
+    isRollingRef.current = true;
+    setAnimating(true);
 
     clearTimers();
     const finalValue = randomDiceFace();
@@ -47,7 +55,7 @@ export function DiceSourceFlowNode({
     setNodes((nds) =>
       nds.map((n) =>
         n.id === nodeId
-          ? { ...n, data: { ...n.data, isRolling: true, previewFace: randomDiceFace() } }
+          ? { ...n, data: { ...n.data, previewFace: randomDiceFace() } }
           : n
       )
     );
@@ -64,6 +72,8 @@ export function DiceSourceFlowNode({
 
     finishRef.current = setTimeout(() => {
       clearTimers();
+      isRollingRef.current = false;
+      setAnimating(false);
       setNodes((nds) =>
         nds.map((n) =>
           n.id === nodeId
@@ -71,7 +81,6 @@ export function DiceSourceFlowNode({
                 ...n,
                 data: {
                   ...n.data,
-                  isRolling: false,
                   value: finalValue,
                   previewFace: finalValue,
                 },
@@ -80,15 +89,15 @@ export function DiceSourceFlowNode({
         )
       );
     }, ROLL_DURATION_MS);
-  }, [clearTimers, data.isRolling, nodeId, setNodes]);
+  }, [clearTimers, nodeId, setNodes]);
 
-  const displayFace = data.isRolling
+  const displayFace = animating
     ? data.previewFace
     : data.value ?? data.previewFace;
 
   return (
     <div className="flex flex-col items-center gap-2 translate-y-10">
-      <DiceFace value={displayFace} spinning={data.isRolling} />
+      <DiceFace value={displayFace} spinning={animating} />
       <FlowNodeCard
         family="input"
         cardCategory="dice"
@@ -102,7 +111,7 @@ export function DiceSourceFlowNode({
       <button
         type="button"
         onClick={rollDice}
-        disabled={data.isRolling}
+        disabled={animating}
         className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} mt-44 flex h-20 w-20 opacity-70 items-center justify-center rounded-lg border-2 border-amber-500 bg-amber-600 text-base font-black uppercase tracking-wide text-white shadow transition-colors hover:bg-amber-500 disabled:cursor-wait disabled:opacity-70`}
       >
         Lanzar

@@ -319,7 +319,7 @@ export function mergeVisionFrameIntoNodes(
     }
 
     if (parsed.type === "deckDice") {
-      const prevData = prevNode?.data as { value?: number; isRolling?: boolean; previewFace?: number } | undefined;
+      const prevData = prevNode?.data as { value?: number; previewFace?: number } | undefined;
       additions.push(
         withVisionNodeChrome(
           {
@@ -329,7 +329,6 @@ export function mergeVisionFrameIntoNodes(
             data: {
               variant: "dice",
               value: prevData?.value,
-              isRolling: prevData?.isRolling,
               previewFace: prevData?.previewFace,
               ...meta,
             },
