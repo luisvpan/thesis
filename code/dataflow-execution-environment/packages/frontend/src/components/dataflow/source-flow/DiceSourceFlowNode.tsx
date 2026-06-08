@@ -53,9 +53,14 @@ export function DiceSourceFlowNode({
       isRollingRef.current = false;
       setAnimating(false);
       clearTimers();
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, isRolling: false } } : n
+        )
+      );
     }, ROLL_DURATION_MS + 200);
     return () => clearTimeout(safety);
-  }, [animating, clearTimers]);
+  }, [animating, clearTimers, nodeId, setNodes]);
 
   const rollDice = useCallback(() => {
     if (isRollingRef.current) return;
@@ -68,7 +73,7 @@ export function DiceSourceFlowNode({
     setNodes((nds) =>
       nds.map((n) =>
         n.id === nodeId
-          ? { ...n, data: { ...n.data, previewFace: randomDiceFace() } }
+          ? { ...n, data: { ...n.data, isRolling: true, previewFace: randomDiceFace() } }
           : n
       )
     );
@@ -96,6 +101,7 @@ export function DiceSourceFlowNode({
                   ...n.data,
                   value: finalValue,
                   previewFace: finalValue,
+                  isRolling: false,
                 },
               }
             : n

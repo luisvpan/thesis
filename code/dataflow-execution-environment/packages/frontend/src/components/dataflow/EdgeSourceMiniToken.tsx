@@ -9,6 +9,7 @@ import type { ResultViewMode } from './dataflowResultCpa';
 import { CapGlyph, MontessoriCubeGlyph, StickGlyph } from './CpaGlyphs';
 import { MiniShapeGlyph } from './MiniShapeGlyph';
 import { foodEmoji } from '@/data/foodEmoji';
+import { DiceFace } from './source-flow/DiceFace';
 import { isPictorialColorYoloClass } from '@/data/pictorialColors';
 import { getOrderedArrayZoneMembers } from '@/utils/arrayZoneGeometry';
 import {
@@ -64,6 +65,15 @@ function SourceMiniContent({
         <MiniShapeGlyph shape={shape} size={size} color={color} generic={pictorico} />
       );
     }
+    case 'dice':
+      return (
+        <div className="scale-50 origin-center">
+          <DiceFace
+            value={data.isRolling ? data.previewFace : data.value}
+            spinning={!!data.isRolling}
+          />
+        </div>
+      );
     default:
       return null;
   }
