@@ -31,8 +31,15 @@ export type FilterOperatorType =
 // Operadores de conjuntos
 export type SetOperatorType = 'union' | 'interseccion' | 'diferencia' | 'complemento';
 
+// Operadores de acceso y agregación
+export type AccessorOperatorType = 'primero' | 'ultimo' | 'contar';
+
 // Unión de todos los operadores
-export type OperatorType = MathOperatorType | OrderOperatorType | FilterOperatorType | SetOperatorType;
+export type OperatorType = MathOperatorType | OrderOperatorType | FilterOperatorType | SetOperatorType | AccessorOperatorType;
+
+export function isAccessorOperatorType(op: OperatorType): op is AccessorOperatorType {
+  return op === 'primero' || op === 'ultimo' || op === 'contar';
+}
 
 export function isMathOperatorType(op: OperatorType): op is MathOperatorType {
   return (

@@ -6,6 +6,7 @@ import { CapSourceFlowNode } from './CapSourceFlowNode';
 import { StickSourceFlowNode } from './StickSourceFlowNode';
 import { FoodSourceFlowNode } from './FoodSourceFlowNode';
 import { CriteriaSourceFlowNode } from './CriteriaSourceFlowNode';
+import { DiceSourceFlowNode } from './DiceSourceFlowNode';
 
 export function renderSourceFlowNodeBody(data: SourceFlowNodeData, nodeId: string) {
   switch (data.variant) {
@@ -23,5 +24,7 @@ export function renderSourceFlowNodeBody(data: SourceFlowNodeData, nodeId: strin
       return <FoodSourceFlowNode data={data} />;
     case 'criteria':
       return <CriteriaSourceFlowNode data={data} />;
+    case 'dice':
+      return <DiceSourceFlowNode data={data} nodeId={nodeId} />;
   }
 }
