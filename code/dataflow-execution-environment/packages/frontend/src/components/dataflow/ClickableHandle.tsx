@@ -61,7 +61,7 @@ function highlightColorClass(state: PortHighlightState): string {
     case "compatible":
       return "!bg-green-500/50 !border-green-400/50 ring-2 ring-green-400/50";
     case "incompatible":
-      return "!bg-red-500/50 !border-red-400/50";
+      return "!bg-red-500/80 !border-red-400/80";
     case "idle":
     default:
       return "!bg-slate-600/50 !border-slate-500/50";
@@ -87,6 +87,7 @@ export function ClickableHandle({
     shakingPort,
     getPortHighlightState,
     isPortOccupied,
+    disconnectPort,
   } = useNode();
   const [isCooldown, setIsCooldown] = useState(false);
 
@@ -108,12 +109,17 @@ export function ClickableHandle({
   );
 
   const handleClick = (e: React.MouseEvent) => {
-    if (disabled || occupied) return;
+    if (disabled) return;
     if (isCooldown) return;
 
     e.stopPropagation();
     e.preventDefault();
-    handlePortClick(nodeId, id, type);
+
+    if (occupied) {
+      disconnectPort(nodeId, id, type);
+    } else {
+      handlePortClick(nodeId, id, type);
+    }
 
     setIsCooldown(true);
     setTimeout(() => setIsCooldown(false), 500);
@@ -128,12 +134,10 @@ export function ClickableHandle({
       position={position}
       id={id}
       className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} !h-20 !w-20 !border-2 ${shapeClass} ${colorClass} ${cooldownClass} ${shakeClass} ${
-        hideInArrayZone ? "!invisible !pointer-events-none" : ""
+        hideInArrayZone ? "invisible! pointer-events-none!" : ""
       } ${
-        disabled || occupied
-          ? occupied
-            ? "cursor-default"
-            : "!pointer-events-none cursor-not-allowed opacity-35"
+        disabled
+          ? "pointer-events-none! cursor-not-allowed opacity-35"
           : "cursor-pointer"
       } ${className}`}
       style={style}

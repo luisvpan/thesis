@@ -97,6 +97,11 @@ export type NodeContextState = {
     handleId: string,
     handleType: "source" | "target"
   ) => boolean;
+  disconnectPort: (
+    nodeId: string,
+    handleId: string,
+    handleType: "source" | "target"
+  ) => void;
   getPortHighlightState: (
     nodeId: string,
     handleId: string,
