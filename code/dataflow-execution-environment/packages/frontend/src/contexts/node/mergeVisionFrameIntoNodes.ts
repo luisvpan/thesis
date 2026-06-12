@@ -319,11 +319,23 @@ export function mergeVisionFrameIntoNodes(
     }
 
     if (parsed.type === "deckDice") {
-      const prevData = prevNode?.data as { value?: number } | undefined;
+      // Reuse any existing diceZone node so that a trackId change after re-placing
+      // the physical card doesn't create a duplicate area.
+      const existingZone = prevCards.find((n) => n.type === "diceZone");
+      const effectiveNodeId = existingZone ? existingZone.id : nodeId;
+
+      if (effectiveNodeId !== nodeId) {
+        frameNodeIds.delete(nodeId);
+        frameNodeIds.add(effectiveNodeId);
+      }
+
+      const prevData = (existingZone?.data ?? prevNode?.data) as
+        | { value?: number }
+        | undefined;
       additions.push(
         withVisionNodeChrome(
           {
-            id: nodeId,
+            id: effectiveNodeId,
             type: "diceZone" as const,
             position,
             data: {
@@ -388,7 +400,9 @@ function retainStaleCardNodes(
 
     const { lastSeenAt } = readVisionMeta(node.data);
     const lastSeen = lastSeenAt ?? frameTimeMs;
-    if (frameTimeMs - lastSeen > VISION_CARD_NODE_TTL_MS) continue;
+    // diceZone nodes never expire via TTL — the cleanup effect in useFlowGraphEffects
+    // is the sole authority for removing them (only when disconnected and inactive).
+    if (node.type !== "diceZone" && frameTimeMs - lastSeen > VISION_CARD_NODE_TTL_MS) continue;
 
     const staleMeta: VisionNodeMeta = {
       ...readVisionMeta(node.data),

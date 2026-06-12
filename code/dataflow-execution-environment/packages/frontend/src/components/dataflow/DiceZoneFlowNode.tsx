@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useReactFlow, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import type { VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
@@ -15,8 +15,6 @@ export type DiceZoneFlowNodeData = VisionNodeMeta & {
 
 export type DiceZoneFlowNode = Node<DiceZoneFlowNodeData, 'diceZone'>;
 
-const ROLL_DURATION_MS = 800;
-
 function randomDiceFace(): number {
   return Math.floor(Math.random() * 6) + 1;
 }
@@ -30,8 +28,6 @@ export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNo
   const { setNodes } = useReactFlow();
   const { registerPortKind, unregisterPortKinds } = useNode();
   const shellClass = useFlowNodeShellClass();
-  const [spinning, setSpinning] = useState(false);
-  const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevVisionStatusRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -39,32 +35,18 @@ export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNo
     return () => unregisterPortKinds(id);
   }, [id, registerPortKind, unregisterPortKinds]);
 
-  useEffect(
-    () => () => {
-      if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
-    },
-    []
-  );
-
-  // Roll when the physical dice card enters (or re-enters) the area
+  // Assign a new value the moment the physical dice card enters (or re-enters) the area.
   useEffect(() => {
     const prevStatus = prevVisionStatusRef.current;
     const curStatus = data.visionStatus;
     const entered = curStatus === 'active' && prevStatus !== 'active';
 
     if (entered) {
-      if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
-      const finalValue = randomDiceFace();
-      setSpinning(true);
-      rollTimerRef.current = setTimeout(() => {
-        rollTimerRef.current = null;
-        setSpinning(false);
-        setNodes((nds) =>
-          nds.map((n) =>
-            n.id === id ? { ...n, data: { ...n.data, value: finalValue } } : n
-          )
-        );
-      }, ROLL_DURATION_MS);
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === id ? { ...n, data: { ...n.data, value: randomDiceFace() } } : n
+        )
+      );
     }
 
     prevVisionStatusRef.current = curStatus;
@@ -83,7 +65,7 @@ export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNo
 
       {/* Dice card — visible when physical card is inside the area */}
       {dicePresent ? (
-        <DiceCard value={data.value} spinning={spinning} />
+        <DiceCard value={data.value} />
       ) : (
         <EmptyHint />
       )}
@@ -101,11 +83,12 @@ export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNo
   );
 }
 
-function DiceCard({ value, spinning }: { value?: number; spinning: boolean }) {
+function DiceCard({ value }: { value?: number }) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
-      <div className="scale-[1.8] origin-center">
-        <DiceFace value={value} spinning={spinning} />
+      {/* key=value remounts DiceFace on each new value, triggering the pop animation */}
+      <div key={value} className="scale-[1.8] origin-center animate-dice-pop">
+        <DiceFace value={value} />
       </div>
       <div className="rounded-xl border-2 border-amber-500/40 bg-slate-800/90 px-5 py-2 text-center shadow-xl mt-10">
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
