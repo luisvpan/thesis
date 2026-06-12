@@ -99,7 +99,20 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
   const statements: (SourceStatement | TransformStatement | SinkStatement)[] = [];
 
-  // 1. Sources: all "source" nodes (numbers, shapes, food)
+  // 1a. diceZone nodes
+  for (const node of nodes) {
+    if (node.type === "diceZone") {
+      const data = node.data as { value?: number };
+      if (data.value === undefined) continue;
+      statements.push({
+        type: "SourceStatement",
+        identifier: node.id,
+        value: createAbstractDataLiteral(data.value),
+      });
+    }
+  }
+
+  // 1b. Sources: all "source" nodes (numbers, shapes, food)
   for (const node of nodes) {
     if (node.type === "source") {
       const data = node.data as SourceFlowNodeData;
@@ -111,13 +124,6 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           type: "SourceStatement",
           identifier: node.id,
           value: createAbstractDataLiteral(data.value ?? 0),
-        });
-      } else if (data.variant === "dice") {
-        if (data.value === undefined) continue;
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createAbstractDataLiteral(data.value),
         });
       } else if (data.variant === "shape") {
         const shapeAttrs: Record<string, string> = {

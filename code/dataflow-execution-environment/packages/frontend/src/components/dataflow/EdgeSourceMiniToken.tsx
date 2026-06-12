@@ -65,12 +65,6 @@ function SourceMiniContent({
         <MiniShapeGlyph shape={shape} size={size} color={color} generic={pictorico} />
       );
     }
-    case 'dice':
-      return (
-        <div className="scale-50 origin-center">
-          <DiceFace value={data.value} />
-        </div>
-      );
     default:
       return null;
   }
@@ -179,7 +173,7 @@ export function hasEdgeSourceMiniToken(
   node: DataflowNode,
   evalResults: Map<string, import('@/services/executeProgram').ResultValue>
 ): boolean {
-  if (node.type === 'source' || node.type === 'arrayClose') return true;
+  if (node.type === 'source' || node.type === 'arrayClose' || node.type === 'diceZone') return true;
   if (node.type === 'operator' || node.type === 'programOutput') {
     const display = resolveEvalDisplayData(node, evalResults);
     return display != null && hasFlowResultDisplay(display);
@@ -194,6 +188,15 @@ type EdgeSourceMiniTokenProps = {
 
 export function EdgeSourceMiniToken({ node, viewMode }: EdgeSourceMiniTokenProps) {
   const { evalResults } = useNode();
+
+  if (node.type === 'diceZone') {
+    const data = node.data as { value?: number };
+    return (
+      <div className="scale-50 origin-center">
+        <DiceFace value={data.value} />
+      </div>
+    );
+  }
 
   if (node.type === 'source') {
     const data = node.data as SourceFlowNodeData;

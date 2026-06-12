@@ -35,14 +35,6 @@ export type SourceFlowNodeData = VisionSynced &
     | { variant: 'cap'; yoloClass: string; color: CapColor }
     | { variant: 'stick'; yoloClass: string; color?: StickColor }
     | { variant: 'criteria'; yoloClass: string; properties: CriteriaProperty[]; values: CriteriaValues }
-    | {
-        variant: 'dice';
-        /** Valor obtenido tras lanzar (1–6). */
-        value?: number;
-        /** Cara mostrada durante la animación. */
-        previewFace?: number;
-        isRolling?: boolean;
-      }
   );
 
 export type SourceFlowNode = Node<SourceFlowNodeData, 'source'>;
@@ -52,7 +44,7 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   const { registerPortKind, unregisterPortKinds } = useNode();
 
   const produces: HandleKind =
-    d.variant === 'number' || d.variant === 'dice'
+    d.variant === 'number'
       ? 'rational'
       : d.variant === 'criteria'
         ? 'keyword'
@@ -60,9 +52,7 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   const wrapperClass = SOURCE_NODE_WRAPPER_CLASS[d.variant];
   const shellClass = useFlowNodeShellClass();
 
-  const showOutHandle =
-    (d.variant !== 'number' || isNumberMergeTail(id, d)) &&
-    (d.variant !== 'dice' || d.value !== undefined);
+  const showOutHandle = d.variant !== 'number' || isNumberMergeTail(id, d);
 
   useEffect(() => {
     if (!showOutHandle) {

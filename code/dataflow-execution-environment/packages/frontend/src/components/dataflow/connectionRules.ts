@@ -94,7 +94,7 @@ export function canConnectStructurally(
   }
 
   // (a) Entrada → solo operador (a|b), excepto ordenar (solo grupos)
-  if (srcType === "source") {
+  if (srcType === "source" || srcType === "diceZone") {
     if (srcHandle !== "out") return { ok: false, reason: "source-handle" };
     if (tgtType === "operator" && isOrderOperatorTarget(ctx.nodes, target.nodeId, tgtHandle)) {
       return { ok: false, reason: "order-requires-group" };

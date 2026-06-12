@@ -319,17 +319,16 @@ export function mergeVisionFrameIntoNodes(
     }
 
     if (parsed.type === "deckDice") {
-      const prevData = prevNode?.data as { value?: number; previewFace?: number } | undefined;
+      const prevData = prevNode?.data as { value?: number } | undefined;
       additions.push(
         withVisionNodeChrome(
           {
             id: nodeId,
-            type: "source" as const,
+            type: "diceZone" as const,
             position,
             data: {
-              variant: "dice",
+              nodekind: "diceZone" as const,
               value: prevData?.value,
-              previewFace: prevData?.previewFace,
               ...meta,
             },
           },

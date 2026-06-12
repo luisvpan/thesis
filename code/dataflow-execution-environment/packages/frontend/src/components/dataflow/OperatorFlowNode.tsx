@@ -139,7 +139,7 @@ function useDivisionHasCpaInput(
     if (!aSource) return false;
     if (aSource.type === 'source') {
       const d = aSource.data as SourceFlowNodeData;
-      return d.variant !== 'number' && d.variant !== 'dice';
+      return d.variant !== 'number';
     }
     return aSource.type === 'operator' || aSource.type === 'arrayClose';
   }, [nodeId, operator, nodes, edges]);

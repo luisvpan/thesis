@@ -3,6 +3,8 @@ export { OperatorFlowNode } from './OperatorFlowNode';
 export { ProgramOutputFlowNode } from './ProgramOutputFlowNode';
 export { ArrayOpenNode } from './ArrayOpenNode';
 export { ArrayCloseNode } from './ArrayCloseNode';
+export { DiceZoneFlowNodeComponent } from './DiceZoneFlowNode';
+export type { DiceZoneFlowNodeData } from './DiceZoneFlowNode';
 export { DataflowEdge } from './DataflowEdge';
 export { ArrayZoneEdge } from './ArrayZoneEdge';
 export type { ResultViewMode } from './dataflowResultCpa';

@@ -20,8 +20,6 @@ export function sourceTitle(data: SourceFlowNodeData): string {
       if (data.properties.includes('color')) return 'Color';
       if (data.properties.includes('subtype')) return 'Forma';
       return 'Criterio';
-    case 'dice':
-      return 'Dado';
   }
 }
 
@@ -44,7 +42,5 @@ export function sourceMain(data: SourceFlowNodeData): string {
       if (data.values.color) return data.values.color;
       if (data.values.subtype) return data.values.subtype;
       return data.yoloClass;
-    case 'dice':
-      return data.value !== undefined ? String(data.value) : '—';
   }
 }
