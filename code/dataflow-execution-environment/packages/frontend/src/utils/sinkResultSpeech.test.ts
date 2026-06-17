@@ -5,8 +5,8 @@ import type { ProgramOutputFlowNodeData } from '@/components/dataflow/ProgramOut
 const base: ProgramOutputFlowNodeData = {};
 
 describe('buildSinkResultSpeechText', () => {
-  test('prioriza error de ejecución', () => {
-    expect(buildSinkResultSpeechText(base, 'falló', 'abstracto')).toBe('falló');
+  test('no lee el texto del error de ejecución', () => {
+    expect(buildSinkResultSpeechText(base, 'falló', 'abstracto')).toBeNull();
   });
 
   test('convierte dígitos en descripción semántica', () => {

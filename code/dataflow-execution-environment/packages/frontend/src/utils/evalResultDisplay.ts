@@ -12,11 +12,20 @@ export type FlowResultDisplayData = Pick<
   | "numerator"
   | "denominator"
   | "numberArrayValues"
+  | "booleanValue"
 >;
 
 export function resultValueToDisplayData(
   resultValue: ResultValue
 ): FlowResultDisplayData {
+  if (resultValue.kind === "boolean") {
+    return {
+      value: undefined,
+      description: resultValue.value ? "verdadero" : "falso",
+      booleanValue: resultValue.value,
+      visualStrip: undefined,
+    };
+  }
   if (resultValue.kind === "number") {
     return {
       value: resultValue.value,
@@ -50,6 +59,7 @@ export function resultValueToDisplayData(
 export function hasFlowResultDisplay(data: FlowResultDisplayData): boolean {
   return (
     data.value !== undefined ||
+    data.booleanValue !== undefined ||
     Boolean(data.description) ||
     (data.visualStrip != null && data.visualStrip.length > 0) ||
     (data.numberArrayValues != null && data.numberArrayValues.length > 0)

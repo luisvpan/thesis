@@ -28,6 +28,7 @@ export type ParsedVisionCard =
   | { type: 'deckCap'; yoloClass: string; color: CapColor }
   | { type: 'deckStick'; yoloClass: string; color?: StickColor }
   | { type: 'deckCriteria'; yoloClass: string; properties: CriteriaProperty[]; values: CriteriaValues }
+  | { type: 'deckDice' }
   | { type: 'unknown'; label: string };
 
 /**
@@ -121,6 +122,9 @@ export function parseVisionLabel(label: string): ParsedVisionCard {
     }
     if (spawn.kind === 'stick') {
       return { type: 'deckStick', yoloClass: spawn.yoloClass, color: spawn.color };
+    }
+    if (spawn.kind === 'dice') {
+      return { type: 'deckDice' };
     }
   }
 

@@ -136,6 +136,20 @@ export function NodeProvider({
     [edges]
   );
 
+  const disconnectPort = useCallback(
+    (nodeId: string, handleId: string, handleType: "source" | "target") => {
+      setEdges((eds) =>
+        eds.filter((e) => {
+          if (handleType === "source") {
+            return !(e.source === nodeId && e.sourceHandle === handleId);
+          }
+          return !(e.target === nodeId && e.targetHandle === handleId);
+        })
+      );
+    },
+    [setEdges]
+  );
+
   const getPortHighlightState = useCallback(
     (nodeId: string, handleId: string, handleType: "source" | "target") =>
       computePortHighlightState(
@@ -214,6 +228,7 @@ export function NodeProvider({
       getPortKindInfo,
       shakingPort,
       isPortOccupied,
+      disconnectPort,
       getPortHighlightState,
     }),
     [
@@ -246,6 +261,7 @@ export function NodeProvider({
       getPortKindInfo,
       shakingPort,
       isPortOccupied,
+      disconnectPort,
       getPortHighlightState,
     ]
   );

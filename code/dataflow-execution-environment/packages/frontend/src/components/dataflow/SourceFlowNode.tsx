@@ -43,12 +43,16 @@ export function SourceFlowNode({ id, data }: NodeProps<SourceFlowNode>) {
   const d = (data ?? { variant: 'number', value: 0 }) as SourceFlowNodeData;
   const { registerPortKind, unregisterPortKinds } = useNode();
 
-  const produces: HandleKind = d.variant === 'number' ? 'rational' : d.variant === 'criteria' ? 'keyword' : 'cpa';
+  const produces: HandleKind =
+    d.variant === 'number'
+      ? 'rational'
+      : d.variant === 'criteria'
+        ? 'keyword'
+        : 'cpa';
   const wrapperClass = SOURCE_NODE_WRAPPER_CLASS[d.variant];
   const shellClass = useFlowNodeShellClass();
 
-  const showOutHandle =
-    d.variant !== 'number' || isNumberMergeTail(id, d);
+  const showOutHandle = d.variant !== 'number' || isNumberMergeTail(id, d);
 
   useEffect(() => {
     if (!showOutHandle) {

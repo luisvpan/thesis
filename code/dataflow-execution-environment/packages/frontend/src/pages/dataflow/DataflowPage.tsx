@@ -13,6 +13,7 @@ import {
   ProgramOutputFlowNode,
   ArrayOpenNode,
   ArrayCloseNode,
+  DiceZoneFlowNodeComponent,
   DataflowEdge,
   ArrayZoneEdge,
   type ResultViewMode,
@@ -32,6 +33,7 @@ const nodeTypes: NodeTypes = {
   programOutput: ProgramOutputFlowNode,
   arrayOpen: ArrayOpenNode,
   arrayClose: ArrayCloseNode,
+  diceZone: DiceZoneFlowNodeComponent,
 };
 
 const edgeTypes: EdgeTypes = {

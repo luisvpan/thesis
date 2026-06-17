@@ -88,6 +88,22 @@ export function useFlowGraphEffects({
     });
   }, [nodes, setEdges]);
 
+  // Remove diceZone nodes that are disconnected AND have no active dice card
+  useEffect(() => {
+    setNodes((nds) => {
+      const toRemove = nds.filter((n) => {
+        if (n.type !== "diceZone") return false;
+        const hasEdge = edges.some((e) => e.source === n.id);
+        if (hasEdge) return false;
+        const status = (n.data as { visionStatus?: string }).visionStatus;
+        return status !== "active";
+      });
+      if (toRemove.length === 0) return nds;
+      const removeIds = new Set(toRemove.map((n) => n.id));
+      return nds.filter((n) => !removeIds.has(n.id));
+    });
+  }, [nodes, edges, setNodes]);
+
   useEffect(() => {
     const evalNodes = nodes.filter(
       (n) => n.type === "source" || n.type === "operator"

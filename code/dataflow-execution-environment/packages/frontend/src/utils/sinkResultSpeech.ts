@@ -34,7 +34,11 @@ export function buildSinkResultSpeechText(
   _viewMode: ResultViewMode
 ): string | null {
   if (executionError?.trim()) {
-    return executionError.trim();
+    return null;
+  }
+
+  if (data.booleanValue !== undefined) {
+    return data.booleanValue ? 'verdadero' : 'falso';
   }
 
   // Ordered array of abstract numbers

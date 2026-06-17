@@ -7,7 +7,7 @@ import {
   type DivisionMode,
   isFilterOperatorType,
   isMathOperatorType,
-  isOrderOperatorType,
+  isSingleInputOperatorType,
 } from '@/types/card-types';
 import type { OrderCriterio } from '@/data/yoloDeckCatalog';
 import { FlowNodeCard } from './FlowNodeCard';
@@ -31,6 +31,7 @@ export type OperatorFlowNodeData = VisionNodeMeta &
     | 'singleCpaObjectMeta'
     | 'numerator'
     | 'denominator'
+    | 'booleanValue'
   > & {
     operator: OperatorType;
     /** Resumen numérico en la carta del operador (sincronizado con `value`). */
@@ -49,6 +50,9 @@ function operatorSymbol(operator: OperatorType): string {
   if (operator === 'multiplicacion') return '*';
   if (operator === 'division') return '/';
   if (operator === 'comparar') return '=?';
+  if (operator === 'primero') return '1°';
+  if (operator === 'ultimo') return 'Últ';
+  if (operator === 'contar') return '#';
   return operator;
 }
 
@@ -60,8 +64,8 @@ function operatorSymbol(operator: OperatorType): string {
  * - Other operators: CPA and rational only
  */
 function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[] {
-  if (isOrderOperatorType(operator)) {
-    return ['group'];
+  if (isSingleInputOperatorType(operator)) {
+    return ['group', 'cpa'];
   }
   if (isFilterOperatorType(operator)) {
     if (handleId === 'b') {
@@ -70,6 +74,9 @@ function getHandleAccepts(operator: OperatorType, handleId: string): HandleKind[
     return ['group', 'cpa'];
   }
   if (isMathOperatorType(operator)) {
+    return ['group', 'cpa', 'rational'];
+  }
+  if (operator === 'comparar') {
     return ['group', 'cpa', 'rational'];
   }
   return ['cpa', 'rational'];
@@ -86,9 +93,17 @@ function useOutputKind(
   getPortKindInfo: (nodeId: string, handleId: string) => PortKindInfo | undefined
 ): HandleKind {
   return useMemo(() => {
-    if (isOrderOperatorType(operator)) {
+    if (isSingleInputOperatorType(operator)) {
+      if (operator === 'contar') return 'rational';
+      const inputEdges = edges.filter((e) => e.target === nodeId);
+      for (const edge of inputEdges) {
+        const sourceInfo = getPortKindInfo(edge.source, edge.sourceHandle ?? 'out');
+        if (sourceInfo?.produces === 'group') return 'group';
+        if (sourceInfo?.produces === 'cpa') return 'cpa';
+      }
       return 'group';
     }
+    if (operator === 'comparar') return 'rational';
     const inputEdges = edges.filter((e) => e.target === nodeId);
     for (const edge of inputEdges) {
       if (isFilterOperatorType(operator) && edge.targetHandle === 'b') {
@@ -133,7 +148,7 @@ function useDivisionHasCpaInput(
 export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
-  const isOrderOp = isOrderOperatorType(operator);
+  const isSingleInputOp = isSingleInputOperatorType(operator);
   const { registerPortKind, unregisterPortKinds, nodes, edges, getPortKindInfo } = useNode();
   const { setNodes } = useReactFlow();
   const shellClass = useFlowNodeShellClass();
@@ -159,12 +174,12 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   // Register port kinds when component mounts or operator/output changes
   useEffect(() => {
     registerPortKind(id, 'a', { accepts: acceptsA });
-    if (!isOrderOp) {
+    if (!isSingleInputOp) {
       registerPortKind(id, 'b', { accepts: acceptsB });
     }
     registerPortKind(id, 'out', { produces: producesOut });
     return () => unregisterPortKinds(id);
-  }, [id, operator, isOrderOp, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
+  }, [id, operator, isSingleInputOp, acceptsA, acceptsB, producesOut, registerPortKind, unregisterPortKinds]);
 
   return (
     <div className={`relative h-52 w-30 -translate-x-[15%] -translate-y-[45%] ${shellClass}`}>
@@ -188,11 +203,11 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         handleVariant="operator-in-a"
         accepts={acceptsA}
         style={{
-          top: isOrderOp ? '50%' : '25%',
+          top: isSingleInputOp ? '50%' : '25%',
           transform: 'translateX(-100px)',
         }}
       />
-      {!isOrderOp ? (
+      {!isSingleInputOp ? (
         <ClickableHandle
           type="target"
           position={Position.Left}
@@ -207,7 +222,15 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         family="transformation"
         title={operator}
         content={<span className="text-xs font-black text-slate-100">{operatorSymbol(operator)}</span>}
-        subtitle={d.result !== undefined ? `resultado: ${d.result}` : 'esperando entradas'}
+        subtitle={
+          d.booleanValue !== undefined
+            ? d.booleanValue
+              ? 'verdadero'
+              : 'falso'
+            : d.result !== undefined
+              ? `resultado: ${d.result}`
+              : 'esperando entradas'
+        }
       />
       <ClickableHandle
         type="source"

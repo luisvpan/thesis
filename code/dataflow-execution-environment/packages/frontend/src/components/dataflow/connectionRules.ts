@@ -1,6 +1,6 @@
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode, PortIdentifier } from "@/contexts/node/types";
-import { isOrderOperatorType, type OperatorType } from "@/types/card-types";
+import { isOrderOperatorType, isSingleInputOperatorType, type OperatorType } from "@/types/card-types";
 import { acceptsConnection } from "./handle-kinds";
 import type { PortKindInfo } from "@/contexts/node/types";
 import type { OperatorFlowNodeData } from "./OperatorFlowNode";
@@ -54,7 +54,7 @@ function isOperatorInputHandle(
   handleId: string
 ): boolean {
   const op = operatorType(nodes, operatorNodeId);
-  if (op && isOrderOperatorType(op)) {
+  if (op && isSingleInputOperatorType(op)) {
     return handleId === "a";
   }
   return handleId === "a" || handleId === "b";
@@ -94,7 +94,7 @@ export function canConnectStructurally(
   }
 
   // (a) Entrada → solo operador (a|b), excepto ordenar (solo grupos)
-  if (srcType === "source") {
+  if (srcType === "source" || srcType === "diceZone") {
     if (srcHandle !== "out") return { ok: false, reason: "source-handle" };
     if (tgtType === "operator" && isOrderOperatorTarget(ctx.nodes, target.nodeId, tgtHandle)) {
       return { ok: false, reason: "order-requires-group" };

@@ -7,6 +7,7 @@ import type {
   ArrayOpenNodeData,
   ArrayCloseNodeData,
 } from "../../components/dataflow";
+import type { DiceZoneFlowNodeData } from "../../components/dataflow/DiceZoneFlowNode";
 import type { OperatorType } from "../../types/card-types";
 import type { HandleKind } from "../../components/dataflow/handle-kinds";
 import type { PortHighlightState } from "../../components/dataflow/connectionRules";
@@ -17,7 +18,8 @@ export type DataflowNode =
   | Node<OperatorFlowNodeData, "operator">
   | Node<ProgramOutputFlowNodeData, "programOutput">
   | Node<ArrayOpenNodeData, "arrayOpen">
-  | Node<ArrayCloseNodeData, "arrayClose">;
+  | Node<ArrayCloseNodeData, "arrayClose">
+  | Node<DiceZoneFlowNodeData, "diceZone">;
 
 export type PortIdentifier = {
   nodeId: string;
@@ -97,6 +99,11 @@ export type NodeContextState = {
     handleId: string,
     handleType: "source" | "target"
   ) => boolean;
+  disconnectPort: (
+    nodeId: string,
+    handleId: string,
+    handleType: "source" | "target"
+  ) => void;
   getPortHighlightState: (
     nodeId: string,
     handleId: string,

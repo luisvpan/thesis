@@ -6,6 +6,8 @@ export const PICTORIAL_COLOR_YOLO_CLASSES = [
   'purple',
   'red',
   'orange',
+  'yellow',
+  'blue',
 ] as const;
 
 export type PictorialColorYoloClass = (typeof PICTORIAL_COLOR_YOLO_CLASSES)[number];
@@ -15,6 +17,8 @@ export const YOLO_CLASS_TO_SHAPE_COLOR: Record<PictorialColorYoloClass, ShapeCol
   purple: 'morado',
   red: 'rojo',
   orange: 'naranja',
+  yellow: 'amarillo',
+  blue: 'azul',
 };
 
 export function isPictorialColorYoloClass(yoloClass: string): yoloClass is PictorialColorYoloClass {

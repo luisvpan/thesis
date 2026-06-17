@@ -9,6 +9,7 @@ import type { ResultViewMode } from './dataflowResultCpa';
 import { CapGlyph, MontessoriCubeGlyph, StickGlyph } from './CpaGlyphs';
 import { MiniShapeGlyph } from './MiniShapeGlyph';
 import { foodEmoji } from '@/data/foodEmoji';
+import { DiceFace } from './source-flow/DiceFace';
 import { isPictorialColorYoloClass } from '@/data/pictorialColors';
 import { getOrderedArrayZoneMembers } from '@/utils/arrayZoneGeometry';
 import {
@@ -172,7 +173,7 @@ export function hasEdgeSourceMiniToken(
   node: DataflowNode,
   evalResults: Map<string, import('@/services/executeProgram').ResultValue>
 ): boolean {
-  if (node.type === 'source' || node.type === 'arrayClose') return true;
+  if (node.type === 'source' || node.type === 'arrayClose' || node.type === 'diceZone') return true;
   if (node.type === 'operator' || node.type === 'programOutput') {
     const display = resolveEvalDisplayData(node, evalResults);
     return display != null && hasFlowResultDisplay(display);
@@ -187,6 +188,15 @@ type EdgeSourceMiniTokenProps = {
 
 export function EdgeSourceMiniToken({ node, viewMode }: EdgeSourceMiniTokenProps) {
   const { evalResults } = useNode();
+
+  if (node.type === 'diceZone') {
+    const data = node.data as { value?: number };
+    return (
+      <div className="scale-50 origin-center">
+        <DiceFace value={data.value} />
+      </div>
+    );
+  }
 
   if (node.type === 'source') {
     const data = node.data as SourceFlowNodeData;

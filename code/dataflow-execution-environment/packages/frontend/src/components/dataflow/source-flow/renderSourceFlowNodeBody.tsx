@@ -6,7 +6,6 @@ import { CapSourceFlowNode } from './CapSourceFlowNode';
 import { StickSourceFlowNode } from './StickSourceFlowNode';
 import { FoodSourceFlowNode } from './FoodSourceFlowNode';
 import { CriteriaSourceFlowNode } from './CriteriaSourceFlowNode';
-
 export function renderSourceFlowNodeBody(data: SourceFlowNodeData, nodeId: string) {
   switch (data.variant) {
     case 'number':
