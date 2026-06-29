@@ -555,7 +555,7 @@ La entrevista semiestructurada, descrita por #cite(<arias2012>, form: "prose") c
 
 == Metodología de Desarrollo Utilizada
 Al analizar las características del trabajo de investigación, se consideró el enfoque a adoptar. Dado que no se previó un contacto constante con el cliente y que los requisitos aún no estaban bien definidos, se decidió optar por un enfoque basado en prototipos, con el fin de definir los requerimientos finales a través de los prototipos realizados y sus validaciones.
-Según #cite(<pressman2010>, form: "prose"), el enfoque basado en prototipos está enmarcado dentro de los modelos de proceso evolutivos, que "son iterativos. Se caracterizan por la manera en la que permiten desarrollar versiones cada vez más completas del software.". Particularmente para el enfoque basado en prototipos, el proceso se divide en 4 fases, como se observa en la #lower[@prototyping-figure]: comunicación, plan rápido - modelado - diseño rápido, construcción del prototipo y despliegue - entrega y retroalimentación. Se definen a continuación:
+Según #cite(<pressman2010>, form: "prose"), el enfoque basado en prototipos está enmarcado dentro de los modelos de proceso evolutivos, que "son iterativos. Se caracterizan por la manera en la que permiten desarrollar versiones cada vez más completas del software.". Particularmente para el enfoque basado en prototipos, el proceso se divide en 4 fases, como se observa en la @prototyping-figure: comunicación, plan rápido - modelado - diseño rápido, construcción del prototipo y despliegue - entrega y retroalimentación. Se definen a continuación:
 
 #figure(
   image("images/prototyping-paradigm.png"),
@@ -615,22 +615,33 @@ Del análisis precedente se desprende que el ambiente a desarrollar debe present
 
 === Requerimientos
 
-A partir de las características definidas, y con el propósito de guiar el diseño, implementación y validación del ambiente, se definieron los requerimientos funcionales y no funcionales que debe satisfacer el sistema.
+A partir de las características definidas, y con el propósito de guiar el diseño, implementación y validación del ambiente, se definieron los requerimientos funcionales y no funcionales que debe satisfacer el sistema. Estos requerimientos, junto con la característica del ambiente de la que se desprende cada uno, se resumen en la @requirements-table.
 
-==== Requerimientos funcionales
-
-+ El sistema debe permitir a los niños construir programas utilizando elementos tangibles y conexiones digitales que representen datos, flujos y operaciones.
-+ El sistema debe capturar la disposición de los elementos tangibles y conexiones digitales, y procesar la información para reconocer los elementos y sus conexiones.
-+ El sistema debe interpretar los programas representados por los elementos tangibles y conexiones digitales, traduciéndolos a una representación ejecutable.
-+ El sistema debe ejecutar los programas y mostrar la salida en una interfaz gráfica proyectada sobre una superficie plana.
-+ El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas.
-
-==== Requerimientos no funcionales
-
-+ El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado.
-+ El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años.
-+ El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales.
-+ La retroalimentación debe ser presentada de forma visual y auditiva.
+#figure(
+  [
+    #set text(size: 9pt)
+    #table(
+      columns: (auto, 1fr, 1.7fr),
+      align: (center + horizon, left + horizon, left + horizon),
+      inset: 5pt,
+      table.header([*Código*], [*Característica asociada*], [*Requerimiento*]),
+      table.cell(colspan: 3)[*Requerimientos funcionales*],
+      [RF-01], [Interfaz tangible (tabletop TUI); diseño para colaboración], [El sistema debe permitir a los niños construir programas utilizando elementos tangibles y conexiones digitales que representen datos, flujos y operaciones],
+      [RF-02], [Interfaz tangible (tabletop TUI)], [El sistema debe capturar la disposición de los elementos tangibles y conexiones digitales, y procesar la información para reconocer los elementos y sus conexiones],
+      [RF-03], [Lenguaje basado en dataflow], [El sistema debe interpretar los programas representados por los elementos tangibles y conexiones digitales, traduciéndolos a una representación ejecutable],
+      [RF-04], [Retroalimentación visual aumentada; reducción del tiempo en pantalla], [El sistema debe ejecutar los programas y mostrar la salida en una interfaz gráfica proyectada sobre una superficie plana],
+      [RF-05], [Retroalimentación visual aumentada; compatibilidad con el desarrollo cognitivo (6 a 9 años)], [El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas],
+      table.cell(colspan: 3)[*Requerimientos no funcionales*],
+      [RNF-01], [Compatibilidad con el desarrollo cognitivo (6 a 9 años)], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado],
+      [RNF-02], [Compatibilidad con el desarrollo cognitivo (6 a 9 años)], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años],
+      [RNF-03], [Retroalimentación visual aumentada], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales],
+      [RNF-04], [Retroalimentación visual aumentada], [La retroalimentación debe ser presentada de forma visual y auditiva],
+    )
+  ],
+  caption: [
+    Requerimientos funcionales y no funcionales del ambiente, derivados de las características identificadas en el análisis.
+  ],
+) <requirements-table>
 
 == Diseñar un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Función del Análisis Realizado
 
@@ -674,7 +685,7 @@ En lo auditivo, se complementa con señales sonoras acordes a reconocimiento cor
 
 ==== Ejecución y salida
 
-La salida del programa se muestra en la interfaz proyectada sobre la superficie plana, usando las representaciones digitales del lenguaje. La composición de piezas físicas, conexiones digitales trazadas y elementos en pantalla constituye la representación visible de un programa que aborda el problema de la actividad en curso. El diseño de la interfaz gráfica que materializa esta proyección se muestra en la #lower[@fifth-prototype-design-figure].
+La salida del programa se muestra en la interfaz proyectada sobre la superficie plana, usando las representaciones digitales del lenguaje. La composición de piezas físicas, conexiones digitales trazadas y elementos en pantalla constituye la representación visible de un programa que aborda el problema de la actividad en curso. El diseño de la interfaz gráfica que materializa esta proyección se muestra en la @fifth-prototype-design-figure.
 
 #figure(
   image("images/fifth-prototype-design.png"),
@@ -687,7 +698,7 @@ La salida del programa se muestra en la interfaz proyectada sobre la superficie 
 
 El lenguaje ERAE es un lenguaje de flujo de datos (dataflow), donde los programas se representan como grafos de nodos que producen valores, los transforman y declaran salidas. En el ambiente, ese grafo tiene una parte tangible (piezas, disposición, regiones) y una parte digital (conexiones inferidas del trazado, proyección, estado de reconocimiento, mensajes y retroalimentación sonora), en línea con los requerimientos de datos, flujos y operaciones combinados en una sola construcción compartida entre el niño y el sistema.
 
-No se persigue la Turing-completitud como objetivo pedagógico; se busca un lenguaje suficientemente expresivo para un subconjunto de problemas acordes al currículo citado, y simple de interpretar por niños de 6 a 9 años. La evaluación del programa puede describirse de forma abstracta como bajo demanda, en la línea de lenguajes de flujo de datos clásicos como Lucid (los nodos se evalúan cuando sus resultados son requeridos por otros nodos o por la salida). El diseño visual del lenguaje, con la disposición de datos, operaciones y flujos sobre la superficie, se muestra en la #lower[@fourth-prototype-visual-design-figure].
+No se persigue la Turing-completitud como objetivo pedagógico; se busca un lenguaje suficientemente expresivo para un subconjunto de problemas acordes al currículo citado, y simple de interpretar por niños de 6 a 9 años. La evaluación del programa puede describirse de forma abstracta como bajo demanda, en la línea de lenguajes de flujo de datos clásicos como Lucid (los nodos se evalúan cuando sus resultados son requeridos por otros nodos o por la salida). El diseño visual del lenguaje, con la disposición de datos, operaciones y flujos sobre la superficie, se muestra en la @fourth-prototype-visual-design-figure.
 
 #figure(
   image("images/fourth-prototype-visual-design.jpeg"),
@@ -720,7 +731,7 @@ La unidad léxica del lenguaje visual es la carta: una pieza física tipo naipe 
 - *Cartas abstractas:* representan los dígitos del 0 al 9 y habilitan el repertorio aritmético completo, incluyendo la multiplicación y la división, reservadas a este nivel.
 - *Cartas estructurales, comunes a los tres niveles:* la carta de resultado, que designa la salida del programa, y las cartas de apertura y cierre de colección, que agrupan varias cartas de datos en un solo conjunto.
 
-Cada operación está representada por su propia carta (suma, resta, multiplicación, división, ordenación ascendente y descendente, filtrado y comparación), de modo que el repertorio disponible se controla entregando a los niños el subconjunto del mazo acorde a la actividad y a su nivel. El diseño tipo carta de las piezas se muestra en la #lower[@sixth-prototype-pieces-design-figure].
+Cada operación está representada por su propia carta (suma, resta, multiplicación, división, ordenación ascendente y descendente, filtrado y comparación), de modo que el repertorio disponible se controla entregando a los niños el subconjunto del mazo acorde a la actividad y a su nivel. El diseño tipo carta de las piezas se muestra en la @sixth-prototype-pieces-design-figure.
 
 #figure(
   image("images/sixth-prototype-pieces-design.jpeg"),
@@ -831,7 +842,7 @@ Partiendo de la tesis de Barrios, se buscó una aproximación más programática
 
 Dado este cambio, se procedió con la definición de los primeros datos y operaciones a usar, para lo que se eligieron bloques con formas geométricas simples (cuadrados, círculos y triángulos) y colores básicos (morado, amarillo, naranja, verde, rojo y azul) que, para simplificar el desarrollo, se decidió que algunos representarían operaciones en vez de un dato. Los datos que se soportaban provenían directamente de las formas (cuadrados, círculos y triángulos de distintos colores), y las operaciones eran conjunción, intersección, diferencia y diferencia simétrica. El diseño consistió de zonas que reconocían las formas colocadas como datos, otras que reconocían las formas como operaciones, y zonas de salida que mostraban el resultado de la ejecución. Todas estas zonas estaban colocadas de forma fija, restringiendo la creación de nuevas zonas o la asociación entre estas para el usuario final, lo que limitaba la flexibilidad del entorno pero facilitaba el desarrollo del prototipo.
 
-Para la construcción, se decidió continuar el uso de Python para todo, haciendo uso de OpenCV y OpenNI2 para la visión por computador, y también OpenCV para la interfaz gráfica. Se usó un sensor Kinect para la captura de imágenes, y se implementó un sistema de reconocimiento de formas basado en la detección de contornos, que permitía identificar las formas geométricas y sus colores para determinar los datos y operaciones a ejecutar. El resultado de la ejecución se mostraba en una zona de salida mediante la superposición de imágenes generadas por el software. Este prototipo puede verse en la #lower[@first-prototype-figure].
+Para la construcción, se decidió continuar el uso de Python para todo, haciendo uso de OpenCV y OpenNI2 para la visión por computador, y también OpenCV para la interfaz gráfica. Se usó un sensor Kinect para la captura de imágenes, y se implementó un sistema de reconocimiento de formas basado en la detección de contornos, que permitía identificar las formas geométricas y sus colores para determinar los datos y operaciones a ejecutar. El resultado de la ejecución se mostraba en una zona de salida mediante la superposición de imágenes generadas por el software. Este prototipo puede verse en la @first-prototype-figure.
 
 #figure(
   image("images/first-prototype.jpeg"),
@@ -848,7 +859,7 @@ Debido a las preocupaciones con respecto al Kinect v1, y tras analizar las posib
 
 Así pues, se llevó a cabo una investigación sobre el uso del Kinect v2 con Python, las diferencias entre el Kinect v1 y el Kinect v2, las librerías disponibles para la visión por computador con este nuevo sensor, y el algoritmo de detección de toques basado en profundidad.
 
-Las librerías disponibles para integrar el Kinect v2 con Python son limitadas. Se probaron aproximaciones con PyKinect2 y libfreenect2, sin embargo, el primero fallaba por falta de soporte para Python 3+, y el segundo no detectaba el Kinect v2; OpenNI2, que se usó para el Kinect v1, no es compatible con el Kinect v2 por defecto, pero existen parches para hacerlo compatible, con lo cual se logró usar OpenNI2 para la integración del Kinect v2 con Python. Siguiendo con la calibración y detección de toques, se hicieron modificaciones exhaustivas al código legado para adaptarlo al nuevo sensor, lo que llevó a la implementación de un nuevo algoritmo de detección de marcadores (2 cuadrados blancos en las esquinas superior izquierda e inferior derecha de la proyección), además de la afinación de múltiples números mágicos (literales escritos en el código sin documentar su significado). Este prototipo puede verse en la #lower[@second-prototype-figure].
+Las librerías disponibles para integrar el Kinect v2 con Python son limitadas. Se probaron aproximaciones con PyKinect2 y libfreenect2, sin embargo, el primero fallaba por falta de soporte para Python 3+, y el segundo no detectaba el Kinect v2; OpenNI2, que se usó para el Kinect v1, no es compatible con el Kinect v2 por defecto, pero existen parches para hacerlo compatible, con lo cual se logró usar OpenNI2 para la integración del Kinect v2 con Python. Siguiendo con la calibración y detección de toques, se hicieron modificaciones exhaustivas al código legado para adaptarlo al nuevo sensor, lo que llevó a la implementación de un nuevo algoritmo de detección de marcadores (2 cuadrados blancos en las esquinas superior izquierda e inferior derecha de la proyección), además de la afinación de múltiples números mágicos (literales escritos en el código sin documentar su significado). Este prototipo puede verse en la @second-prototype-figure.
 
 #figure(
   image("images/second-prototype.jpeg"),
@@ -865,7 +876,7 @@ Tras trabajar tanto en una única parte del sistema (integración con el hardwar
 
 Para esto, se decidió usar un modelo de detección de objetos basado en aprendizaje profundo, específicamente el modelo YOLO11-nano, que es una versión ligera del modelo YOLO11, diseñado para ser eficiente en términos de velocidad y recursos computacionales, lo que lo hace adecuado para aplicaciones en tiempo real como la visión por computador con el Kinect v2. Se planeó entrenar este modelo con un conjunto de datos personalizado que incluía imágenes de una versión previa de las piezas que se usarían en el entorno, con el objetivo de lograr una detección precisa y evaluar la viabilidad de detectar las piezas mediante modelos de detección de objetos.
 
-Se entrenó al modelo con el conjunto de datos personalizado de imágenes de una versión previa de las piezas que se usarían en el entorno, que incluían animales y números, que pueden verse en la #lower[@third-prototype-dataset-figure]; y se evaluó su desempeño en términos de precisión y velocidad de detección. // Este prototipo puede verse en la #lower[@third-prototype-figure].
+Se entrenó al modelo con el conjunto de datos personalizado de imágenes de una versión previa de las piezas que se usarían en el entorno, que incluían animales y números, que pueden verse en la @third-prototype-dataset-figure; y se evaluó su desempeño en términos de precisión y velocidad de detección. // Este prototipo puede verse en la @third-prototype-figure.
 
 Los resultados obtenidos mostraron que el modelo de detección de objetos basado en aprendizaje profundo era capaz de detectar las piezas con una precisión aceptable, aunque se identificaron áreas de mejora, principalmente la confusión entre clases (por ejemplo, entre el 9 y el 6). Además, se observó que la velocidad de detección era adecuada para su uso en tiempo real con el Kinect v2, lo que validó la viabilidad de esta aproximación para la detección de piezas en el entorno.
 
@@ -887,9 +898,9 @@ Los resultados obtenidos mostraron que el modelo de detección de objetos basado
 
 Dado que se usaría un paradigma de programación dataflow, se decidió que se seguiría con la definición y elaboración de un lenguaje de programación visual basado en este paradigma, con el objetivo de crear una interfaz gráfica atractiva y funcional para los usuarios finales, que permitiera la creación de programas mediante la manipulación de bloques visuales que representaran operaciones y datos.
 
-Se llevó a cabo una investigación sobre los lenguajes de programación dataflow, tomando como referente a Lucid /* ver si se cambia la inspiración directa en Lucid */ #cite(<wadge1985>), por ser un lenguaje de programación dataflow purista, y se definieron los elementos básicos del lenguaje de programación visual, incluyendo los tipos de bloques, las operaciones disponibles, y la forma en que los bloques se conectan para formar programas. Este diseño puede verse en la #lower[@fourth-prototype-visual-design-figure]. Las operaciones disponibles se basarían en el currículum de matemáticas de educación básica, con el objetivo de fomentar el desarrollo del pensamiento computacional a través de conceptos matemáticos, y se incluirían operaciones como suma, resta, multiplicación, división, entre otras. En pro de una correcta división de las responsabilidades del sistema, se separó el lenguaje de programación visual en dos partes: un apartado de detección de piezas, que se encargaría de detectar las piezas físicas colocadas por los usuarios y traducirlas a una representación interna del programa; y un apartado de ejecución, que se encargaría de ejecutar el programa representado internamente y enviar los resultados a la interfaz gráfica. Esta separación permitiría una mayor flexibilidad y mantenibilidad del sistema, facilitando la incorporación de nuevas piezas y operaciones en el futuro.
+Se llevó a cabo una investigación sobre los lenguajes de programación dataflow, tomando como referente a Lucid /* ver si se cambia la inspiración directa en Lucid */ #cite(<wadge1985>), por ser un lenguaje de programación dataflow purista, y se definieron los elementos básicos del lenguaje de programación visual, incluyendo los tipos de bloques, las operaciones disponibles, y la forma en que los bloques se conectan para formar programas. Este diseño puede verse en la @fourth-prototype-visual-design-figure. Las operaciones disponibles se basarían en el currículum de matemáticas de educación básica, con el objetivo de fomentar el desarrollo del pensamiento computacional a través de conceptos matemáticos, y se incluirían operaciones como suma, resta, multiplicación, división, entre otras. En pro de una correcta división de las responsabilidades del sistema, se separó el lenguaje de programación visual en dos partes: un apartado de detección de piezas, que se encargaría de detectar las piezas físicas colocadas por los usuarios y traducirlas a una representación interna del programa; y un apartado de ejecución, que se encargaría de ejecutar el programa representado internamente y enviar los resultados a la interfaz gráfica. Esta separación permitiría una mayor flexibilidad y mantenibilidad del sistema, facilitando la incorporación de nuevas piezas y operaciones en el futuro.
 
-Durante el desarrollo de este prototipo, el enfoque estuvo en la implementación del apartado de ejecución del lenguaje de programación dataflow, para lo cual se definieron 3 representaciones de los programas formados por los bloques visuales: una de intercambio, basada en JSON; una textual, para entrada y depuración; y un formato en memoria, para uso interno por el entorno de ejecución; y se implementó un intérprete para ejecutar estos programas (denominado inicialmente compilador y _runtime_, terminología que fue revisada en iteraciones posteriores al consolidarse la evaluación directa de los programas). Se decidió usar TypeScript como lenguaje de programación, debido a su flexibilidad, facilidad para el desarrollo rápido, y su capacidad para manejar estructuras de datos complejas mediante su tipado; Bun como motor de ejecución, pues permite la ejecución directa de programas escritos en TypeScript sin un paso previo de transpilación, y provee ventajas de rendimiento contra sus competidores Node y Deno; y la librería Chevrotain, que provee un kit herramientas para la construcción de _parsers_; facilitando la implementación del entorno. Además, se implementó un servidor HTTP y uno de WebSockets, para lo cual se utilizó la librería Elysia, que permiten la comunicación con la interfaz gráfica y el apartado de visión por computador. // Este prototipo puede verse en la #lower[@fourth-prototype-figure].
+Durante el desarrollo de este prototipo, el enfoque estuvo en la implementación del apartado de ejecución del lenguaje de programación dataflow, para lo cual se definieron 3 representaciones de los programas formados por los bloques visuales: una de intercambio, basada en JSON; una textual, para entrada y depuración; y un formato en memoria, para uso interno por el entorno de ejecución; y se implementó un intérprete para ejecutar estos programas (denominado inicialmente compilador y _runtime_, terminología que fue revisada en iteraciones posteriores al consolidarse la evaluación directa de los programas). Se decidió usar TypeScript como lenguaje de programación, debido a su flexibilidad, facilidad para el desarrollo rápido, y su capacidad para manejar estructuras de datos complejas mediante su tipado; Bun como motor de ejecución, pues permite la ejecución directa de programas escritos en TypeScript sin un paso previo de transpilación, y provee ventajas de rendimiento contra sus competidores Node y Deno; y la librería Chevrotain, que provee un kit herramientas para la construcción de _parsers_; facilitando la implementación del entorno. Además, se implementó un servidor HTTP y uno de WebSockets, para lo cual se utilizó la librería Elysia, que permiten la comunicación con la interfaz gráfica y el apartado de visión por computador. // Este prototipo puede verse en la @fourth-prototype-figure.
 
 //TODO: colocar imágenes/tablas de las 3 representaciones de los programas, quizás todo en apéndices. Para JSON, puede ser la interfaz de TS. Para la representación textual, la EBNF del lenguaje con las consideraciones semánticas, que este sí sería un apéndice 100%. Para la representación en memoria, una tabla con la estructura de datos usada para representar los programas internamente.
 
@@ -906,9 +917,9 @@ Con el prototipo del entorno listo, se vio que la aproximación de separación d
 
 Con base en el diseño del ambiente, se planteó continuar con la interfaz gráfica del entorno de desarrollo integrado (IDE) para el lenguaje de programación, con el objetivo de crear una experiencia de usuario atractiva e intuitiva que facilitara la creación de programas mediante la manipulación de bloques físicos, si bien la integración con la detección de bloques se pospuso y se buscó probar la funcionalidad con bloques digitales.
 
-El diseño propuesto puede verse en la #lower[@fifth-prototype-design-figure], y se enfocó en la creación de una interfaz gráfica que permitiera a los usuarios interactuar con el entorno de programación tangible de manera intuitiva, facilitando la creación de programas mediante la manipulación de bloques digitales que representaran las futuras piezas físicas. Se decidió llamar a esta interfaz "modo sandbox" del IDE.
+El diseño propuesto puede verse en la @fifth-prototype-design-figure, y se enfocó en la creación de una interfaz gráfica que permitiera a los usuarios interactuar con el entorno de programación tangible de manera intuitiva, facilitando la creación de programas mediante la manipulación de bloques digitales que representaran las futuras piezas físicas. Se decidió llamar a esta interfaz "modo sandbox" del IDE.
 
-Se implementaron características como la visualización del programa en tiempo real, la posibilidad de arrastrar y soltar bloques para crear programas, y una sección de resultados donde se mostraban los resultados de la ejecución del programa. Además, se buscó crear una experiencia de usuario atractiva mediante el uso de colores y una disposición clara de los elementos en la interfaz. Este prototipo fue desarrollado en TypeScript, usando la librería React para la construcción de la interfaz gráfica, la librería React Flow para la representación visual de los datos, operaciones y flujos de datos. // Este prototipo puede verse en la #lower[@fifth-prototype-figure].
+Se implementaron características como la visualización del programa en tiempo real, la posibilidad de arrastrar y soltar bloques para crear programas, y una sección de resultados donde se mostraban los resultados de la ejecución del programa. Además, se buscó crear una experiencia de usuario atractiva mediante el uso de colores y una disposición clara de los elementos en la interfaz. Este prototipo fue desarrollado en TypeScript, usando la librería React para la construcción de la interfaz gráfica, la librería React Flow para la representación visual de los datos, operaciones y flujos de datos. // Este prototipo puede verse en la @fifth-prototype-figure.
 
 //TODO: colocar imagen del prototipo
 // #figure(
@@ -924,9 +935,9 @@ Al finalizar el desarrollo de la interfaz gráfica del modo sandbox, se vio que 
 
 Continuando con el prototipo 5, se decidió integrarle la detección de piezas físicas mediante el Kinect v1, por dificultades temporales con el Kinect v2/* especificar que estas dificultades estaban relacinadas con problemass de compatabilidad de estándar USB y rendimiento */; y el uso de un nuevo modelo de detección de objetos basado en aprendizaje profundo, pues se cambió el diseño de las piezas físicas a usar, requiriendo de un reentrenamiento del modelo. Además, se planteó comenzar la integración con el entorno de ejecución del lenguaje de programación dataflow, optando por la integración mediante WebSockets para la comunicación.
 
-Se llevó a cabo un rediseño de las piezas físicas a usar, buscando cubrir los datos y operaciones que se definieron para el lenguaje, un diseño sencillo de entender y usar para los niños, pero no tan complejo en aras de facilitar la detección por parte del modelo, resultando en un diseño tipo carta. Estas nuevas piezas pueden verse en la #lower[@sixth-prototype-pieces-design-figure]. Además, también se hicieron modificaciones en la interfaz gráfica del modo sandbox, entre ellas usar colores oscuros, para facilitar la visualización de la proyección del entorno virtual sobre la superficie física.
+Se llevó a cabo un rediseño de las piezas físicas a usar, buscando cubrir los datos y operaciones que se definieron para el lenguaje, un diseño sencillo de entender y usar para los niños, pero no tan complejo en aras de facilitar la detección por parte del modelo, resultando en un diseño tipo carta. Estas nuevas piezas pueden verse en la @sixth-prototype-pieces-design-figure. Además, también se hicieron modificaciones en la interfaz gráfica del modo sandbox, entre ellas usar colores oscuros, para facilitar la visualización de la proyección del entorno virtual sobre la superficie física.
 
-Al entrenar el nuevo modelo de detección de objetos, se comenzó con el modelo YOLOv11-nano, con un dataset en el que las _bounding boxes_ comprendían toda la carta, incluyendo las etiquetas ("Operador", "Resta", "Tortuga", etc.), áreas blancas alrededor de la pieza, e imagen de la pieza; este modelo tenía dificultades para detectar las piezas, principalmente por la confusión entre clases, por lo que se decidió ajustar las _bounding boxes_ para que solo comprendieran el área de la imagen de la pieza, sin incluir las etiquetas ni áreas blancas, lo que llevó a una pequeña mejora en la detección, pero sin llegar a los resultados esperados. Finalmente, se cambió al modelo YOLOv11-small, una versión ligeramente más pesada y potente de YOLO que el nano, que ofrece una mejora significativa en la precisión de detección, lo que permitió obtener resultados satisfactorios en la detección de las piezas físicas. Además, se implementó una integración básica con el entorno de ejecución del lenguaje de programación dataflow mediante WebSockets, enviando las piezas reconocidas al entorno, pero sin las conexiones entre estas. Este prototipo puede verse en la #lower[@sixth-prototype-figure].
+Al entrenar el nuevo modelo de detección de objetos, se comenzó con el modelo YOLOv11-nano, con un dataset en el que las _bounding boxes_ comprendían toda la carta, incluyendo las etiquetas ("Operador", "Resta", "Tortuga", etc.), áreas blancas alrededor de la pieza, e imagen de la pieza; este modelo tenía dificultades para detectar las piezas, principalmente por la confusión entre clases, por lo que se decidió ajustar las _bounding boxes_ para que solo comprendieran el área de la imagen de la pieza, sin incluir las etiquetas ni áreas blancas, lo que llevó a una pequeña mejora en la detección, pero sin llegar a los resultados esperados. Finalmente, se cambió al modelo YOLOv11-small, una versión ligeramente más pesada y potente de YOLO que el nano, que ofrece una mejora significativa en la precisión de detección, lo que permitió obtener resultados satisfactorios en la detección de las piezas físicas. Además, se implementó una integración básica con el entorno de ejecución del lenguaje de programación dataflow mediante WebSockets, enviando las piezas reconocidas al entorno, pero sin las conexiones entre estas. Este prototipo puede verse en la @sixth-prototype-figure.
 
 #figure(
   image("images/sixth-prototype.jpeg"),
@@ -954,7 +965,7 @@ La integración de la detección de piezas con el intérprete se articuló a tra
 
 //TODO: el esqueleto original anotaba "<primer vídeo>, muy mal rendimiento" como evidencia de esta etapa. No hay vídeos ni mediciones de rendimiento versionados en el repositorio; añadir a mano la referencia al material audiovisual y, de sostenerse el juicio de rendimiento, respaldarlo con datos.
 
-//TODO: agregar figura del séptimo prototipo (integración inicial). Pendiente de imagen, siguiendo el patrón de #lower[@sixth-prototype-figure].
+//TODO: agregar figura del séptimo prototipo (integración inicial). Pendiente de imagen, siguiendo el patrón de @sixth-prototype-figure.
 
 Con este prototipo se obtuvo, por primera vez, una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada conformaban un programa ejecutable de manera incremental, de modo que las mejoras posteriores se pudieron implementar sobre esta base, en forma de evoluciones, motivadas en un principio por las limitaciones observadas en la fluidez de la detección.
 
@@ -975,7 +986,50 @@ La tercera evolución consistió en una extensión del lenguaje, reflejada en la
 
 // ==== Evolución 4 -> Dado, cambios del intérprete a array-first tras bambalinas sin afectar experiencia del usuario, zonas de persistencia de detección.
 
-// == Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
+== Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
+
+La validación del ambiente se aborda en tres frentes complementarios: una verificación interna que contrasta los requerimientos del sistema con las funcionalidades efectivamente construidas, mediante una matriz de trazabilidad; una evaluación por juicio de expertos en interacción humano-computador (IHC) y en medios didácticos; y pruebas de comprensión y usabilidad con niños del rango etario objetivo.
+//TODO: cuando se ejecuten, integrar aquí los resultados de la evaluación por expertos (punto 3) y de las pruebas con niños (punto 4).
+
+=== Matriz de requerimientos contra funcionalidades
+
+Con el fin de verificar que el sistema construido responde a lo especificado, se elaboró una matriz que retoma los requerimientos funcionales (RF) y no funcionales (RNF) definidos durante el análisis en la @requirements-table, y relaciona cada uno con la funcionalidad que lo satisface y su estado de cobertura. La matriz se presenta en la @requirements-to-functionalities-matrix.
+
+#figure(
+  [
+    #set text(size: 9pt)
+    #table(
+      columns: (auto, 1fr, 1.3fr, auto),
+      align: (center + horizon, left + horizon, left + horizon, center + horizon),
+      inset: 4pt,
+      table.header([*Cód. Req.*], [*Requerimiento*], [*Funcionalidad que lo satisface*], [*Estado*]),
+      [RF-01], [El sistema debe permitir a los niños construir programas utilizando elementos tangibles y conexiones digitales que representen datos, flujos y operaciones], [Detección de las piezas físicas con modelos YOLO y representación y validación de sus conexiones mediante puertos tipados y reglas estructurales en el IDE], [Satisfecho],
+      [RF-02], [El sistema debe capturar la disposición de los elementos tangibles y conexiones digitales, y procesar la información para reconocer los elementos y sus conexiones], [Captura con cámara de color y profundidad; reconocimiento de cartas y de toques, calibración por homografía y relevo de los datos a la interfaz], [Satisfecho],
+      [RF-03], [El sistema debe interpretar los programas representados por los elementos tangibles y conexiones digitales, traduciéndolos a una representación ejecutable], [Traducción del grafo visual a un programa e interpretación con el intérprete ERAE embebido], [Satisfecho],
+      [RF-04], [El sistema debe ejecutar los programas y mostrar la salida en una interfaz gráfica proyectada sobre una superficie plana], [Ejecución con evaluación bajo demanda e incremental y visualización de la salida en la interfaz proyectada], [Satisfecho],
+      [RF-05], [El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas], [Evaluación incremental, resaltado de orígenes, zonas y conexiones, y walkers sobre las conexiones], [Satisfecho],
+      [RNF-01], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado], [Modos de juego y sandbox e interfaz basada en cartas; su usabilidad efectiva requiere comprobación con usuarios], [Pendiente],
+      [RNF-02], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años], [Elementos lúdicos implementados (diseño colorido, dado, síntesis de voz); su efecto en el interés requiere validación con niños], [Parcial],
+      [RNF-03], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales], [Verificación de tipos y aridad, validación de conexiones en tres niveles y análisis de programas incompletos sin interrumpir la sesión], [Satisfecho],
+      [RNF-04], [La retroalimentación debe ser presentada de forma visual y auditiva], [Retroalimentación visual completa (resaltados, walkers, resultados); la auditiva se limita a la síntesis de voz de los resultados, restan las señales sonoras de reconocimiento, advertencia y error], [Parcial],
+    )
+  ],
+  caption: [
+    Matriz de trazabilidad entre los requerimientos definidos en el análisis y las funcionalidades construidas, con la evidencia en el código y el estado de cobertura de cada requerimiento.
+  ],
+) <requirements-to-functionalities-matrix>
+
+Como se observa en la @requirements-to-functionalities-matrix, los cinco requerimientos funcionales se encuentran satisfechos: la construcción y captura de los programas tangibles, el reconocimiento de los elementos y de las conexiones, la interpretación con evaluación incremental, la ejecución con salida proyectada y la retroalimentación que guía la construcción. De los requerimientos no funcionales, el manejo de errores de disposición está satisfecho, mientras que la presentación auditiva y los elementos persuasivos están parcialmente cubiertos y la usabilidad efectiva queda pendiente. Estos últimos, de naturaleza pedagógica y de experiencia, motivan los dos frentes de evaluación que se describen a continuación.
+
+=== Evaluación por juicio de expertos
+
+La calidad del ambiente como sistema interactivo y como recurso educativo se evalúa mediante juicio de expertos, con dos perfiles complementarios: un experto en interacción humano-computador (IHC), que valora la interfaz, la interacción tangible, la usabilidad y el manejo de errores; y un experto en medios didácticos, que valora la pertinencia pedagógica del ambiente, la progresión concreto-pictórico-abstracto y su alineación con el currículo. A cada experto se le aplica un instrumento estructurado (rúbrica o cuestionario) cuyos resultados se reportan como parte de la validación.
+//TODO: pendiente de ejecución (punto 3). Definir los instrumentos de evaluación, seleccionar a los expertos y registrar y analizar sus valoraciones. Los instrumentos de evaluación deben incluirse como apéndices, incluyendo las respuestas de los expertos.
+
+=== Pruebas de comprensión y usabilidad con niños
+
+La validación se completa con pruebas realizadas con niños del rango etario objetivo, organizadas en torno a actividades modelo (con descripción de la actividad, roles, pasos a seguir y resultado esperado). Las pruebas de usabilidad observan si los niños logran usar el ambiente, contabilizando el éxito en las tareas, errores, necesidad de ayuda y satisfacción, mientras que las pruebas de comprensión observan si entienden lo que construyen y los conceptos de pensamiento computacional involucrados.
+//TODO: pendiente de ejecución (punto 4). Definir el protocolo y las actividades modelo, las métricas de usabilidad y de comprensión, y registrar y analizar los resultados.
 
 //* Vídeo mostrándole a Chilina León y comentarios que nos dió
 
