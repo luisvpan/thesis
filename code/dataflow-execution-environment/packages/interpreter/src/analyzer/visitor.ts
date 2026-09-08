@@ -1,0 +1,336 @@
+import type { CstNode, IToken } from "chevrotain";
+import { parserInstance } from "./parser";
+import type {
+  Program,
+  Statement,
+  SourceStatement,
+  TransformStatement,
+  SinkStatement,
+  Operation,
+  Expression,
+  Literal,
+  ObjectLiteral,
+  DataLiteral,
+  CriteriaLiteral,
+  ObjectProperty,
+  StringLiteral,
+  ArrayLiteral,
+  GroupLiteral,
+} from "./ast";
+
+// CST Node types
+interface ProgramCstNode extends CstNode {
+  children: {
+    statement?: CstNode[];
+  };
+}
+
+interface StatementCstNode extends CstNode {
+  children: {
+    sourceStatement?: CstNode[];
+    transformStatement?: CstNode[];
+    sinkStatement?: CstNode[];
+  };
+}
+
+interface SourceStatementCstNode extends CstNode {
+  children: {
+    Identifier: IToken[];
+    literal?: CstNode[];
+  };
+}
+
+interface TransformStatementCstNode extends CstNode {
+  children: {
+    Identifier: IToken[];
+    operation?: CstNode[];
+    argumentList?: CstNode[];
+  };
+}
+
+interface SinkStatementCstNode extends CstNode {
+  children: {
+    Identifier: IToken[];
+  };
+}
+
+interface OperationCstNode extends CstNode {
+  children: {
+    Sum?: IToken[];
+    Substract?: IToken[];
+    Multiply?: IToken[];
+    Divide?: IToken[];
+    LessThan?: IToken[];
+    GreaterThan?: IToken[];
+    OrderAsc?: IToken[];
+    OrderDesc?: IToken[];
+    Filter?: IToken[];
+    First?: IToken[];
+    Last?: IToken[];
+    Count?: IToken[];
+    Compare?: IToken[];
+  };
+}
+
+interface ArgumentListCstNode extends CstNode {
+  children: {
+    expression: CstNode[];
+  };
+}
+
+interface ExpressionCstNode extends CstNode {
+  children: {
+    Identifier?: IToken[];
+    literal?: CstNode[];
+  };
+}
+
+interface LiteralCstNode extends CstNode {
+  children: {
+    objectLiteral?: CstNode[];
+    group?: CstNode[];
+    arrayLiteral?: CstNode[];
+    StringLiteral?: IToken[];
+  };
+}
+
+interface GroupCstNode extends CstNode {
+  children: {
+    objectLiteral?: CstNode[];
+  };
+}
+
+interface ArrayLiteralCstNode extends CstNode {
+  children: {
+    expression?: CstNode[];
+  };
+}
+
+interface ObjectLiteralCstNode extends CstNode {
+  children: {
+    kvPair?: CstNode[];
+  };
+}
+
+interface KvPairCstNode extends CstNode {
+  children: {
+    StringLiteral: IToken[];
+    NumberLiteral?: IToken[];
+    kvArrayLiteral?: CstNode[];
+  };
+}
+
+interface KvArrayLiteralCstNode extends CstNode {
+  children: {
+    StringLiteral?: IToken[];
+  };
+}
+
+// Helper: Remove quotes from string literal
+function unquote(str: string): string {
+  if (str.startsWith('"') && str.endsWith('"')) {
+    return str.slice(1, -1);
+  }
+  return str;
+}
+
+// Get the base visitor class from the parser
+const BaseCstVisitor = parserInstance.getBaseCstVisitorConstructor();
+
+export class DataflowAstVisitor extends BaseCstVisitor {
+  constructor() {
+    super();
+    this.validateVisitor();
+  }
+
+  program(ctx: ProgramCstNode["children"]): Program {
+    const statements: Statement[] = [];
+
+    if (ctx.statement) {
+      for (const stmtCst of ctx.statement) {
+        statements.push(this.visit(stmtCst));
+      }
+    }
+
+    return {
+      type: "Program",
+      statements,
+    };
+  }
+
+  statement(ctx: StatementCstNode["children"]): Statement {
+    if (ctx.sourceStatement) {
+      return this.visit(ctx.sourceStatement[0]);
+    } else if (ctx.transformStatement) {
+      return this.visit(ctx.transformStatement[0]);
+    } else if (ctx.sinkStatement) {
+      return this.visit(ctx.sinkStatement[0]);
+    }
+    throw new Error("Unknown statement type");
+  }
+
+  sourceStatement(ctx: SourceStatementCstNode["children"]): SourceStatement {
+    return {
+      type: "SourceStatement",
+      identifier: ctx.Identifier[0].image,
+      value: ctx.literal ? this.visit(ctx.literal[0]) : undefined,
+    };
+  }
+
+  transformStatement(ctx: TransformStatementCstNode["children"]): TransformStatement {
+    return {
+      type: "TransformStatement",
+      identifier: ctx.Identifier[0].image,
+      operation: ctx.operation ? this.visit(ctx.operation[0]) : undefined,
+      arguments: ctx.argumentList ? this.visit(ctx.argumentList[0]) : [],
+    };
+  }
+
+  sinkStatement(ctx: SinkStatementCstNode["children"]): SinkStatement {
+    return {
+      type: "SinkStatement",
+      identifier: ctx.Identifier[0].image,
+      sourceIdentifier: ctx.Identifier[1]?.image,
+    };
+  }
+
+  operation(ctx: OperationCstNode["children"]): Operation {
+    if (ctx.Sum) return "sum";
+    if (ctx.Substract) return "substract";
+    if (ctx.Multiply) return "multiply";
+    if (ctx.Divide) return "divide";
+    if (ctx.LessThan) return "less_than";
+    if (ctx.GreaterThan) return "greater_than";
+    if (ctx.OrderAsc) return "order_asc";
+    if (ctx.OrderDesc) return "order_desc";
+    if (ctx.Filter) return "filter";
+    if (ctx.First) return "first";
+    if (ctx.Last) return "last";
+    if (ctx.Count) return "count";
+    if (ctx.Compare) return "compare";
+    throw new Error("Unknown operation");
+  }
+
+  argumentList(ctx: ArgumentListCstNode["children"]): Expression[] {
+    return ctx.expression.map((expr) => this.visit(expr));
+  }
+
+  expression(ctx: ExpressionCstNode["children"]): Expression {
+    if (ctx.Identifier) {
+      return {
+        type: "Identifier",
+        name: ctx.Identifier[0].image,
+      };
+    } else if (ctx.literal) {
+      return this.visit(ctx.literal[0]);
+    }
+    throw new Error("Unknown expression type");
+  }
+
+  literal(ctx: LiteralCstNode["children"]): Literal {
+    if (ctx.objectLiteral) {
+      return this.visit(ctx.objectLiteral[0]);
+    } else if (ctx.group) {
+      return this.visit(ctx.group[0]);
+    } else if (ctx.arrayLiteral) {
+      return this.visit(ctx.arrayLiteral[0]);
+    } else if (ctx.StringLiteral) {
+      return {
+        type: "StringLiteral",
+        value: unquote(ctx.StringLiteral[0].image),
+      } as StringLiteral;
+    }
+    throw new Error("Unknown literal type");
+  }
+
+  group(ctx: GroupCstNode["children"]): GroupLiteral {
+    return {
+      type: "GroupLiteral",
+      elements: ctx.objectLiteral
+        ? ctx.objectLiteral.map((obj) => this.visit(obj))
+        : [],
+    };
+  }
+
+  arrayLiteral(ctx: ArrayLiteralCstNode["children"]): ArrayLiteral {
+    return {
+      type: "ArrayLiteral",
+      elements: ctx.expression ? ctx.expression.map((expr) => this.visit(expr)) : [],
+    };
+  }
+
+  objectLiteral(ctx: ObjectLiteralCstNode["children"]): ObjectLiteral {
+    const rawProps: ObjectProperty[] = [];
+
+    if (ctx.kvPair) {
+      for (const kvPairCst of ctx.kvPair) {
+        rawProps.push(this.visit(kvPairCst));
+      }
+    }
+
+    // Discriminate by "sourceType" field
+    const sourceTypeProp = rawProps.find(p => p.key === "sourceType");
+    const sourceType = sourceTypeProp?.value;
+
+    if (sourceType === "criteria") {
+      // CriteriaLiteral
+      const propertiesProp = rawProps.find(p => p.key === "properties");
+      const properties = Array.isArray(propertiesProp?.value)
+        ? propertiesProp.value
+        : [];
+
+      return {
+        type: "CriteriaLiteral",
+        sourceType: "criteria",
+        properties,
+        values: rawProps.filter(p => !["sourceType", "properties"].includes(p.key)),
+      } as CriteriaLiteral;
+    }
+
+    // Default: DataLiteral
+    const getValue = (key: string): string => {
+      const prop = rawProps.find(p => p.key === key);
+      return typeof prop?.value === "string" ? prop.value : "";
+    };
+
+    return {
+      type: "DataLiteral",
+      sourceType: "data",
+      category: getValue("category"),
+      objType: getValue("type"),
+      subtype: getValue("subtype"),
+      quantity: getValue("quantity") || "1",
+      attributes: rawProps.filter(p =>
+        !["sourceType", "category", "type", "subtype", "quantity"].includes(p.key)
+      ),
+    } as DataLiteral;
+  }
+
+  kvPair(ctx: KvPairCstNode["children"]): ObjectProperty {
+    // First StringLiteral is the key
+    const key = unquote(ctx.StringLiteral[0].image);
+
+    // Value can be array, second StringLiteral, or NumberLiteral
+    let value: string | string[];
+
+    if (ctx.kvArrayLiteral) {
+      value = this.visit(ctx.kvArrayLiteral[0]);
+    } else if (ctx.StringLiteral.length > 1) {
+      value = unquote(ctx.StringLiteral[1].image);
+    } else if (ctx.NumberLiteral) {
+      value = ctx.NumberLiteral[0].image;
+    } else {
+      throw new Error("KV pair must have a value");
+    }
+
+    return { key, value };
+  }
+
+  kvArrayLiteral(ctx: KvArrayLiteralCstNode["children"]): string[] {
+    if (!ctx.StringLiteral) return [];
+    return ctx.StringLiteral.map(token => unquote(token.image));
+  }
+}
+
+// Singleton visitor instance
+export const visitorInstance = new DataflowAstVisitor();

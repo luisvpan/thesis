@@ -1,0 +1,307 @@
+// ============================================================
+// CV System — Module Architecture
+// Thesis: Tangible programming language with AR + Kinect V2
+// ============================================================
+
+specification {
+  element system {
+    style {
+      shape rectangle
+      color secondary
+    }
+  }
+  element subsystem {
+    style {
+      shape rectangle
+      color primary
+    }
+  }
+  element module {
+    style {
+      shape component
+      color green
+    }
+  }
+  element datastore {
+    style {
+      shape storage
+      color amber
+    }
+  }
+  element hardware {
+    style {
+      shape cylinder
+      color red
+    }
+  }
+  element external {
+    style {
+      shape rectangle
+      color muted
+    }
+  }
+  element dataobject {
+    style {
+      shape document
+      color indigo
+    }
+  }
+
+  relationship produces
+  relationship consumes
+  relationship exposes {
+    line solid
+  }
+  relationship configures {
+    line dotted
+    color gray
+  }
+  relationship communicates {
+    line solid
+    color amber
+  }
+}
+
+model {
+
+  // === PHYSICAL HARDWARE ===
+  kinect = hardware 'Kinect V2' {
+    description 'Depth sensor (512×424 @ DEPTH_1_MM) and RGB camera (1920×1080 @ RGB888)'
+    technology 'Microsoft Kinect V2'
+  }
+
+  projector = hardware 'Projector' {
+    description 'Projects images onto the work surface'
+    technology 'DLP/LCD Projector'
+  }
+
+  // === EXTERNAL SYSTEM: Language server ===
+  lang-server = external 'Language Runtime' {
+    description 'Bun/Elysia server that executes the tangible dataflow language'
+    technology 'Bun + Elysia + WebSocket'
+  }
+
+  // === COMPUTER VISION SYSTEM ===
+  cv = subsystem 'CV System' {
+    description 'Computer vision system: calibration, transformation, and detection'
+    technology 'Python + OpenCV + OpenNI2'
+
+    // --- Layer 1: Hardware Management ---
+    hw-manager = module 'Hardware Manager' {
+      description '''
+        Only module that knows about OpenNI2.
+        Initializes the Kinect, exposes depth and RGB
+        streams as NumPy arrays, validates pixel formats
+        (DEPTH_1_MM, RGB888), and manages device lifecycle.
+      '''
+      technology 'OpenNI2 + NumPy'
+    }
+
+    // --- Layer 2: Calibration ---
+    calibrator = module 'Calibrator' {
+      description '''
+        Orchestrates the per-session calibration process:
+        1. Projects 4 markers at configured projector_corners
+        2. Detects markers in Kinect RGB to compute camera_corners
+        3. Computes homography (cv2.getPerspectiveTransform)
+        4. Generates dmax_map (direct mode estimation over N frames)
+        Produces an immutable CalibrationResult for the session.
+      '''
+      technology 'OpenCV'
+
+      marker-projector = module 'Marker Projector' {
+        description '''
+          Draws 4 high-contrast white squares on a black
+          background at configured projector_corners.
+          Displayed fullscreen via cv2.namedWindow.
+        '''
+      }
+
+      marker-detector = module 'Marker Detector' {
+        description '''
+          Detects the 4 markers in the Kinect RGB image.
+          Threshold + contour detection on the color image.
+          Computes camera_corners (never configured).
+          Maps RGB coords to depth space via Kinect V2 registration.
+        '''
+      }
+
+      dmax-generator = module 'DMax Generator' {
+        description '''
+          Captures num_frames_for_depth_mode_estimation frames,
+          stores them in a (N, h, w) array, and computes the
+          per-pixel depth mode directly. No histogram binning,
+          no depth range configuration.
+        '''
+      }
+    }
+
+    // --- Layer 3: Coordinate Transformation ---
+    transformer = module 'Coordinate Transformer' {
+      description '''
+        Stateless service post-calibration.
+        Encapsulates the 3×3 homography matrix and exposes
+        bidirectional transformations:
+        camera_to_projector(point) and projector_to_camera(point)
+        via cv2.perspectiveTransform.
+      '''
+      technology 'OpenCV (3×3 homography)'
+    }
+
+    // --- Layer 4: Detection ---
+    detection = subsystem 'Detection Layer' {
+      description 'Interaction detection modules for the work surface'
+
+      touch-detector = module 'Touch Detector' {
+        description '''
+          Compares each depth frame against the dmax_map
+          to detect foreground (objects/hands on the table).
+          Uses a ring buffer of N frames as sliding window
+          to filter noise and validate persistent touches.
+        '''
+        technology 'NumPy + OpenCV'
+      }
+
+      piece-detector = module 'Piece Detector' {
+        description '''
+          [Future] Detects and classifies the physical pieces
+          of the tangible language using the RGB stream.
+        '''
+        technology 'YOLO (future)'
+      }
+    }
+
+    // --- Session data ---
+    calibration-result = dataobject 'CalibrationResult' {
+      description '''
+        Immutable object produced by calibration:
+        - Homography matrix H (3×3, float64)
+        - dmax_map (2D array, uint16, values in mm)
+        - Metadata: timestamp, resolutions, ROI in camera coords
+        Optionally persistable to disk for debugging.
+      '''
+    }
+
+    session-config = dataobject 'Session Config' {
+      description '''
+        Per-session environment configuration:
+        - Resolutions and pixel formats (Kinect depth, Kinect RGB, projector)
+        - projector_corners (where to draw calibration markers)
+        - num_frames_for_depth_mode_estimation (frames for dmax_map)
+        - Sliding window size for touch detection
+        - Detection thresholds
+      '''
+    }
+
+    // --- Communication layer ---
+    ws-bridge = module 'WebSocket Bridge' {
+      description '''
+        Communicates detection events (touches, pieces)
+        to the Language Runtime via WebSocket.
+        Serializes positions in projector coordinates.
+      '''
+      technology 'WebSocket client'
+    }
+
+    // =====================
+    // INTERNAL RELATIONSHIPS
+    // =====================
+
+    // Hardware Manager exposes streams
+    hw-manager -> calibrator 'provides RGB and depth frames'
+    hw-manager -> detection 'provides real-time depth stream'
+
+    // Calibration produces result
+    calibrator -[produces]-> calibration-result 'generates at session start'
+
+    // CalibrationResult feeds layers 3 and 4
+    calibration-result -> transformer 'homography matrix H'
+    calibration-result -> detection 'dmax_map + ROI'
+
+    // Detection uses transformation
+    detection -> transformer 'maps camera coords → projector coords'
+
+    // Detection emits events
+    detection -> ws-bridge 'touch/piece events in projector coords'
+
+    // Session Config configures modules
+    session-config -[configures]-> hw-manager 'resolutions, FPS, pixel formats'
+    session-config -[configures]-> calibrator 'projector_corners, num_frames'
+    session-config -[configures]-> detection 'window size, thresholds'
+  }
+
+  // =====================
+  // EXTERNAL RELATIONSHIPS
+  // =====================
+
+  // Physical hardware
+  kinect -> cv.hw-manager 'depth + RGB streams'
+  cv.calibrator.marker-projector -> projector 'marker image (fullscreen cv2 window)'
+  cv.detection -> projector 'visual feedback (via language runtime)'
+
+  // Communication with language server
+  cv.ws-bridge -[communicates]-> lang-server 'detection events (WebSocket)'
+  lang-server -[communicates]-> projector 'AR projection commands'
+}
+
+// =====================
+// VIEWS
+// =====================
+
+views {
+
+  // System overview
+  view index {
+    title 'Complete System — Overview'
+    description 'High-level view: hardware, CV system, and language runtime'
+
+    include *
+    include cv.*
+  }
+
+  // CV System internals
+  view cv-internals of cv {
+    title 'CV System — Internal Modules'
+    description '''
+      The 4 layers of the vision system:
+      1. Hardware Manager (Kinect integration, pixel format validation)
+      2. Calibrator (homography + dmax_map via direct mode estimation)
+      3. Coordinate Transformer (mapping service)
+      4. Detection Layer (touches + pieces)
+    '''
+
+    include *
+    include calibrator.*
+    include detection.*
+  }
+
+  // Calibration flow
+  view calibration-flow of cv.calibrator {
+    title 'Calibration Flow'
+    description '''
+      Per-session calibration process:
+      project markers at projector_corners → detect in RGB to compute
+      camera_corners → homography → dmax_map (N frames, direct mode)
+    '''
+
+    include *
+    include cv.hw-manager
+    include cv.calibration-result
+    include cv.session-config
+  }
+
+  // Real-time detection
+  view detection-flow of cv.detection {
+    title 'Real-Time Detection'
+    description '''
+      Detection flow during an active session:
+      depth frames → compare against dmax_map → events
+    '''
+
+    include *
+    include cv.hw-manager
+    include cv.transformer
+    include cv.calibration-result
+    include cv.ws-bridge
+  }
+}

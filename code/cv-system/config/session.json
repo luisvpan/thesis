@@ -1,0 +1,65 @@
+{
+  "camera": {
+    "depth_resolution": [
+      424,
+      512
+    ],
+    "rgb_resolution": [
+      1080,
+      1920
+    ],
+    "fps": 30
+  },
+  "calibration": {
+    "dsurface_num_frames": 2000,
+    "histogram_threshold": 10,
+    "histogram_range": 25,
+    "surface_offset": 1,
+    "depth_range_min": 650,
+    "depth_range_max": 800,
+    "camera_corners": [
+      [
+        0,
+        0
+      ],
+      [
+        512,
+        0
+      ],
+      [
+        0,
+        424
+      ],
+      [
+        512,
+        424
+      ]
+    ],
+    "projector_corners": [
+      [
+        0,
+        0
+      ],
+      [
+        1920,
+        0
+      ],
+      [
+        0,
+        1080
+      ],
+      [
+        1920,
+        1080
+      ]
+    ]
+  },
+  "detection": {
+    "ring_buffer_size": 3,
+    "touch_threshold": 30,
+    "min_touch_size": 15,
+    "max_touch_size": 5000,
+    "vibration_threshold": 15,
+    "touch_history_size": 2
+  }
+}

@@ -1,0 +1,997 @@
+<?xml version="1.0" encoding="utf-8"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" data-d2-version="v0.7.1" preserveAspectRatio="xMinYMin meet" viewBox="0 0 3668 4717"><svg class="d2-1826877345 d2-svg" width="3668" height="4717" viewBox="-101 -101 3668 4717"><rect x="-101.000000" y="-101.000000" width="3668.000000" height="4717.000000" rx="0.000000" fill="#FFFFFF" class=" fill-N7" stroke-width="0" /><style type="text/css"><![CDATA[
+.d2-1826877345 .text {
+	font-family: "d2-1826877345-font-regular";
+}
+@font-face {
+	font-family: d2-1826877345-font-regular;
+	src: url("data:application/font-woff;base64,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");
+}
+@font-face {
+	font-family: d2-1826877345-font-semibold;
+	src: url("data:application/font-woff;base64,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");
+}]]></style><style type="text/css"><![CDATA[.shape {
+  shape-rendering: geometricPrecision;
+  stroke-linejoin: round;
+}
+.connection {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.blend {
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+		.d2-1826877345 .fill-N1{fill:#0A0F25;}
+		.d2-1826877345 .fill-N2{fill:#676C7E;}
+		.d2-1826877345 .fill-N3{fill:#9499AB;}
+		.d2-1826877345 .fill-N4{fill:#CFD2DD;}
+		.d2-1826877345 .fill-N5{fill:#DEE1EB;}
+		.d2-1826877345 .fill-N6{fill:#EEF1F8;}
+		.d2-1826877345 .fill-N7{fill:#FFFFFF;}
+		.d2-1826877345 .fill-B1{fill:#0D32B2;}
+		.d2-1826877345 .fill-B2{fill:#0D32B2;}
+		.d2-1826877345 .fill-B3{fill:#E3E9FD;}
+		.d2-1826877345 .fill-B4{fill:#E3E9FD;}
+		.d2-1826877345 .fill-B5{fill:#EDF0FD;}
+		.d2-1826877345 .fill-B6{fill:#F7F8FE;}
+		.d2-1826877345 .fill-AA2{fill:#4A6FF3;}
+		.d2-1826877345 .fill-AA4{fill:#EDF0FD;}
+		.d2-1826877345 .fill-AA5{fill:#F7F8FE;}
+		.d2-1826877345 .fill-AB4{fill:#EDF0FD;}
+		.d2-1826877345 .fill-AB5{fill:#F7F8FE;}
+		.d2-1826877345 .stroke-N1{stroke:#0A0F25;}
+		.d2-1826877345 .stroke-N2{stroke:#676C7E;}
+		.d2-1826877345 .stroke-N3{stroke:#9499AB;}
+		.d2-1826877345 .stroke-N4{stroke:#CFD2DD;}
+		.d2-1826877345 .stroke-N5{stroke:#DEE1EB;}
+		.d2-1826877345 .stroke-N6{stroke:#EEF1F8;}
+		.d2-1826877345 .stroke-N7{stroke:#FFFFFF;}
+		.d2-1826877345 .stroke-B1{stroke:#0D32B2;}
+		.d2-1826877345 .stroke-B2{stroke:#0D32B2;}
+		.d2-1826877345 .stroke-B3{stroke:#E3E9FD;}
+		.d2-1826877345 .stroke-B4{stroke:#E3E9FD;}
+		.d2-1826877345 .stroke-B5{stroke:#EDF0FD;}
+		.d2-1826877345 .stroke-B6{stroke:#F7F8FE;}
+		.d2-1826877345 .stroke-AA2{stroke:#4A6FF3;}
+		.d2-1826877345 .stroke-AA4{stroke:#EDF0FD;}
+		.d2-1826877345 .stroke-AA5{stroke:#F7F8FE;}
+		.d2-1826877345 .stroke-AB4{stroke:#EDF0FD;}
+		.d2-1826877345 .stroke-AB5{stroke:#F7F8FE;}
+		.d2-1826877345 .background-color-N1{background-color:#0A0F25;}
+		.d2-1826877345 .background-color-N2{background-color:#676C7E;}
+		.d2-1826877345 .background-color-N3{background-color:#9499AB;}
+		.d2-1826877345 .background-color-N4{background-color:#CFD2DD;}
+		.d2-1826877345 .background-color-N5{background-color:#DEE1EB;}
+		.d2-1826877345 .background-color-N6{background-color:#EEF1F8;}
+		.d2-1826877345 .background-color-N7{background-color:#FFFFFF;}
+		.d2-1826877345 .background-color-B1{background-color:#0D32B2;}
+		.d2-1826877345 .background-color-B2{background-color:#0D32B2;}
+		.d2-1826877345 .background-color-B3{background-color:#E3E9FD;}
+		.d2-1826877345 .background-color-B4{background-color:#E3E9FD;}
+		.d2-1826877345 .background-color-B5{background-color:#EDF0FD;}
+		.d2-1826877345 .background-color-B6{background-color:#F7F8FE;}
+		.d2-1826877345 .background-color-AA2{background-color:#4A6FF3;}
+		.d2-1826877345 .background-color-AA4{background-color:#EDF0FD;}
+		.d2-1826877345 .background-color-AA5{background-color:#F7F8FE;}
+		.d2-1826877345 .background-color-AB4{background-color:#EDF0FD;}
+		.d2-1826877345 .background-color-AB5{background-color:#F7F8FE;}
+		.d2-1826877345 .color-N1{color:#0A0F25;}
+		.d2-1826877345 .color-N2{color:#676C7E;}
+		.d2-1826877345 .color-N3{color:#9499AB;}
+		.d2-1826877345 .color-N4{color:#CFD2DD;}
+		.d2-1826877345 .color-N5{color:#DEE1EB;}
+		.d2-1826877345 .color-N6{color:#EEF1F8;}
+		.d2-1826877345 .color-N7{color:#FFFFFF;}
+		.d2-1826877345 .color-B1{color:#0D32B2;}
+		.d2-1826877345 .color-B2{color:#0D32B2;}
+		.d2-1826877345 .color-B3{color:#E3E9FD;}
+		.d2-1826877345 .color-B4{color:#E3E9FD;}
+		.d2-1826877345 .color-B5{color:#EDF0FD;}
+		.d2-1826877345 .color-B6{color:#F7F8FE;}
+		.d2-1826877345 .color-AA2{color:#4A6FF3;}
+		.d2-1826877345 .color-AA4{color:#EDF0FD;}
+		.d2-1826877345 .color-AA5{color:#F7F8FE;}
+		.d2-1826877345 .color-AB4{color:#EDF0FD;}
+		.d2-1826877345 .color-AB5{color:#F7F8FE;}.appendix text.text{fill:#0A0F25}.md{--color-fg-default:#0A0F25;--color-fg-muted:#676C7E;--color-fg-subtle:#9499AB;--color-canvas-default:#FFFFFF;--color-canvas-subtle:#EEF1F8;--color-border-default:#0D32B2;--color-border-muted:#0D32B2;--color-neutral-muted:#EEF1F8;--color-accent-fg:#0D32B2;--color-accent-emphasis:#0D32B2;--color-attention-subtle:#676C7E;--color-danger-fg:red;}.sketch-overlay-B1{fill:url(#streaks-darker-d2-1826877345);mix-blend-mode:lighten}.sketch-overlay-B2{fill:url(#streaks-darker-d2-1826877345);mix-blend-mode:lighten}.sketch-overlay-B3{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-B4{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-B5{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-B6{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-AA2{fill:url(#streaks-dark-d2-1826877345);mix-blend-mode:overlay}.sketch-overlay-AA4{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-AA5{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-AB4{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-AB5{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-N1{fill:url(#streaks-darker-d2-1826877345);mix-blend-mode:lighten}.sketch-overlay-N2{fill:url(#streaks-dark-d2-1826877345);mix-blend-mode:overlay}.sketch-overlay-N3{fill:url(#streaks-normal-d2-1826877345);mix-blend-mode:color-burn}.sketch-overlay-N4{fill:url(#streaks-normal-d2-1826877345);mix-blend-mode:color-burn}.sketch-overlay-N5{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-N6{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.sketch-overlay-N7{fill:url(#streaks-bright-d2-1826877345);mix-blend-mode:darken}.light-code{display: block}.dark-code{display: none}]]></style><style type="text/css">.d2-1826877345 .md em,
+.d2-1826877345 .md dfn {
+  font-family: "d2-1826877345-font-italic";
+}
+
+.d2-1826877345 .md b,
+.d2-1826877345 .md strong {
+  font-family: "d2-1826877345-font-bold";
+}
+
+.d2-1826877345 .md code,
+.d2-1826877345 .md kbd,
+.d2-1826877345 .md pre,
+.d2-1826877345 .md samp {
+  font-family: "d2-1826877345-font-mono";
+  font-size: 1em;
+}
+
+.d2-1826877345 .md {
+  tab-size: 4;
+}
+
+/* variables are provided in d2renderers/d2svg/d2svg.go */
+
+.d2-1826877345 .md {
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  margin: 0;
+  background-color: transparent; /* we don't want to define the background color */
+  font-family: "d2-1826877345-font-regular";
+  font-size: 16px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.d2-1826877345 .md details,
+.d2-1826877345 .md figcaption,
+.d2-1826877345 .md figure {
+  display: block;
+}
+
+.d2-1826877345 .md summary {
+  display: list-item;
+}
+
+.d2-1826877345 .md [hidden] {
+  display: none !important;
+}
+
+.d2-1826877345 .md a {
+  background-color: transparent;
+  color: var(--color-accent-fg);
+  text-decoration: none;
+}
+
+.d2-1826877345 .md a:active,
+.d2-1826877345 .md a:hover {
+  outline-width: 0;
+}
+
+.d2-1826877345 .md abbr[title] {
+  border-bottom: none;
+  text-decoration: underline dotted;
+}
+
+.d2-1826877345 .md dfn {
+  font-style: italic;
+}
+
+.d2-1826877345 .md h1 {
+  margin: 0.67em 0;
+  padding-bottom: 0.3em;
+  font-size: 2em;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.d2-1826877345 .md mark {
+  background-color: var(--color-attention-subtle);
+  color: var(--color-text-primary);
+}
+
+.d2-1826877345 .md small {
+  font-size: 90%;
+}
+
+.d2-1826877345 .md sub,
+.d2-1826877345 .md sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.d2-1826877345 .md sub {
+  bottom: -0.25em;
+}
+
+.d2-1826877345 .md sup {
+  top: -0.5em;
+}
+
+.d2-1826877345 .md img {
+  border-style: none;
+  max-width: 100%;
+  box-sizing: content-box;
+  background-color: var(--color-canvas-default);
+}
+
+.d2-1826877345 .md figure {
+  margin: 1em 40px;
+}
+
+.d2-1826877345 .md hr {
+  box-sizing: content-box;
+  overflow: hidden;
+  background: transparent;
+  border-bottom: 1px solid var(--color-border-muted);
+  height: 0.25em;
+  padding: 0;
+  margin: 24px 0;
+  background-color: var(--color-border-default);
+  border: 0;
+}
+
+.d2-1826877345 .md input {
+  font: inherit;
+  margin: 0;
+  overflow: visible;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.d2-1826877345 .md [type="button"],
+.d2-1826877345 .md [type="reset"],
+.d2-1826877345 .md [type="submit"] {
+  -webkit-appearance: button;
+}
+
+.d2-1826877345 .md [type="button"]::-moz-focus-inner,
+.d2-1826877345 .md [type="reset"]::-moz-focus-inner,
+.d2-1826877345 .md [type="submit"]::-moz-focus-inner {
+  border-style: none;
+  padding: 0;
+}
+
+.d2-1826877345 .md [type="button"]:-moz-focusring,
+.d2-1826877345 .md [type="reset"]:-moz-focusring,
+.d2-1826877345 .md [type="submit"]:-moz-focusring {
+  outline: 1px dotted ButtonText;
+}
+
+.d2-1826877345 .md [type="checkbox"],
+.d2-1826877345 .md [type="radio"] {
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.d2-1826877345 .md [type="number"]::-webkit-inner-spin-button,
+.d2-1826877345 .md [type="number"]::-webkit-outer-spin-button {
+  height: auto;
+}
+
+.d2-1826877345 .md [type="search"] {
+  -webkit-appearance: textfield;
+  outline-offset: -2px;
+}
+
+.d2-1826877345 .md [type="search"]::-webkit-search-cancel-button,
+.d2-1826877345 .md [type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+.d2-1826877345 .md ::-webkit-input-placeholder {
+  color: inherit;
+  opacity: 0.54;
+}
+
+.d2-1826877345 .md ::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  font: inherit;
+}
+
+.d2-1826877345 .md a:hover {
+  text-decoration: underline;
+}
+
+.d2-1826877345 .md hr::before {
+  display: table;
+  content: "";
+}
+
+.d2-1826877345 .md hr::after {
+  display: table;
+  clear: both;
+  content: "";
+}
+
+.d2-1826877345 .md table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.d2-1826877345 .md td,
+.d2-1826877345 .md th {
+  padding: 0;
+}
+
+.d2-1826877345 .md details summary {
+  cursor: pointer;
+}
+
+.d2-1826877345 .md details:not([open]) > *:not(summary) {
+  display: none !important;
+}
+
+.d2-1826877345 .md kbd {
+  display: inline-block;
+  padding: 3px 5px;
+  color: var(--color-fg-default);
+  vertical-align: middle;
+  background-color: var(--color-canvas-subtle);
+  border: solid 1px var(--color-neutral-muted);
+  border-bottom-color: var(--color-neutral-muted);
+  border-radius: 6px;
+  box-shadow: inset 0 -1px 0 var(--color-neutral-muted);
+}
+
+.d2-1826877345 .md h1,
+.d2-1826877345 .md h2,
+.d2-1826877345 .md h3,
+.d2-1826877345 .md h4,
+.d2-1826877345 .md h5,
+.d2-1826877345 .md h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 400;
+  line-height: 1.25;
+  font-family: "d2-1826877345-font-semibold";
+}
+
+.d2-1826877345 .md h2 {
+  padding-bottom: 0.3em;
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.d2-1826877345 .md h3 {
+  font-size: 1.25em;
+}
+
+.d2-1826877345 .md h4 {
+  font-size: 1em;
+}
+
+.d2-1826877345 .md h5 {
+  font-size: 0.875em;
+}
+
+.d2-1826877345 .md h6 {
+  font-size: 0.85em;
+  color: var(--color-fg-muted);
+}
+
+.d2-1826877345 .md p {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.d2-1826877345 .md blockquote {
+  margin: 0;
+  padding: 0 1em;
+  color: var(--color-fg-muted);
+  border-left: 0.25em solid var(--color-border-default);
+}
+
+.d2-1826877345 .md ul,
+.d2-1826877345 .md ol {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-left: 2em;
+}
+
+.d2-1826877345 .md ol ol,
+.d2-1826877345 .md ul ol {
+  list-style-type: lower-roman;
+}
+
+.d2-1826877345 .md ul ul ol,
+.d2-1826877345 .md ul ol ol,
+.d2-1826877345 .md ol ul ol,
+.d2-1826877345 .md ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+.d2-1826877345 .md dd {
+  margin-left: 0;
+}
+
+.d2-1826877345 .md pre {
+  margin-top: 0;
+  margin-bottom: 0;
+  word-wrap: normal;
+}
+
+.d2-1826877345 .md ::placeholder {
+  color: var(--color-fg-subtle);
+  opacity: 1;
+}
+
+.d2-1826877345 .md input::-webkit-outer-spin-button,
+.d2-1826877345 .md input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.d2-1826877345 .md::before {
+  display: table;
+  content: "";
+}
+
+.d2-1826877345 .md::after {
+  display: table;
+  clear: both;
+  content: "";
+}
+
+.d2-1826877345 .md > *:first-child {
+  margin-top: 0 !important;
+}
+
+.d2-1826877345 .md > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+.d2-1826877345 .md a:not([href]) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.d2-1826877345 .md .absent {
+  color: var(--color-danger-fg);
+}
+
+.d2-1826877345 .md .anchor {
+  float: left;
+  padding-right: 4px;
+  margin-left: -20px;
+  line-height: 1;
+}
+
+.d2-1826877345 .md .anchor:focus {
+  outline: none;
+}
+
+.d2-1826877345 .md p,
+.d2-1826877345 .md blockquote,
+.d2-1826877345 .md ul,
+.d2-1826877345 .md ol,
+.d2-1826877345 .md dl,
+.d2-1826877345 .md table,
+.d2-1826877345 .md pre,
+.d2-1826877345 .md details {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.d2-1826877345 .md blockquote > :first-child {
+  margin-top: 0;
+}
+
+.d2-1826877345 .md blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.d2-1826877345 .md sup > a::before {
+  content: "[";
+}
+
+.d2-1826877345 .md sup > a::after {
+  content: "]";
+}
+
+.d2-1826877345 .md h1:hover .anchor,
+.d2-1826877345 .md h2:hover .anchor,
+.d2-1826877345 .md h3:hover .anchor,
+.d2-1826877345 .md h4:hover .anchor,
+.d2-1826877345 .md h5:hover .anchor,
+.d2-1826877345 .md h6:hover .anchor {
+  text-decoration: none;
+}
+
+.d2-1826877345 .md h1 tt,
+.d2-1826877345 .md h1 code,
+.d2-1826877345 .md h2 tt,
+.d2-1826877345 .md h2 code,
+.d2-1826877345 .md h3 tt,
+.d2-1826877345 .md h3 code,
+.d2-1826877345 .md h4 tt,
+.d2-1826877345 .md h4 code,
+.d2-1826877345 .md h5 tt,
+.d2-1826877345 .md h5 code,
+.d2-1826877345 .md h6 tt,
+.d2-1826877345 .md h6 code {
+  padding: 0 0.2em;
+  font-size: inherit;
+}
+
+.d2-1826877345 .md ul.no-list,
+.d2-1826877345 .md ol.no-list {
+  padding: 0;
+  list-style-type: none;
+}
+
+.d2-1826877345 .md ol[type="1"] {
+  list-style-type: decimal;
+}
+
+.d2-1826877345 .md ol[type="a"] {
+  list-style-type: lower-alpha;
+}
+
+.d2-1826877345 .md ol[type="i"] {
+  list-style-type: lower-roman;
+}
+
+.d2-1826877345 .md div > ol:not([type]) {
+  list-style-type: decimal;
+}
+
+.d2-1826877345 .md ul ul,
+.d2-1826877345 .md ul ol,
+.d2-1826877345 .md ol ol,
+.d2-1826877345 .md ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.d2-1826877345 .md li > p {
+  margin-top: 16px;
+}
+
+.d2-1826877345 .md li + li {
+  margin-top: 0.25em;
+}
+
+.d2-1826877345 .md dl {
+  padding: 0;
+}
+
+.d2-1826877345 .md dl dt {
+  padding: 0;
+  margin-top: 16px;
+  font-size: 1em;
+  font-style: italic;
+  font-family: "d2-1826877345-font-semibold";
+}
+
+.d2-1826877345 .md dl dd {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.d2-1826877345 .md table th {
+  font-family: "d2-1826877345-font-semibold";
+}
+
+.d2-1826877345 .md table th,
+.d2-1826877345 .md table td {
+  padding: 6px 13px;
+  border: 1px solid var(--color-border-default);
+}
+
+.d2-1826877345 .md table tr {
+  background-color: var(--color-canvas-default);
+  border-top: 1px solid var(--color-border-muted);
+}
+
+.d2-1826877345 .md table tr:nth-child(2n) {
+  background-color: var(--color-canvas-subtle);
+}
+
+.d2-1826877345 .md table img {
+  background-color: transparent;
+}
+
+.d2-1826877345 .md img[align="right"] {
+  padding-left: 20px;
+}
+
+.d2-1826877345 .md img[align="left"] {
+  padding-right: 20px;
+}
+
+.d2-1826877345 .md span.frame {
+  display: block;
+  overflow: hidden;
+}
+
+.d2-1826877345 .md span.frame > span {
+  display: block;
+  float: left;
+  width: auto;
+  padding: 7px;
+  margin: 13px 0 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+}
+
+.d2-1826877345 .md span.frame span img {
+  display: block;
+  float: left;
+}
+
+.d2-1826877345 .md span.frame span span {
+  display: block;
+  padding: 5px 0 0;
+  clear: both;
+  color: var(--color-fg-default);
+}
+
+.d2-1826877345 .md span.align-center {
+  display: block;
+  overflow: hidden;
+  clear: both;
+}
+
+.d2-1826877345 .md span.align-center > span {
+  display: block;
+  margin: 13px auto 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.d2-1826877345 .md span.align-center span img {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.d2-1826877345 .md span.align-right {
+  display: block;
+  overflow: hidden;
+  clear: both;
+}
+
+.d2-1826877345 .md span.align-right > span {
+  display: block;
+  margin: 13px 0 0;
+  overflow: hidden;
+  text-align: right;
+}
+
+.d2-1826877345 .md span.align-right span img {
+  margin: 0;
+  text-align: right;
+}
+
+.d2-1826877345 .md span.float-left {
+  display: block;
+  float: left;
+  margin-right: 13px;
+  overflow: hidden;
+}
+
+.d2-1826877345 .md span.float-left span {
+  margin: 13px 0 0;
+}
+
+.d2-1826877345 .md span.float-right {
+  display: block;
+  float: right;
+  margin-left: 13px;
+  overflow: hidden;
+}
+
+.d2-1826877345 .md span.float-right > span {
+  display: block;
+  margin: 13px auto 0;
+  overflow: hidden;
+  text-align: right;
+}
+
+.d2-1826877345 .md code,
+.d2-1826877345 .md tt {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: var(--color-neutral-muted);
+  border-radius: 6px;
+}
+
+.d2-1826877345 .md code br,
+.d2-1826877345 .md tt br {
+  display: none;
+}
+
+.d2-1826877345 .md del code {
+  text-decoration: inherit;
+}
+
+.d2-1826877345 .md pre code {
+  font-size: 100%;
+}
+
+.d2-1826877345 .md pre > code {
+  padding: 0;
+  margin: 0;
+  word-break: normal;
+  white-space: pre;
+  background: transparent;
+  border: 0;
+}
+
+.d2-1826877345 .md .highlight {
+  margin-bottom: 16px;
+}
+
+.d2-1826877345 .md .highlight pre {
+  margin-bottom: 0;
+  word-break: normal;
+}
+
+.d2-1826877345 .md .highlight pre,
+.d2-1826877345 .md pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: var(--color-canvas-subtle);
+  border-radius: 6px;
+}
+
+.d2-1826877345 .md pre code,
+.d2-1826877345 .md pre tt {
+  display: inline;
+  max-width: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+.d2-1826877345 .md .csv-data td,
+.d2-1826877345 .md .csv-data th {
+  padding: 5px;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.d2-1826877345 .md .csv-data .blob-num {
+  padding: 10px 8px 9px;
+  text-align: right;
+  background: var(--color-canvas-default);
+  border: 0;
+}
+
+.d2-1826877345 .md .csv-data tr {
+  border-top: 0;
+}
+
+.d2-1826877345 .md .csv-data th {
+  font-family: "d2-1826877345-font-semibold";
+  background: var(--color-canvas-subtle);
+  border-top: 0;
+}
+
+.d2-1826877345 .md .footnotes {
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.d2-1826877345 .md .footnotes ol {
+  padding-left: 16px;
+}
+
+.d2-1826877345 .md .footnotes li {
+  position: relative;
+}
+
+.d2-1826877345 .md .footnotes li:target::before {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  bottom: -8px;
+  left: -24px;
+  pointer-events: none;
+  content: "";
+  border: 2px solid var(--color-accent-emphasis);
+  border-radius: 6px;
+}
+
+.d2-1826877345 .md .footnotes li:target {
+  color: var(--color-fg-default);
+}
+
+.d2-1826877345 .md .task-list-item {
+  list-style-type: none;
+}
+
+.d2-1826877345 .md .task-list-item label {
+  font-weight: 400;
+}
+
+.d2-1826877345 .md .task-list-item.enabled label {
+  cursor: pointer;
+}
+
+.d2-1826877345 .md .task-list-item + .task-list-item {
+  margin-top: 3px;
+}
+
+.d2-1826877345 .md .task-list-item .handle {
+  display: none;
+}
+
+.d2-1826877345 .md .task-list-item-checkbox {
+  margin: 0 0.2em 0.25em -1.6em;
+  vertical-align: middle;
+}
+
+.d2-1826877345 .md .contains-task-list:dir(rtl) .task-list-item-checkbox {
+  margin: 0 -1.6em 0.25em 0.2em;
+}
+</style><g class="a2lkcw=="><g class="shape" ><path d="M 273 1903 H 36 V 1899 C 36 1857 62 1819 103 1800 C 80 1786 67 1762 67 1736 C 67 1691 106 1655 154 1655 C 202 1655 241 1691 241 1736 C 241 1762 228 1786 205 1801 C 246 1819 272 1857 272 1900 V 1903 H 273 Z" stroke="#0D32B2" fill="#B8E0D2" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="43.500000" y="1908.000000" width="222" height="203"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#B8E0D2"><h1>Niños (6-9 años)</h1>
+<p>[Person]</p>
+<p>Usuario principal que interactúa<br />
+con bloques tangibles y trazos<br />
+gestuales para construir<br />
+programas dataflow</p>
+</div></foreignObject></g></g><g class="c3lzdGVt"><g class="shape" ><rect x="423.000000" y="0.000000" width="3043.000000" height="4515.000000" stroke="#0D32B2" fill="#EAC4D5" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="428.000000" y="4221.000000" width="1069" height="289"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="font-size:28px;background-color:#EAC4D5"><h1>Sistema de Programación Tangible Dataflow</h1>
+<p>[Software System]</p>
+<p>Ambiente de programación tangible<br />
+con realidad aumentada espacial para<br />
+desarrollo del pensamiento computacional</p>
+</div></foreignObject></g></g><g class="a2luZWN0"><g class="shape" ><rect x="0.000000" y="2196.000000" width="273.000000" height="200.000000" stroke="#888888" fill="#E0E0E0" style="stroke-width:2;stroke-dasharray:6.000000,5.919384;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="22.500000" y="2218.500000" width="228" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#E0E0E0"><h1>Kinect Sensor v2</h1>
+<p>[Software System]</p>
+<p>Cámara RGB-D para captura<br />
+de escena física</p>
+</div></foreignObject></g></g><g class="cHJvamVjdG9y"><g class="shape" ><rect x="30.000000" y="1355.000000" width="250.000000" height="200.000000" stroke="#888888" fill="#E0E0E0" style="stroke-width:2;stroke-dasharray:6.000000,5.919384;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="52.500000" y="1377.500000" width="205" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#E0E0E0"><h1>Proyector</h1>
+<p>[Software System]</p>
+<p>Proyecta GUI con visualización<br />
+RA sobre superficie</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmN2bQ=="><g class="shape" ><rect x="483.000000" y="1729.000000" width="888.000000" height="1134.000000" stroke="#0D32B2" fill="#A8DADC" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="488.000000" y="2606.000000" width="710" height="252"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="font-size:24px;background-color:#A8DADC"><h1>Gestor de Visión por Computadora</h1>
+<p>[Container<!--: Python + OpenCV -->]</p>
+<p>Percepción del mundo físico: detecta<br />
+bloques tangibles y trazos gestuales<br />
+para digitalizarlos</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWU="><g class="shape" ><rect x="1816.000000" y="2341.000000" width="1590.000000" height="1874.000000" stroke="#0D32B2" fill="#f4b379" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1821.000000" y="3994.000000" width="928" height="216"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="font-size:24px;background-color:#f4b379"><h1>Ambiente de Ejecución de Lenguaje Dataflow</h1>
+<p>[Container<!--: TypeScript/Node.js-->]</p>
+<p>Compilador y evaluador del lenguaje\
+dataflow: parsea, valida<!--, optimiza--><br />
+y ejecuta programas</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZQ=="><g class="shape" ><rect x="2008.000000" y="59.000000" width="1311.000000" height="2156.000000" stroke="#0D32B2" fill="#457B9D" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2013.000000" y="1994.000000" width="666" height="216"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="font-size:24px;background-color:#457B9D"><h1>Entorno de Desarrollo Integrado</h1>
+<p>[Container<!--: React + TypeScript-->]</p>
+<p>Interfaz principal: visualización RA,<br />
+feedback, gestión de actividades</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmFkYg=="><g class="shape" ><path d="M 1414 422 C 1414 398 1614 398 1636 398 C 1658 398 1858 398 1858 422 V 650 C 1858 674 1658 674 1636 674 C 1614 674 1414 674 1414 650 V 422 Z" stroke="#FFFFFF" fill="#1D3557" style="stroke-width:2;" /><path d="M 1414 422 C 1414 446 1614 446 1636 446 C 1658 446 1858 446 1858 422" stroke="#FFFFFF" fill="#1D3557" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1419.000000" y="466.000000" width="399" height="179"><div xmlns="http://www.w3.org/1999/xhtml" class="md" style="background-color:#1D3557;color:#FFFFFF"><h1>Base de Datos de Actividades</h1>
+<p>[Container<!--: PostgreSQL + REST API-->]</p>
+<p>Almacena actividades,<br />
+progreso de usuarios,<br />
+configuraciones de sistema</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmN2bS5ibG9ja19kZXRlY3Rvcg=="><g class="shape" ><rect x="543.000000" y="1789.000000" width="324.000000" height="200.000000" stroke="#0D32B2" fill="#B8E6E8" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="565.500000" y="1811.500000" width="279" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#B8E6E8"><h1>Detector de Bloques</h1>
+<p>[Component]</p>
+<p>Detecta y reconoce bloques<br />
+tangibles y extrae metadatos</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmN2bS5nZXN0dXJlX3JlY29nbml6ZXI="><g class="shape" ><rect x="917.000000" y="1789.000000" width="367.000000" height="200.000000" stroke="#0D32B2" fill="#B8E6E8" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="939.500000" y="1811.500000" width="322" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#B8E6E8"><h1>Reconocedor de Gestos</h1>
+<p>[Component]</p>
+<p>Detecta trazos dibujados con dedo<br />
+sobre superficie</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmN2bS5zcGF0aWFsX21hcHBlcg=="><g class="shape" ><rect x="776.000000" y="2113.000000" width="254.000000" height="224.000000" stroke="#0D32B2" fill="#B8E6E8" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="798.500000" y="2135.500000" width="209" height="179"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#B8E6E8"><h1>Cartógrafo</h1>
+<p>[Component]</p>
+<p>Mapea coordenadas físicas 3D<br />
+a coordenadas lógicas 2D de la<br />
+red dataflow</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmN2bS5qc29uX3NlcmlhbGl6ZXI="><g class="shape" ><rect x="917.000000" y="2401.000000" width="394.000000" height="200.000000" stroke="#0D32B2" fill="#B8E6E8" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="939.500000" y="2423.500000" width="349" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#B8E6E8"><h1>Serializador JSON</h1>
+<p>[Component]</p>
+<p>Serializa detecciones a\
+formato JSON con esquema<br />
+de programa dataflow</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUubGV4ZXI="><g class="shape" ><rect x="1876.000000" y="2413.000000" width="191.000000" height="176.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1898.500000" y="2435.500000" width="146" height="131"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>Lexer</h1>
+<p>[Component]</p>
+<p>Parsea JSON a tokens</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUucGFyc2Vy"><g class="shape" ><rect x="2571.000000" y="2401.000000" width="225.000000" height="200.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2593.500000" y="2423.500000" width="180" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>Parser</h1>
+<p>[Component]</p>
+<p>Valida que los tokens sigan<br />
+la gramática del lenguaje</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuYXN0X2J1aWxkZXI="><g class="shape" ><rect x="2568.000000" y="2751.000000" width="230.000000" height="200.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2590.500000" y="2773.500000" width="185" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>AST Builder</h1>
+<p>[Component]</p>
+<p>Construye AST para análisis<br />
+semántico</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuc2VtYW50aWNfYW5hbHl6ZXI="><g class="shape" ><rect x="2926.000000" y="2763.000000" width="348.000000" height="176.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2948.500000" y="2785.500000" width="303" height="131"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>Analizador Semántico</h1>
+<p>[Component]</p>
+<p>Valida semántica<!--: tipos, DAG (ciclos), aridad, conectividad--></p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUudG9wb2xvZ2ljYWxfc29ydGVy"><g class="shape" ><rect x="2990.000000" y="3439.000000" width="356.000000" height="200.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="3012.500000" y="3461.500000" width="311" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>Ordenador Topológico</h1>
+<p>[Component]</p>
+<p>Ordena nodos para evaluación<br />
+según dependencias</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuZXZhbHVhdG9y"><g class="shape" ><rect x="2482.000000" y="3439.000000" width="358.000000" height="200.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2504.500000" y="3461.500000" width="313" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>Evaluador de Dataflow</h1>
+<p>[Component]</p>
+<p>Evalúa nodos, propaga datos<br />
+por arcos</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuc3RyZWFtX21hbmFnZXI="><g class="shape" ><rect x="2512.000000" y="3789.000000" width="298.000000" height="200.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2534.500000" y="3811.500000" width="253" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>Gestor de Streams</h1>
+<p>[Component]</p>
+<p>Gestiona bloques especiales<br />
+de streams</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuc3RhdGVfdHJhY2tlcg=="><g class="shape" ><rect x="2840.000000" y="3089.000000" width="278.000000" height="200.000000" stroke="#0D32B2" fill="#F9C89B" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2862.500000" y="3111.500000" width="233" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#F9C89B"><h1>Gestor de Estado</h1>
+<p>[Component]</p>
+<p>Gestiona estado de nodos/arcos,<br />
+genera traza de ejecución</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS5tZW51X3N5c3RlbQ=="><g class="shape" ><rect x="2112.000000" y="119.000000" width="279.000000" height="200.000000" stroke="#0D32B2" fill="#5A8DAE" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2134.500000" y="141.500000" width="234" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#5A8DAE"><h1>Sistema de Menú</h1>
+<p>[Component]</p>
+<p>Menú principal y navegación<br />
+entre vistas</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS5hY3Rpdml0eV9zZWxlY3Rvcg=="><g class="shape" ><rect x="2068.000000" y="535.000000" width="366.000000" height="200.000000" stroke="#0D32B2" fill="#5A8DAE" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2090.500000" y="557.500000" width="321" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#5A8DAE"><h1>Selector de Actividades</h1>
+<p>[Component]</p>
+<p>Presenta actividades disponibles,<br />
+agrupa por nivel</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS53b3Jrc3BhY2VfZWRpdG9y"><g class="shape" ><rect x="2068.000000" y="951.000000" width="437.000000" height="200.000000" stroke="#0D32B2" fill="#5A8DAE" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2090.500000" y="973.500000" width="392" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#5A8DAE"><h1>Editor de Espacio de Trabajo</h1>
+<p>[Component]</p>
+<p>Canvas interactivo donde niños<br />
+construyen redes</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS5hcl9yZW5kZXJlcg=="><g class="shape" ><rect x="2505.000000" y="1367.000000" width="315.000000" height="176.000000" stroke="#0D32B2" fill="#5A8DAE" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2527.500000" y="1389.500000" width="270" height="131"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#5A8DAE"><h1>Renderizador de RA</h1>
+<p>[Component]</p>
+<p>Renderiza visualización RA</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS5mZWVkYmFja19tYW5hZ2Vy"><g class="shape" ><rect x="2942.000000" y="1789.000000" width="317.000000" height="200.000000" stroke="#0D32B2" fill="#5A8DAE" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2964.500000" y="1811.500000" width="272" height="155"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#5A8DAE"><h1>Gestor de Feedback</h1>
+<p>[Component]</p>
+<p>Muestra errores, hints y<br />
+validaciones en la interfaz</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS5leGVjdXRpb25fdmlzdWFsaXplcg=="><g class="shape" ><rect x="2505.000000" y="1789.000000" width="396.000000" height="176.000000" stroke="#0D32B2" fill="#5A8DAE" class=" stroke-B1" style="stroke-width:2;" /></g><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2527.500000" y="1811.500000" width="351" height="131"><div xmlns="http://www.w3.org/1999/xhtml" class="md color-N1" style="background-color:#5A8DAE"><h1>Visualizador de Ejecución</h1>
+<p>[Component]</p>
+<p>Anima flujo de datos durante ejecución</p>
+</div></foreignObject></g></g><g class="KGtpZHMgLSZndDsgc3lzdGVtLmN2bSlbMF0="><marker id="mk-d2-1826877345-2386689455" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#6B9080" class="connection" stroke-width="2" /> </marker><path d="M 232.000000 1816.000000 L 479.000000 1816.000000" stroke="#6B9080" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-2386689455)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="281.000000" y="1762.000000" width="189" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Coloca bloques tangibles y<br />
+traza conexiones con dedos</p>
+</div></foreignObject></g></g><g class="KGtpbmVjdCAtJmd0OyBzeXN0ZW0uY3ZtKVswXQ=="><marker id="mk-d2-1826877345-3298392573" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#457B9D" class="connection" stroke-width="2" /> </marker><path d="M 275.000000 2296.000000 L 479.000000 2296.000000" stroke="#457B9D" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3298392573)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="278.000000" y="2266.000000" width="96" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Frames RGB-D</p>
+<!--30 FPS, 1920x1080--></div></foreignObject></g></g><g class="c3lzdGVtLmN2bS4oYmxvY2tfZGV0ZWN0b3IgLSZndDsgc3BhdGlhbF9tYXBwZXIpWzBd"><marker id="mk-d2-1826877345-3488378134" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#0D32B2" class="connection fill-B1" stroke-width="2" /> </marker><path d="M 705.000000 1991.000000 L 705.000000 2053.000000 S 705.000000 2063.000000 715.000000 2063.000000 L 893.000000 2063.000000 S 903.000000 2063.000000 903.000000 2073.000000 L 903.000000 2109.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="711.000000" y="2014.000000" width="134" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Bloques detectados</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmN2bS4oZ2VzdHVyZV9yZWNvZ25pemVyIC0mZ3Q7IHNwYXRpYWxfbWFwcGVyKVswXQ=="><path d="M 1101.000000 1991.000000 L 1101.000000 2053.000000 S 1101.000000 2063.000000 1091.000000 2063.000000 L 913.000000 2063.000000 S 903.000000 2063.000000 903.000000 2073.000000 L 903.000000 2109.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="971.000000" y="2014.000000" width="124" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Trazos detectados</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmN2bS4oc3BhdGlhbF9tYXBwZXIgLSZndDsganNvbl9zZXJpYWxpemVyKVswXQ=="><path d="M 1032.000000 2225.000000 L 1104.000000 2225.000000 S 1114.000000 2225.000000 1114.000000 2235.000000 L 1114.000000 2397.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1044.000000" y="2259.000000" width="141" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Entidades mapeadas</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLihjdm0uanNvbl9zZXJpYWxpemVyIC0mZ3Q7IGRsZWUubGV4ZXIpWzBd"><marker id="mk-d2-1826877345-4047928770" markerWidth="13.000000" markerHeight="16.000000" refX="8.500000" refY="8.000000" viewBox="0.000000 0.000000 13.000000 16.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 13.000000,8.000000 0.000000,16.000000" fill="#f2892d" class="connection" stroke-width="3" /> </marker><path d="M 1313.500000 2501.000000 L 1870.500000 2501.000000" stroke="#f2892d" fill="none" class="connection" style="stroke-width:3;" marker-end="url(#mk-d2-1826877345-4047928770)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1481.000000" y="2471.000000" width="225" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>JSON-RPC a través de WebSocket</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuKGxleGVyIC0mZ3Q7IHBhcnNlcilbMF0="><path d="M 2069.000000 2501.000000 L 2567.000000 2501.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2295.000000" y="2471.000000" width="49" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Tokens</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuKHBhcnNlciAtJmd0OyBhc3RfYnVpbGRlcilbMF0="><path d="M 2683.000000 2603.000000 L 2683.000000 2747.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2485.000000" y="2664.000000" width="192" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Tokens con gramática válida</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuKGFzdF9idWlsZGVyIC0mZ3Q7IHNlbWFudGljX2FuYWx5emVyKVswXQ=="><path d="M 2800.000000 2851.000000 L 2922.000000 2851.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2817.000000" y="2821.000000" width="27" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>AST</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuKHNlbWFudGljX2FuYWx5emVyIC0mZ3Q7IHRvcG9sb2dpY2FsX3NvcnRlcilbMF0="><path d="M 3196.000000 2941.000000 L 3196.000000 3435.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="3202.000000" y="3177.000000" width="86" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>AST anotado</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuKHRvcG9sb2dpY2FsX3NvcnRlciAtJmd0OyBldmFsdWF0b3IpWzBd"><path d="M 2988.000000 3539.000000 L 2844.000000 3539.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2856.000000" y="3545.000000" width="119" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Nodos ordenados</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuKGV2YWx1YXRvciAtJmd0OyBzdHJlYW1fbWFuYWdlcilbMF0="><path d="M 2661.000000 3641.000000 L 2661.000000 3785.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2667.000000" y="3690.000000" width="137" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Requiere evaluación<br />
+de stream</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmRsZWUuKGV2YWx1YXRvciAtJmd0OyBzdGF0ZV90cmFja2VyKVswXQ=="><path d="M 2661.000000 3437.000000 L 2661.000000 3199.000000 S 2661.000000 3189.000000 2671.000000 3189.000000 L 2836.000000 3189.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2547.000000" y="3201.000000" width="108" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Notifica estado<br />
+de nodos/arcos</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLihkbGVlLnNlbWFudGljX2FuYWx5emVyIC0mZ3Q7IGlkZS5mZWVkYmFja19tYW5hZ2VyKVswXQ=="><marker id="mk-d2-1826877345-3729757663" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#E63946" class="connection" stroke-width="2" /> </marker><path d="M 3100.000000 2761.000000 L 3100.000000 1993.000000" stroke="#E63946" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3729757663)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2933.000000" y="2344.000000" width="161" height="64"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>LSP: publishDiagnostics</p>
+<p>Errores de compilación</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLihkbGVlLnN0YXRlX3RyYWNrZXIgLSZndDsgaWRlLmV4ZWN1dGlvbl92aXN1YWxpemVyKVswXQ=="><marker id="mk-d2-1826877345-3148356707" markerWidth="13.000000" markerHeight="16.000000" refX="8.500000" refY="8.000000" viewBox="0.000000 0.000000 13.000000 16.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 13.000000,8.000000 0.000000,16.000000" fill="#2A9D8F" class="connection" stroke-width="3" /> </marker><path d="M 2870.000000 3086.500000 L 2870.000000 1970.500000" stroke="#2A9D8F" fill="none" class="connection" style="stroke-width:3;" marker-end="url(#mk-d2-1826877345-3148356707)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2627.000000" y="2234.000000" width="237" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>WebSocket: execution/stateUpdate</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS4obWVudV9zeXN0ZW0gLSZndDsgYWN0aXZpdHlfc2VsZWN0b3IpWzBd"><path d="M 2251.000000 321.000000 L 2251.000000 531.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2257.000000" y="403.000000" width="128" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Navega a selección<br />
+de actividad</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS4oYWN0aXZpdHlfc2VsZWN0b3IgLSZndDsgd29ya3NwYWNlX2VkaXRvcilbMF0="><path d="M 2251.000000 737.000000 L 2251.000000 947.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2257.000000" y="819.000000" width="104" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Carga actividad<br />
+seleccionada</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS4od29ya3NwYWNlX2VkaXRvciAtJmd0OyBhcl9yZW5kZXJlcilbMF0="><path d="M 2507.000000 1051.000000 L 2652.000000 1051.000000 S 2662.000000 1051.000000 2662.000000 1061.000000 L 2662.000000 1363.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2668.000000" y="1107.000000" width="145" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Requiere renderizado<br />
+de escena</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLmlkZS4oZXhlY3V0aW9uX3Zpc3VhbGl6ZXIgLSZndDsgYXJfcmVuZGVyZXIpWzBd"><path d="M 2662.000000 1787.000000 L 2662.000000 1547.000000" stroke="#0D32B2" fill="none" class="connection stroke-B1" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3488378134)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="2523.000000" y="1642.000000" width="133" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Datos de animación<br />
+(flujo, estados)</p>
+</div></foreignObject></g></g><g class="KHN5c3RlbS5pZGUuYXJfcmVuZGVyZXIgLSZndDsgcHJvamVjdG9yKVswXQ=="><path d="M 2503.000000 1455.000000 L 284.000000 1455.000000" stroke="#457B9D" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-3298392573)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1329.000000" y="1461.000000" width="127" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Frame renderizado</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLihpZGUuYWN0aXZpdHlfc2VsZWN0b3IgLSZndDsgYWRiKVswXQ=="><marker id="mk-d2-1826877345-1048618843" markerWidth="10.000000" markerHeight="12.000000" refX="7.000000" refY="6.000000" viewBox="0.000000 0.000000 10.000000 12.000000" orient="auto" markerUnits="userSpaceOnUse"> <polygon points="0.000000,0.000000 10.000000,6.000000 0.000000,12.000000" fill="#1D3557" class="connection" stroke-width="2" /> </marker><path d="M 2066.000000 581.000000 L 1862.000000 581.000000" stroke="#1D3557" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-1048618843)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1864.000000" y="587.000000" width="187" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Obtener lista de actividades</p>
+</div></foreignObject></g></g><g class="c3lzdGVtLihhZGIgLSZndDsgaWRlLmFjdGl2aXR5X3NlbGVjdG9yKVswXQ=="><path d="M 1860.000000 627.000000 L 2064.000000 627.000000" stroke="#1D3557" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-1048618843)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="1867.000000" y="633.000000" width="193" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Devuelve lista de actividades</p>
+</div></foreignObject></g></g><g class="KHByb2plY3RvciAtJmd0OyBraWRzKVswXQ=="><path d="M 154.000000 1557.000000 L 154.000000 1651.000000" stroke="#6B9080" fill="none" class="connection" style="stroke-width:2;" marker-end="url(#mk-d2-1826877345-2386689455)" mask="url(#d2-1826877345)" /><g><foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" x="160.000000" y="1569.000000" width="148" height="72"><div xmlns="http://www.w3.org/1999/xhtml" class="md"><p>Muestra GUI con RA<br />
+(visualización de red,<br />
+feedback, resultados)</p>
+</div></foreignObject></g></g><mask id="d2-1826877345" maskUnits="userSpaceOnUse" x="-101" y="-101" width="3668" height="4717">
+<rect x="-101" y="-101" width="3668" height="4717" fill="white"></rect>
+<rect x="279.000000" y="1762.000000" width="193" height="48" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="276.000000" y="2266.000000" width="100" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="709.000000" y="2014.000000" width="138" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="969.000000" y="2014.000000" width="128" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="1042.000000" y="2259.000000" width="145" height="24" fill="black"></rect>
+<rect x="1479.000000" y="2471.000000" width="229" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2293.000000" y="2471.000000" width="53" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2483.000000" y="2664.000000" width="196" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2815.000000" y="2821.000000" width="31" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="3200.000000" y="3177.000000" width="90" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2854.000000" y="3545.000000" width="123" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2665.000000" y="3690.000000" width="141" height="48" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2545.000000" y="3201.000000" width="112" height="48" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2931.000000" y="2344.000000" width="165" height="64" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2625.000000" y="2234.000000" width="241" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2255.000000" y="403.000000" width="132" height="48" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2255.000000" y="819.000000" width="108" height="48" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2666.000000" y="1107.000000" width="149" height="48" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="2521.000000" y="1642.000000" width="137" height="48" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="1327.000000" y="1461.000000" width="131" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="1862.000000" y="587.000000" width="191" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="1865.000000" y="633.000000" width="197" height="24" fill="rgba(0,0,0,0.75)"></rect>
+<rect x="158.000000" y="1569.000000" width="152" height="72" fill="rgba(0,0,0,0.75)"></rect>
+</mask><text x="1733.000000" y="2257.000000" style="text-anchor:middle;font-size:229px;fill:black;opacity:0.3">UNLICENSED COPY</text></svg></svg>

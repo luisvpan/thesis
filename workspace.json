@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "type": "monorepo",
+  "root": "code",
+  "projects": [
+    {
+      "name": "cv-system",
+      "path": "code/cv-system",
+      "type": "python"
+    }
+  ]
+}

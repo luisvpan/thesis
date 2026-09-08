@@ -1,0 +1,33 @@
+names:
+- add
+- big circle
+- big square
+- boy
+- division
+- eight
+- five
+- four
+- grapes
+- medium circle
+- medium square
+- multiply
+- nine
+- one
+- seven
+- six
+- small circle
+- small square
+- subtract
+- three
+- turtle
+- two
+nc: 22
+roboflow:
+  license: CC BY 4.0
+  project: second-try-mqyuj
+  url: https://universe.roboflow.com/thesis-s4jik/second-try-mqyuj/dataset/2
+  version: 2
+  workspace: thesis-s4jik
+test: /content/drive/MyDrive/dataflow2/test_augmented/images
+train: /content/drive/MyDrive/dataflow2/train_augmented/images
+val: /content/drive/MyDrive/dataflow2/valid_augmented/images

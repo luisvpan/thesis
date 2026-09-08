@@ -1,0 +1,3 @@
+# Un solo `node_modules` en la raíz del workspace (comportamiento habitual de Bun).
+[install]
+linker = "hoisted"

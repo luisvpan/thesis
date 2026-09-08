@@ -1,0 +1,643 @@
+# Arquitectura del Sistema de Programación Tangible con Dataflow
+# Versión: 2.0 - Detallada con componentes internos
+
+vars: {
+  d2-config: {
+    theme-id: 303
+    layout-engine: tala
+  }
+}
+
+# ========== ACTORES ==========
+
+kids: |md
+  # Niños (6-9 años)
+  [Person]
+
+  Usuario principal que interactúa con bloques tangibles 
+  y trazos gestuales para construir redes dataflow
+| {
+  shape: person
+  style.fill: "#B8E0D2"
+}
+
+teacher: |md
+  # Docente
+  [Person]
+
+  Supervisor que gestiona actividades, monitorea 
+  progreso y guía el aprendizaje
+| {
+  shape: person
+  style.fill: "#D6EADF"
+}
+
+# ========== SISTEMA PRINCIPAL ==========
+
+system: |md
+  # Sistema de Programación Tangible Dataflow
+  [Software System]
+
+  Ambiente de programación tangible con realidad aumentada 
+  espacial para desarrollo del pensamiento computacional
+| {
+  shape: rectangle
+  style.fill: "#EAC4D5"
+  label.near: top-center
+}
+
+# ========== CONTENEDOR: COMPUTER VISION MANAGER ==========
+
+system.cvm: |md
+  # Computer Vision Manager
+  [Container: Python + OpenCV]
+
+  Percepción del mundo físico: detecta bloques tangibles 
+  y trazos gestuales, los digitaliza y envía al DLEE
+| {
+  shape: rectangle
+  style.fill: "#A8DADC"
+}
+
+system.cvm.block_detector: |md
+  # Block Detector
+  [Component]
+
+  Detecta y reconoce bloques tangibles mediante 
+  marcadores ArUco y extrae metadatos (tipo, valor, posición)
+| {
+  shape: rectangle
+  style.fill: "#B8E6E8"
+}
+
+system.cvm.gesture_recognizer: |md
+  # Gesture Recognizer
+  [Component]
+
+  Detecta trazos dibujados con dedo sobre superficie 
+  mediante análisis de movimiento y color
+| {
+  shape: rectangle
+  style.fill: "#B8E6E8"
+}
+
+system.cvm.spatial_mapper: |md
+  # Spatial Mapper
+  [Component]
+
+  Mapea coordenadas físicas 3D a coordenadas 
+  lógicas 2D de la red dataflow
+| {
+  shape: rectangle
+  style.fill: "#B8E6E8"
+}
+
+system.cvm.json_serializer: |md
+  # JSON Serializer
+  [Component]
+
+  Serializa detecciones a formato JSON con esquema 
+  de programa dataflow
+| {
+  shape: rectangle
+  style.fill: "#B8E6E8"
+}
+
+# ========== CONTENEDOR: DLEE ==========
+
+system.dlee: |md
+  # Dataflow Language Execution Environment
+  [Container: TypeScript/Node.js]
+
+  Compilador y evaluador del lenguaje dataflow: 
+  parsea, valida, optimiza y ejecuta programas
+| {
+  shape: rectangle
+  style.fill: "#F4A259"
+}
+
+# --- DLEE: Frontend (Compiler) ---
+
+system.dlee.frontend: |md
+  # Compiler Frontend
+  [Component Group]
+
+  Análisis léxico, sintáctico y semántico del programa
+| {
+  shape: rectangle
+  style.fill: "#F7B97A"
+}
+
+system.dlee.frontend.parser: |md
+  # Parser
+  [Component]
+
+  Parsea JSON/Textual a AST interno
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+system.dlee.frontend.ast_builder: |md
+  # AST Builder
+  [Component]
+
+  Construye DataflowGraph en memoria desde AST
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+system.dlee.frontend.semantic_analyzer: |md
+  # Semantic Analyzer
+  [Component]
+
+  Valida: tipos, DAG (ciclos), aridad, conectividad
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+# --- DLEE: Optimizer ---
+
+system.dlee.optimizer: |md
+  # Optimizer
+  [Component Group]
+
+  Optimizaciones del IR: constant folding, dead code elimination
+| {
+  shape: rectangle
+  style.fill: "#F7B97A"
+}
+
+system.dlee.optimizer.constant_folder: |md
+  # Constant Folder
+  [Component]
+
+  Evalúa operaciones con constantes en compile-time
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+system.dlee.optimizer.dce: |md
+  # Dead Code Eliminator
+  [Component]
+
+  Elimina nodos no alcanzables desde outputs
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+# --- DLEE: Backend (Evaluator) ---
+
+system.dlee.backend: |md
+  # Evaluator Backend
+  [Component Group]
+
+  Evaluación de la red dataflow y gestión de ejecución
+| {
+  shape: rectangle
+  style.fill: "#F7B97A"
+}
+
+system.dlee.backend.topological_sorter: |md
+  # Topological Sorter
+  [Component]
+
+  Ordena nodos para evaluación según dependencias
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+system.dlee.backend.evaluator: |md
+  # Dataflow Evaluator
+  [Component]
+
+  Evalúa nodos, propaga datos por arcos
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+system.dlee.backend.stream_manager: |md
+  # Stream Manager
+  [Component]
+
+  Gestiona bloques especiales: Stream, Accumulator
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+system.dlee.backend.state_tracker: |md
+  # State Tracker
+  [Component]
+
+  Trackea estado de nodos/arcos, genera trace de ejecución
+| {
+  shape: rectangle
+  style.fill: "#F9C89B"
+}
+
+# ========== CONTENEDOR: IDE ==========
+
+system.ide: |md
+  # Integrated Development Environment
+  [Container: React + TypeScript]
+
+  Interfaz principal: visualización RA, feedback, 
+  gestión de actividades
+| {
+  shape: rectangle
+  style.fill: "#457B9D"
+}
+
+system.ide.menu_system: |md
+  # Menu System
+  [Component]
+
+  Menú principal, configuración, selección de perfil
+| {
+  shape: rectangle
+  style.fill: "#5A8DAE"
+}
+
+system.ide.activity_selector: |md
+  # Activity Selector
+  [Component]
+
+  Presenta actividades disponibles, filtra por nivel
+| {
+  shape: rectangle
+  style.fill: "#5A8DAE"
+}
+
+system.ide.workspace_editor: |md
+  # Workspace Editor
+  [Component]
+
+  Canvas interactivo donde niños construyen redes
+| {
+  shape: rectangle
+  style.fill: "#5A8DAE"
+}
+
+system.ide.ar_renderer: |md
+  # AR Renderer
+  [Component]
+
+  Renderiza visualización RA: nodos, arcos, animaciones
+| {
+  shape: rectangle
+  style.fill: "#5A8DAE"
+}
+
+system.ide.feedback_manager: |md
+  # Feedback Manager
+  [Component]
+
+  Muestra errores, hints, validaciones en tiempo real
+| {
+  shape: rectangle
+  style.fill: "#5A8DAE"
+}
+
+system.ide.execution_visualizer: |md
+  # Execution Visualizer
+  [Component]
+
+  Anima flujo de datos durante ejecución paso a paso
+| {
+  shape: rectangle
+  style.fill: "#5A8DAE"
+}
+
+system.ide.teacher_dashboard: |md
+  # Teacher Dashboard
+  [Component]
+
+  Panel para docente: monitor de estudiantes, analytics
+| {
+  shape: rectangle
+  style.fill: "#5A8DAE"
+}
+
+# ========== CONTENEDOR: ACTIVITIES DATABASE ==========
+
+system.adb: |md
+  # Activities Database
+  [Container: PostgreSQL + REST API]
+
+  Almacena actividades, progreso de usuarios, 
+  configuraciones de sistema
+| {
+  shape: cylinder
+  style.fill: "#1D3557"
+  style.stroke: "#FFFFFF"
+  style.font-color: "#FFFFFF"
+}
+
+system.adb.activities_table: |md
+  # Activities Table
+  [Data Schema]
+
+  id, title, level, concepts, blocks, expected_output
+| {
+  shape: rectangle
+  style.fill: "#2E4A6E"
+  style.font-color: "#FFFFFF"
+}
+
+system.adb.progress_table: |md
+  # Progress Table
+  [Data Schema]
+
+  user_id, activity_id, completed, score, attempts
+| {
+  shape: rectangle
+  style.fill: "#2E4A6E"
+  style.font-color: "#FFFFFF"
+}
+
+system.adb.rest_api: |md
+  # REST API
+  [Component]
+
+  Endpoints: GET/POST activities, GET/POST progress
+| {
+  shape: rectangle
+  style.fill: "#2E4A6E"
+  style.font-color: "#FFFFFF"
+}
+
+# ========== HARDWARE EXTERNO ==========
+
+kinect: |md
+  # Kinect Sensor v2
+  [Hardware]
+
+  Cámara RGB-D para captura de escena física
+| {
+  shape: rectangle
+  style.fill: "#E0E0E0"
+  style.stroke: "#888888"
+  style.stroke-dash: 3
+}
+
+projector: |md
+  # Proyector HD
+  [Hardware]
+
+  Proyecta GUI con visualización RA sobre superficie
+| {
+  shape: rectangle
+  style.fill: "#E0E0E0"
+  style.stroke: "#888888"
+  style.stroke-dash: 3
+}
+
+# ========== CONEXIONES: ACTORES → SISTEMA ==========
+
+kids -> system.cvm: |md
+  Coloca bloques tangibles
+  Traza conexiones con dedo
+| {
+  style.stroke: "#6B9080"
+  style.stroke-width: 2
+}
+
+teacher -> system.ide.teacher_dashboard: |md
+  Monitorea progreso
+  Gestiona actividades
+| {
+  style.stroke: "#A4C3B2"
+  style.stroke-width: 2
+}
+
+# ========== CONEXIONES: HARDWARE → CVM ==========
+
+kinect -> system.cvm: |md
+  Frames RGB-D
+  30 FPS, 1920x1080
+| {
+  style.stroke: "#457B9D"
+  style.stroke-width: 2
+}
+
+# ========== CONEXIONES: CVM INTERNAS ==========
+
+system.cvm.block_detector -> system.cvm.spatial_mapper: |md
+  Bloques detectados
+  {id, type, position_3d}
+|
+
+system.cvm.gesture_recognizer -> system.cvm.spatial_mapper: |md
+  Trazos detectados
+  {path_3d, start, end}
+|
+
+system.cvm.spatial_mapper -> system.cvm.json_serializer: |md
+  Entidades mapeadas
+  {blocks, traces}
+|
+
+# ========== CONEXIONES: CVM → DLEE ==========
+
+system.cvm.json_serializer -> system.dlee.frontend.parser: |md
+  JSON-RPC over WebSocket
+
+  {
+    "method": "program.compile",
+    "params": {"programJson": "..."}
+  }
+| {
+  style.stroke: "#F4A259"
+  style.stroke-width: 3
+}
+
+# ========== CONEXIONES: DLEE INTERNAS ==========
+
+system.dlee.frontend.parser -> system.dlee.frontend.ast_builder: |md
+  AST parsed
+|
+
+system.dlee.frontend.ast_builder -> system.dlee.frontend.semantic_analyzer: |md
+  DataflowGraph
+|
+
+system.dlee.frontend.semantic_analyzer -> system.dlee.optimizer.constant_folder: |md
+  Graph validado
+  (si no hay errores)
+|
+
+system.dlee.optimizer.constant_folder -> system.dlee.optimizer.dce: |md
+  Graph con constantes
+  evaluadas
+|
+
+system.dlee.optimizer.dce -> system.dlee.backend.topological_sorter: |md
+  Graph optimizado
+|
+
+system.dlee.backend.topological_sorter -> system.dlee.backend.evaluator: |md
+  Nodos ordenados
+|
+
+system.dlee.backend.evaluator -> system.dlee.backend.stream_manager: |md
+  Requiere eval
+  de stream/accumulator
+|
+
+system.dlee.backend.evaluator -> system.dlee.backend.state_tracker: |md
+  Notifica estado
+  de nodos/arcos
+|
+
+# ========== CONEXIONES: DLEE → IDE ==========
+
+system.dlee.frontend.semantic_analyzer -> system.ide.feedback_manager: |md
+  LSP: publishDiagnostics
+
+  Errores de compilación
+  (ciclos, tipos, aridad)
+| {
+  style.stroke: "#E63946"
+  style.stroke-width: 2
+}
+
+system.dlee.backend.state_tracker -> system.ide.execution_visualizer: |md
+  WebSocket: execution/stateUpdate
+
+  {nodeStates, edgeFlows}
+| {
+  style.stroke: "#2A9D8F"
+  style.stroke-width: 3
+}
+
+# ========== CONEXIONES: IDE INTERNAS ==========
+
+system.ide.menu_system -> system.ide.activity_selector: |md
+  Navega a
+  selección de actividad
+|
+
+system.ide.activity_selector -> system.ide.workspace_editor: |md
+  Carga actividad
+  seleccionada
+|
+
+system.ide.workspace_editor -> system.ide.ar_renderer: |md
+  Requiere renderizado
+  de escena
+|
+
+system.ide.execution_visualizer -> system.ide.ar_renderer: |md
+  Datos de animación
+  (flujo, estados)
+|
+
+system.ide.ar_renderer -> projector: |md
+  Frame renderizado
+  1920x1080 @ 60 FPS
+| {
+  style.stroke: "#457B9D"
+  style.stroke-width: 2
+}
+
+# ========== CONEXIONES: IDE ↔ ACTIVITIES DB ==========
+
+system.ide.activity_selector -> system.adb.rest_api: |md
+  GET /api/activities
+
+  Obtiene lista de actividades
+| {
+  style.stroke: "#1D3557"
+  style.stroke-width: 2
+}
+
+system.adb.rest_api -> system.adb.activities_table: |md
+  SQL Query
+|
+
+system.adb.activities_table -> system.adb.rest_api: |md
+  Resultados
+|
+
+system.adb.rest_api -> system.ide.activity_selector: |md
+  HTTP Response
+
+  [{id, title, level, ...}]
+| {
+  style.stroke: "#1D3557"
+  style.stroke-width: 2
+}
+
+system.ide.workspace_editor -> system.adb.rest_api: |md
+  POST /api/progress
+
+  Guarda progreso del niño
+| {
+  style.stroke: "#2A9D8F"
+  style.stroke-width: 2
+}
+
+system.adb.rest_api -> system.adb.progress_table: |md
+  SQL Insert/Update
+|
+
+system.ide.teacher_dashboard -> system.adb.rest_api: |md
+  GET /api/progress/:userId
+
+  Obtiene analytics
+| {
+  style.stroke: "#F77F00"
+  style.stroke-width: 2
+}
+
+# ========== CONEXIONES: IDE → NIÑOS ==========
+
+projector -> kids: |md
+  Muestra GUI con RA
+  (visualización de red,
+  feedback, resultados)
+| {
+  style.stroke: "#6B9080"
+  style.stroke-width: 2
+}
+
+# ========== AGRUPACIÓN DE COMPONENTES ==========
+
+system.cvm.block_detector -> system.cvm
+system.cvm.gesture_recognizer -> system.cvm
+system.cvm.spatial_mapper -> system.cvm
+system.cvm.json_serializer -> system.cvm
+
+system.dlee.frontend.parser -> system.dlee.frontend
+system.dlee.frontend.ast_builder -> system.dlee.frontend
+system.dlee.frontend.semantic_analyzer -> system.dlee.frontend
+system.dlee.frontend -> system.dlee
+
+system.dlee.optimizer.constant_folder -> system.dlee.optimizer
+system.dlee.optimizer.dce -> system.dlee.optimizer
+system.dlee.optimizer -> system.dlee
+
+system.dlee.backend.topological_sorter -> system.dlee.backend
+system.dlee.backend.evaluator -> system.dlee.backend
+system.dlee.backend.stream_manager -> system.dlee.backend
+system.dlee.backend.state_tracker -> system.dlee.backend
+system.dlee.backend -> system.dlee
+
+system.ide.menu_system -> system.ide
+system.ide.activity_selector -> system.ide
+system.ide.workspace_editor -> system.ide
+system.ide.ar_renderer -> system.ide
+system.ide.feedback_manager -> system.ide
+system.ide.execution_visualizer -> system.ide
+system.ide.teacher_dashboard -> system.ide
+
+system.adb.activities_table -> system.adb
+system.adb.progress_table -> system.adb
+system.adb.rest_api -> system.adb

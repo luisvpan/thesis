@@ -1,0 +1,112 @@
+import type { ReactNode } from 'react';
+
+/**
+ * Modo de PRESENTACIÓN visual del resultado.
+ *
+ * SEPARACIÓN ARQUITECTÓNICA CLAVE:
+ * - Este `ResultViewMode` es modo de PRESENTACIÓN, no semántica.
+ * - La semántica del operando vive en `CPAObject.category` (packages/interpreter/src/runtime/types.ts).
+ * - El docente puede cambiar el viewMode libremente desde el sandbox sin alterar el programa.
+ *
+ * CAPACIDAD PEDAGÓGICA:
+ * Un valor abstracto puede VERSE como concreto/pictórico, y viceversa, sin modificar
+ * el programa subyacente. Esto permite transitar libremente entre representaciones
+ * durante la enseñanza, alineándose con la progresión CPA (Bruner, 1966).
+ *
+ * REFERENCIAS TEÓRICAS:
+ * - Bruner (1966): representaciones enactiva, icónica, simbólica
+ * - Vergnaud (1983): campos conceptuales y representaciones
+ * - Haylock & Cockburn (1989): conexiones entre representaciones
+ * - Fyfe et al. (2014): concreteness fading
+ *
+ * @see docs/decisions/PRESENTATION_VS_SEMANTICS.md para decisión arquitectónica completa.
+ */
+export type ResultViewMode = 'pictorico' | 'concreto' | 'abstracto';
+
+const numberNames: Record<number, string> = {
+  0: 'Cero',
+  1: 'Uno',
+  2: 'Dos',
+  3: 'Tres',
+  4: 'Cuatro',
+  5: 'Cinco',
+  6: 'Seis',
+  7: 'Siete',
+  8: 'Ocho',
+  9: 'Nueve',
+};
+
+export function formatResultCpa(
+  value: number,
+  mode: ResultViewMode,
+  numerator?: string,
+  denominator?: string
+): ReactNode {
+  if (!Number.isFinite(value)) {
+    return String(value);
+  }
+
+  // En modo abstracto, mostrar fracción si tenemos numerator/denominator
+  if (mode === 'abstracto' && numerator !== undefined && denominator !== undefined) {
+    return formatFraction(numerator, denominator);
+  }
+
+  const isInt = Number.isInteger(value);
+
+  switch (mode) {
+    case 'abstracto':
+      return <span className="tabular-nums">{value}</span>;
+
+    case 'concreto': {
+      if (isInt && value >= 0 && value <= 9) {
+        return <span>{numberNames[value]}</span>;
+      }
+      return <span className="tabular-nums">{value}</span>;
+    }
+
+    case 'pictorico': {
+      if (isInt && value >= 0 && value <= 24) {
+        return (
+          <span className="flex flex-wrap gap-1 max-w-[min(280px,85vw)] justify-center items-center leading-none">
+            {Array.from({ length: value }, (_, i) => (
+              <span key={i} className="text-teal-400 text-3xl select-none" aria-hidden>
+                ●
+              </span>
+            ))}
+            {value === 0 ? (
+              <span className="text-slate-500 text-lg italic">vacío</span>
+            ) : null}
+          </span>
+        );
+      }
+      return <span className="tabular-nums text-5xl font-black text-teal-300">{value}</span>;
+    }
+
+    default:
+      return String(value);
+  }
+}
+
+/**
+ * Formats a fraction as "numerator/denominator" for abstract mode display.
+ * Returns just the numerator if denominator is "1" (integer result).
+ * Uses strings to preserve precision with BigInts.
+ */
+/** Texto plano para listas o speech (no usar `.join()` con `formatFraction`). */
+export function formatFractionText(numerator: string, denominator: string): string {
+  if (denominator === '1') {
+    return numerator;
+  }
+  return `${numerator}/${denominator}`;
+}
+
+export function formatFraction(numerator: string, denominator: string): ReactNode {
+  if (denominator === '1') {
+    return <span className="tabular-nums">{numerator}</span>;
+  }
+  return (
+    <span className="tabular-nums">
+      {numerator}/{denominator}
+    </span>
+  );
+}

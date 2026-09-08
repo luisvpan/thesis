@@ -1,0 +1,293 @@
+/**
+ * Converts ReactFlow nodes/edges to the interpreter's Program format.
+ */
+
+import type {
+  Program,
+  SourceStatement,
+  TransformStatement,
+  SinkStatement,
+  Operation,
+  ArrayLiteral,
+} from "@dataflow/interpreter";
+import {
+  createAbstractDataLiteral,
+  createPictoricDataLiteral,
+  createConcreteDataLiteral,
+  createCriteriaLiteral,
+} from "@dataflow/interpreter";
+import type { Edge } from "@xyflow/react";
+import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
+import { isOrderOperatorType, isSingleInputOperatorType, resolveStickColor } from "../types/card-types";
+import { isPictorialColorYoloClass } from "../data/pictorialColors";
+import type { DataflowNode } from "../contexts/node/types";
+import { getOrderedArrayZoneMembers } from "./arrayZoneGeometry";
+import {
+  resolveNumberSourceId,
+  shouldEmitNumberSource,
+} from "./numberTouchMerge";
+import { logger } from "@/lib/logger";
+
+const OPERATOR_MAP: Record<string, Operation> = {
+  adicion: "sum",
+  sustraccion: "substract",
+  multiplicacion: "multiply",
+  division: "divide",
+  "orden-menor-mayor": "order_asc",
+  "orden-mayor-menor": "order_desc",
+  comparar: "compare",
+  primero: "first",
+  ultimo: "last",
+  contar: "count",
+  "filtrar-general": "filter",
+  "filtrar-figuras": "filter",
+  "filtrar-carros": "filter",
+  "filtrar-comidas": "filter",
+  "filtrar-animales": "filter",
+  "filtrar-personas": "filter",
+};
+
+function resolveOperation(operator: string): Operation {
+  return OPERATOR_MAP[operator] ?? "sum";
+}
+
+/** Ordenar números abstractos por cantidad cuando no hay criterio explícito (p. ej. size). */
+const DEFAULT_QUANTITY_ORDER_CRITERION = createCriteriaLiteral({
+  properties: ["quantity"],
+  values: { quantity: "sort" },
+});
+
+// Normalizar tamaños a formas masculinas (el intérprete solo entiende masculino)
+const SIZE_MAP: Record<string, string> = {
+  pequeño: "pequeño",
+  pequeña: "pequeño",
+  mediano: "mediano",
+  mediana: "mediano",
+  grande: "grande",
+};
+
+function normalizeSize(size: string | undefined): string {
+  if (!size) return "mediano";
+  return SIZE_MAP[size] ?? size;
+}
+
+// Mapeo de tipo de comida a su color natural
+const FOOD_COLOR_MAP: Record<string, string> = {
+  manzana: "rojo",
+  pera: "verde",
+  uva: "morado",
+  hamburguesa: "naranja",
+};
+
+/** Identificador en el programa para un nodo origen de arista (fuente, operador o salida). */
+export function resolveFlowSourceId(
+  nodeId: string,
+  nodes: DataflowNode[]
+): string {
+  const node = nodes.find((n) => n.id === nodeId);
+  if (node?.type === "programOutput") {
+    return `output_${nodeId}`;
+  }
+  return resolveNumberSourceId(nodeId, nodes);
+}
+
+/**
+ * Converts ReactFlow nodes and edges to a Program object for the interpreter.
+ */
+export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
+  logger.flow.debug("Input", { nodes: nodes.length, edges: edges.length });
+
+  const statements: (SourceStatement | TransformStatement | SinkStatement)[] = [];
+
+  // 1a. diceZone nodes
+  for (const node of nodes) {
+    if (node.type === "diceZone") {
+      const data = node.data as { value?: number };
+      if (data.value === undefined) continue;
+      statements.push({
+        type: "SourceStatement",
+        identifier: node.id,
+        value: createAbstractDataLiteral(data.value),
+      });
+    }
+  }
+
+  // 1b. Sources: all "source" nodes (numbers, shapes, food)
+  for (const node of nodes) {
+    if (node.type === "source") {
+      const data = node.data as SourceFlowNodeData;
+
+      if (data.variant === "number") {
+        if (!shouldEmitNumberSource(node.id, nodes)) continue;
+        // Use new v4.0.0 helpers: numbers are CPA abstractos
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createAbstractDataLiteral(data.value ?? 0),
+        });
+      } else if (data.variant === "shape") {
+        const shapeAttrs: Record<string, string> = {
+          size: normalizeSize(data.size),
+        };
+        if (isPictorialColorYoloClass(data.yoloClass)) {
+          shapeAttrs.color = data.color;
+        }
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createPictoricDataLiteral(
+            "forma",
+            data.shape ?? "circulo",
+            1,
+            shapeAttrs
+          ),
+        });
+      } else if (data.variant === "food") {
+        const foodType = data.food ?? "manzana";
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createConcreteDataLiteral("comida", foodType, 1, {
+            color: FOOD_COLOR_MAP[foodType] ?? "verde",
+          }),
+        });
+      } else if (data.variant === "montessori") {
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createConcreteDataLiteral("montessori", data.color ?? "azul", 1, {
+            color: data.color ?? "azul",
+          }),
+        });
+      } else if (data.variant === "cap") {
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createConcreteDataLiteral("cap", data.color ?? "azul", 1, {
+            color: data.color ?? "azul",
+          }),
+        });
+      } else if (data.variant === "stick") {
+        const stickColor = resolveStickColor(data.color, data.yoloClass);
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createConcreteDataLiteral("stick", stickColor, 1, {
+            color: stickColor,
+          }),
+        });
+      } else if (data.variant === "criteria") {
+        statements.push({
+          type: "SourceStatement",
+          identifier: node.id,
+          value: createCriteriaLiteral({
+            properties: data.properties,
+            values: data.values ?? {},
+          }),
+        });
+      }
+    }
+  }
+
+  // 2a. Array pairs: each edge from arrayOpen → arrayClose (zone-in) defines an array.
+  //     AABB entre handlers zone-out (abrir) y zone-in (cerrar); miembros = fuentes/operadores
+  //     cuya carta solapa la zona (inclusive en el borde).
+  for (const edge of edges) {
+    if (edge.targetHandle !== "zone-in") continue;
+
+    const closeNode = nodes.find(
+      (n) => n.id === edge.target && n.type === "arrayClose"
+    );
+    if (!closeNode) continue;
+
+    const inner = getOrderedArrayZoneMembers(closeNode.id, nodes, edges);
+
+    if (inner.length === 0) continue;
+
+    const elements = inner.map((n) => ({ type: "Identifier" as const, name: n.id }));
+    const arrayLiteral: ArrayLiteral = { type: "ArrayLiteral", elements };
+
+    statements.push({
+      type: "SourceStatement",
+      identifier: closeNode.id,
+      value: arrayLiteral,
+    });
+  }
+
+  // 2b. Transforms: "operator" nodes
+  for (const node of nodes) {
+    if (node.type === "operator") {
+      const data = node.data as OperatorFlowNodeData;
+      const operator = data.operator ?? "adicion";
+      const inputEdges = edges.filter((e) => e.target === node.id);
+
+      const sortedEdges = isSingleInputOperatorType(operator)
+        ? inputEdges.filter((e) => e.targetHandle === "a" || e.targetHandle == null)
+        : inputEdges.sort((a, b) => {
+            if (a.targetHandle === "a") return -1;
+            if (b.targetHandle === "a") return 1;
+            return 0;
+          });
+
+      const args: (
+        | { type: "Identifier"; name: string }
+        | ReturnType<typeof createCriteriaLiteral>
+      )[] = sortedEdges.map((e) => ({
+        type: "Identifier" as const,
+        name: resolveFlowSourceId(e.source, nodes),
+      }));
+
+      if (isOrderOperatorType(operator)) {
+        if (data.criterio) {
+          args.push(
+            createCriteriaLiteral({
+              properties: [data.criterio.property],
+              values: { [data.criterio.property]: data.criterio.sequence },
+            })
+          );
+        } else {
+          args.push(DEFAULT_QUANTITY_ORDER_CRITERION);
+        }
+      }
+
+      statements.push({
+        type: "TransformStatement",
+        identifier: node.id,
+        operation: resolveOperation(operator),
+        arguments: args,
+      });
+    }
+  }
+
+  // 3. Sinks: one per programOutput connected to an evaluable node
+  for (const node of nodes) {
+    if (node.type !== "programOutput") continue;
+
+    // Find what node is connected to this programOutput's input
+    const inputEdge = edges.find(
+      (e) => e.target === node.id && e.targetHandle === "in"
+    );
+
+    if (!inputEdge) continue;
+
+    // Verify the source is an evaluable node (source, operator, or arrayClose)
+    const sourceNode = nodes.find((n) => n.id === inputEdge.source);
+    if (
+      !sourceNode ||
+      (sourceNode.type !== "source" &&
+        sourceNode.type !== "operator" &&
+        sourceNode.type !== "arrayClose")
+    ) {
+      continue;
+    }
+
+    statements.push({
+      type: "SinkStatement",
+      identifier: `output_${node.id}`,
+      sourceIdentifier: resolveFlowSourceId(inputEdge.source, nodes),
+    });
+  }
+
+  logger.flow.debug("Generated statements", { count: statements.length });
+  return { type: "Program", statements };
+}
