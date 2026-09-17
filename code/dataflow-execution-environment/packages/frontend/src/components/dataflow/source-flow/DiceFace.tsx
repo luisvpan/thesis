@@ -45,7 +45,7 @@ export function DiceFace({ value, spinning = false, className = '' }: DiceFacePr
 
   return (
     <div
-      className={`relative flex h-16 w-16 items-center justify-center ${className}`}
+      className={`relative flex h-16 w-16 items-center justify-center ${className} opacity-70`}
       aria-label={face ? `Dado: ${face}` : 'Dado sin lanzar'}
     >
       <div

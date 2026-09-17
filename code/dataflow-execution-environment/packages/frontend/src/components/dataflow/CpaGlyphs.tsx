@@ -51,41 +51,58 @@ const FALLBACK_PALETTE = 'bg-slate-500 shadow-slate-900/50';
 
 type GlyphProps = {
   generic?: boolean;
+  /** Tamaño ampliado para la carta de resultado; por defecto, tamaño del token que viaja por las conexiones. */
+  large?: boolean;
 };
 
-export function MontessoriCubeGlyph({ color, generic = false }: { color: string } & GlyphProps) {
+export function MontessoriCubeGlyph({
+  color,
+  generic = false,
+  large = false,
+}: { color: string } & GlyphProps) {
   const palette = generic
     ? GENERIC_PALETTE
     : MONTESSORI_CUBE_COLORS[color] ?? FALLBACK_PALETTE;
+  const sizeClass = large ? 'h-12 w-12' : 'h-7 w-7';
   return (
     <span
       title={generic ? 'cubo' : color}
-      className={`inline-block h-7 w-7 shrink-0 rounded-md shadow-lg ring-1 ring-white/25 ${palette}`}
+      className={`inline-block ${sizeClass} shrink-0 rounded-md shadow-lg ring-1 ring-white/25 ${palette}`}
       style={{ transform: 'perspective(120px) rotateX(12deg) rotateY(-18deg)' }}
     />
   );
 }
 
-export function CapGlyph({ color, generic = false }: { color: string } & GlyphProps) {
+export function CapGlyph({
+  color,
+  generic = false,
+  large = false,
+}: { color: string } & GlyphProps) {
   const palette = generic
     ? GENERIC_PALETTE
     : CAP_COLORS[color] ?? FALLBACK_PALETTE;
+  const sizeClass = large ? 'h-12 w-12' : 'h-7 w-7';
   return (
     <span
       title={generic ? 'tapa' : `Tapa ${color}`}
-      className={`inline-block h-7 w-7 shrink-0 rounded-full shadow-lg ring-1 ring-white/25 ${palette}`}
+      className={`inline-block ${sizeClass} shrink-0 rounded-full shadow-lg ring-1 ring-white/25 ${palette}`}
     />
   );
 }
 
-export function StickGlyph({ color, generic = false }: { color: string } & GlyphProps) {
+export function StickGlyph({
+  color,
+  generic = false,
+  large = false,
+}: { color: string } & GlyphProps) {
   const palette = generic
     ? GENERIC_PALETTE
     : STICK_COLORS[color] ?? FALLBACK_PALETTE;
+  const sizeClass = large ? 'h-12 w-3' : 'h-7 w-2';
   return (
     <span
       title={generic ? 'paleta' : `Paleta ${color}`}
-      className={`inline-block h-7 w-2 shrink-0 rounded-sm shadow-lg ring-1 ring-white/25 ${palette}`}
+      className={`inline-block ${sizeClass} shrink-0 rounded-sm shadow-lg ring-1 ring-white/25 ${palette}`}
     />
   );
 }
@@ -108,6 +125,7 @@ export function FormaGlyph({
   color,
   size,
   generic = false,
+  large = false,
 }: { subtype: string; color?: string; size?: string } & GlyphProps) {
   if (!generic) {
     const shape = subtype as ShapeType;
@@ -115,7 +133,7 @@ export function FormaGlyph({
     const shapeColor = (color as ShapeColor | undefined) ?? 'amarillo';
     return (
       <span className="inline-flex shrink-0 items-center justify-center" title={`${subtype} ${shapeSize}`}>
-        <MiniShapeGlyph shape={shape} size={shapeSize} color={shapeColor} generic={false} />
+        <MiniShapeGlyph shape={shape} size={shapeSize} color={shapeColor} generic={false} large={large} />
       </span>
     );
   }
@@ -127,6 +145,7 @@ export function FormaGlyph({
         size={normalizeShapeSize(size)}
         color="amarillo"
         generic
+        large={large}
       />
     </span>
   );
@@ -136,11 +155,14 @@ export function ComidaGlyph({
   subtype,
   color,
   generic = false,
+  large = false,
 }: { subtype: string; color: string } & GlyphProps) {
+  const sizeClass = large ? 'h-12 w-12' : 'h-7 w-7';
   if (!generic) {
+    const textClass = large ? 'text-3xl' : 'text-xl';
     return (
       <span
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-xl leading-none"
+        className={`inline-flex ${sizeClass} shrink-0 items-center justify-center ${textClass} leading-none`}
         role="img"
         aria-label={subtype}
         title={`${subtype} ${color}`}
@@ -152,13 +174,15 @@ export function ComidaGlyph({
 
   const dot = GENERIC_DOT;
   const bgClass = 'bg-teal-700';
+  const dotClass = large ? 'bottom-1.5 h-3 w-3' : 'bottom-1 h-2 w-2';
+  const labelClass = large ? 'text-sm' : 'text-[9px]';
   return (
     <span
       title={subtype}
-      className={`relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${bgClass} ring-1 ring-white/20`}
+      className={`relative inline-flex ${sizeClass} shrink-0 items-center justify-center rounded-full ${bgClass} ring-1 ring-white/20`}
     >
-      <span className={`absolute bottom-1 h-2 w-2 rounded-full ${dot}`} />
-      <span className="text-[9px] font-semibold text-white/90">{subtype.slice(0, 1)}</span>
+      <span className={`absolute ${dotClass} rounded-full ${dot}`} />
+      <span className={`${labelClass} font-semibold text-white/90`}>{subtype.slice(0, 1)}</span>
     </span>
   );
 }

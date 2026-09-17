@@ -61,7 +61,7 @@ export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNo
       style={{ width: ZONE_SIZE, height: ZONE_SIZE }}
     >
       {/* Circle border */}
-      <div className="absolute inset-0 rounded-full border-4 border-amber-400/60 bg-amber-500/10" />
+      <div className="absolute inset-0 rounded-full border-4 border-amber-400/60 bg-amber-500/10 opacity-70" />
 
       {/* Dice card — visible when physical card is inside the area */}
       {dicePresent ? (
@@ -85,19 +85,12 @@ export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNo
 
 function DiceCard({ value }: { value?: number }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none -translate-y-40">
       {/* key=value remounts DiceFace on each new value, triggering the pop animation */}
       <div key={value} className="scale-[1.8] origin-center animate-dice-pop">
         <DiceFace value={value} />
       </div>
-      <div className="rounded-xl border-2 border-amber-500/40 bg-slate-800/90 px-5 py-2 text-center shadow-xl mt-10">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          Dado
-        </p>
-        <p className="text-4xl font-black tabular-nums text-slate-100">
-          {value ?? '—'}
-        </p>
-      </div>
+     
     </div>
   );
 }
