@@ -150,7 +150,7 @@ describe("arrayZoneGeometry", () => {
 });
 
 describe("flowToProgram array zone", () => {
-  test("array literal lists only source nodes whose card overlaps handler AABB", () => {
+  test("la zona declara una bolsa con las cartas que solapan el AABB de los handlers", () => {
     const open: DataflowNode = {
       id: "open1",
       type: "arrayOpen",
@@ -185,20 +185,15 @@ describe("flowToProgram array zone", () => {
     };
 
     const program = flowToProgram([open, close, inside, outside], [edge]);
-    const arrayStmt = program.statements.find(
-      (s) =>
-        s.type === "SourceStatement" &&
-        s.identifier === "close1" &&
-        s.value.type === "ArrayLiteral"
+    const zoneStmt = program.statements.find(
+      (s) => s.type === "SourceStatement" && s.identifier === "close1"
     );
-    expect(arrayStmt).toBeDefined();
-    if (!arrayStmt || arrayStmt.type !== "SourceStatement") return;
-    if (arrayStmt.value.type !== "ArrayLiteral") return;
-    const names = arrayStmt.value.elements.map((e) =>
-      e.type === "Identifier" ? e.name : ""
-    );
-    expect(names).toEqual(["src_in"]);
-    expect(names).not.toContain("src_out");
+    expect(zoneStmt).toBeDefined();
+    if (zoneStmt?.type !== "SourceStatement") return;
+    if (zoneStmt.value.type !== "BagLiteral") return;
+
+    // Solo la carta de dentro: sus datos se inlinean, no se referencia por nombre.
+    expect(zoneStmt.value.entries.map((e) => Number(e.quantity.valueOf()))).toEqual([1]);
   });
 
   test("getOrderedArrayZoneMembers matches flowToProgram array order", () => {

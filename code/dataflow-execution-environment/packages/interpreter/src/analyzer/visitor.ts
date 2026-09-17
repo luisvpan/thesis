@@ -1,6 +1,5 @@
 import type { CstNode, IToken } from "chevrotain";
 import type {
-  CriterionLiteral,
   CriterionSubtype,
   DataLiteral,
   Expression,

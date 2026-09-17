@@ -3,18 +3,17 @@
  */
 
 import type {
+  EntrySpec,
+  Operation,
   Program,
+  SinkStatement,
   SourceStatement,
   TransformStatement,
-  SinkStatement,
-  Operation,
-  ArrayLiteral,
 } from "@dataflow/interpreter";
 import {
-  createAbstractDataLiteral,
-  createPictoricDataLiteral,
-  createConcreteDataLiteral,
-  createCriteriaLiteral,
+  createBag,
+  createFilterCriterion,
+  createOrderCriterion,
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
@@ -33,8 +32,9 @@ const OPERATOR_MAP: Record<string, Operation> = {
   sustraccion: "substract",
   multiplicacion: "multiply",
   division: "divide",
-  "orden-menor-mayor": "order_asc",
-  "orden-mayor-menor": "order_desc",
+  // Una sola operación de orden: la dirección viaja en el criterio.
+  "orden-menor-mayor": "order",
+  "orden-mayor-menor": "order",
   comparar: "compare",
   primero: "first",
   ultimo: "last",
@@ -51,11 +51,15 @@ function resolveOperation(operator: string): Operation {
   return OPERATOR_MAP[operator] ?? "sum";
 }
 
-/** Ordenar números abstractos por cantidad cuando no hay criterio explícito (p. ej. size). */
-const DEFAULT_QUANTITY_ORDER_CRITERION = createCriteriaLiteral({
-  properties: ["quantity"],
-  values: { quantity: "sort" },
-});
+/** Sentido del orden según la carta de operador. */
+function orderDirection(operator: string): "asc" | "desc" {
+  return operator === "orden-mayor-menor" ? "desc" : "asc";
+}
+
+/** Identificador del criterio implícito de un operador de orden. */
+function orderCriterionId(operatorNodeId: string): string {
+  return `${operatorNodeId}__criterio`;
+}
 
 // Normalizar tamaños a formas masculinas (el intérprete solo entiende masculino)
 const SIZE_MAP: Record<string, string> = {
@@ -79,6 +83,95 @@ const FOOD_COLOR_MAP: Record<string, string> = {
   hamburguesa: "naranja",
 };
 
+/**
+ * La entrada de bolsa que declara una carta de datos, o `null` si la carta no
+ * declara datos (un criterio, por ejemplo).
+ */
+function entryOf(node: DataflowNode): EntrySpec | null {
+  if (node.type === "diceZone") {
+    const value = (node.data as { value?: number }).value;
+    if (value === undefined) return null;
+    return { category: "abstracto", type: "numero", subtype: "racional", quantity: value };
+  }
+
+  if (node.type !== "source") return null;
+  const data = node.data as SourceFlowNodeData;
+
+  switch (data.variant) {
+    case "number":
+      return {
+        category: "abstracto",
+        type: "numero",
+        subtype: "racional",
+        quantity: data.value ?? 0,
+      };
+
+    case "shape": {
+      const attributes: Record<string, string> = { size: normalizeSize(data.size) };
+      if (isPictorialColorYoloClass(data.yoloClass)) attributes.color = data.color;
+      return {
+        category: "pictorico",
+        type: "forma",
+        subtype: data.shape ?? "circulo",
+        quantity: 1,
+        attributes,
+      };
+    }
+
+    case "food": {
+      const food = data.food ?? "manzana";
+      return {
+        category: "concreto",
+        type: "comida",
+        subtype: food,
+        quantity: 1,
+        attributes: { color: FOOD_COLOR_MAP[food] ?? "verde" },
+      };
+    }
+
+    case "montessori":
+      return {
+        category: "concreto",
+        type: "montessori",
+        subtype: data.color ?? "azul",
+        quantity: 1,
+        attributes: { color: data.color ?? "azul" },
+      };
+
+    case "cap":
+      return {
+        category: "concreto",
+        type: "cap",
+        subtype: data.color ?? "azul",
+        quantity: 1,
+        attributes: { color: data.color ?? "azul" },
+      };
+
+    case "stick": {
+      const color = resolveStickColor(data.color, data.yoloClass);
+      return {
+        category: "concreto",
+        type: "stick",
+        subtype: color,
+        quantity: 1,
+        attributes: { color },
+      };
+    }
+
+    default:
+      return null;
+  }
+}
+
+/** Una carta de datos suelta: una bolsa de una entrada. */
+function bagSource(identifier: string, entry: EntrySpec): SourceStatement {
+  return {
+    type: "SourceStatement",
+    identifier,
+    value: createBag().add(entry),
+  };
+}
+
 /** Identificador en el programa para un nodo origen de arista (fuente, operador o salida). */
 export function resolveFlowSourceId(
   nodeId: string,
@@ -101,162 +194,115 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
   // 1a. diceZone nodes
   for (const node of nodes) {
-    if (node.type === "diceZone") {
-      const data = node.data as { value?: number };
-      if (data.value === undefined) continue;
+    if (node.type !== "diceZone") continue;
+    const entry = entryOf(node);
+    if (entry) statements.push(bagSource(node.id, entry));
+  }
+
+  // 1b. Sources: all "source" nodes (numbers, shapes, food, criteria)
+  for (const node of nodes) {
+    if (node.type !== "source") continue;
+    const data = node.data as SourceFlowNodeData;
+
+    if (data.variant === "criteria") {
+      // Un criterio por `source`: los criterios no se agrupan.
       statements.push({
         type: "SourceStatement",
         identifier: node.id,
-        value: createAbstractDataLiteral(data.value),
+        value: createFilterCriterion({
+          properties: data.properties,
+          values: data.values ?? {},
+        }),
       });
+      continue;
     }
+
+    if (data.variant === "number" && !shouldEmitNumberSource(node.id, nodes)) continue;
+
+    const entry = entryOf(node);
+    if (entry) statements.push(bagSource(node.id, entry));
   }
 
-  // 1b. Sources: all "source" nodes (numbers, shapes, food)
+  // 2a. Array zones: una zona es UNA bolsa con las entradas de las cartas que
+  //     contiene. Un `source` es entrada pura, así que las inlinea en vez de
+  //     referenciarlas (AABB entre los handlers zone-out y zone-in).
   for (const node of nodes) {
-    if (node.type === "source") {
-      const data = node.data as SourceFlowNodeData;
+    if (node.type !== "arrayClose") continue;
 
-      if (data.variant === "number") {
-        if (!shouldEmitNumberSource(node.id, nodes)) continue;
-        // Use new v4.0.0 helpers: numbers are CPA abstractos
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createAbstractDataLiteral(data.value ?? 0),
-        });
-      } else if (data.variant === "shape") {
-        const shapeAttrs: Record<string, string> = {
-          size: normalizeSize(data.size),
-        };
-        if (isPictorialColorYoloClass(data.yoloClass)) {
-          shapeAttrs.color = data.color;
-        }
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createPictoricDataLiteral(
-            "forma",
-            data.shape ?? "circulo",
-            1,
-            shapeAttrs
-          ),
-        });
-      } else if (data.variant === "food") {
-        const foodType = data.food ?? "manzana";
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createConcreteDataLiteral("comida", foodType, 1, {
-            color: FOOD_COLOR_MAP[foodType] ?? "verde",
-          }),
-        });
-      } else if (data.variant === "montessori") {
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createConcreteDataLiteral("montessori", data.color ?? "azul", 1, {
-            color: data.color ?? "azul",
-          }),
-        });
-      } else if (data.variant === "cap") {
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createConcreteDataLiteral("cap", data.color ?? "azul", 1, {
-            color: data.color ?? "azul",
-          }),
-        });
-      } else if (data.variant === "stick") {
-        const stickColor = resolveStickColor(data.color, data.yoloClass);
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createConcreteDataLiteral("stick", stickColor, 1, {
-            color: stickColor,
-          }),
-        });
-      } else if (data.variant === "criteria") {
-        statements.push({
-          type: "SourceStatement",
-          identifier: node.id,
-          value: createCriteriaLiteral({
-            properties: data.properties,
-            values: data.values ?? {},
-          }),
-        });
+    const members = getOrderedArrayZoneMembers(node.id, nodes, edges);
+    let bag = createBag();
+
+    for (const member of members) {
+      const entry = entryOf(member);
+      if (entry) {
+        bag = bag.add(entry);
+      } else {
+        // Un operador dentro de la zona no declara datos y no se puede inlinear.
+        logger.flow.warn("Array zone member without data", { id: member.id, type: member.type });
       }
     }
-  }
 
-  // 2a. Array pairs: each edge from arrayOpen → arrayClose (zone-in) defines an array.
-  //     AABB entre handlers zone-out (abrir) y zone-in (cerrar); miembros = fuentes/operadores
-  //     cuya carta solapa la zona (inclusive en el borde).
-  for (const edge of edges) {
-    if (edge.targetHandle !== "zone-in") continue;
-
-    const closeNode = nodes.find(
-      (n) => n.id === edge.target && n.type === "arrayClose"
-    );
-    if (!closeNode) continue;
-
-    const inner = getOrderedArrayZoneMembers(closeNode.id, nodes, edges);
-
-    if (inner.length === 0) continue;
-
-    const elements = inner.map((n) => ({ type: "Identifier" as const, name: n.id }));
-    const arrayLiteral: ArrayLiteral = { type: "ArrayLiteral", elements };
-
-    statements.push({
-      type: "SourceStatement",
-      identifier: closeNode.id,
-      value: arrayLiteral,
-    });
+    // Una zona vacía es `nulo`: un arreglo a medio armar no rompe el programa.
+    statements.push({ type: "SourceStatement", identifier: node.id, value: bag });
   }
 
   // 2b. Transforms: "operator" nodes
   for (const node of nodes) {
-    if (node.type === "operator") {
-      const data = node.data as OperatorFlowNodeData;
-      const operator = data.operator ?? "adicion";
-      const inputEdges = edges.filter((e) => e.target === node.id);
+    if (node.type !== "operator") continue;
 
-      const sortedEdges = isSingleInputOperatorType(operator)
-        ? inputEdges.filter((e) => e.targetHandle === "a" || e.targetHandle == null)
-        : inputEdges.sort((a, b) => {
-            if (a.targetHandle === "a") return -1;
-            if (b.targetHandle === "a") return 1;
-            return 0;
-          });
+    const data = node.data as OperatorFlowNodeData;
+    const operator = data.operator ?? "adicion";
+    const inputEdges = edges.filter((e) => e.target === node.id);
 
-      const args: (
-        | { type: "Identifier"; name: string }
-        | ReturnType<typeof createCriteriaLiteral>
-      )[] = sortedEdges.map((e) => ({
-        type: "Identifier" as const,
-        name: resolveFlowSourceId(e.source, nodes),
-      }));
+    const sortedEdges = isSingleInputOperatorType(operator)
+      ? inputEdges.filter((e) => e.targetHandle === "a" || e.targetHandle == null)
+      : inputEdges.sort((a, b) => {
+          if (a.targetHandle === "a") return -1;
+          if (b.targetHandle === "a") return 1;
+          return 0;
+        });
 
-      if (isOrderOperatorType(operator)) {
-        if (data.criterio) {
-          args.push(
-            createCriteriaLiteral({
-              properties: [data.criterio.property],
-              values: { [data.criterio.property]: data.criterio.sequence },
-            })
-          );
-        } else {
-          args.push(DEFAULT_QUANTITY_ORDER_CRITERION);
-        }
-      }
+    const args = sortedEdges.map((e) => ({
+      type: "Identifier" as const,
+      name: resolveFlowSourceId(e.source, nodes),
+    }));
+
+    if (isOrderOperatorType(operator)) {
+      // El criterio va en su propio `source` y se referencia por nombre: los
+      // argumentos de un transform son solo identificadores.
+      const direction = orderDirection(operator);
+      const criterionId = orderCriterionId(node.id);
 
       statements.push({
-        type: "TransformStatement",
-        identifier: node.id,
-        operation: resolveOperation(operator),
-        arguments: args,
+        type: "SourceStatement",
+        identifier: criterionId,
+        value: data.criterio
+          ? createOrderCriterion({
+              properties: [data.criterio.property],
+              values: {
+                // La secuencia *es* el orden, así que para el sentido inverso
+                // se invierte la secuencia.
+                [data.criterio.property]:
+                  direction === "asc"
+                    ? [...data.criterio.sequence]
+                    : [...data.criterio.sequence].reverse(),
+              },
+            })
+          : createOrderCriterion({
+              properties: ["quantity"],
+              values: { quantity: direction },
+            }),
       });
+
+      args.push({ type: "Identifier" as const, name: criterionId });
     }
+
+    statements.push({
+      type: "TransformStatement",
+      identifier: node.id,
+      operation: resolveOperation(operator),
+      arguments: args,
+    });
   }
 
   // 3. Sinks: one per programOutput connected to an evaluable node
