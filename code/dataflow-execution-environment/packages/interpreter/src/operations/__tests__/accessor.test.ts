@@ -1,89 +1,37 @@
-import { describe, test, expect } from "bun:test";
-import Fraction from "fraction.js";
+// §3.5 — acceso posicional
+
+import { describe, expect, test } from "bun:test";
+import { bagOf, entry, pairs } from "../../__tests__/helpers";
 import { first, last } from "../accessor";
-import type { CPAObject, ArrayValue } from "../../runtime/types";
 
-const apple: CPAObject = {
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "manzana",
-  quantity: new Fraction(1),
-  attributes: {},
-};
-
-const pear: CPAObject = {
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "pera",
-  quantity: new Fraction(1),
-  attributes: {},
-};
-
-const grape: CPAObject = {
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "uva",
-  quantity: new Fraction(1),
-  attributes: {},
-};
-
-describe("first (unit)", () => {
-  test("returns first element of array", () => {
-    const arr: ArrayValue = {
-      kind: "arreglo",
-      elements: [apple, pear, grape],
-    };
-    const result = first([arr]);
-    expect(result).toEqual(apple);
+describe("first — §3.5.1", () => {
+  test("devuelve la primera entrada del orden vigente", () => {
+    expect(pairs(first([bagOf(entry("manzana", 2), entry("pera", 3), entry("uva", 1))]))).toEqual([
+      "manzana:2",
+    ]);
   });
 
-  test("returns the element itself if not an array", () => {
-    const result = first([apple]);
-    expect(result).toEqual(apple);
+  test("señala una pila individual: no agrupa los repetidos", () => {
+    expect(pairs(first([bagOf(entry("manzana", 2), entry("manzana", 3))]))).toEqual(["manzana:2"]);
   });
 
-  test("returns empty array when array is empty", () => {
-    const arr: ArrayValue = { kind: "arreglo", elements: [] };
-    const result = first([arr]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toEqual([]);
-  });
-
-  test("returns empty array when no arguments", () => {
-    const result = first([]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toEqual([]);
+  test("sobre nulo devuelve nulo", () => {
+    expect(pairs(first([bagOf()]))).toEqual([]);
   });
 });
 
-describe("last (unit)", () => {
-  test("returns last element of array", () => {
-    const arr: ArrayValue = {
-      kind: "arreglo",
-      elements: [apple, pear, grape],
-    };
-    const result = last([arr]);
-    expect(result).toEqual(grape);
+describe("last — §3.5.2", () => {
+  test("devuelve la última entrada del orden vigente", () => {
+    expect(pairs(last([bagOf(entry("manzana", 2), entry("pera", 3), entry("uva", 1))]))).toEqual([
+      "uva:1",
+    ]);
   });
 
-  test("returns the element itself if not an array", () => {
-    const result = last([pear]);
-    expect(result).toEqual(pear);
+  test("señala una pila individual: no agrupa los repetidos", () => {
+    expect(pairs(last([bagOf(entry("manzana", 2), entry("manzana", 3))]))).toEqual(["manzana:3"]);
   });
 
-  test("returns empty array when array is empty", () => {
-    const arr: ArrayValue = { kind: "arreglo", elements: [] };
-    const result = last([arr]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toEqual([]);
-  });
-
-  test("returns empty array when no arguments", () => {
-    const result = last([]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toEqual([]);
+  test("sobre nulo devuelve nulo", () => {
+    expect(pairs(last([bagOf()]))).toEqual([]);
   });
 });

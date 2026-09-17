@@ -25,20 +25,8 @@ export const Source = createToken({ name: "Source", pattern: /source/, longer_al
 export const Transform = createToken({ name: "Transform", pattern: /transform/, longer_alt: Identifier });
 export const Sink = createToken({ name: "Sink", pattern: /sink/, longer_alt: Identifier });
 
-// Operation keywords
-export const Sum = createToken({ name: "Sum", pattern: /sum/, longer_alt: Identifier });
-export const Substract = createToken({ name: "Substract", pattern: /substract/, longer_alt: Identifier });
-export const Multiply = createToken({ name: "Multiply", pattern: /multiply/, longer_alt: Identifier });
-export const Divide = createToken({ name: "Divide", pattern: /divide/, longer_alt: Identifier });
-export const LessThan = createToken({ name: "LessThan", pattern: /less_than/, longer_alt: Identifier });
-export const GreaterThan = createToken({ name: "GreaterThan", pattern: /greater_than/, longer_alt: Identifier });
-export const OrderAsc = createToken({ name: "OrderAsc", pattern: /order_asc/, longer_alt: Identifier });
-export const OrderDesc = createToken({ name: "OrderDesc", pattern: /order_desc/, longer_alt: Identifier });
-export const Filter = createToken({ name: "Filter", pattern: /filter/, longer_alt: Identifier });
-export const First = createToken({ name: "First", pattern: /first/, longer_alt: Identifier });
-export const Last = createToken({ name: "Last", pattern: /last/, longer_alt: Identifier });
-export const Count = createToken({ name: "Count", pattern: /count/, longer_alt: Identifier });
-export const Compare = createToken({ name: "Compare", pattern: /compare/, longer_alt: Identifier });
+// Las operaciones no son palabras clave: `operation ::= identifier` (§5.1), y el
+// conjunto reconocido lo valida la pasada estática (§4.2.4).
 
 // Symbols
 export const Equals = createToken({ name: "Equals", pattern: /=/ });
@@ -58,10 +46,12 @@ export const StringLiteral = createToken({
   pattern: /"[^"]*"/,
 });
 
-// Number literal (supports decimals, sign, and fractions like "1/3")
+// rational_literal ::= "-"? digit+ ( "/" digit+ | "." digit+ )?   (§5.1)
+// Un entero (3), una fracción (1/3) o un decimal (2.5): las dos formas son
+// alternativas excluyentes, y todo se interpreta como un racional exacto.
 export const NumberLiteral = createToken({
   name: "NumberLiteral",
-  pattern: /-?[0-9]+(\.[0-9]+)?(\/[0-9]+)?/,
+  pattern: /-?[0-9]+(\/[0-9]+|\.[0-9]+)?/,
 });
 
 // Token order matters - keywords must come before Identifier
@@ -74,21 +64,6 @@ export const allTokens = [
   Source,
   Transform,
   Sink,
-
-  // Operations
-  Sum,
-  Substract,
-  Multiply,
-  Divide,
-  LessThan,
-  GreaterThan,
-  OrderAsc,
-  OrderDesc,
-  Filter,
-  First,
-  Last,
-  Count,
-  Compare,
 
   // Symbols
   Equals,

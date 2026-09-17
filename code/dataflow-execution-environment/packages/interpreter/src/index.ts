@@ -5,45 +5,59 @@ export {
   type ParseError,
 } from "./interpreter";
 
-export { RuntimeError, type ErrorCode } from "./runtime/errors";
+export {
+  RuntimeError,
+  type ErrorCode,
+  type ErrorPhase,
+  type ErrorSite,
+  type RuntimeErrorCode,
+  type StaticErrorCode,
+} from "./runtime/errors";
 
 export { serialize, deserialize, type SerializeResult } from "./serializer";
 
 export { formatValue } from "./formatter";
 
+// Construcción de valores
+export {
+  createBag,
+  createFilterCriterion,
+  createOrderCriterion,
+  ImmutableBag,
+  type EntrySpec,
+} from "./bag-builder";
+
+// Estructura de un programa
 export type {
-  Program,
-  Statement,
-  SourceStatement,
-  TransformStatement,
-  SinkStatement,
+  BagLiteral,
+  CriterionLiteral,
   Expression,
   IdentifierExpression,
   Literal,
-  ArrayLiteral,
-  OtherLiteral,
-  ObjectLiteral,
-  // v4.0.0 discriminated types
-  DataLiteral,
-  CriteriaLiteral,
-  // Legacy (deprecated)
-  ObjectProperty,
   Operation,
+  Program,
+  SinkStatement,
+  SourceStatement,
+  Statement,
+  TransformStatement,
 } from "./program";
 
-export {
-  isDataLiteral,
-  isCriteriaLiteral,
-} from "./program";
+export { isBagLiteral, isCriterionLiteral } from "./program";
 
-export {
-  // Runtime helpers
-  createAbstractNumber,
-  createPictoricObject,
-  createConcreteObject,
-  // AST helpers (v4.0.0)
-  createAbstractDataLiteral,
-  createPictoricDataLiteral,
-  createConcreteDataLiteral,
-  createCriteriaLiteral,
-} from "./utils";
+// Modelo de valores
+export type {
+  Bag,
+  BooleanValue,
+  CPACategory,
+  Criterion,
+  CriterionSubtype,
+  CriterionValue,
+  Entry,
+  OrderDirection,
+  RuntimeValue,
+  ValueCategory,
+} from "./runtime/types";
+
+export { isBag, isBoolean, isCriterion } from "./runtime/types";
+
+export { OPERATIONS, isOperation } from "./operations/signatures";

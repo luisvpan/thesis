@@ -1,25 +1,23 @@
-import type { RuntimeValue } from "../runtime/types";
-import { isCPAObject } from "../runtime/types";
+// Agregación — LANGUAGE_SPEC.md §3.6.1
+
+import { numberBag } from "../runtime/bag";
 import * as rational from "../runtime/rational";
-import { flattenArrays, getQuantity } from "./utils";
-import { createAbstractNumber } from "../utils";
+import type { RuntimeValue } from "../runtime/types";
+import { bagAt } from "./helpers";
 
 /**
- * Counts the total quantity of all elements.
- * - Flattens all input arrays
- * - Sums the quantities of all CPA objects
- * - Returns an abstract number with the total
+ * `count(bolsa) → número` — unaria. Totaliza sin importar la identidad: no
+ * agrupa ni distingue por tipo, solo suma cantidades. Sobre `nulo` da 0.
+ *
+ * Como el resultado es un número, puede alimentar a las operaciones que esperan
+ * uno (el escalar de `multiply`, el umbral de `less_than`…).
  */
 export function count(args: RuntimeValue[]): RuntimeValue {
-  const flat = flattenArrays(args);
-
   let total = rational.zero();
 
-  for (const val of flat) {
-    if (isCPAObject(val)) {
-      total = rational.add(total, getQuantity(val));
-    }
+  for (const entry of bagAt(args, 0, "count").entries) {
+    total = rational.add(total, entry.quantity);
   }
 
-  return createAbstractNumber(total);
+  return numberBag(total);
 }

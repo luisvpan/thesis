@@ -1,99 +1,81 @@
-import { describe, test, expect } from "bun:test";
-import Fraction from "fraction.js";
+// §2.4 Determinismo: el resultado depende solo del programa, no del intérprete
+// que lo ejecuta ni de lo que se ejecutó antes.
+
+import { describe, expect, test } from "bun:test";
 import { Interpreter } from "../index";
-import type { CPAObject } from "../runtime/types";
+import { numberLiteral, only } from "./helpers";
 
-describe("Independent executions", () => {
-  test("re-executes with modified source values", async () => {
-    const interpreter1 = new Interpreter();
-    const result1 = await interpreter1.execute(`
-      source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
-      source two = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
-      transform doubled = multiply(x, two);
-      sink result = doubled;
-    `);
-    expect((result1.results.get("result") as CPAObject).quantity.equals(new Fraction(20))).toBe(true);
+const num = numberLiteral;
 
-    const interpreter2 = new Interpreter();
-    const result2 = await interpreter2.execute(`
-      source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 50};
-      source two = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
-      transform doubled = multiply(x, two);
+async function value(program: string, sink = "result"): Promise<string> {
+  const result = await new Interpreter().execute(program);
+  expect(result.errors).toHaveLength(0);
+  return only(result.results.get(sink)!);
+}
+
+describe("Ejecuciones independientes", () => {
+  test("con valores distintos", async () => {
+    const program = (x: number) => `
+      source x = ${num(x)};
+      source dos = ${num(2)};
+      transform doubled = multiply(x, dos);
       sink result = doubled;
-    `);
-    expect((result2.results.get("result") as CPAObject).quantity.equals(new Fraction(100))).toBe(true);
+    `;
+
+    expect(await value(program(10))).toBe("20");
+    expect(await value(program(50))).toBe("100");
   });
 
-  test("re-executes with added statements", async () => {
-    const interpreter1 = new Interpreter();
-    const result1 = await interpreter1.execute(`
-      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-      sink result = a;
-    `);
-    expect((result1.results.get("result") as CPAObject).quantity.equals(new Fraction(5))).toBe(true);
+  test("con sentencias añadidas", async () => {
+    expect(await value(`source a = ${num(5)}; sink result = a;`)).toBe("5");
+    expect(
+      await value(`
+        source a = ${num(5)};
+        source b = ${num(3)};
+        transform total = sum(a, b);
+        sink result = total;
+      `)
+    ).toBe("8");
+  });
 
-    const interpreter2 = new Interpreter();
-    const result2 = await interpreter2.execute(`
-      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-      source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
+  test("con la operación cambiada", async () => {
+    const program = (operation: string) => `
+      source a = ${num(10)};
+      source b = ${num(2)};
+      transform calc = ${operation}(a, b);
+      sink result = calc;
+    `;
+
+    expect(await value(program("sum"))).toBe("12");
+    expect(await value(program("multiply"))).toBe("20");
+    expect(await value(program("substract"))).toBe("8");
+    expect(await value(program("divide"))).toBe("5");
+  });
+
+  test("dos intérpretes no comparten estado", async () => {
+    const a = new Interpreter();
+    const b = new Interpreter();
+
+    const resultA = await a.execute(`source x = ${num(100)}; sink result = x;`);
+    const resultB = await b.execute(`source y = ${num(1)}; sink result = y;`);
+
+    expect(only(resultA.results.get("result")!)).toBe("100");
+    expect(only(resultB.results.get("result")!)).toBe("1");
+  });
+
+  test("el mismo programa da el mismo valor las veces que se ejecute", async () => {
+    const interpreter = new Interpreter();
+    const program = `
+      source a = ${num("1/3")};
+      source b = ${num("1/6")};
       transform total = sum(a, b);
       sink result = total;
-    `);
-    expect((result2.results.get("result") as CPAObject).quantity.equals(new Fraction(8))).toBe(true);
-  });
+    `;
 
-  test("re-executes with removed statements", async () => {
-    const interpreter1 = new Interpreter();
-    const result1 = await interpreter1.execute(`
-      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-      source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
-      transform total = sum(a, b);
-      sink result = total;
-    `);
-    expect((result1.results.get("result") as CPAObject).quantity.equals(new Fraction(8))).toBe(true);
+    const first = await interpreter.execute(program);
+    const second = await interpreter.execute(program);
 
-    const interpreter2 = new Interpreter();
-    const result2 = await interpreter2.execute(`
-      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-      sink result = a;
-    `);
-    expect((result2.results.get("result") as CPAObject).quantity.equals(new Fraction(5))).toBe(true);
-  });
-
-  test("re-executes with changed operations", async () => {
-    const interpreter1 = new Interpreter();
-    const result1 = await interpreter1.execute(`
-      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
-      source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
-      transform calc = sum(a, b);
-      sink result = calc;
-    `);
-    expect((result1.results.get("result") as CPAObject).quantity.equals(new Fraction(12))).toBe(true);
-
-    const interpreter2 = new Interpreter();
-    const result2 = await interpreter2.execute(`
-      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
-      source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
-      transform calc = multiply(a, b);
-      sink result = calc;
-    `);
-    expect((result2.results.get("result") as CPAObject).quantity.equals(new Fraction(20))).toBe(true);
-  });
-
-  test("executions are independent (no state leakage)", async () => {
-    const interpreterA = new Interpreter();
-    const resultA = await interpreterA.execute(`
-      source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 100};
-      sink result = x;
-    `);
-
-    const interpreterB = new Interpreter();
-    const resultB = await interpreterB.execute(`
-      source y = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 1};
-      sink result = y;
-    `);
-
-    expect((resultA.results.get("result") as CPAObject).quantity.equals(new Fraction(100))).toBe(true);
-    expect((resultB.results.get("result") as CPAObject).quantity.equals(new Fraction(1))).toBe(true);
+    expect(only(first.results.get("result")!)).toBe("1/2");
+    expect(only(second.results.get("result")!)).toBe("1/2");
   });
 });

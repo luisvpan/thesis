@@ -1,12 +1,20 @@
-// Consumer-facing Program interface with Fraction types for numeric values
-// This is the public API for library consumers to build programs programmatically
+// API pública para construir programas: la misma estructura del AST, pero con
+// cantidades ya en `Fraction` y con un único tipo de valor de datos, la bolsa.
+//
+// Las bolsas se construyen con `createBag()` (ver `bag-builder.ts`); los
+// criterios, con `createFilterCriterion` / `createOrderCriterion`.
 
-import type Fraction from "fraction.js";
+import type { CriterionSubtype, CriterionValue, Entry } from "./runtime/types";
 
-// Re-export non-numeric types from AST
 export type { Operation } from "./analyzer/ast";
+export type { CPACategory, CriterionSubtype, CriterionValue, Entry } from "./runtime/types";
 
-// Program structure (same as AST)
+type Operation = import("./analyzer/ast").Operation;
+
+// =============================================================================
+// Estructura del programa (§2.1)
+// =============================================================================
+
 export type Program = {
   type: "Program";
   statements: Statement[];
@@ -23,7 +31,8 @@ export type SourceStatement = {
 export type TransformStatement = {
   type: "TransformStatement";
   identifier: string;
-  operation: import("./analyzer/ast").Operation;
+  /** Una de las operaciones reconocidas (§5.2); otra cosa es un error estático. */
+  operation: Operation | (string & {});
   arguments: Expression[];
 };
 
@@ -33,72 +42,51 @@ export type SinkStatement = {
   sourceIdentifier: string;
 };
 
-// Expressions
-export type Expression = IdentifierExpression | Literal;
+// =============================================================================
+// Expresiones — `argument_list ::= identifier ("," identifier)*` (§5.1)
+// =============================================================================
+
+export type Expression = IdentifierExpression;
 
 export type IdentifierExpression = {
   type: "Identifier";
   name: string;
 };
 
-// Literals - v4.0.0: ObjectLiteral = DataLiteral | CriteriaLiteral
-export type Literal = ObjectLiteral | OtherLiteral | ArrayLiteral;
-
-export type ArrayLiteral = {
-  type: "ArrayLiteral";
-  elements: Expression[];
-};
-
-export type OtherLiteral = {
-  type: "OtherLiteral";
-  value: string;
-};
-
 // =============================================================================
-// Object Literals (v4.0.0) - Discriminated by sourceType
+// Literales: una bolsa de datos o un criterio
 // =============================================================================
 
-// ObjectLiteral es unión de Data y Criteria
-export type ObjectLiteral = DataLiteral | CriteriaLiteral;
+export type Literal = BagLiteral | CriterionLiteral;
 
-// Data Literal - CPA objects with category, type, subtype, quantity
-export type DataLiteral = {
-  type: "DataLiteral";
-  sourceType: "data";
-  category: string;
-  objType: string;      // "type" renamed to avoid keyword conflict
-  subtype: string;
-  quantity: Fraction;   // Fraction for API convenience
-  attributes: Record<string, string>;
+/**
+ * Una bolsa: 0, 1 o n entradas. Se construye con `createBag()`, que devuelve
+ * una bolsa inmutable con `.add()` y `.reset()`.
+ */
+export type BagLiteral = {
+  type: "BagLiteral";
+  entries: readonly Entry[];
 };
 
-// Criteria Literal - For filter and order operations
-// Generic type: keys of values are constrained to values of properties
-export type CriteriaLiteral<P extends string = string> = {
-  type: "CriteriaLiteral";
-  sourceType: "criteria";
-  properties: readonly P[] | P[];  // Permite inferencia de tuplas o as const
-  values: Partial<Record<P, string | string[]>>;
+/**
+ * Un criterio, con su subtipo declarado (§1.3). Los criterios no se agrupan:
+ * cada uno va en su propio `source`.
+ */
+export type CriterionLiteral<P extends string = string> = {
+  type: "CriterionLiteral";
+  sourceType: CriterionSubtype;
+  properties: readonly P[] | P[];
+  values: Partial<Record<P, CriterionValue>>;
 };
 
 // =============================================================================
-// Type Guards for ObjectLiteral
+// Type guards
 // =============================================================================
 
-export function isDataLiteral(obj: ObjectLiteral): obj is DataLiteral {
-  return obj.type === "DataLiteral";
+export function isBagLiteral(literal: Literal): literal is BagLiteral {
+  return literal.type === "BagLiteral";
 }
 
-export function isCriteriaLiteral(obj: ObjectLiteral): obj is CriteriaLiteral {
-  return obj.type === "CriteriaLiteral";
+export function isCriterionLiteral(literal: Literal): literal is CriterionLiteral {
+  return literal.type === "CriterionLiteral";
 }
-
-// =============================================================================
-// Legacy types (deprecated, for backwards compatibility)
-// =============================================================================
-
-/** @deprecated Use DataLiteral or CriteriaLiteral directly */
-export type ObjectProperty = {
-  key: string;
-  value: string | Fraction;
-};

@@ -1,300 +1,136 @@
-import { describe, test, expect } from "bun:test";
+// serialize / deserialize: texto ↔ Program
+
+import { describe, expect, test } from "bun:test";
 import Fraction from "fraction.js";
-import { serialize, deserialize } from "../index";
-import type { Program, SourceStatement, TransformStatement, SinkStatement, DataLiteral } from "../index";
+import { createBag, createFilterCriterion, createOrderCriterion } from "../bag-builder";
+import { deserialize, serialize } from "../serializer";
+import type { BagLiteral, CriterionLiteral, Program, SourceStatement } from "../program";
+import { dataLiteral, numberLiteral } from "./helpers";
+
+function sourceValue(program: Program, index = 0) {
+  return (program.statements[index] as SourceStatement).value;
+}
 
 describe("serialize", () => {
-  test("parses CPA abstracto (number in v3.1.0)", () => {
-    const input = 'source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};';
-    const result = serialize(input);
+  test("un objeto es una bolsa de una entrada", () => {
+    const { program, errors } = serialize(`source x = ${dataLiteral("concreto", "comida", "manzana", 2)};`);
+    expect(errors).toHaveLength(0);
 
-    expect(result.errors).toHaveLength(0);
-    expect(result.program).not.toBeNull();
-    expect(result.program!.statements).toHaveLength(1);
-
-    const stmt = result.program!.statements[0] as SourceStatement;
-    expect(stmt.type).toBe("SourceStatement");
-    expect(stmt.identifier).toBe("x");
-    expect(stmt.value.type).toBe("DataLiteral");
-
-    const obj = stmt.value as DataLiteral;
-    expect(obj.category).toBe("abstracto");
-    expect(obj.objType).toBe("numero");
-    expect(obj.subtype).toBe("racional");
-    expect(obj.quantity).toBeInstanceOf(Fraction);
-    expect(obj.quantity.equals(new Fraction(5))).toBe(true);
+    const value = sourceValue(program!) as BagLiteral;
+    expect(value.type).toBe("BagLiteral");
+    expect(value.entries).toHaveLength(1);
+    expect(value.entries[0].subtype).toBe("manzana");
+    expect(value.entries[0].quantity.equals(new Fraction(2))).toBe(true);
   });
 
-  test("parses object literal with quantity as Fraction", () => {
-    const input = 'source shapes = {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 3, "size": "grande"};';
-    const result = serialize(input);
-
-    expect(result.errors).toHaveLength(0);
-    const stmt = result.program!.statements[0] as SourceStatement;
-    expect(stmt.value.type).toBe("DataLiteral");
-
-    const obj = stmt.value as DataLiteral;
-    expect(obj.category).toBe("pictorico");
-    expect(obj.objType).toBe("forma");
-    expect(obj.subtype).toBe("circulo");
-    expect(obj.quantity).toBeInstanceOf(Fraction);
-    expect(obj.quantity.equals(new Fraction(3))).toBe(true);
-    expect(obj.attributes.size).toBe("grande");
+  test("un grupo es una bolsa de varias entradas", () => {
+    const { program } = serialize(`
+      source items = [${dataLiteral("concreto", "comida", "uva", 5)}, ${dataLiteral("concreto", "comida", "pera", 1)}];
+    `);
+    const value = sourceValue(program!) as BagLiteral;
+    expect(value.entries.map((entry) => entry.subtype)).toEqual(["uva", "pera"]);
   });
 
-  test("parses abstract object with quantity as Fraction", () => {
-    const input = 'source num = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 42};';
-    const result = serialize(input);
-
-    expect(result.errors).toHaveLength(0);
-    const stmt = result.program!.statements[0] as SourceStatement;
-    const obj = stmt.value as DataLiteral;
-    expect(obj.quantity).toBeInstanceOf(Fraction);
-    expect(obj.quantity.equals(new Fraction(42))).toBe(true);
+  test("un source sin valor es la bolsa vacía", () => {
+    const { program } = serialize("source x = ;");
+    expect((sourceValue(program!) as BagLiteral).entries).toHaveLength(0);
   });
 
-  test("parses transform statement", () => {
-    const input = `
-      source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-      source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
-      transform c = sum(a, b);
-    `;
-    const result = serialize(input);
-
-    expect(result.errors).toHaveLength(0);
-    expect(result.program!.statements).toHaveLength(3);
-
-    const transform = result.program!.statements[2] as TransformStatement;
-    expect(transform.type).toBe("TransformStatement");
-    expect(transform.identifier).toBe("c");
-    expect(transform.operation).toBe("sum");
-    expect(transform.arguments).toHaveLength(2);
+  test("las fracciones se leen exactas", () => {
+    const { program } = serialize(`source x = ${numberLiteral("1/3")};`);
+    const value = sourceValue(program!) as BagLiteral;
+    expect(value.entries[0].quantity.equals(new Fraction(1, 3))).toBe(true);
   });
 
-  test("parses sink statement", () => {
-    const input = `
-      source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-      sink output = x;
-    `;
-    const result = serialize(input);
-
-    expect(result.errors).toHaveLength(0);
-
-    const sink = result.program!.statements[1] as SinkStatement;
-    expect(sink.type).toBe("SinkStatement");
-    expect(sink.identifier).toBe("output");
-    expect(sink.sourceIdentifier).toBe("x");
+  test("el criterio conserva su subtipo", () => {
+    const { program } = serialize(
+      `source c = {"sourceType": "order", "properties": ["size"], "size": ["a", "b"]};`
+    );
+    const value = sourceValue(program!) as CriterionLiteral;
+    expect(value.type).toBe("CriterionLiteral");
+    expect(value.sourceType).toBe("order");
+    expect(value.values).toEqual({ size: ["a", "b"] });
   });
 
-  test("returns errors for invalid syntax", () => {
-    const input = "source = 5;";  // Missing identifier
-    const result = serialize(input);
+  test("los argumentos de un transform son identificadores", () => {
+    const { program } = serialize(`transform t = sum(a, b);`);
+    expect(program!.statements[0]).toEqual({
+      type: "TransformStatement",
+      identifier: "t",
+      operation: "sum",
+      arguments: [
+        { type: "Identifier", name: "a" },
+        { type: "Identifier", name: "b" },
+      ],
+    });
+  });
 
-    expect(result.errors.length).toBeGreaterThan(0);
-    expect(result.program).toBeNull();
+  test("reporta los errores de sintaxis con su posición", () => {
+    const { program, errors } = serialize("source x = 5;");
+    expect(program).toBeNull();
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].line).toBe(1);
   });
 });
 
 describe("deserialize", () => {
-  test("deserializes DataLiteral (CPA abstracto)", () => {
-    const program: Program = {
+  test("escribe una bolsa de una entrada como objeto y varias como grupo", () => {
+    const one = createBag().add({
+      category: "concreto",
+      type: "comida",
+      subtype: "manzana",
+      quantity: 2,
+    });
+
+    expect(deserialize({ type: "Program", statements: [{ type: "SourceStatement", identifier: "x", value: one }] }))
+      .toBe(
+        `source x = {"sourceType": "data", "category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 2};`
+      );
+
+    const two = one.add({ category: "concreto", type: "comida", subtype: "pera", quantity: 1 });
+    expect(
+      deserialize({ type: "Program", statements: [{ type: "SourceStatement", identifier: "x", value: two }] })
+    ).toContain("[{");
+  });
+
+  test("escribe los racionales como fracción, sin perder exactitud", () => {
+    const bag = createBag().add({
+      category: "abstracto",
+      type: "numero",
+      subtype: "racional",
+      quantity: "1/3",
+    });
+    const text = deserialize({
+      type: "Program",
+      statements: [{ type: "SourceStatement", identifier: "x", value: bag }],
+    });
+    expect(text).toContain(`"quantity": 1/3`);
+  });
+
+  test("ida y vuelta conserva el valor", () => {
+    const original = `source x = ${numberLiteral("1/3")};\ntransform t = sum(x, x);\nsink out = t;`;
+    const { program } = serialize(original);
+    const { program: again } = serialize(deserialize(program!));
+
+    const first = sourceValue(program!) as BagLiteral;
+    const second = sourceValue(again!) as BagLiteral;
+    expect(second.entries[0].quantity.equals(first.entries[0].quantity)).toBe(true);
+    expect(again!.statements).toHaveLength(3);
+  });
+
+  test("escribe los criterios con su subtipo", () => {
+    const filtro = createFilterCriterion({ properties: ["subtype"], values: { subtype: "manzana" } });
+    const orden = createOrderCriterion({ properties: ["quantity"], values: { quantity: "asc" } });
+
+    const text = deserialize({
       type: "Program",
       statements: [
-        {
-          type: "SourceStatement",
-          identifier: "x",
-          value: {
-            type: "DataLiteral",
-            sourceType: "data",
-            category: "abstracto",
-            objType: "numero",
-            subtype: "racional",
-            quantity: new Fraction(5),
-            attributes: {},
-          },
-        },
+        { type: "SourceStatement", identifier: "f", value: filtro },
+        { type: "SourceStatement", identifier: "o", value: orden },
       ],
-    };
+    });
 
-    const result = deserialize(program);
-    expect(result).toContain("source x =");
-    expect(result).toContain("category");
-    expect(result).toContain("abstracto");
-    expect(result).toContain("5");
-  });
-
-  test("deserializes DataLiteral with attributes", () => {
-    const program: Program = {
-      type: "Program",
-      statements: [
-        {
-          type: "SourceStatement",
-          identifier: "shapes",
-          value: {
-            type: "DataLiteral",
-            sourceType: "data",
-            category: "pictorico",
-            objType: "forma",
-            subtype: "circulo",
-            quantity: new Fraction(3),
-            attributes: { size: "grande" },
-          },
-        },
-      ],
-    };
-
-    const result = deserialize(program);
-    expect(result).toContain("source shapes =");
-    expect(result).toContain("category");
-    expect(result).toContain("pictorico");
-    expect(result).toContain("size");
-    expect(result).toContain("grande");
-  });
-
-  test("deserializes transform statement", () => {
-    const program: Program = {
-      type: "Program",
-      statements: [
-        {
-          type: "TransformStatement",
-          identifier: "c",
-          operation: "sum",
-          arguments: [
-            { type: "Identifier", name: "a" },
-            { type: "Identifier", name: "b" },
-          ],
-        },
-      ],
-    };
-
-    const result = deserialize(program);
-    expect(result).toBe("transform c = sum(a, b);");
-  });
-
-  test("deserializes sink statement", () => {
-    const program: Program = {
-      type: "Program",
-      statements: [
-        {
-          type: "SinkStatement",
-          identifier: "output",
-          sourceIdentifier: "x",
-        },
-      ],
-    };
-
-    const result = deserialize(program);
-    expect(result).toBe("sink output = x;");
-  });
-
-  test("deserializes array literal with DataLiterals", () => {
-    const program: Program = {
-      type: "Program",
-      statements: [
-        {
-          type: "SourceStatement",
-          identifier: "arr",
-          value: {
-            type: "ArrayLiteral",
-            elements: [
-              {
-                type: "DataLiteral",
-                sourceType: "data",
-                category: "abstracto",
-                objType: "numero",
-                subtype: "racional",
-                quantity: new Fraction(1),
-                attributes: {},
-              },
-              {
-                type: "DataLiteral",
-                sourceType: "data",
-                category: "abstracto",
-                objType: "numero",
-                subtype: "racional",
-                quantity: new Fraction(2),
-                attributes: {},
-              },
-            ],
-          },
-        },
-      ],
-    };
-
-    const result = deserialize(program);
-    expect(result).toContain("source arr =");
-    expect(result).toContain("[");
-    expect(result).toContain("]");
-  });
-
-  test("deserializes other literal", () => {
-    const program: Program = {
-      type: "Program",
-      statements: [
-        {
-          type: "SourceStatement",
-          identifier: "size",
-          value: { type: "OtherLiteral", value: "grande" },
-        },
-      ],
-    };
-
-    const result = deserialize(program);
-    expect(result).toBe('source size = "grande";');
-  });
-});
-
-describe("roundtrip", () => {
-  test("serialize -> deserialize produces equivalent program", () => {
-    const original = `source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-source y = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
-transform z = sum(x, y);
-sink output = z;`;
-
-    const serialized = serialize(original);
-    expect(serialized.errors).toHaveLength(0);
-
-    const deserialized = deserialize(serialized.program!);
-
-    // Re-serialize the deserialized string
-    const reserialized = serialize(deserialized);
-    expect(reserialized.errors).toHaveLength(0);
-
-    // Both programs should have the same structure
-    expect(reserialized.program!.statements.length).toBe(serialized.program!.statements.length);
-  });
-
-  test("execute with Program produces same result as string", async () => {
-    const { Interpreter } = await import("../index");
-
-    const sourceCode = `source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
-source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
-transform c = sum(a, b);
-sink result = c;`;
-
-    const interpreter1 = new Interpreter();
-    const result1 = await interpreter1.execute(sourceCode);
-
-    const serialized = serialize(sourceCode);
-    expect(serialized.errors).toHaveLength(0);
-    expect(serialized.program).not.toBeNull();
-
-    const interpreter2 = new Interpreter();
-    const result2 = await interpreter2.execute(serialized.program!);
-
-    // Both should produce the same result
-    expect(result1.errors).toHaveLength(0);
-    expect(result2.errors).toHaveLength(0);
-
-    const value1 = result1.results.get("result");
-    const value2 = result2.results.get("result");
-
-    expect(value1).toBeDefined();
-    expect(value2).toBeDefined();
-    // Both should be CPA objects with quantity 15
-    expect((value1 as any).kind).toBe("cpa");
-    expect((value2 as any).kind).toBe("cpa");
-    expect((value1 as any).quantity.equals(new Fraction(15))).toBe(true);
-    expect((value2 as any).quantity.equals(new Fraction(15))).toBe(true);
+    expect(text).toContain(`{"sourceType": "filter", "properties": ["subtype"], "subtype": "manzana"}`);
+    expect(text).toContain(`{"sourceType": "order", "properties": ["quantity"], "quantity": "asc"}`);
   });
 });

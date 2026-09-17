@@ -1,130 +1,87 @@
-import { describe, test, expect } from "bun:test";
-import Fraction from "fraction.js";
+// §3.4.1 — filtrado
+
+import { describe, expect, test } from "bun:test";
+import { bagOf, entry, filterCriterion, pairs } from "../../__tests__/helpers";
 import { filter } from "../filtering";
-import type { CPAObject, ArrayValue, OtherValue } from "../../runtime/types";
 
-describe("filter (unit)", () => {
-  test("filters shapes by size", () => {
-    const shapes: CPAObject[] = [
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "circulo", quantity: new Fraction(1), attributes: { size: "grande" } },
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "cuadrado", quantity: new Fraction(1), attributes: { size: "pequeño" } },
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "cuadrado", quantity: new Fraction(1), attributes: { size: "grande" } },
-    ];
-    const criterion: OtherValue = { kind: "otro", value: "grande" };
-    const result = filter([...shapes, criterion]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toHaveLength(2);
-    expect((result.elements[0] as CPAObject).subtype).toBe("circulo");
-    expect((result.elements[1] as CPAObject).subtype).toBe("cuadrado");
+const fruits = () => bagOf(entry("manzana", 2), entry("pera", 3), entry("uva", 1));
+
+describe("filter — §3.4.1", () => {
+  test("conserva lo que satisface el criterio", () => {
+    const result = filter([fruits(), filterCriterion(["subtype"], { subtype: "manzana" })]);
+    expect(pairs(result)).toEqual(["manzana:2"]);
   });
 
-  test("filters shapes by subtype", () => {
-    const shapes: CPAObject[] = [
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "circulo", quantity: new Fraction(1), attributes: { size: "grande" } },
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "cuadrado", quantity: new Fraction(1), attributes: { size: "pequeño" } },
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "circulo", quantity: new Fraction(1), attributes: { size: "mediano" } },
-    ];
-    const criterion: OtherValue = { kind: "otro", value: "circulo" };
-    const result = filter([...shapes, criterion]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toHaveLength(2);
+  test("entre criterios hay O", () => {
+    const result = filter([
+      fruits(),
+      filterCriterion(["subtype"], { subtype: "manzana" }),
+      filterCriterion(["subtype"], { subtype: "uva" }),
+    ]);
+    expect(pairs(result)).toEqual(["manzana:2", "uva:1"]);
   });
 
-  test("filters foods by color", () => {
-    const foods: CPAObject[] = [
-      { kind: "cpa", category: "concreto", type: "comida", subtype: "uva", quantity: new Fraction(5), attributes: { color: "morado" } },
-      { kind: "cpa", category: "concreto", type: "comida", subtype: "manzana", quantity: new Fraction(3), attributes: { color: "rojo" } },
-      { kind: "cpa", category: "concreto", type: "comida", subtype: "uva", quantity: new Fraction(2), attributes: { color: "morado" } },
-    ];
-    const criterion: OtherValue = { kind: "otro", value: "morado" };
-    const result = filter([...foods, criterion]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toHaveLength(2);
+  test("entre las propiedades de un criterio hay Y", () => {
+    const shapes = bagOf(
+      entry("estrella", 2, { color: "roja" }),
+      entry("estrella", 1, { color: "azul" }),
+      entry("circulo", 3, { color: "roja" })
+    );
+
+    const result = filter([
+      shapes,
+      filterCriterion(["subtype", "color"], { subtype: "estrella", color: "roja" }),
+    ]);
+    expect(pairs(result)).toEqual(["estrella:2"]);
   });
 
-  test("filters foods by subtype", () => {
-    const foods: CPAObject[] = [
-      { kind: "cpa", category: "concreto", type: "comida", subtype: "uva", quantity: new Fraction(5), attributes: { color: "morado" } },
-      { kind: "cpa", category: "concreto", type: "comida", subtype: "manzana", quantity: new Fraction(3), attributes: { color: "rojo" } },
-      { kind: "cpa", category: "concreto", type: "comida", subtype: "pera", quantity: new Fraction(2), attributes: { color: "verde" } },
-    ];
-    const criterion: OtherValue = { kind: "otro", value: "manzana" };
-    const result = filter([...foods, criterion]) as CPAObject;
-    expect(result.kind).toBe("cpa");
-    expect(result.subtype).toBe("manzana");
+  test("forma normal disyuntiva: O de conjunciones", () => {
+    const shapes = bagOf(
+      entry("estrella", 2, { color: "roja" }),
+      entry("estrella", 1, { color: "azul" }),
+      entry("circulo", 3, { color: "roja" })
+    );
+
+    const result = filter([
+      shapes,
+      filterCriterion(["subtype", "color"], { subtype: "estrella", color: "roja" }),
+      filterCriterion(["subtype", "color"], { subtype: "estrella", color: "azul" }),
+    ]);
+    expect(pairs(result)).toEqual(["estrella:2", "estrella:1"]);
   });
 
-  test("returns single element when only one matches", () => {
-    const shapes: CPAObject[] = [
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "circulo", quantity: new Fraction(1), attributes: { size: "grande" } },
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "cuadrado", quantity: new Fraction(1), attributes: { size: "pequeño" } },
-    ];
-    const criterion: OtherValue = { kind: "otro", value: "pequeño" };
-    const result = filter([...shapes, criterion]) as CPAObject;
-    expect(result.kind).toBe("cpa");
-    expect(result.subtype).toBe("cuadrado");
+  test("filtra por categoría y por tipo", () => {
+    const mixed = bagOf(
+      entry("manzana", 2, {}, { category: "concreto", type: "comida" }),
+      entry("circulo", 1, {}, { category: "pictorico", type: "forma" })
+    );
+
+    expect(pairs(filter([mixed, filterCriterion(["category"], { category: "pictorico" })]))).toEqual([
+      "circulo:1",
+    ]);
+    expect(pairs(filter([mixed, filterCriterion(["type"], { type: "comida" })]))).toEqual([
+      "manzana:2",
+    ]);
   });
 
-  test("returns empty array when nothing matches", () => {
-    const shapes: CPAObject[] = [
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "circulo", quantity: new Fraction(1), attributes: { size: "grande" } },
-      { kind: "cpa", category: "pictorico", type: "forma", subtype: "cuadrado", quantity: new Fraction(1), attributes: { size: "grande" } },
-    ];
-    const criterion: OtherValue = { kind: "otro", value: "pequeño" };
-    const result = filter([...shapes, criterion]) as ArrayValue;
-    expect(result.kind).toBe("arreglo");
-    expect(result.elements).toHaveLength(0);
+  test("trabaja entrada por entrada y conserva los repetidos", () => {
+    const result = filter([
+      bagOf(entry("manzana", 2), entry("manzana", 4), entry("pera", 1)),
+      filterCriterion(["subtype"], { subtype: "manzana" }),
+    ]);
+    expect(pairs(result)).toEqual(["manzana:2", "manzana:4"]);
   });
 
-  test("filters by category", () => {
-    const grape: CPAObject = {
-      kind: "cpa",
-      category: "concreto",
-      type: "comida",
-      subtype: "uva",
-      quantity: new Fraction(5),
-      attributes: { color: "morado" },
-    };
-    const circle: CPAObject = {
-      kind: "cpa",
-      category: "pictorico",
-      type: "forma",
-      subtype: "circulo",
-      quantity: new Fraction(3),
-      attributes: { size: "grande" },
-    };
-    const criterion: OtherValue = { kind: "otro", value: "concreto" };
-    const result = filter([grape, circle, criterion]) as CPAObject;
-    expect(result.kind).toBe("cpa");
-    expect(result.category).toBe("concreto");
+  test("sin criterios completos devuelve la bolsa sin cambios", () => {
+    expect(pairs(filter([fruits()]))).toEqual(["manzana:2", "pera:3", "uva:1"]);
+    expect(pairs(filter([fruits(), filterCriterion(["subtype"], {})]))).toEqual([
+      "manzana:2",
+      "pera:3",
+      "uva:1",
+    ]);
   });
 
-  test("throws error for insufficient arguments", () => {
-    const shape: CPAObject = {
-      kind: "cpa",
-      category: "pictorico",
-      type: "forma",
-      subtype: "circulo",
-      quantity: new Fraction(1),
-      attributes: { size: "grande" },
-    };
-    expect(() => filter([shape])).toThrow();
-  });
-
-  test("ignores unknown criterion types and returns all data (v4.0.0)", () => {
-    const shape: CPAObject = {
-      kind: "cpa",
-      category: "pictorico",
-      type: "forma",
-      subtype: "circulo",
-      quantity: new Fraction(1),
-      attributes: { size: "grande" },
-    };
-    // Unknown criterion type - ignored by separationPass
-    const badCriterion = { kind: "racional", value: new Fraction(5) };
-    const result = filter([shape, badCriterion as any]) as CPAObject;
-    // With no valid criteria, all data items are returned
-    expect(result.kind).toBe("cpa");
-    expect(result.subtype).toBe("circulo");
+  test("sin coincidencias devuelve nulo", () => {
+    expect(pairs(filter([fruits(), filterCriterion(["subtype"], { subtype: "kiwi" })]))).toEqual([]);
   });
 });

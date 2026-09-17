@@ -1,193 +1,232 @@
-import { describe, test, expect } from "bun:test";
-import Fraction from "fraction.js";
+// Las doce operaciones y los ejemplos de la especificación, de punta a punta.
+
+import { describe, expect, test } from "bun:test";
 import { Interpreter } from "../index";
-import type { ArrayValue, CPAObject } from "../runtime/types";
+import type { BooleanValue } from "../runtime/types";
+import { dataLiteral, numberLiteral, only, pairs } from "./helpers";
 
-describe("Integration", () => {
-  describe("Example 1: Simple Addition", () => {
-    test("adds two numbers", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
-        source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
-        transform add = sum(a, b);
-        sink result = add;
-      `);
+const num = numberLiteral;
 
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as CPAObject;
-      expect(sinkResult.kind).toBe("cpa");
-      expect(sinkResult.category).toBe("abstracto");
-      expect(sinkResult.quantity.equals(new Fraction(5))).toBe(true);
-    });
+async function run(program: string) {
+  const result = await new Interpreter().execute(program);
+  expect(result.errors.map((error) => error.message)).toEqual([]);
+  return result.results;
+}
+
+describe("Aritmética (§3.1)", () => {
+  test("suma exacta sobre ℚ: 1/2 + 1/3 = 5/6 (§5.3)", async () => {
+    const results = await run(`
+      source half = ${num("1/2")};
+      source third = ${num("1/3")};
+      transform total = sum(half, third);
+      sink output = total;
+    `);
+    expect(only(results.get("output")!)).toBe("5/6");
   });
 
-  describe("Example 3: Complex Expression", () => {
-    test("computes (3 + 2) * (10 - 6) = 20", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source a = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
-        source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 2};
-        source c = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};
-        source d = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 6};
-        transform add = sum(a, b);
-        transform difference = substract(c, d);
-        transform product = multiply(add, difference);
-        sink result = product;
-      `);
-
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as CPAObject;
-      expect(sinkResult.kind).toBe("cpa");
-      expect(sinkResult.category).toBe("abstracto");
-      expect(sinkResult.quantity.equals(new Fraction(20))).toBe(true);
-    });
+  test("los atributos forman parte de la identidad: sum no agrupa lo que difiere (§5.3)", async () => {
+    const results = await run(`
+      source sedan = ${dataLiteral("concreto", "vehicle", "car", 2, { doors: "4" })};
+      source coupe = ${dataLiteral("concreto", "vehicle", "car", 1, { doors: "2" })};
+      transform vehicles = sum(sedan, coupe);
+      sink output = vehicles;
+    `);
+    expect(pairs(results.get("output")!)).toEqual(["car:2", "car:1"]);
   });
 
-  describe("CPA aggregation", () => {
-    test("sum aggregates matching CPA objects", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source items = [
-          {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 5, "color": "morado"},
-          {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 3, "color": "morado"},
-          {"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 2, "color": "rojo"}
-        ];
-        transform total = sum(items);
-        sink result = total;
-      `);
-
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as ArrayValue;
-      expect(sinkResult.kind).toBe("arreglo");
-      expect(sinkResult.elements).toHaveLength(2);
-    });
-
-    test("multiply does not aggregate CPA objects, returns all as array", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source items = [
-          {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 2, "size": "grande"},
-          {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 3, "size": "grande"},
-          {"category": "pictorico", "type": "forma", "subtype": "cuadrado", "quantity": 4, "size": "pequeño"}
-        ];
-        transform product = multiply(items);
-        sink result = product;
-      `);
-
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as ArrayValue;
-      expect(sinkResult.kind).toBe("arreglo");
-      // CPAs are NOT combined - all 3 elements are preserved
-      expect(sinkResult.elements).toHaveLength(3);
-
-      const circles = sinkResult.elements.filter(e => (e as CPAObject).subtype === "circulo") as CPAObject[];
-      const square = sinkResult.elements.find(e => (e as CPAObject).subtype === "cuadrado") as CPAObject;
-      expect(circles).toHaveLength(2);
-      expect(circles[0].quantity.equals(new Fraction(2))).toBe(true);
-      expect(circles[1].quantity.equals(new Fraction(3))).toBe(true);
-      expect(square.quantity.equals(new Fraction(4))).toBe(true);
-    });
-
-    test("substract operates on CPA objects with same key", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source a = {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 10, "color": "morado"};
-        source b = {"category": "concreto", "type": "comida", "subtype": "uva", "quantity": 3, "color": "morado"};
-        transform diff = substract(a, b);
-        sink result = diff;
-      `);
-
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as CPAObject;
-      expect(sinkResult.kind).toBe("cpa");
-      expect(sinkResult.quantity.equals(new Fraction(7))).toBe(true);
-    });
-
-    test("divide operates on CPA object amounts", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source a = {"category": "pictorico", "type": "forma", "subtype": "circulo", "quantity": 12, "size": "mediano"};
-        source b = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 4};
-        transform quotient = divide(a, b);
-        sink result = quotient;
-      `);
-
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as CPAObject;
-      expect(sinkResult.kind).toBe("cpa");
-      expect(sinkResult.quantity.equals(new Fraction(3))).toBe(true);
-    });
-
-    test("multiply scales CPA objects by rational factor", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source myShape = {"category": "pictorico", "type": "forma", "subtype": "cuadrado", "quantity": 5, "size": "pequeño"};
-        source factor = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};
-        transform scaled = multiply(myShape, factor);
-        sink result = scaled;
-      `);
-
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as CPAObject;
-      expect(sinkResult.kind).toBe("cpa");
-      expect(sinkResult.subtype).toBe("cuadrado");
-      expect(sinkResult.quantity.equals(new Fraction(15))).toBe(true);
-    });
+  test("un grupo declara una bolsa de varias entradas y sum la agrega", async () => {
+    const results = await run(`
+      source items = [
+        ${dataLiteral("concreto", "comida", "uva", 5, { color: "morado" })},
+        ${dataLiteral("concreto", "comida", "uva", 3, { color: "morado" })},
+        ${dataLiteral("concreto", "comida", "manzana", 2, { color: "rojo" })}
+      ];
+      transform total = sum(items);
+      sink result = total;
+    `);
+    expect(pairs(results.get("result")!)).toEqual(["uva:8", "manzana:2"]);
   });
 
-  describe("Montessori cubes", () => {
-    test("sum aggregates montessori cubes by color", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source rojos = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 3, "color": "rojo"};
-        source azules = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 5, "color": "azul"};
-        transform total = sum(rojos, azules);
-        sink resultado = total;
-      `);
+  test("expresión compuesta: (3 + 2) × (10 − 6) = 20", async () => {
+    const results = await run(`
+      source a = ${num(3)};
+      source b = ${num(2)};
+      source c = ${num(10)};
+      source d = ${num(6)};
+      transform add = sum(a, b);
+      transform difference = substract(c, d);
+      transform product = multiply(add, difference);
+      sink result = product;
+    `);
+    expect(only(results.get("result")!)).toBe("20");
+  });
 
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("resultado") as ArrayValue;
-      expect(sinkResult.kind).toBe("arreglo");
-      expect(sinkResult.elements).toHaveLength(2);
+  test("escalado: 2.5 × 3 = 7.5 (§5.3)", async () => {
+    const results = await run(`
+      source large_star = ${dataLiteral("pictorico", "shape", "star", 2.5, { size: "large" })};
+      source scale_factor = ${num(3)};
+      transform scaled_stars = multiply(large_star, scale_factor);
+      sink final_render = scaled_stars;
+    `);
+    expect(pairs(results.get("final_render")!)).toEqual(["star:15/2"]);
+  });
 
-      const rojos = sinkResult.elements.find(e => (e as CPAObject).attributes.color === "rojo") as CPAObject;
-      const azules = sinkResult.elements.find(e => (e as CPAObject).attributes.color === "azul") as CPAObject;
-      expect(rojos.kind).toBe("cpa");
-      expect(rojos.quantity.equals(new Fraction(3))).toBe(true);
-      expect(azules.kind).toBe("cpa");
-      expect(azules.quantity.equals(new Fraction(5))).toBe(true);
-    });
+  test("división exacta", async () => {
+    const results = await run(`
+      source a = ${dataLiteral("pictorico", "forma", "circulo", 12, { size: "mediano" })};
+      source b = ${num(4)};
+      transform quotient = divide(a, b);
+      sink result = quotient;
+    `);
+    expect(pairs(results.get("result")!)).toEqual(["circulo:3"]);
+  });
+});
 
-    test("sum merges array source built from identifiers with another montessori", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source orange = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "naranja"};
-        source purple = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "morado"};
-        source red = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "rojo"};
-        source duo = [orange, purple];
-        transform added = sum(duo, red);
-        sink result = added;
-      `);
+describe("Comparación (§3.2)", () => {
+  test("less_than y greater_than filtran por la cantidad total", async () => {
+    const results = await run(`
+      source frutas = [
+        ${dataLiteral("concreto", "comida", "manzana", 2)},
+        ${dataLiteral("concreto", "comida", "pera", 5)}
+      ];
+      source tres = ${num(3)};
+      transform pocas = less_than(frutas, tres);
+      transform muchas = greater_than(frutas, tres);
+      sink a = pocas;
+      sink b = muchas;
+    `);
+    expect(pairs(results.get("a")!)).toEqual(["manzana:2"]);
+    expect(pairs(results.get("b")!)).toEqual(["pera:5"]);
+  });
 
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("result") as ArrayValue;
-      expect(sinkResult.kind).toBe("arreglo");
-      expect(sinkResult.elements).toHaveLength(3);
-    });
+  test("compare ignora las cantidades 0: 3 manzanas − 3 manzanas ≈ nulo", async () => {
+    const results = await run(`
+      source tres = ${dataLiteral("concreto", "comida", "manzana", 3)};
+      source vacio = ;
+      transform resta = substract(tres, tres);
+      transform iguales = compare(resta, vacio);
+      sink result = iguales;
+    `);
+    expect((results.get("result") as BooleanValue).value).toBe(true);
+  });
 
-    test("montessori cubes are concrete category", async () => {
-      const interpreter = new Interpreter();
-      const result = await interpreter.execute(`
-        source cubo = {"category": "concreto", "type": "montessori", "subtype": "cubo", "quantity": 1, "color": "verde"};
-        sink resultado = cubo;
-      `);
+  test("compare ignora orden y agrupación", async () => {
+    const results = await run(`
+      source a = [${dataLiteral("concreto", "comida", "manzana", 1)}, ${dataLiteral("concreto", "comida", "manzana", 2)}];
+      source b = ${dataLiteral("concreto", "comida", "manzana", 3)};
+      transform iguales = compare(a, b);
+      sink result = iguales;
+    `);
+    expect((results.get("result") as BooleanValue).value).toBe(true);
+  });
+});
 
-      expect(result.errors).toHaveLength(0);
-      const sinkResult = result.results.get("resultado") as CPAObject;
-      expect(sinkResult.kind).toBe("cpa");
-      expect(sinkResult.category).toBe("concreto");
-      expect(sinkResult.attributes.color).toBe("verde");
-    });
+describe("Criterios (§1.3, §5.3)", () => {
+  const frutas = `[
+    ${dataLiteral("concreto", "food", "apple", 3)},
+    ${dataLiteral("concreto", "food", "pear", 1)}
+  ]`;
+
+  test("criterio de filtro: valor único sobre una propiedad de identidad", async () => {
+    const results = await run(`
+      source fruits = ${frutas};
+      source only_apples = {"sourceType": "filter", "properties": ["subtype"], "subtype": "apple"};
+      transform apples = filter(fruits, only_apples);
+      sink out_apples = apples;
+    `);
+    expect(pairs(results.get("out_apples")!)).toEqual(["apple:3"]);
+  });
+
+  test("criterio de orden: dirección sobre la cantidad", async () => {
+    const results = await run(`
+      source fruits = ${frutas};
+      source by_qty = {"sourceType": "order", "properties": ["quantity"], "quantity": "asc"};
+      transform sorted = order(fruits, by_qty);
+      sink out_sorted = sorted;
+    `);
+    expect(pairs(results.get("out_sorted")!)).toEqual(["pear:1", "apple:3"]);
+  });
+
+  test("criterio de orden: secuencia explícita de valores", async () => {
+    const results = await run(`
+      source estrellas = [
+        ${dataLiteral("pictorico", "forma", "estrella", 1, { size: "grande" })},
+        ${dataLiteral("pictorico", "forma", "estrella", 2, { size: "pequena" })},
+        ${dataLiteral("pictorico", "forma", "estrella", 3, { size: "mediana" })}
+      ];
+      source por_tamano = {"sourceType": "order", "properties": ["size"], "size": ["pequena", "mediana", "grande"]};
+      transform ordenadas = order(estrellas, por_tamano);
+      sink result = ordenadas;
+    `);
+    expect(pairs(results.get("result")!)).toEqual(["estrella:2", "estrella:3", "estrella:1"]);
+  });
+
+  test("varios criterios de filtro son una disyunción", async () => {
+    const results = await run(`
+      source frutas = [
+        ${dataLiteral("concreto", "comida", "manzana", 2)},
+        ${dataLiteral("concreto", "comida", "pera", 3)},
+        ${dataLiteral("concreto", "comida", "uva", 1)}
+      ];
+      source manzanas = {"sourceType": "filter", "properties": ["subtype"], "subtype": "manzana"};
+      source uvas = {"sourceType": "filter", "properties": ["subtype"], "subtype": "uva"};
+      transform elegidas = filter(frutas, manzanas, uvas);
+      sink result = elegidas;
+    `);
+    expect(pairs(results.get("result")!)).toEqual(["manzana:2", "uva:1"]);
+  });
+});
+
+describe("Acceso y agregación (§3.5, §3.6)", () => {
+  test("first y last leen el orden vigente", async () => {
+    const results = await run(`
+      source frutas = [
+        ${dataLiteral("concreto", "comida", "manzana", 2)},
+        ${dataLiteral("concreto", "comida", "pera", 3)},
+        ${dataLiteral("concreto", "comida", "uva", 1)}
+      ];
+      transform primera = first(frutas);
+      transform ultima = last(frutas);
+      sink a = primera;
+      sink b = ultima;
+    `);
+    expect(pairs(results.get("a")!)).toEqual(["manzana:2"]);
+    expect(pairs(results.get("b")!)).toEqual(["uva:1"]);
+  });
+
+  test("count totaliza y su resultado sirve de escalar", async () => {
+    const results = await run(`
+      source frutas = [
+        ${dataLiteral("concreto", "comida", "manzana", 2)},
+        ${dataLiteral("concreto", "comida", "pera", 3)}
+      ];
+      source uvas = ${dataLiteral("concreto", "comida", "uva", 1)};
+      transform cuantas = count(frutas);
+      transform escaladas = multiply(uvas, cuantas);
+      sink total = cuantas;
+      sink result = escaladas;
+    `);
+    expect(only(results.get("total")!)).toBe("5");
+    expect(pairs(results.get("result")!)).toEqual(["uva:5"]);
+  });
+});
+
+describe("Programas parciales (§2.5)", () => {
+  test("un transform sin operación evalúa a nulo", async () => {
+    const results = await run(`
+      transform incomplete_calc = ;
+      sink active_output = incomplete_calc;
+    `);
+    expect(pairs(results.get("active_output")!)).toEqual([]);
+  });
+
+  test("un criterio a medio declarar no invalida el programa", async () => {
+    const results = await run(`
+      source frutas = ${dataLiteral("concreto", "comida", "manzana", 2)};
+      source criterio = ;
+      transform filtradas = filter(frutas, criterio);
+      sink result = filtradas;
+    `);
+    expect(pairs(results.get("result")!)).toEqual(["manzana:2"]);
   });
 });
