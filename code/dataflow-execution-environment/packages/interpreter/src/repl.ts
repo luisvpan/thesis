@@ -21,11 +21,12 @@ Sintaxis:
   transform <id> = <op>(<args>);   - Aplica una transformación
   sink <id> = <source>;            - Define una salida (se muestra el resultado)
 
-Operaciones: sum, substract, multiply, divide, filter, order_asc, order_desc
+Operaciones: sum, substract, multiply, divide, less_than, greater_than,
+             compare, order, filter, first, last, count
 
 Ejemplo:
-  source x = 5;
-  source y = 3;
+  source x = {"sourceType": "data", "category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};
+  source y = {"sourceType": "data", "category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 1/3};
   transform suma = sum(x, y);
   sink resultado = suma;
 `;

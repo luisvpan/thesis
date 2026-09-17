@@ -1,54 +1,43 @@
-// Pretty-print utilities for RuntimeValue types
+// Presentación de valores para el REPL.
+//
+// El modo de visualización es decisión del consumidor (§1.5); esto es solo el
+// más literal de todos: la notación de la propia especificación.
 
-import type { RuntimeValue, CPAObject, ArrayValue, CriteriaObject } from "./runtime/types";
+import type { Bag, Criterion, Entry, RuntimeValue } from "./runtime/types";
 
-/**
- * Formats a RuntimeValue for display in the REPL
- */
 export function formatValue(value: RuntimeValue): string {
   switch (value.kind) {
-    case "cpa":
-      return formatCPAObject(value);
-    case "arreglo":
-      return formatArray(value);
-    case "criteria":
-      return formatCriteria(value);
+    case "bolsa":
+      return formatBag(value);
+    case "criterio":
+      return formatCriterion(value);
     case "booleano":
       return value.value ? "verdadero" : "falso";
-    case "otro":
-      return `"${value.value}"`;
   }
 }
 
-/**
- * Formats a CPA object for display
- * Example: circulo(3) [pictorico] {size: grande}
- */
-function formatCPAObject(obj: CPAObject): string {
-  const attrs = Object.entries(obj.attributes);
-  const attrStr = attrs.length > 0
-    ? ` {${attrs.map(([k, v]) => `${k}: ${v}`).join(", ")}}`
-    : "";
-
-  return `${obj.subtype}(${obj.quantity}) [${obj.category}]${attrStr}`;
+/** `{ manzana↦2 [concreto], pera↦3 [concreto] }`; la bolsa vacía es `nulo`. */
+function formatBag(value: Bag): string {
+  if (value.entries.length === 0) return "nulo";
+  return `{ ${value.entries.map(formatEntry).join(", ")} }`;
 }
 
-/**
- * Formats an array for display
- */
-function formatArray(arr: ArrayValue): string {
-  return `[${arr.elements.map(formatValue).join(", ")}]`;
+function formatEntry(entry: Entry): string {
+  const attributes = Object.entries(entry.attributes);
+  const suffix =
+    attributes.length > 0 ? ` {${attributes.map(([key, value]) => `${key}: ${value}`).join(", ")}}` : "";
+
+  return `${entry.subtype}↦${entry.quantity} [${entry.category}]${suffix}`;
 }
 
-/**
- * Formats a criteria object for display
- * Example: criteria([size, color]) {size: "grande"}
- */
-function formatCriteria(obj: CriteriaObject): string {
-  const values = Object.entries(obj.values);
-  const valuesStr = values.length > 0
-    ? ` {${values.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")}}`
-    : "";
+/** `criterio de orden([quantity]) {quantity: "asc"}` */
+function formatCriterion(criterion: Criterion): string {
+  const values = Object.entries(criterion.values);
+  const suffix =
+    values.length > 0
+      ? ` {${values.map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ")}}`
+      : "";
 
-  return `criteria([${obj.properties.join(", ")}])${valuesStr}`;
+  const subtype = criterion.subtype === "filter" ? "filtro" : "orden";
+  return `criterio de ${subtype}([${criterion.properties.join(", ")}])${suffix}`;
 }

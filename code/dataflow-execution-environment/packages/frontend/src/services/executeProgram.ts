@@ -4,8 +4,12 @@
 
 import {
   Interpreter,
-  RuntimeError,
-  type ParseError,
+  isBag,
+  isBoolean,
+  type DataflowError,
+  type Entry,
+  type ErrorCode,
+  type RuntimeValue,
 } from "@dataflow/interpreter";
 import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
@@ -101,42 +105,47 @@ export type ResultValue =
       singleCpaObjectMeta?: SingleCpaObjectMeta;
     };
 
-function formatInterpreterErrors(
-  errors: Array<ParseError | RuntimeError>
-): string {
+/**
+ * Mensaje para el aula, por código de error. El intérprete ya trae un detalle
+ * exacto; esto lo traduce a algo que un niño pueda leer.
+ */
+const MESSAGE_BY_CODE: Record<ErrorCode, string> = {
+  SYNTAX_ERROR: "Hay algo mal escrito en el programa.",
+  DUPLICATE_IDENTIFIER: "Hay dos cartas con el mismo nombre.",
+  UNDEFINED_REFERENCE: "Falta conectar una carta.",
+  CIRCULAR_DEPENDENCY: "Las cartas se apuntan en círculo y no se puede empezar.",
+  UNKNOWN_OPERATION: "Esa operación no existe.",
+  ARITY_ERROR: "A esta operación le faltan o le sobran cartas.",
+  TYPE_ERROR: "Esa carta no va en ese lugar.",
+  INVALID_CRITERION: "Ese criterio no sirve para esta operación.",
+  INVALID_OBJECT: "A esta carta le falta decir qué es.",
+  EXPECTED_NUMBER: "Aquí hace falta un número.",
+  DIVISION_BY_ZERO: "No se puede repartir entre cero.",
+};
+
+function describeError(error: DataflowError): string {
+  const friendly = MESSAGE_BY_CODE[error.code];
+  const where = error.nodeId ? ` (${error.nodeId})` : "";
+  return `${friendly}${where} — ${error.detail}`;
+}
+
+function formatInterpreterErrors(errors: DataflowError[]): string {
   return errors
-    .map((e, i) => {
-      const prefix = errors.length > 1 ? `${i + 1}. ` : "";
-      if (e instanceof RuntimeError) {
-        return `${prefix}${e.message}`;
-      }
-      let s = `${prefix}${e.message}`;
-      if (e.line !== undefined) {
-        s += ` (línea ${e.line}`;
-        if (e.column !== undefined) s += `, columna ${e.column}`;
-        s += ")";
-      }
-      return s;
-    })
+    .map((error, index) => `${errors.length > 1 ? `${index + 1}. ` : ""}${describeError(error)}`)
     .join("\n");
 }
 
-function logInterpreterErrors(errors: Array<ParseError | RuntimeError>): void {
-  for (const e of errors) {
-    if (e instanceof RuntimeError) {
-      logger.execute.error("Interpreter RuntimeError", {
-        code: e.code,
-        nodeId: e.nodeId,
-        message: e.message,
-        stack: e.stack,
-      });
-    } else {
-      logger.execute.error("Interpreter ParseError", {
-        message: e.message,
-        line: e.line,
-        column: e.column,
-      });
-    }
+function logInterpreterErrors(errors: DataflowError[]): void {
+  for (const error of errors) {
+    logger.execute.error(`Interpreter ${error.phase} error`, {
+      code: error.code,
+      nodeId: error.nodeId,
+      causeNodeId: error.causeNodeId,
+      sinkId: error.sinkId,
+      line: error.line,
+      column: error.column,
+      message: error.message,
+    });
   }
 }
 
@@ -144,17 +153,6 @@ export type ExecuteResult = {
   success: boolean;
   results?: Map<string, ResultValue>;
   error?: string;
-};
-
-type RuntimeOutput = {
-  kind: string;
-  value?: { valueOf(): number | bigint; n?: unknown; d?: unknown };
-  elements?: unknown[];
-  quantity?: { valueOf(): number | bigint; n?: unknown; d?: unknown; s?: unknown; toFraction?: () => string };
-  category?: string;
-  type?: string;
-  subtype?: string;
-  attributes?: { color?: string };
 };
 
 /**
@@ -191,156 +189,84 @@ function extractFraction(
   };
 }
 
-function isAbstractNumberElement(el: unknown): boolean {
-  if (!el || typeof el !== "object") return false;
-  const obj = el as Record<string, unknown>;
-  return (
-    obj.kind === "cpa" &&
-    obj.category === "abstracto" &&
-    obj.type === "numero"
-  );
+function isAbstractNumber(entry: Entry): boolean {
+  return entry.category === "abstracto" && entry.type === "numero";
 }
 
-function runtimeOutputToResultValue(output: RuntimeOutput): ResultValue | undefined {
-  if (output.kind === "booleano") {
-    return { kind: "boolean", value: Boolean((output as { value?: boolean }).value) };
+/**
+ * Traduce un valor del intérprete a lo que sabe pintar la interfaz.
+ *
+ * Solo hay tres formas de valor: la bolsa (los datos), el criterio y el
+ * booleano. La bolsa vacía es `nulo`.
+ */
+function runtimeOutputToResultValue(output: RuntimeValue): ResultValue | undefined {
+  if (isBoolean(output)) {
+    return { kind: "boolean", value: output.value };
   }
-  if (output.kind === "arreglo" && output.elements) {
-    // Check if all elements are abstract numbers - preserve order, don't aggregate
-    if (output.elements.length > 0 && output.elements.every(isAbstractNumberElement)) {
-      const values: NumberArrayItem[] = output.elements.map((el) => {
-        const obj = el as RuntimeOutput;
-        const qty = obj.quantity!;
-        return {
-          value: Number(qty.valueOf()),
-          ...extractFraction(qty),
-        };
-      });
-      return { kind: "numberArray", values };
-    }
 
-    // Mixed or non-abstract arrays: use semantic grouping
-    const semantic = groupElements(output.elements);
-    return { kind: "semantic", result: semantic };
+  if (!isBag(output)) return undefined; // un criterio no es un resultado que mostrar
+
+  const entries = output.entries;
+
+  // Una sola entrada numérica: el número pelado.
+  if (entries.length === 1 && isAbstractNumber(entries[0])) {
+    const quantity = entries[0].quantity;
+    return {
+      kind: "number",
+      value: Number(quantity.valueOf()),
+      ...extractFraction(quantity),
+    };
   }
-  if (output.kind === "cpa" && output.quantity) {
-    const quantity = Number(output.quantity.valueOf());
-    const { numerator, denominator } = extractFraction(output.quantity);
 
-    // Abstract numbers render as plain numbers
-    if (output.category === "abstracto" && output.type === "numero") {
-      return {
-        kind: "number",
-        value: quantity,
-        numerator,
-        denominator,
-      };
-    }
+  // Varias entradas numéricas: se conserva el orden, no se agregan.
+  if (entries.length > 0 && entries.every(isAbstractNumber)) {
+    const values: NumberArrayItem[] = entries.map((entry) => ({
+      value: Number(entry.quantity.valueOf()),
+      ...extractFraction(entry.quantity),
+    }));
+    return { kind: "numberArray", values };
+  }
 
-    // Non-abstract CPA objects render semantically
-    const semantic = groupElements([output]);
+  const semantic = groupEntries(entries);
+
+  // Un solo objeto: la interfaz lo pinta como carta, no como grupo.
+  if (entries.length === 1) {
+    const entry = entries[0];
     return {
       kind: "semantic",
       result: semantic,
       isSingleCpaObject: true,
       singleCpaObjectMeta: {
-        type: output.type ?? "",
-        subtype: output.subtype ?? "",
-        color: output.attributes?.color ?? "",
-        quantity,
-        numerator,
-        denominator,
+        type: entry.type,
+        subtype: entry.subtype,
+        color: entry.attributes.color ?? "",
+        quantity: Number(entry.quantity.valueOf()),
+        ...extractFraction(entry.quantity),
       },
     };
   }
-  return undefined;
+
+  return { kind: "semantic", result: semantic };
 }
 
 // ============================================================================
-// Helpers para extraer información de RuntimeValue
+// Helpers para leer una entrada de la bolsa
 // ============================================================================
 
-function getAmount(elem: unknown): number {
-  if (!elem || typeof elem !== "object") return 1;
-  const obj = elem as Record<string, unknown>;
-
-  // Handle CPA objects
-  if (obj.kind === "cpa" && obj.quantity) {
-    return Number((obj.quantity as { valueOf(): number }).valueOf());
-  }
-
-  return 1;
+function getAmount(entry: Entry): number {
+  return Number(entry.quantity.valueOf());
 }
 
-function getFractionString(elem: unknown): string {
-  if (!elem || typeof elem !== "object") return "1";
-  const obj = elem as Record<string, unknown>;
+function getFractionString(entry: Entry): string {
+  const qty = entry.quantity as unknown as { n?: unknown; d?: unknown; s?: unknown; valueOf(): number };
 
-  if (obj.kind === "cpa" && obj.quantity) {
-    const qty = obj.quantity as { n?: unknown; d?: unknown; s?: unknown; valueOf(): number };
-
-    // Fraction.js BigInt properties
-    if (typeof qty.n === "bigint" && typeof qty.d === "bigint") {
-      const sign = (qty.s as bigint) === -1n ? "-" : "";
-      if (qty.d === 1n) {
-        return `${sign}${qty.n}`;
-      }
-      return `${sign}${qty.n}/${qty.d}`;
-    }
-
-    // Fallback to decimal
-    return String(Number(qty.valueOf()));
+  // Fraction.js BigInt properties
+  if (typeof qty.n === "bigint" && typeof qty.d === "bigint") {
+    const sign = (qty.s as bigint) === -1n ? "-" : "";
+    return qty.d === 1n ? `${sign}${qty.n}` : `${sign}${qty.n}/${qty.d}`;
   }
 
-  return "1";
-}
-
-function getCategory(elem: unknown): "abstracto" | "pictorico" | "concreto" {
-  if (!elem || typeof elem !== "object") return "abstracto";
-  const obj = elem as Record<string, unknown>;
-
-  // Handle CPA objects
-  if (obj.kind === "cpa" && obj.category) {
-    return obj.category as "abstracto" | "pictorico" | "concreto";
-  }
-
-  return "abstracto";
-}
-
-function getType(elem: unknown): string {
-  if (!elem || typeof elem !== "object") return "numero";
-  const obj = elem as Record<string, unknown>;
-
-  // Handle CPA objects
-  if (obj.kind === "cpa" && obj.type) {
-    return obj.type as string;
-  }
-
-  return "numero";
-}
-
-function getSubtype(elem: unknown): string | null {
-  if (!elem || typeof elem !== "object") return null;
-  const obj = elem as Record<string, unknown>;
-
-  // Handle unified CPA objects (new format)
-  if (obj.kind === "cpa" && obj.subtype) {
-    return obj.subtype as string;
-  }
-
-  return null;
-}
-
-function getAttributes(elem: unknown): Record<string, string> {
-  if (!elem || typeof elem !== "object") return {};
-  const obj = elem as Record<string, unknown>;
-
-  // Handle unified CPA objects (new format)
-  if (obj.kind === "cpa" && obj.attributes) {
-    return obj.attributes as Record<string, string>;
-  }
-
-  return {};
+  return String(Number(qty.valueOf()));
 }
 
 // ============================================================================
@@ -379,59 +305,35 @@ function pluralize(word: string, count: number): string {
 
 const MAX_VISUAL_UNITS = 48;
 
-function flattenRuntimeElements(elements: unknown[]): unknown[] {
-  const out: unknown[] = [];
-  for (const el of elements) {
-    if (!el || typeof el !== "object") continue;
-    const o = el as Record<string, unknown>;
-    if (o.kind === "arreglo" && Array.isArray(o.elements)) {
-      out.push(...flattenRuntimeElements(o.elements));
-    } else {
-      out.push(el);
-    }
-  }
-  return out;
-}
-
-function buildVisualStrip(elements: unknown[]): ResultVisualItem[] {
-  const flat = flattenRuntimeElements(elements);
+function buildVisualStrip(entries: readonly Entry[]): ResultVisualItem[] {
   const strip: ResultVisualItem[] = [];
 
-  for (const elem of flat) {
-    if (!elem || typeof elem !== "object") continue;
-    const o = elem as Record<string, unknown>;
-    const rawAmt = getAmount(elem);
-    const n = Math.max(0, Math.min(24, Math.round(Number(rawAmt) || 0)));
+  for (const entry of entries) {
+    const n = Math.max(0, Math.min(24, Math.round(getAmount(entry) || 0)));
     if (n === 0) continue;
 
-    // Handle unified CPA objects (new format)
-    if (o.kind === "cpa") {
-      const type = o.type as string;
-      const subtype = o.subtype as string;
-      const attributes = (o.attributes as Record<string, string>) ?? {};
-      const color = attributes.color ?? "verde";
-      const size = attributes.size ?? "mediano";
+    const color = entry.attributes.color ?? "verde";
+    const size = entry.attributes.size ?? "mediano";
 
-      for (let i = 0; i < n; i++) {
-        if (strip.length >= MAX_VISUAL_UNITS) return strip;
+    for (let i = 0; i < n; i++) {
+      if (strip.length >= MAX_VISUAL_UNITS) return strip;
 
-        switch (type) {
-          case "montessori":
-            strip.push({ kind: "montessori", color });
-            break;
-          case "forma":
-            strip.push({ kind: "forma", subtype, size, color });
-            break;
-          case "comida":
-            strip.push({ kind: "comida", subtype, color });
-            break;
-          case "cap":
-            strip.push({ kind: "cap", color });
-            break;
-          case "stick":
-            strip.push({ kind: "stick", color });
-            break;
-        }
+      switch (entry.type) {
+        case "montessori":
+          strip.push({ kind: "montessori", color });
+          break;
+        case "forma":
+          strip.push({ kind: "forma", subtype: entry.subtype, size, color });
+          break;
+        case "comida":
+          strip.push({ kind: "comida", subtype: entry.subtype, color });
+          break;
+        case "cap":
+          strip.push({ kind: "cap", color });
+          break;
+        case "stick":
+          strip.push({ kind: "stick", color });
+          break;
       }
     }
   }
@@ -443,18 +345,15 @@ function buildVisualStrip(elements: unknown[]): ResultVisualItem[] {
 // Agrupación jerárquica de elementos
 // ============================================================================
 
-function groupElements(elements: unknown[]): SemanticResult {
+function groupEntries(entries: readonly Entry[]): SemanticResult {
   const categoryMap = new Map<string, CategoryGroup>();
   let totalAmount = 0;
 
-  for (const elem of elements) {
-    const amount = getAmount(elem);
+  for (const entry of entries) {
+    const amount = getAmount(entry);
     totalAmount += amount;
 
-    const category = getCategory(elem);
-    const type = getType(elem);
-    const subtype = getSubtype(elem);
-    const attributes = getAttributes(elem);
+    const { category, type, subtype, attributes } = entry;
 
     // Crear o actualizar categoría
     if (!categoryMap.has(category)) {
@@ -480,7 +379,7 @@ function groupElements(elements: unknown[]): SemanticResult {
       typeGroup.rationalValue = (typeGroup.rationalValue ?? 0) + amount;
       // Para un solo número, guardamos su fracción exacta
       // Usamos "" como marcador de "múltiples números"
-      const fractionStr = getFractionString(elem);
+      const fractionStr = getFractionString(entry);
       if (typeGroup.rationalFractionStr === undefined) {
         typeGroup.rationalFractionStr = fractionStr;
       } else if (typeGroup.rationalFractionStr !== "") {
@@ -489,9 +388,8 @@ function groupElements(elements: unknown[]): SemanticResult {
       }
     }
 
-    // Crear o actualizar subtipo (para CPA objects)
     // Montessori, cap y stick usan color como subtype efectivo
-    const effectiveSubtype = subtype ?? attributes.color ?? null;
+    const effectiveSubtype = subtype || attributes.color || null;
 
     if (effectiveSubtype) {
       let subtypeGroup = typeGroup.subtypes.find((s) => s.subtype === effectiveSubtype);
@@ -505,21 +403,19 @@ function groupElements(elements: unknown[]): SemanticResult {
         size: attributes.size,
         color: attributes.color,
         amount,
-        fractionStr: getFractionString(elem),
+        fractionStr: getFractionString(entry),
       });
     }
   }
 
   const categories = Array.from(categoryMap.values());
-  const description = generateDescription(categories, totalAmount);
-  const visualStrip = buildVisualStrip(elements);
 
   return {
     categories,
     totalAmount,
-    description,
-    visualStrip,
-    originalElements: toJsonSafe(elements),
+    description: generateDescription(categories, totalAmount),
+    visualStrip: buildVisualStrip(entries),
+    originalElements: toJsonSafe([...entries]),
   };
 }
 
@@ -716,14 +612,11 @@ export function createProgramExecutor() {
           const nodeId = resultId.startsWith("output_")
             ? resultId.replace("output_", "")
             : resultId;
-          const converted = runtimeOutputToResultValue(output as RuntimeOutput);
+          const converted = runtimeOutputToResultValue(output);
           if (converted) {
             resultsMap.set(nodeId, converted);
           } else {
-            logger.execute.warn("Unknown output type", {
-              nodeId,
-              kind: (output as RuntimeOutput).kind,
-            });
+            logger.execute.warn("Unknown output type", { nodeId, kind: output.kind });
           }
         }
 

@@ -1,5 +1,4 @@
 import Fraction from "fraction.js";
-import { RuntimeError } from "./errors";
 
 /**
  * Converts a JS number or string to a Fraction.
@@ -27,11 +26,16 @@ export function multiply(a: Fraction, b: Fraction): Fraction {
   return a.mul(b);
 }
 
+/**
+ * División exacta. El divisor 0 lo comprueba la operación `divide`, que es
+ * quien conoce el nodo y puede situar el error (§4.3.2).
+ */
 export function divide(a: Fraction, b: Fraction): Fraction {
-  if (b.valueOf() === 0) {
-    throw new RuntimeError("DIVISION_BY_ZERO", "Cannot divide by zero");
-  }
   return a.div(b);
+}
+
+export function isZero(a: Fraction): boolean {
+  return a.equals(zero());
 }
 
 // Comparison operations

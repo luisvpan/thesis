@@ -1,76 +1,90 @@
+// Runtime value model — LANGUAGE_SPEC.md §1 (Dominio semántico), v0.2.0
+//
+// Todo valor pertenece a una de tres formas: bolsa, criterio o booleano (§1.1).
+// No hay "objeto suelto" ni "arreglo": un objeto individual es una bolsa de una
+// entrada, y la bolsa vacía es `nulo` (§1.2.2).
+
 import type Fraction from "fraction.js";
 import type { Statement } from "../analyzer/ast";
 
 // =============================================================================
-// CPA Categories
+// Identidad CPA (§1.2.1)
 // =============================================================================
 
 export type CPACategory = "abstracto" | "pictorico" | "concreto";
 
-// Category const for taxonomical ordering (lower = higher priority)
-export const Category = {
-  Concreto: 0,
-  Pictorico: 1,
-  Abstracto: 2,
-} as const;
-
-export type Category = (typeof Category)[keyof typeof Category];
-
-// =============================================================================
-// Generic CPA Object - Unified representation for all CPA types
-// =============================================================================
-
-export interface GenericCPAObject {
-  kind: "cpa";                            // Discriminator for type guards
-  category: CPACategory;                  // CPA category
-  type: string;                           // Object type: "comida", "forma", "numero", etc.
-  subtype: string;                        // Specific subtype: "manzana", "circulo", "racional"
-  quantity: Fraction;                     // Unified quantity (amount/value)
-  attributes: Record<string, string>;     // Additional key-value attributes
-}
-
-// CPAObject is now an alias for the generic type
-export type CPAObject = GenericCPAObject;
-
-// =============================================================================
-// Criteria Object - For filter and order operations (v4.0.0)
-// =============================================================================
-
-export interface CriteriaObject {
-  kind: "criteria";
-  properties: string[];                      // Properties to evaluate/order by
-  values: Record<string, string | string[]>; // Criterion values (can be arrays for sequences)
+/**
+ * Una entrada de la bolsa: una identidad CPA (categoría, tipo, subtipo,
+ * atributos) asociada a una cantidad racional (§1.2.2).
+ */
+export interface Entry {
+  category: CPACategory;
+  type: string;
+  subtype: string;
+  attributes: Record<string, string>;
+  quantity: Fraction;
 }
 
 // =============================================================================
-// Other Runtime Value Types
+// La bolsa (§1.2)
 // =============================================================================
 
-export type ArrayValue = {
-  kind: "arreglo";
-  elements: RuntimeValue[];
-};
+/**
+ * Secuencia finita y ordenada de entradas. Admite repetidos de la misma
+ * identidad (no se agrega por sí sola) y conserva las cantidades 0.
+ * Sin entradas es `nulo`: la bolsa vacía, el vector cero (§1.2.5).
+ */
+export interface Bag {
+  kind: "bolsa";
+  entries: readonly Entry[];
+}
 
-export type OtherValue = {
-  kind: "otro";
-  value: string;
-};
+// =============================================================================
+// Criterios (§1.3)
+// =============================================================================
 
-export type BooleanValue = {
+export type CriterionSubtype = "filter" | "order";
+export type OrderDirection = "asc" | "desc";
+
+/**
+ * El valor de una propiedad en un criterio: un valor único (una igualdad para
+ * el filtro, o una dirección `asc`/`desc` para el orden) o una secuencia de
+ * valores que fija el orden explícitamente.
+ *
+ * La gramática no restringe la forma (§5.1); que la forma corresponda al
+ * subtipo es un error estático: criterio inadecuado (§4.2.7).
+ */
+export type CriterionValue = string | string[];
+
+/**
+ * Un criterio declara su subtipo, y ese subtipo determina cómo se interpretan
+ * sus valores y qué operación lo consume. Los criterios no se agrupan: cada uno
+ * va en su propio `source`.
+ */
+export interface Criterion {
+  kind: "criterio";
+  subtype: CriterionSubtype;
+  properties: string[];
+  values: Record<string, CriterionValue>;
+}
+
+// =============================================================================
+// Booleano (§1.4)
+// =============================================================================
+
+/** Terminal: lo producen las comparaciones y ninguna operación lo consume. */
+export interface BooleanValue {
   kind: "booleano";
   value: boolean;
-};
+}
 
-// All possible runtime values
-export type RuntimeValue =
-  | CPAObject
-  | CriteriaObject
-  | ArrayValue
-  | OtherValue
-  | BooleanValue;
+export type RuntimeValue = Bag | Criterion | BooleanValue;
+
+/** La categoría de un valor, tal como la usa la pasada estática (§4.2.6). */
+export type ValueCategory = "bolsa" | "criterio" | "booleano";
 
 // =============================================================================
-// Execution Graph Types
+// Grafo de ejecución
 // =============================================================================
 
 export type EvaluationState = "pending" | "evaluating" | "completed";
@@ -85,102 +99,29 @@ export interface ExecutionNode {
 }
 
 // =============================================================================
-// Type Guards
+// Type guards
 // =============================================================================
 
-export function isArray(val: RuntimeValue): val is ArrayValue {
-  return val.kind === "arreglo";
+export function isBag(val: RuntimeValue): val is Bag {
+  return val.kind === "bolsa";
 }
 
-export function isCPAObject(val: RuntimeValue): val is CPAObject {
-  return val.kind === "cpa";
-}
-
-export function isCriteria(val: RuntimeValue): val is CriteriaObject {
-  return val.kind === "criteria";
-}
-
-export function isOther(val: RuntimeValue): val is OtherValue {
-  return val.kind === "otro";
+export function isCriterion(val: RuntimeValue): val is Criterion {
+  return val.kind === "criterio";
 }
 
 export function isBoolean(val: RuntimeValue): val is BooleanValue {
   return val.kind === "booleano";
 }
 
-/**
- * Check if a criteria object is complete (has values for all its properties)
- */
-export function isCriteriaComplete(criteria: CriteriaObject): boolean {
-  return criteria.properties.every(prop => prop in criteria.values);
+export function isFilterCriterion(val: RuntimeValue): val is Criterion {
+  return isCriterion(val) && val.subtype === "filter";
 }
 
-// =============================================================================
-// CPA Object Helpers
-// =============================================================================
-
-/**
- * Get a unique key for CPA aggregation based on category, type, subtype, and attributes
- */
-export function getCPAKey(val: CPAObject): string {
-  const parts = [val.category, val.type, val.subtype];
-
-  // Include sorted attributes for uniqueness
-  const sortedAttrs = Object.entries(val.attributes)
-    .sort(([a], [b]) => a.localeCompare(b));
-
-  for (const [key, value] of sortedAttrs) {
-    parts.push(`${key}:${value}`);
-  }
-
-  return parts.join(":");
+export function isOrderCriterion(val: RuntimeValue): val is Criterion {
+  return isCriterion(val) && val.subtype === "order";
 }
 
-/**
- * Get category enum value from a runtime value
- */
-export function getCategoryOrder(val: RuntimeValue): Category {
-  if (isCPAObject(val)) {
-    switch (val.category) {
-      case "concreto": return Category.Concreto;
-      case "pictorico": return Category.Pictorico;
-      case "abstracto": return Category.Abstracto;
-    }
-  }
-  return Category.Abstracto;
-}
-
-/**
- * Get type key for sorting within categories
- */
-export function getTypeKey(val: RuntimeValue): string {
-  if (isCPAObject(val)) {
-    return `${val.type}:${val.subtype}`;
-  }
-  return "otro";
-}
-
-/**
- * Get quantity from a CPA object
- */
-export function getQuantity(val: CPAObject): Fraction {
-  return val.quantity;
-}
-
-/**
- * Clone a CPA object with a new quantity
- */
-export function cloneCPAWithQuantity(obj: CPAObject, quantity: Fraction): CPAObject {
-  return { ...obj, quantity };
-}
-
-/**
- * Check if a CPA object matches a criterion (for filtering)
- * Matches against category, type, subtype, or any attribute value
- */
-export function matchesAttribute(val: CPAObject, criterion: string): boolean {
-  if (val.category === criterion) return true;
-  if (val.type === criterion) return true;
-  if (val.subtype === criterion) return true;
-  return Object.values(val.attributes).includes(criterion);
+export function valueCategory(val: RuntimeValue): ValueCategory {
+  return val.kind === "bolsa" ? "bolsa" : val.kind === "criterio" ? "criterio" : "booleano";
 }

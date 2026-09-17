@@ -1,139 +1,114 @@
-import type { DependencyGraph } from "./graph";
+// Evaluación dirigida por demanda — LANGUAGE_SPEC.md §2.3
+//
+// Parte de los `sink` y tira hacia atrás de las dependencias. Cada nodo se
+// evalúa una sola vez (§2.3.2) y cada salida se evalúa aislada: un error en una
+// no impide obtener el valor de las demás (§2.3.1, §4.3).
+
 import type {
-  RuntimeValue,
-  CPAObject,
-  CriteriaObject,
-  CPACategory,
-  ExecutionNode,
-} from "./types";
-import type {
-  Statement,
-  Expression,
-  Literal,
-  ObjectLiteral,
+  CriterionLiteral,
   DataLiteral,
-  CriteriaLiteral,
+  Literal,
+  Statement,
 } from "../analyzer/ast";
 import { executeOperation } from "../operations";
+import { NULO, bag } from "./bag";
+import { DataflowError } from "./errors";
+import type { DependencyGraph } from "./graph";
 import { toFraction } from "./rational";
-import { RuntimeError } from "./errors";
+import type {
+  CPACategory,
+  Criterion,
+  CriterionValue,
+  Entry,
+  ExecutionNode,
+  RuntimeValue,
+} from "./types";
 
 export interface EvaluationResult {
   results: Map<string, RuntimeValue>;
-  errors: RuntimeError[];
+  errors: DataflowError[];
 }
 
 export class LazyEvaluator {
   private graph: DependencyGraph;
   private resultsCache: Map<string, RuntimeValue>;
-  private evaluationStack: Set<string>;
   private pendingEvaluations: Map<string, Promise<RuntimeValue>>;
+  /** La salida cuyo cálculo está en curso, para situar los errores (§4). */
+  private currentSinkId?: string;
 
   constructor(graph: DependencyGraph, resultsCache?: Map<string, RuntimeValue>) {
     this.graph = graph;
     this.resultsCache = resultsCache ?? new Map();
-    this.evaluationStack = new Set();
     this.pendingEvaluations = new Map();
   }
 
-  /**
-   * Evaluates all sink nodes, pulling dependencies lazily.
-   * Uses memoization to ensure each node is evaluated exactly once.
-   */
+  /** EvaluarPrograma(programa) → (valores, errores) — §2.3.1 */
   async evaluate(): Promise<EvaluationResult> {
     const results = new Map<string, RuntimeValue>();
-    const errors: RuntimeError[] = [];
+    const errors: DataflowError[] = [];
 
-    // Evaluate each sink node
     for (const sinkId of this.graph.sinkIds) {
+      this.currentSinkId = sinkId;
       try {
-        const result = await this.evaluateNode(sinkId);
-        results.set(sinkId, result);
+        results.set(sinkId, await this.evaluateNode(sinkId));
       } catch (err) {
-        if (err instanceof RuntimeError) {
-          errors.push(err);
+        if (err instanceof DataflowError) {
+          errors.push(err.situate({ sinkId }));
         } else {
           throw err;
         }
       }
     }
+    this.currentSinkId = undefined;
 
-    // Expose evaluated transforms so UIs can show intermediate results on edges.
+    // Los transforms ya calculados se exponen para que la interfaz pueda
+    // mostrar resultados intermedios sobre las aristas.
     for (const [nodeId, node] of this.graph.nodes) {
       if (node.statement.type !== "TransformStatement") continue;
       const cached = this.resultsCache.get(nodeId);
-      if (cached !== undefined) {
-        results.set(nodeId, cached);
-      }
+      if (cached !== undefined) results.set(nodeId, cached);
     }
 
     return { results, errors };
   }
 
-  /**
-   * Recursively evaluates a node, pulling dependencies first.
-   * Memoization ensures each node is evaluated exactly once.
-   */
+  /** EvaluarNodo(id) → valor — §2.3.2 */
   private async evaluateNode(nodeId: string): Promise<RuntimeValue> {
-    // Check cache first (memoization)
     const cached = this.resultsCache.get(nodeId);
-    if (cached !== undefined) {
-      return cached;
-    }
+    if (cached !== undefined) return cached;
 
-    // If already evaluating, wait for the result (handles duplicate deps)
+    // Una evaluación en curso se comparte, de modo que un nodo del que dependen
+    // varios se calcula una sola vez.
     const pending = this.pendingEvaluations.get(nodeId);
-    if (pending !== undefined) {
-      return pending;
-    }
-
-    // Cycle detection during evaluation
-    if (this.evaluationStack.has(nodeId)) {
-      throw new RuntimeError(
-        "EVALUATION_CYCLE",
-        `Cycle detected during evaluation`,
-        nodeId
-      );
-    }
+    if (pending !== undefined) return pending;
 
     const node = this.graph.nodes.get(nodeId);
     if (!node) {
-      throw new RuntimeError("UNDEFINED_REFERENCE", `Node not found: ${nodeId}`);
+      throw new DataflowError("UNDEFINED_REFERENCE", `No existe el nodo '${nodeId}'`, {
+        nodeId,
+      });
     }
 
-    this.evaluationStack.add(nodeId);
     node.state = "evaluating";
-
-    // Create and store the promise for this evaluation
-    const evaluationPromise = this.doEvaluateNode(node);
-    this.pendingEvaluations.set(nodeId, evaluationPromise);
+    const evaluation = this.doEvaluateNode(node);
+    this.pendingEvaluations.set(nodeId, evaluation);
 
     try {
-      const result = await evaluationPromise;
-      return result;
+      return await evaluation;
     } finally {
-      this.evaluationStack.delete(nodeId);
       this.pendingEvaluations.delete(nodeId);
     }
   }
 
   private async doEvaluateNode(node: ExecutionNode): Promise<RuntimeValue> {
-    // Get unique dependencies
+    // Las entradas se resuelven antes que el nodo; las independientes, en paralelo.
     const uniqueDeps = [...new Set(node.dependencies)];
-
-    // Evaluate all unique dependencies in parallel (pull model)
     const depEntries = await Promise.all(
-      uniqueDeps.map(async (depId) => {
-        const value = await this.evaluateNode(depId);
-        return [depId, value] as const;
-      })
+      uniqueDeps.map(async (depId) => [depId, await this.evaluateNode(depId)] as const)
     );
-    const depValues = new Map(depEntries);
 
-    // Evaluate this node
-    const result = this.evaluateStatement(node.statement, depValues);
+    const result = this.evaluateStatement(node.statement, new Map(depEntries));
 
-    // Cache result
     this.resultsCache.set(node.id, result);
     node.state = "completed";
     node.result = result;
@@ -141,193 +116,91 @@ export class LazyEvaluator {
     return result;
   }
 
-  private evaluateStatement(
-    stmt: Statement,
-    deps: Map<string, RuntimeValue>
-  ): RuntimeValue {
+  /** EvaluarSentencia(nodo, entradas) → valor — §2.3.3 */
+  private evaluateStatement(stmt: Statement, deps: Map<string, RuntimeValue>): RuntimeValue {
     switch (stmt.type) {
+      // Un `source` aporta su valor directamente: no lo calcula a partir de
+      // otros nodos.
       case "SourceStatement":
-        // Handle incomplete source statements
-        if (!stmt.value) {
-          return { kind: "otro", value: "" };
-        }
-        return this.evaluateSourceStatementValue(stmt.value, deps);
+        return stmt.value ? evaluateLiteral(stmt.value) : NULO;
 
       case "TransformStatement": {
-        // Handle incomplete transform statements
-        if (!stmt.operation) {
-          return { kind: "otro", value: "" };
+        if (!stmt.operation) return NULO;
+
+        const args = stmt.arguments.map((argument) => deps.get(argument.name) ?? NULO);
+
+        try {
+          return executeOperation(stmt.operation, args);
+        } catch (err) {
+          if (err instanceof DataflowError) {
+            const cause =
+              err.argumentIndex !== undefined
+                ? stmt.arguments[err.argumentIndex]?.name
+                : undefined;
+            throw err.situate({
+              nodeId: stmt.identifier,
+              causeNodeId: cause ?? stmt.identifier,
+              sinkId: this.currentSinkId,
+            });
+          }
+          throw err;
         }
-        const args = stmt.arguments.map((arg) =>
-          this.resolveExpression(arg, deps)
-        );
-        return executeOperation(stmt.operation, args);
       }
 
       case "SinkStatement":
-        // Handle incomplete sink statements
-        if (!stmt.sourceIdentifier) {
-          return { kind: "otro", value: "" };
-        }
-        return deps.get(stmt.sourceIdentifier)!;
+        if (!stmt.sourceIdentifier) return NULO;
+        return deps.get(stmt.sourceIdentifier) ?? NULO;
     }
   }
+}
 
-  private resolveExpression(
-    expr: Expression,
-    deps: Map<string, RuntimeValue>
-  ): RuntimeValue {
-    if (expr.type === "Identifier") {
-      const value = deps.get(expr.name);
-      if (value === undefined) {
-        throw new RuntimeError(
-          "UNDEFINED_REFERENCE",
-          `Undefined reference: ${expr.name}`
-        );
-      }
-      return value;
-    }
-    return this.evaluateLiteral(expr);
+// =============================================================================
+// Literales → valores
+// =============================================================================
+
+export function evaluateLiteral(literal: Literal): RuntimeValue {
+  switch (literal.type) {
+    case "DataLiteral":
+      return bag([toEntry(literal)]);
+
+    case "GroupLiteral":
+      return bag(literal.elements.map(toEntry));
+
+    case "CriterionLiteral":
+      return toCriterion(literal);
+  }
+}
+
+/**
+ * Una entrada de la bolsa. La identidad ya viene validada por la pasada
+ * estática (§4.2.8: ningún componente en blanco) y por la gramática (la
+ * categoría es una de las tres).
+ */
+function toEntry(literal: DataLiteral): Entry {
+  const attributes: Record<string, string> = {};
+  for (const property of literal.attributes) {
+    if (typeof property.value === "string") attributes[property.key] = property.value;
   }
 
-  /**
-   * Valor de un `source`: literales de arreglo con identificadores resuelven contra `deps`
-   * (nodos fuente referenciados, declarados en el grafo antes que este `source`).
-   */
-  private evaluateSourceStatementValue(
-    literal: Literal,
-    deps: Map<string, RuntimeValue>
-  ): RuntimeValue {
-    if (literal.type === "ArrayLiteral") {
-      return {
-        kind: "arreglo",
-        elements: literal.elements.map((el) => {
-          if (el.type === "Identifier") {
-            const v = deps.get(el.name);
-            if (v === undefined) {
-              throw new RuntimeError(
-                "UNDEFINED_REFERENCE",
-                `Undefined reference in array literal: ${el.name}`,
-                undefined
-              );
-            }
-            return v;
-          }
-          return this.evaluateLiteral(el as Literal);
-        }),
-      };
-    }
-    return this.evaluateLiteral(literal);
+  return {
+    category: literal.category as CPACategory,
+    type: literal.objType,
+    subtype: literal.subtype,
+    attributes,
+    quantity: toFraction(literal.quantity || "1"),
+  };
+}
+
+function toCriterion(literal: CriterionLiteral): Criterion {
+  const values: Record<string, CriterionValue> = {};
+  for (const property of literal.values) {
+    values[property.key] = property.value;
   }
 
-  private evaluateLiteral(literal: Literal): RuntimeValue {
-    switch (literal.type) {
-      case "StringLiteral":
-        return {
-          kind: "otro",
-          value: literal.value,
-        };
-
-      case "DataLiteral":
-        return this.evaluateDataLiteral(literal);
-
-      case "CriteriaLiteral":
-        return this.evaluateCriteriaLiteral(literal);
-
-      case "GroupLiteral":
-        return {
-          kind: "arreglo",
-          elements: literal.elements.map((obj) => this.evaluateObjectLiteral(obj)),
-        };
-
-      case "ArrayLiteral":
-        return {
-          kind: "arreglo",
-          elements: literal.elements.map((el) => {
-            if (el.type === "Identifier") {
-              throw new RuntimeError(
-                "INVALID_ARGUMENT",
-                "Array literal with identifiers must be bound in a source statement so references are resolved (e.g. source z = [a, b]); bare identifiers in inline arrays are not supported here.",
-                undefined
-              );
-            }
-            return this.evaluateLiteral(el as Literal);
-          }),
-        };
-    }
-  }
-
-  /**
-   * Evaluates an ObjectLiteral (DataLiteral or CriteriaLiteral) to runtime value.
-   */
-  private evaluateObjectLiteral(obj: ObjectLiteral): CPAObject | CriteriaObject {
-    if (obj.type === "CriteriaLiteral") {
-      return this.evaluateCriteriaLiteral(obj);
-    }
-    return this.evaluateDataLiteral(obj);
-  }
-
-  /**
-   * Evaluates a DataLiteral to a CPAObject.
-   */
-  private evaluateDataLiteral(obj: DataLiteral): CPAObject {
-    const category = obj.category as CPACategory;
-
-    // Validate required fields
-    if (!category) {
-      throw new RuntimeError(
-        "INVALID_OBJECT",
-        "DataLiteral must have a 'category' property"
-      );
-    }
-
-    if (!obj.objType) {
-      throw new RuntimeError(
-        "INVALID_OBJECT",
-        "DataLiteral must have a 'type' property"
-      );
-    }
-
-    if (!obj.subtype) {
-      throw new RuntimeError(
-        "INVALID_OBJECT",
-        "DataLiteral must have a 'subtype' property"
-      );
-    }
-
-    // Extract additional attributes
-    const attributes: Record<string, string> = {};
-    for (const prop of obj.attributes) {
-      // Only include string values, not arrays
-      if (typeof prop.value === "string") {
-        attributes[prop.key] = prop.value;
-      }
-    }
-
-    return {
-      kind: "cpa",
-      category,
-      type: obj.objType,
-      subtype: obj.subtype,
-      quantity: toFraction(obj.quantity || "1"),
-      attributes,
-    };
-  }
-
-  /**
-   * Evaluates a CriteriaLiteral to a CriteriaObject.
-   */
-  private evaluateCriteriaLiteral(obj: CriteriaLiteral): CriteriaObject {
-    const values: Record<string, string | string[]> = {};
-
-    for (const prop of obj.values) {
-      values[prop.key] = prop.value;
-    }
-
-    return {
-      kind: "criteria",
-      properties: obj.properties,
-      values,
-    };
-  }
+  return {
+    kind: "criterio",
+    subtype: literal.sourceType,
+    properties: [...literal.properties],
+    values,
+  };
 }

@@ -1,17 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { Interpreter } from "@dataflow/interpreter";
+import { Interpreter, isBag, type RuntimeValue } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "@/contexts/node/types";
 import { flowToProgram, resolveFlowSourceId } from "./flowToProgram";
 
-function numericValue(value: {
-  kind: string;
-  value?: { valueOf(): number | bigint };
-  quantity?: { valueOf(): number | bigint };
-}): number {
-  if (value.kind === "racional" && value.value) return Number(value.value.valueOf());
-  if (value.kind === "cpa" && value.quantity) return Number(value.quantity.valueOf());
-  throw new Error(`unexpected runtime kind: ${value.kind}`);
+/** Un resultado numérico: una bolsa de una sola entrada. */
+function numericValue(value: RuntimeValue): number {
+  if (!isBag(value) || value.entries.length !== 1) {
+    throw new Error(`no es un número: ${JSON.stringify(value.kind)}`);
+  }
+  return Number(value.entries[0].quantity.valueOf());
 }
 
 function numberSource(id: string, value: number, x: number): DataflowNode {
@@ -92,27 +90,83 @@ describe("flowToProgram programOutput chain", () => {
 });
 
 describe("flowToProgram order operators", () => {
-  test("orden-menor-mayor emits order_asc with a single argument", () => {
+  function orderProgram(op: "orden-menor-mayor" | "orden-mayor-menor") {
     const nodes = [
       { id: "grp", type: "arrayClose", position: { x: 0, y: 0 }, data: {} },
-      operator("ord", "orden-menor-mayor"),
+      operator("ord", op),
     ] as DataflowNode[];
     const edges: Edge[] = [
       { id: "e1", source: "grp", target: "ord", sourceHandle: "out", targetHandle: "a" },
     ];
-    const program = flowToProgram(nodes, edges);
+    return flowToProgram(nodes, edges);
+  }
+
+  test("una sola operación `order`, con el criterio en su propio source", () => {
+    const program = orderProgram("orden-menor-mayor");
+
     const stmt = program.statements.find(
       (s) => s.type === "TransformStatement" && s.identifier === "ord"
     );
     expect(stmt?.type).toBe("TransformStatement");
     if (stmt?.type !== "TransformStatement") return;
-    expect(stmt.operation).toBe("order_asc");
-    expect(stmt.arguments).toHaveLength(2);
-    expect(stmt.arguments[0]?.type).toBe("Identifier");
-    if (stmt.arguments[0]?.type === "Identifier") {
-      expect(stmt.arguments[0].name).toBe("grp");
+
+    // Los argumentos son solo identificadores (§5.1).
+    expect(stmt.operation).toBe("order");
+    expect(stmt.arguments.map((a) => a.name)).toEqual(["grp", "ord__criterio"]);
+
+    const criterion = program.statements.find(
+      (s) => s.type === "SourceStatement" && s.identifier === "ord__criterio"
+    );
+    if (criterion?.type !== "SourceStatement" || criterion.value.type !== "CriterionLiteral") {
+      throw new Error("falta el source del criterio de orden");
     }
-    expect(stmt.arguments[1]?.type).toBe("CriteriaLiteral");
+    expect(criterion.value.sourceType).toBe("order");
+    expect(criterion.value.values).toEqual({ quantity: "asc" });
+  });
+
+  test("el sentido viaja en el criterio, no en el nombre de la operación", () => {
+    const program = orderProgram("orden-mayor-menor");
+
+    const stmt = program.statements.find(
+      (s) => s.type === "TransformStatement" && s.identifier === "ord"
+    );
+    if (stmt?.type !== "TransformStatement") throw new Error("falta el transform");
+    expect(stmt.operation).toBe("order");
+
+    const criterion = program.statements.find(
+      (s) => s.type === "SourceStatement" && s.identifier === "ord__criterio"
+    );
+    if (criterion?.type !== "SourceStatement" || criterion.value.type !== "CriterionLiteral") {
+      throw new Error("falta el source del criterio de orden");
+    }
+    expect(criterion.value.values).toEqual({ quantity: "desc" });
+  });
+
+  test("con un criterio de secuencia, el sentido inverso la invierte", () => {
+    const nodes = [
+      { id: "grp", type: "arrayClose", position: { x: 0, y: 0 }, data: {} },
+      {
+        id: "ord",
+        type: "operator",
+        position: { x: 0, y: 0 },
+        data: {
+          operator: "orden-mayor-menor",
+          criterio: { property: "size", sequence: ["pequeño", "mediano", "grande"] },
+        },
+      },
+    ] as DataflowNode[];
+    const edges: Edge[] = [
+      { id: "e1", source: "grp", target: "ord", sourceHandle: "out", targetHandle: "a" },
+    ];
+
+    const program = flowToProgram(nodes, edges);
+    const criterion = program.statements.find(
+      (s) => s.type === "SourceStatement" && s.identifier === "ord__criterio"
+    );
+    if (criterion?.type !== "SourceStatement" || criterion.value.type !== "CriterionLiteral") {
+      throw new Error("falta el source del criterio de orden");
+    }
+    expect(criterion.value.values).toEqual({ size: ["grande", "mediano", "pequeño"] });
   });
 });
 
@@ -149,9 +203,16 @@ describe("flowToProgram filter operators", () => {
     expect(stmt?.type).toBe("TransformStatement");
     if (stmt?.type !== "TransformStatement") return;
     expect(stmt.operation).toBe("filter");
-    expect(stmt.arguments.map((a) => (a.type === "Identifier" ? a.name : ""))).toEqual([
-      "grp",
-      "crit",
-    ]);
+    expect(stmt.arguments.map((a) => a.name)).toEqual(["grp", "crit"]);
+
+    // La carta de criterio declara su subtipo: es un criterio de filtro.
+    const criterion = program.statements.find(
+      (s) => s.type === "SourceStatement" && s.identifier === "crit"
+    );
+    if (criterion?.type !== "SourceStatement" || criterion.value.type !== "CriterionLiteral") {
+      throw new Error("falta el source del criterio");
+    }
+    expect(criterion.value.sourceType).toBe("filter");
+    expect(criterion.value.values).toEqual({ size: "grande" });
   });
 });

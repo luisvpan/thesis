@@ -1,133 +1,69 @@
-import type {
-  Program,
-  Statement,
-  IdentifierExpression,
-  Literal,
-} from "../analyzer/ast";
+// El programa como grafo — LANGUAGE_SPEC.md §2.1
+//
+// Construir el grafo no valida nada: la bien-formación (nombres únicos,
+// referencias resueltas, aciclicidad) la comprueba la pasada estática (§2.2,
+// §4.2), que trabaja sobre este grafo.
+
+import type { Program, Statement } from "../analyzer/ast";
 import type { ExecutionNode } from "./types";
-import { RuntimeError } from "./errors";
 
 export interface DependencyGraph {
   nodes: Map<string, ExecutionNode>;
   sinkIds: string[];
+  /** Nombres declarados más de una vez, en orden de reaparición (§4.2.1). */
+  duplicateIds: string[];
 }
 
 /**
- * Builds a dependency graph from the AST.
- * Identifies sink nodes as evaluation entry points.
+ * Un nodo depende de los nodos que menciona por su nombre: un `transform`, de
+ * sus argumentos; un `sink`, del nodo que expone. **Un `source` es entrada
+ * pura**: declara literales y no referencia a nadie (§2.1).
  */
+export function extractDependencies(stmt: Statement): string[] {
+  switch (stmt.type) {
+    case "SourceStatement":
+      return [];
+
+    case "TransformStatement":
+      return stmt.arguments.map((argument) => argument.name);
+
+    case "SinkStatement":
+      return stmt.sourceIdentifier ? [stmt.sourceIdentifier] : [];
+  }
+}
+
 export function buildGraph(program: Program): DependencyGraph {
   const nodes = new Map<string, ExecutionNode>();
   const sinkIds: string[] = [];
+  const duplicateIds: string[] = [];
 
-  for (const stmt of program.statements) {
-    const id = getStatementId(stmt);
+  for (const statement of program.statements) {
+    const id = statement.identifier;
 
-    // Check for duplicate identifiers
     if (nodes.has(id)) {
-      throw new RuntimeError("INVALID_ARGUMENT", `Duplicate identifier: ${id}`, id);
+      // Gana la primera declaración; la repetición la reporta la pasada estática.
+      duplicateIds.push(id);
+      continue;
     }
-
-    const deps = extractDependencies(stmt);
 
     nodes.set(id, {
       id,
-      statement: stmt,
-      dependencies: deps,
-      dependents: [], // Will be populated below
+      statement,
+      dependencies: extractDependencies(statement),
+      dependents: [],
       state: "pending",
     });
 
-    if (stmt.type === "SinkStatement") {
+    if (statement.type === "SinkStatement") {
       sinkIds.push(id);
     }
   }
 
-  // Validate: check all dependencies exist
   for (const [id, node] of nodes) {
-    for (const dep of node.dependencies) {
-      if (!nodes.has(dep)) {
-        throw new RuntimeError("UNDEFINED_REFERENCE", `Undefined reference: ${dep}`, id);
-      }
+    for (const dependency of node.dependencies) {
+      nodes.get(dependency)?.dependents.push(id);
     }
   }
 
-  // Build reverse dependencies (dependents)
-  for (const [id, node] of nodes) {
-    for (const dep of node.dependencies) {
-      nodes.get(dep)?.dependents.push(id);
-    }
-  }
-
-  // Validate: check for circular dependencies
-  validateNoCycles(nodes);
-
-  return { nodes, sinkIds };
-}
-
-function getStatementId(stmt: Statement): string {
-  return stmt.identifier;
-}
-
-/** Identificadores referenciados en un literal de arreglo (p. ej. `source z = [a, b]`). */
-function extractArrayLiteralIdentifierDependencies(lit: Literal): string[] {
-  if (lit.type !== "ArrayLiteral") return [];
-  return lit.elements
-    .filter((el): el is IdentifierExpression => el.type === "Identifier")
-    .map((el) => el.name);
-}
-
-function extractDependencies(stmt: Statement): string[] {
-  switch (stmt.type) {
-    case "SourceStatement":
-      if (!stmt.value) return [];
-      return extractArrayLiteralIdentifierDependencies(stmt.value);
-
-    case "TransformStatement":
-      // Extract identifier references from arguments
-      return stmt.arguments
-        .filter((arg): arg is IdentifierExpression => arg.type === "Identifier")
-        .map((arg) => arg.name);
-
-    case "SinkStatement":
-      if (!stmt.sourceIdentifier) return [];
-      return [stmt.sourceIdentifier];
-  }
-}
-
-function validateNoCycles(nodes: Map<string, ExecutionNode>): void {
-  const visited = new Set<string>();
-  const recursionStack = new Set<string>();
-
-  function dfs(nodeId: string, path: string[]): void {
-    if (recursionStack.has(nodeId)) {
-      const cycleStart = path.indexOf(nodeId);
-      const cycle = path.slice(cycleStart).concat(nodeId);
-      throw new RuntimeError(
-        "CIRCULAR_DEPENDENCY",
-        `Circular dependency detected: ${cycle.join(" -> ")}`,
-        nodeId
-      );
-    }
-
-    if (visited.has(nodeId)) return;
-
-    visited.add(nodeId);
-    recursionStack.add(nodeId);
-
-    const node = nodes.get(nodeId);
-    if (node) {
-      for (const dep of node.dependencies) {
-        dfs(dep, [...path, nodeId]);
-      }
-    }
-
-    recursionStack.delete(nodeId);
-  }
-
-  for (const nodeId of nodes.keys()) {
-    if (!visited.has(nodeId)) {
-      dfs(nodeId, []);
-    }
-  }
+  return { nodes, sinkIds, duplicateIds };
 }

@@ -1,7 +1,7 @@
 # Especificación del Lenguaje Dataflow
 
-**Versión:** 0.2.0 (borrador)
-**Fecha:** 2026-09-16
+**Versión:** 0.2.1 (borrador)
+**Fecha:** 2026-09-17
 **Estado:** Documento vivo — se actualiza a medida que la implementación revela casos borde o mejores diseños.
 
 ---
@@ -604,9 +604,9 @@ Se detectan al analizar el texto del programa contra la gramática (al final del
 
 ### 4.2 Errores estáticos
 
-Se detectan sobre la estructura del programa ya construida, sin evaluar. Un error estático **invalida el programa completo**: no llega a evaluarse ningún nodo.
+Se detectan sobre la estructura del programa ya construida, sin evaluar, y solo sobre los nodos que **alcanzan alguna salida**: los nodos que ningún `sink` alcanza no participan en la evaluación, de modo que tampoco se validan, y una sentencia todavía sin conectar no invalida nada. Un error estático **invalida el programa completo**: no llega a evaluarse ningún nodo.
 
-1. **Nombre duplicado** — dos nodos declaran el mismo nombre. Los nombres deben ser únicos.
+1. **Nombre duplicado** — dos nodos declaran el mismo nombre. Los nombres deben ser únicos entre los nodos que alcanzan alguna salida.
 2. **Referencia sin resolver** — un nodo menciona un nombre que ningún nodo declara.
 3. **Ciclo** — las dependencias entre nodos forman un ciclo. El grafo de dependencias debe ser acíclico.
 4. **Operación desconocida** — un `transform` nombra una operación que no pertenece al conjunto reconocido.
