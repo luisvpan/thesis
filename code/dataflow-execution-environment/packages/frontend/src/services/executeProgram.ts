@@ -4,11 +4,11 @@
 
 import {
   Interpreter,
-  RuntimeError,
   isBag,
   isBoolean,
+  type DataflowError,
   type Entry,
-  type ParseError,
+  type ErrorCode,
   type RuntimeValue,
 } from "@dataflow/interpreter";
 import { flowToProgram } from "@/utils/flowToProgram";
@@ -105,42 +105,47 @@ export type ResultValue =
       singleCpaObjectMeta?: SingleCpaObjectMeta;
     };
 
-function formatInterpreterErrors(
-  errors: Array<ParseError | RuntimeError>
-): string {
+/**
+ * Mensaje para el aula, por código de error. El intérprete ya trae un detalle
+ * exacto; esto lo traduce a algo que un niño pueda leer.
+ */
+const MESSAGE_BY_CODE: Record<ErrorCode, string> = {
+  SYNTAX_ERROR: "Hay algo mal escrito en el programa.",
+  DUPLICATE_IDENTIFIER: "Hay dos cartas con el mismo nombre.",
+  UNDEFINED_REFERENCE: "Falta conectar una carta.",
+  CIRCULAR_DEPENDENCY: "Las cartas se apuntan en círculo y no se puede empezar.",
+  UNKNOWN_OPERATION: "Esa operación no existe.",
+  ARITY_ERROR: "A esta operación le faltan o le sobran cartas.",
+  TYPE_ERROR: "Esa carta no va en ese lugar.",
+  INVALID_CRITERION: "Ese criterio no sirve para esta operación.",
+  INVALID_OBJECT: "A esta carta le falta decir qué es.",
+  EXPECTED_NUMBER: "Aquí hace falta un número.",
+  DIVISION_BY_ZERO: "No se puede repartir entre cero.",
+};
+
+function describeError(error: DataflowError): string {
+  const friendly = MESSAGE_BY_CODE[error.code];
+  const where = error.nodeId ? ` (${error.nodeId})` : "";
+  return `${friendly}${where} — ${error.detail}`;
+}
+
+function formatInterpreterErrors(errors: DataflowError[]): string {
   return errors
-    .map((e, i) => {
-      const prefix = errors.length > 1 ? `${i + 1}. ` : "";
-      if (e instanceof RuntimeError) {
-        return `${prefix}${e.message}`;
-      }
-      let s = `${prefix}${e.message}`;
-      if (e.line !== undefined) {
-        s += ` (línea ${e.line}`;
-        if (e.column !== undefined) s += `, columna ${e.column}`;
-        s += ")";
-      }
-      return s;
-    })
+    .map((error, index) => `${errors.length > 1 ? `${index + 1}. ` : ""}${describeError(error)}`)
     .join("\n");
 }
 
-function logInterpreterErrors(errors: Array<ParseError | RuntimeError>): void {
-  for (const e of errors) {
-    if (e instanceof RuntimeError) {
-      logger.execute.error("Interpreter RuntimeError", {
-        code: e.code,
-        nodeId: e.nodeId,
-        message: e.message,
-        stack: e.stack,
-      });
-    } else {
-      logger.execute.error("Interpreter ParseError", {
-        message: e.message,
-        line: e.line,
-        column: e.column,
-      });
-    }
+function logInterpreterErrors(errors: DataflowError[]): void {
+  for (const error of errors) {
+    logger.execute.error(`Interpreter ${error.phase} error`, {
+      code: error.code,
+      nodeId: error.nodeId,
+      causeNodeId: error.causeNodeId,
+      sinkId: error.sinkId,
+      line: error.line,
+      column: error.column,
+      message: error.message,
+    });
   }
 }
 

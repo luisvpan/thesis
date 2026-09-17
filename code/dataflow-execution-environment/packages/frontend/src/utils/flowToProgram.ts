@@ -2,18 +2,12 @@
  * Converts ReactFlow nodes/edges to the interpreter's Program format.
  */
 
-import type {
-  EntrySpec,
-  Operation,
-  Program,
-  SinkStatement,
-  SourceStatement,
-  TransformStatement,
-} from "@dataflow/interpreter";
+import type { EntrySpec, Operation, Program } from "@dataflow/interpreter";
 import {
   createBag,
   createFilterCriterion,
   createOrderCriterion,
+  createProgram,
 } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
@@ -163,15 +157,6 @@ function entryOf(node: DataflowNode): EntrySpec | null {
   }
 }
 
-/** Una carta de datos suelta: una bolsa de una entrada. */
-function bagSource(identifier: string, entry: EntrySpec): SourceStatement {
-  return {
-    type: "SourceStatement",
-    identifier,
-    value: createBag().add(entry),
-  };
-}
-
 /** Identificador en el programa para un nodo origen de arista (fuente, operador o salida). */
 export function resolveFlowSourceId(
   nodeId: string,
@@ -190,13 +175,13 @@ export function resolveFlowSourceId(
 export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
   logger.flow.debug("Input", { nodes: nodes.length, edges: edges.length });
 
-  const statements: (SourceStatement | TransformStatement | SinkStatement)[] = [];
+  let program = createProgram();
 
   // 1a. diceZone nodes
   for (const node of nodes) {
     if (node.type !== "diceZone") continue;
     const entry = entryOf(node);
-    if (entry) statements.push(bagSource(node.id, entry));
+    if (entry) program = program.source(node.id, createBag().add(entry));
   }
 
   // 1b. Sources: all "source" nodes (numbers, shapes, food, criteria)
@@ -206,21 +191,17 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
     if (data.variant === "criteria") {
       // Un criterio por `source`: los criterios no se agrupan.
-      statements.push({
-        type: "SourceStatement",
-        identifier: node.id,
-        value: createFilterCriterion({
-          properties: data.properties,
-          values: data.values ?? {},
-        }),
-      });
+      program = program.source(
+        node.id,
+        createFilterCriterion({ properties: data.properties, values: data.values ?? {} })
+      );
       continue;
     }
 
     if (data.variant === "number" && !shouldEmitNumberSource(node.id, nodes)) continue;
 
     const entry = entryOf(node);
-    if (entry) statements.push(bagSource(node.id, entry));
+    if (entry) program = program.source(node.id, createBag().add(entry));
   }
 
   // 2a. Array zones: una zona es UNA bolsa con las entradas de las cartas que
@@ -229,10 +210,9 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
   for (const node of nodes) {
     if (node.type !== "arrayClose") continue;
 
-    const members = getOrderedArrayZoneMembers(node.id, nodes, edges);
     let bag = createBag();
 
-    for (const member of members) {
+    for (const member of getOrderedArrayZoneMembers(node.id, nodes, edges)) {
       const entry = entryOf(member);
       if (entry) {
         bag = bag.add(entry);
@@ -243,7 +223,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
     }
 
     // Una zona vacía es `nulo`: un arreglo a medio armar no rompe el programa.
-    statements.push({ type: "SourceStatement", identifier: node.id, value: bag });
+    program = program.source(node.id, bag);
   }
 
   // 2b. Transforms: "operator" nodes
@@ -262,10 +242,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           return 0;
         });
 
-    const args = sortedEdges.map((e) => ({
-      type: "Identifier" as const,
-      name: resolveFlowSourceId(e.source, nodes),
-    }));
+    const args = sortedEdges.map((e) => resolveFlowSourceId(e.source, nodes));
 
     if (isOrderOperatorType(operator)) {
       // El criterio va en su propio `source` y se referencia por nombre: los
@@ -273,10 +250,9 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
       const direction = orderDirection(operator);
       const criterionId = orderCriterionId(node.id);
 
-      statements.push({
-        type: "SourceStatement",
-        identifier: criterionId,
-        value: data.criterio
+      program = program.source(
+        criterionId,
+        data.criterio
           ? createOrderCriterion({
               properties: [data.criterio.property],
               values: {
@@ -288,21 +264,16 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
                     : [...data.criterio.sequence].reverse(),
               },
             })
-          : createOrderCriterion({
-              properties: ["quantity"],
-              values: { quantity: direction },
-            }),
-      });
+          : createOrderCriterion({ properties: ["quantity"], values: { quantity: direction } })
+      );
 
-      args.push({ type: "Identifier" as const, name: criterionId });
+      args.push(criterionId);
     }
 
-    statements.push({
-      type: "TransformStatement",
-      identifier: node.id,
-      operation: resolveOperation(operator),
-      arguments: args,
-    });
+    // La operación es un dato de la carta y los argumentos salen de las
+    // aristas, así que aquí manda el método genérico: los atajos por operación
+    // no tendrían nada que comprobar.
+    program = program.transform(node.id, resolveOperation(operator), args);
   }
 
   // 3. Sinks: one per programOutput connected to an evaluable node
@@ -327,13 +298,10 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
       continue;
     }
 
-    statements.push({
-      type: "SinkStatement",
-      identifier: `output_${node.id}`,
-      sourceIdentifier: resolveFlowSourceId(inputEdge.source, nodes),
-    });
+    program = program.sink(`output_${node.id}`, resolveFlowSourceId(inputEdge.source, nodes));
   }
 
-  logger.flow.debug("Generated statements", { count: statements.length });
-  return { type: "Program", statements };
+  const built = program.build();
+  logger.flow.debug("Generated statements", { count: built.statements.length });
+  return built;
 }

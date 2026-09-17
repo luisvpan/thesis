@@ -225,9 +225,11 @@ export function useNodeSpawning(setNodes: SetNodes, nodesDraggable = false) {
           devSpawnNode(
             {
               id: `deck_dice_${Date.now()}`,
-              type: "source" as const,
+              // El dado es su propia clase de nodo, no una variante de carta:
+              // es lo que emite la visión y lo que lee flowToProgram.
+              type: "diceZone" as const,
               position: { x: 120, y: 200 + (nds.length % 6) * 28 },
-              data: { variant: "dice" },
+              data: { nodekind: "diceZone" as const },
             },
             nodesDraggable
           ),
