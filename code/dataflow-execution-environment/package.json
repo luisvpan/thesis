@@ -8,7 +8,9 @@
     "dev": "bun run --filter thesis-frontend dev",
     "build": "bun run --filter thesis-frontend build",
     "test": "bun run --filter @dataflow/interpreter test && bun run --filter thesis-frontend test",
-    "typecheck": "bun tsc --noEmit",
+    "typecheck": "bun run typecheck:interpreter && bun run typecheck:frontend",
+    "typecheck:interpreter": "bun tsc --noEmit -p packages/interpreter/tsconfig.json",
+    "typecheck:frontend": "bun tsc --noEmit -p packages/frontend/tsconfig.app.json",
     "lint": "echo 'Lint not configured'",
     "format": "echo 'Format not configured'"
   },
