@@ -1,7 +1,7 @@
 # Especificación del Lenguaje Dataflow
 
-**Versión:** 0.1.0 (borrador)
-**Fecha:** 2026-09-13
+**Versión:** 0.2.0 (borrador)
+**Fecha:** 2026-09-16
 **Estado:** Documento vivo — se actualiza a medida que la implementación revela casos borde o mejores diseños.
 
 ---
@@ -140,12 +140,10 @@ Como la igualdad ignora el orden, reordenar una bolsa produce un valor **igual**
 
 ### 1.3 Criterios
 
-Un **criterio** es un auxiliar que describe *cómo seleccionar u ordenar* objetos. Existen **dos subtipos**:
+Un **criterio** es un auxiliar que describe *cómo seleccionar u ordenar* objetos. Cada criterio **declara su subtipo** —de filtro o de orden—, y ese subtipo determina cómo se interpretan sus valores y qué operación lo consume:
 
-- **Criterio de filtro** — un predicado: una conjunción de restricciones `propiedad = valor` (**Y** entre sus propiedades), cada una con un único valor. Un objeto lo satisface si cumple **todas** sus restricciones. Lo consume la operación de filtrado.
-- **Criterio de orden** — una clave de ordenamiento, en una de dos formas: una **propiedad** con una **dirección** (`asc`/`desc`) para el orden natural (numérico para la cantidad, alfabético para textos); o una **propiedad** con una **secuencia de valores** que fija el orden explícitamente (p. ej. `pequeño → mediano → grande`), que puede incluso no ser ascendente ni descendente. Lo consume la operación de orden.
-
-Los criterios también pueden agruparse en una bolsa de criterios, pero con una diferencia clave respecto a las bolsas de datos: **los criterios son idempotentes** (se comportan como un conjunto). Aplicar el mismo criterio dos veces equivale a aplicarlo una vez, de modo que los repetidos en una bolsa de criterios son inocuos y una operación puede tratarlos como conjunto sin cambiar el resultado.
+- **Criterio de filtro** — un predicado: una conjunción de restricciones `propiedad = valor` (**Y** entre sus propiedades), cada una con un **único** valor. Sus propiedades son de **identidad** (categoría, tipo, subtipo o atributos); **no** opera sobre la cantidad. Un objeto lo satisface si cumple **todas** sus restricciones. Lo consume la operación de filtrado.
+- **Criterio de orden** — una clave de ordenamiento sobre una **propiedad**, que puede ser de identidad **o la cantidad**, en una de dos formas: la propiedad con una **dirección** (`asc`/`desc`) para el orden natural (numérico para la cantidad, alfabético para textos); o la propiedad con una **secuencia de valores** que fija el orden explícitamente (p. ej. `pequeño → mediano → grande`), que puede incluso no ser ascendente ni descendente. Lo consume la operación de orden.
 
 ### 1.4 Booleano
 
@@ -261,6 +259,7 @@ Convenciones comunes a todas las operaciones (no se repiten en cada ficha):
 
 - **Ignoran `nulo`**: un argumento `nulo` se trata como ausente.
 - **Conservan el orden** de las entradas; solo la operación de orden lo altera.
+- **Agrupación (bolsa vs vector).** Como una bolsa admite entradas repetidas de la misma identidad, cada operación indica si **agrupa** (colapsa los repetidos por identidad antes de actuar) o trabaja **entrada por entrada**. Las cantidades 0 se conservan siempre en el resultado. Cuando agrupar o no da el mismo vector, la elección es indistinta y la ficha lo señala (se prefiere entrada por entrada).
 - La **Firma** indica cuántos argumentos admite cada operación; pasar un número de argumentos que no corresponde es un **error de aridad**.
 - La **Firma** indica el tipo de cada argumento; pasar un argumento de otro tipo (una bolsa donde se espera un criterio, o al revés) es un **error de tipo**.
 
@@ -327,7 +326,7 @@ substract({ manzana↦1 }, { pera↦2 })             = { manzana↦1, pera↦-2 
 2. Multiplicar por `s` la cantidad de cada entrada de `a`.
 3. Devolver la bolsa resultante.
 
-**Nota.** La **posición** desambigua el papel del número: el segundo argumento siempre se interpreta como escalar, no como un objeto CPA.
+**Nota.** La **posición** desambigua el papel del número: el segundo argumento siempre se interpreta como escalar, no como un objeto CPA. Opera **entrada por entrada** y conserva los repetidos; agrupar primero daría el mismo vector (el escalado distribuye), así que la elección es indistinta.
 
 **Errores.** Ninguno propio.
 
@@ -336,6 +335,7 @@ substract({ manzana↦1 }, { pera↦2 })             = { manzana↦1, pera↦-2 
 ```
 multiply({ manzana↦2 }, { número↦3 })            = { manzana↦6 }
 multiply({ manzana↦2, pera↦5 }, { número↦10 })   = { manzana↦20, pera↦50 }
+multiply({ manzana↦2, manzana↦3 }, { número↦4 }) = { manzana↦8, manzana↦12 }
 multiply({ número↦2 }, { número↦3 })             = { número↦6 }
 multiply({ manzana↦2 }, { número↦1/2 })          = { manzana↦1 }
 ```
@@ -353,6 +353,8 @@ multiply({ manzana↦2 }, { número↦1/2 })          = { manzana↦1 }
 3. Dividir por `d` la cantidad de cada entrada de `a`.
 4. Devolver la bolsa resultante.
 
+**Nota.** Como `multiply`, opera **entrada por entrada** y conserva los repetidos; agrupar primero daría el mismo vector.
+
 **Errores.** División por cero: si el divisor es 0.
 
 **Ejemplos:**
@@ -369,13 +371,16 @@ divide({ manzana↦1 }, { número↦3 })              = { manzana↦1/3 }
 
 **Firma:** `less_than(bolsa, número) → bolsa` — binaria. El segundo argumento es el **umbral** (un número).
 
-**Resumen.** Conserva las entradas de la bolsa cuya cantidad es **menor** que el umbral.
+**Resumen.** Conserva las identidades cuya cantidad **total** es **menor** que el umbral.
 
 **Pasos** (`less_than(a, k) → valor`):
 
 1. Sea `u` el valor del número `k` (el umbral).
-2. Conservar las entradas de `a` cuya cantidad sea menor que `u`; descartar las demás.
-3. Devolver la bolsa con las entradas conservadas.
+2. **Agrupar `a` por identidad** (sumar los repetidos), de modo que cada identidad tenga una cantidad total.
+3. Conservar las entradas cuya cantidad total sea menor que `u`; descartar las demás.
+4. Devolver la bolsa con las entradas conservadas.
+
+**Nota.** **Agrupa por identidad** antes de comparar, para que el resultado dependa solo del vector: dos bolsas que denotan lo mismo (`{ manzana↦2, manzana↦3 }` y `{ manzana↦5 }`) se comparan igual.
 
 **Errores.** Ninguno propio.
 
@@ -383,6 +388,7 @@ divide({ manzana↦1 }, { número↦3 })              = { manzana↦1/3 }
 
 ```
 less_than({ manzana↦2, pera↦5 }, { número↦5 })   = { manzana↦2 }
+less_than({ manzana↦2, manzana↦3 }, { número↦4 }) = nulo
 less_than({ pera↦5 }, { número↦2 })              = nulo
 ```
 
@@ -390,21 +396,25 @@ less_than({ pera↦5 }, { número↦2 })              = nulo
 
 **Firma:** `greater_than(bolsa, número) → bolsa` — binaria. El segundo argumento es el **umbral** (un número).
 
-**Resumen.** Conserva las entradas de la bolsa cuya cantidad es **mayor** que el umbral.
+**Resumen.** Conserva las identidades cuya cantidad **total** es **mayor** que el umbral.
 
 **Pasos** (`greater_than(a, k) → valor`):
 
 1. Sea `u` el valor del número `k` (el umbral).
-2. Conservar las entradas de `a` cuya cantidad sea mayor que `u`; descartar las demás.
-3. Devolver la bolsa con las entradas conservadas.
+2. **Agrupar `a` por identidad** (sumar los repetidos).
+3. Conservar las entradas cuya cantidad total sea mayor que `u`; descartar las demás.
+4. Devolver la bolsa con las entradas conservadas.
+
+**Nota.** Como `less_than`, **agrupa por identidad** antes de comparar (resultado bien definido sobre el vector).
 
 **Errores.** Ninguno propio.
 
 **Ejemplos:**
 
 ```
-greater_than({ manzana↦2, pera↦5 }, { número↦3 })   = { pera↦5 }
-greater_than({ manzana↦2 }, { número↦5 })           = nulo
+greater_than({ manzana↦2, pera↦5 }, { número↦3 })    = { pera↦5 }
+greater_than({ manzana↦2, manzana↦3 }, { número↦4 }) = { manzana↦5 }
+greater_than({ manzana↦2 }, { número↦5 })            = nulo
 ```
 
 #### 3.2.3 `compare` — igualdad
@@ -442,8 +452,11 @@ compare({ manzana↦2 }, { manzana↦3 })                  = falso
 **Pasos** (`order(a, criterios…) → valor`):
 
 1. Descartar los criterios incompletos. Si no queda ninguno, devolver `a` sin cambios.
-2. Ordenar las entradas de `a` aplicando los criterios: el **primero** manda y los siguientes desempatan, en orden.
-3. Devolver la bolsa reordenada.
+2. **Agrupar `a` por identidad** (colapsar los repetidos).
+3. Ordenar las entradas aplicando los criterios: el **primero** manda y los siguientes desempatan, en orden.
+4. Devolver la bolsa reordenada.
+
+**Nota.** **Agrupa por identidad** antes de ordenar: los repetidos de una misma identidad se combinan, y luego se ordenan las identidades distintas. Un criterio de orden puede usar la **cantidad** como propiedad (a diferencia del criterio de filtro).
 
 **Formas de un criterio de orden:**
 
@@ -484,6 +497,8 @@ order({ estrella(grande)↦1, estrella(pequeña)↦1, estrella(mediana)↦1 },
 
 **Cuándo una entrada satisface un criterio.** Cada criterio es una conjunción de restricciones `propiedad = valor`. La entrada lo satisface si **cumple todas** sus restricciones (**Y** entre propiedades): para cada una, el valor de esa propiedad en la entrada es igual al valor pedido. Entre criterios distintos hay **O**: a la entrada le basta con satisfacer uno. Así, el conjunto de criterios es una disyunción de conjunciones (forma normal disyuntiva), que expresa cualquier predicado.
 
+**Nota.** El criterio de filtro prueba la **identidad** (categoría, tipo, subtipo o atributos), **no** la cantidad. Por eso `filter` trabaja **entrada por entrada** y conserva los repetidos: los de una misma identidad pasan o se descartan todos juntos, y agrupar daría el mismo vector.
+
 **Errores.** Ninguno propio.
 
 **Ejemplos:**
@@ -502,7 +517,7 @@ filter({ estrella(roja)↦2, estrella(azul)↦1, círculo(roja)↦3 },
 
 ### 3.5 Acceso
 
-Las operaciones de acceso leen el **orden actual** de la bolsa; por eso suelen combinarse con una operación de orden previa.
+Las operaciones de acceso leen el **orden actual** de la bolsa; por eso suelen combinarse con una operación de orden previa. Trabajan **entrada por entrada** (no agrupan): sobre una bolsa con repetidos de una misma identidad, seleccionan una entrada individual, no su total.
 
 #### 3.5.1 `first` — primera
 
@@ -521,6 +536,7 @@ Las operaciones de acceso leen el **orden actual** de la bolsa; por eso suelen c
 
 ```
 first({ manzana↦2, pera↦3, uva↦1 })   = { manzana↦2 }
+first({ manzana↦2, manzana↦3 })       = { manzana↦2 }   (la primera pila, no el total)
 first(nulo)                           = nulo
 ```
 
@@ -541,6 +557,7 @@ first(nulo)                           = nulo
 
 ```
 last({ manzana↦2, pera↦3, uva↦1 })    = { uva↦1 }
+last({ manzana↦2, manzana↦3 })        = { manzana↦3 }   (la última pila, no el total)
 last(nulo)                            = nulo
 ```
 
@@ -583,7 +600,7 @@ Los errores se distinguen por el momento en que se detectan: los **errores de si
 Se detectan al analizar el texto del programa contra la gramática (al final del documento). La gramática define qué es un programa sintácticamente bien formado; cualquier texto que no se ajuste a ella produce un error de sintaxis, que el analizador reporta con su posición. No se enumeran uno por uno: la gramática es su especificación. Dos comportamientos sí merecen mención explícita:
 
 - Los **nodos incompletos se toleran**: una sentencia a medio escribir (un `source` sin valor, un `transform` sin operación, un `sink` sin fuente) se analiza como un nodo placeholder que evalúa a `nulo`, en vez de detener el análisis.
-- Los **grupos son homogéneos**: un grupo reúne objetos de datos o criterios, pero no ambos. Un grupo que los mezcle no se ajusta a la gramática y es, por tanto, un error de sintaxis.
+- Los **grupos son solo de datos**: agrupar entre corchetes reúne objetos de datos; los criterios no se agrupan (cada criterio va en su propio `source`). Un grupo que incluya un criterio no se ajusta a la gramática.
 
 ### 4.2 Errores estáticos
 
@@ -595,7 +612,8 @@ Se detectan sobre la estructura del programa ya construida, sin evaluar. Un erro
 4. **Operación desconocida** — un `transform` nombra una operación que no pertenece al conjunto reconocido.
 5. **Error de aridad** — una operación recibe un número de argumentos que su firma no admite. El número de argumentos de un `transform` está fijo en la estructura, así que se conoce sin evaluar.
 6. **Categoría de valor equivocada** — una operación recibe un argumento de una categoría que no admite: una bolsa donde espera un criterio o al revés, o un booleano donde no corresponde. La categoría de salida de cada nodo está fijada por su operación, de modo que este desajuste también se conoce sin evaluar. Distinguir si una bolsa es además un número depende del valor y se comprueba al evaluar.
-7. **Objeto inválido** — un `source` declara un objeto con un componente de identidad CPA en blanco (categoría, tipo o subtipo vacío): es sintácticamente válido, pero no denota una identidad real. No es un caso de `nulo`: el único caso parcial que da `nulo` es un nodo sin cablear (un `source` sin valor, un `transform` sin operación o un `sink` sin fuente).
+7. **Criterio inadecuado** — una operación recibe un criterio del **subtipo** equivocado (un criterio de orden donde se espera uno de filtro, o al revés), o un criterio de filtro con una propiedad de **valor múltiple** o sobre la **cantidad**. El subtipo va declarado en el criterio, así que se detecta sin evaluar.
+8. **Objeto inválido** — un `source` declara un objeto con un componente de identidad CPA en blanco (categoría, tipo o subtipo vacío): es sintácticamente válido, pero no denota una identidad real. No es un caso de `nulo`: el único caso parcial que da `nulo` es un nodo sin cablear (un `source` sin valor, un `transform` sin operación o un `sink` sin fuente).
 
 ### 4.3 Errores de ejecución
 
@@ -626,14 +644,13 @@ argument_list       ::= identifier ("," identifier)*
 
 operation           ::= identifier
 
-group               ::= data_group | criteria_group
-data_group          ::= "[" (data_literal ("," data_literal)*)? "]"
-criteria_group      ::= "[" (criteria_literal ("," criteria_literal)*)? "]"
+group               ::= "[" (data_literal ("," data_literal)*)? "]"
 
 object_literal      ::= data_literal | criteria_literal
 
-data_literal        ::= "{" '"sourceType" : "data"' "," '"category"' ":" category_type "," '"type"' ":" string_literal "," '"subtype"' ":" string_literal "," '"quantity"' ":" rational_literal ("," kv_pair)* "}"
-criteria_literal    ::= "{" '"sourceType" : "criteria"' "," '"properties"' ":" array_literal ("," kv_pair)* "}"
+data_literal        ::= "{" '"sourceType"' ":" '"data"' "," '"category"' ":" category_type "," '"type"' ":" string_literal "," '"subtype"' ":" string_literal "," '"quantity"' ":" rational_literal ("," kv_pair)* "}"
+criteria_literal    ::= "{" '"sourceType"' ":" criteria_kind "," '"properties"' ":" array_literal ("," kv_pair)* "}"
+criteria_kind       ::= '"filter"' | '"order"'
 
 category_type       ::= '"abstracto"' | '"pictorico"' | '"concreto"'
 
@@ -651,7 +668,8 @@ Notas sobre la gramática:
 
 - **Literal racional.** `rational_literal` admite un entero (`3`), una fracción (`1/3`) o un decimal (`2.5`), con signo opcional; todo se interpreta como un racional exacto (un decimal es su valor exacto, no una aproximación). Es lo que ocupa la `quantity` de un objeto.
 - **Operación.** `operation` es un identificador; el conjunto de operaciones reconocidas se lista abajo. Un identificador de operación fuera de ese conjunto es un error estático (operación desconocida).
-- **Grupos homogéneos.** Un `group` es un grupo de datos o un grupo de criterios, nunca ambos; un grupo que mezcle datos y criterios no pertenece a la gramática.
+- **Grupos solo de datos.** Un `group` reúne objetos de datos; los criterios no se agrupan (cada criterio va en su propio `source`).
+- **Subtipo de criterio.** Un `criteria_literal` declara su subtipo en `sourceType` (`"filter"` u `"order"`). La gramática no restringe la forma de sus valores (pueden ser únicos o un arreglo), pero cada subtipo admite solo ciertas formas —filtro: un valor único por propiedad, sobre identidad; orden: dirección `asc`/`desc` o una secuencia—. Usar la forma equivocada, o pasar un criterio del subtipo equivocado a una operación, es un error estático (criterio inadecuado).
 - **Nodos incompletos.** Las tres declaraciones tienen su valor **opcional** (`?`): un `source` sin valor, un `transform` sin operación o un `sink` sin fuente son sintácticamente válidos y evalúan a `nulo`.
 
 ### 5.2 Palabras clave y valores reservados
@@ -746,4 +764,32 @@ source scale_factor = {
 // multiply(bolsa, número) → estrella con cantidad 7.5
 transform scaled_stars = multiply(large_star, scale_factor);
 sink final_render = scaled_stars;
+```
+
+Criterios (cada uno declara su subtipo; se pasan como `source` separados):
+
+```erae
+source fruits = [
+  { "sourceType": "data", "category": "concreto", "type": "food", "subtype": "apple", "quantity": 3 },
+  { "sourceType": "data", "category": "concreto", "type": "food", "subtype": "pear", "quantity": 1 }
+];
+
+// Criterio de filtro: valor único, sobre una propiedad de identidad
+source only_apples = {
+  "sourceType": "filter",
+  "properties": ["subtype"],
+  "subtype": "apple"
+};
+
+// Criterio de orden: dirección sobre la cantidad
+source by_qty = {
+  "sourceType": "order",
+  "properties": ["quantity"],
+  "quantity": "asc"
+};
+
+transform apples = filter(fruits, only_apples);
+transform sorted = order(fruits, by_qty);
+sink out_apples = apples;
+sink out_sorted = sorted;
 ```
