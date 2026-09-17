@@ -1,7 +1,7 @@
 // §3.3.1 — orden
 
 import { describe, expect, test } from "bun:test";
-import { bagOf, entry, orderCriterion, pairs } from "../../__tests__/helpers";
+import { attributes, bagOf, entry, orderCriterion, pairs } from "../../__tests__/helpers";
 import { order } from "../ordering";
 
 const size = (subtype: string, quantity: number, value: string) =>
@@ -45,9 +45,7 @@ describe("order — §3.3.1", () => {
       bagOf(size("estrella", 1, "grande"), size("estrella", 1, "pequeña"), size("estrella", 1, "mediana")),
       orderCriterion(["size"], { size: ["pequeña", "mediana", "grande"] }),
     ]);
-    expect(
-      (result as { entries: { attributes: Record<string, string> }[] }).entries.map((item) => item.attributes.size)
-    ).toEqual(["pequeña", "mediana", "grande"]);
+    expect(attributes(result, "size")).toEqual(["pequeña", "mediana", "grande"]);
   });
 
   test("una secuencia puede no ser ni ascendente ni descendente", () => {
@@ -55,9 +53,7 @@ describe("order — §3.3.1", () => {
       bagOf(size("estrella", 1, "pequeña"), size("estrella", 1, "mediana"), size("estrella", 1, "grande")),
       orderCriterion(["size"], { size: ["mediana", "pequeña", "grande"] }),
     ]);
-    expect(
-      (result as { entries: { attributes: Record<string, string> }[] }).entries.map((item) => item.attributes.size)
-    ).toEqual(["mediana", "pequeña", "grande"]);
+    expect(attributes(result, "size")).toEqual(["mediana", "pequeña", "grande"]);
   });
 
   test("las entradas fuera de la secuencia van al final", () => {

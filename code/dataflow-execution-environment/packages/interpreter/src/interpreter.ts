@@ -1,17 +1,16 @@
 import { analyze } from "./analyzer/static-analysis";
 import type { Program } from "./program";
-import { deserialize, parseToAst, type ParseError } from "./serializer";
+import { deserialize, parseToAst } from "./serializer";
 import { diffGraphs } from "./runtime/differ";
-import { RuntimeError } from "./runtime/errors";
+import type { DataflowError } from "./runtime/errors";
 import { LazyEvaluator } from "./runtime/evaluator";
 import { buildGraph, type DependencyGraph } from "./runtime/graph";
 import type { RuntimeValue } from "./runtime/types";
 
-export type { ParseError } from "./serializer";
-
 export interface ExecuteResult {
   results: Map<string, RuntimeValue>;
-  errors: Array<ParseError | RuntimeError>;
+  /** Una sola forma para las tres fases: sintaxis, estática y ejecución (§4). */
+  errors: DataflowError[];
 }
 
 export interface EvaluationStats {

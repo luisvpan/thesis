@@ -1,7 +1,7 @@
 // Aritmética — LANGUAGE_SPEC.md §3.1
 
 import { aggregate, bag, identityKey, withQuantity } from "../runtime/bag";
-import { RuntimeError } from "../runtime/errors";
+import { DataflowError } from "../runtime/errors";
 import * as rational from "../runtime/rational";
 import type { Entry, RuntimeValue } from "../runtime/types";
 import { bagAt, scalarAt } from "./helpers";
@@ -75,7 +75,7 @@ export function divide(args: RuntimeValue[]): RuntimeValue {
   if (divisor === null) return value;
 
   if (rational.isZero(divisor)) {
-    throw new RuntimeError("DIVISION_BY_ZERO", "divide no admite el divisor 0", { argumentIndex: 1 });
+    throw new DataflowError("DIVISION_BY_ZERO", "divide no admite el divisor 0", { argumentIndex: 1 });
   }
 
   return bag(value.entries.map((entry) => withQuantity(entry, rational.divide(entry.quantity, divisor))));

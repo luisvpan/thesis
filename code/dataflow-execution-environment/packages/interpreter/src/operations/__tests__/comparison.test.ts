@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { NULO } from "../../runtime/bag";
-import type { RuntimeError } from "../../runtime/errors";
+import type { DataflowError } from "../../runtime/errors";
 import { bagOf, entry, num, pairs } from "../../__tests__/helpers";
 import { greaterThan, lessThan } from "../comparison";
 
@@ -31,7 +31,7 @@ describe("lessThan — §3.2.1", () => {
       lessThan([bagOf(entry("pera", 5)), bagOf(entry("manzana", 2))]);
       throw new Error("debió fallar");
     } catch (err) {
-      expect((err as RuntimeError).code).toBe("EXPECTED_NUMBER");
+      expect((err as DataflowError).code).toBe("EXPECTED_NUMBER");
     }
   });
 });

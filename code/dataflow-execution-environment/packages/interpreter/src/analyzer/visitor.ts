@@ -15,7 +15,7 @@ import type {
 } from "./ast";
 import { isCPACategory } from "./ast";
 import { parserInstance } from "./parser";
-import { DataflowSyntaxError } from "./syntax-error";
+import { syntaxError } from "../runtime/errors";
 
 // CST Node types
 interface ProgramCstNode extends CstNode {
@@ -123,7 +123,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     if (ctx.sourceStatement) return this.visit(ctx.sourceStatement[0]);
     if (ctx.transformStatement) return this.visit(ctx.transformStatement[0]);
     if (ctx.sinkStatement) return this.visit(ctx.sinkStatement[0]);
-    throw new DataflowSyntaxError("Sentencia desconocida");
+    throw syntaxError("Sentencia desconocida");
   }
 
   sourceStatement(ctx: SourceStatementCstNode["children"]): SourceStatement {
@@ -158,7 +158,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
   literal(ctx: LiteralCstNode["children"]): Literal {
     if (ctx.objectLiteral) return this.visit(ctx.objectLiteral[0]);
     if (ctx.group) return this.visit(ctx.group[0]);
-    throw new DataflowSyntaxError("Literal desconocido");
+    throw syntaxError("Literal desconocido");
   }
 
   group(ctx: GroupCstNode["children"]): GroupLiteral {
@@ -167,7 +167,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     // Los grupos son solo de datos: los criterios no se agrupan (§4.1).
     for (const element of elements) {
       if (element.type !== "DataLiteral") {
-        throw new DataflowSyntaxError(
+        throw syntaxError(
           "Un grupo reúne objetos de datos; los criterios no se agrupan (cada uno va en su propio source)",
           positionOf(ctx.LBracket[0])
         );
@@ -195,7 +195,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
     }
 
     if (sourceType !== undefined && sourceType !== "data") {
-      throw new DataflowSyntaxError(
+      throw syntaxError(
         `"sourceType" admite "data", "filter" u "order"; se escribió "${String(sourceType)}"`,
         at
       );
@@ -208,7 +208,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
 
     const category = text("category");
     if (category !== "" && !isCPACategory(category)) {
-      throw new DataflowSyntaxError(
+      throw syntaxError(
         `"category" admite "abstracto", "pictorico" o "concreto"; se escribió "${category}"`,
         at
       );
@@ -241,7 +241,7 @@ export class DataflowAstVisitor extends BaseCstVisitor {
       return { key, value: ctx.NumberLiteral[0].image };
     }
 
-    throw new DataflowSyntaxError(`La propiedad "${key}" no tiene valor`, positionOf(ctx.StringLiteral[0]));
+    throw syntaxError(`La propiedad "${key}" no tiene valor`, positionOf(ctx.StringLiteral[0]));
   }
 
   kvArrayLiteral(ctx: KvArrayLiteralCstNode["children"]): string[] {

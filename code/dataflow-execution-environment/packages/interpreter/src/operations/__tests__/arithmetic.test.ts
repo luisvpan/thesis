@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { NULO } from "../../runtime/bag";
-import { RuntimeError } from "../../runtime/errors";
+import { DataflowError } from "../../runtime/errors";
 import { bagOf, entry, num, only, pairs } from "../../__tests__/helpers";
 import { divide, multiply, substract, sum } from "../arithmetic";
 
@@ -105,12 +105,12 @@ describe("multiply — §3.1.3", () => {
 
   test("un segundo argumento que no es número es error de ejecución", () => {
     expect(() => multiply([bagOf(entry("manzana", 2)), bagOf(entry("pera", 3))])).toThrow(
-      RuntimeError
+      DataflowError
     );
     try {
       multiply([bagOf(entry("manzana", 2)), bagOf(entry("pera", 3))]);
     } catch (err) {
-      expect((err as RuntimeError).code).toBe("EXPECTED_NUMBER");
+      expect((err as DataflowError).code).toBe("EXPECTED_NUMBER");
     }
   });
 });
@@ -132,7 +132,7 @@ describe("divide — §3.1.4", () => {
       divide([bagOf(entry("manzana", 6)), num(0)]);
       throw new Error("debió fallar");
     } catch (err) {
-      expect((err as RuntimeError).code).toBe("DIVISION_BY_ZERO");
+      expect((err as DataflowError).code).toBe("DIVISION_BY_ZERO");
     }
   });
 

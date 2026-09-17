@@ -31,9 +31,9 @@ describe("serialize", () => {
     expect(value.entries.map((entry) => entry.subtype)).toEqual(["uva", "pera"]);
   });
 
-  test("un source sin valor es la bolsa vacía", () => {
+  test("un source sin valor queda incompleto, no vacío", () => {
     const { program } = serialize("source x = ;");
-    expect((sourceValue(program!) as BagLiteral).entries).toHaveLength(0);
+    expect(sourceValue(program!)).toBeUndefined();
   });
 
   test("las fracciones se leen exactas", () => {
@@ -105,6 +105,20 @@ describe("deserialize", () => {
       statements: [{ type: "SourceStatement", identifier: "x", value: bag }],
     });
     expect(text).toContain(`"quantity": 1/3`);
+  });
+
+  test("ida y vuelta de los tres nodos incompletos (§2.5)", () => {
+    const original = "source x = ;\ntransform t = ;\nsink s = ;";
+    const { program, errors } = serialize(original);
+    expect(errors).toHaveLength(0);
+
+    const text = deserialize(program!);
+    expect(text).toBe(original);
+
+    // Y el texto generado vuelve a parsear: no se cuela un `t = ();`.
+    const { program: again, errors: againErrors } = serialize(text);
+    expect(againErrors).toHaveLength(0);
+    expect(again!.statements).toHaveLength(3);
   });
 
   test("ida y vuelta conserva el valor", () => {

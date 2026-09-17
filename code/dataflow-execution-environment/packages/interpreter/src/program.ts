@@ -22,24 +22,27 @@ export type Program = {
 
 export type Statement = SourceStatement | TransformStatement | SinkStatement;
 
+// Las tres declaraciones tienen su valor opcional: un nodo a medio escribir es
+// válido y evalúa a `nulo` (§2.5).
+
 export type SourceStatement = {
   type: "SourceStatement";
   identifier: string;
-  value: Literal;
+  value?: Literal;
 };
 
 export type TransformStatement = {
   type: "TransformStatement";
   identifier: string;
   /** Una de las operaciones reconocidas (§5.2); otra cosa es un error estático. */
-  operation: Operation | (string & {});
+  operation?: Operation | (string & {});
   arguments: Expression[];
 };
 
 export type SinkStatement = {
   type: "SinkStatement";
   identifier: string;
-  sourceIdentifier: string;
+  sourceIdentifier?: string;
 };
 
 // =============================================================================

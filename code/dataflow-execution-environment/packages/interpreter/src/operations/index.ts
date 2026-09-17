@@ -1,4 +1,4 @@
-import { RuntimeError } from "../runtime/errors";
+import { DataflowError } from "../runtime/errors";
 import type { RuntimeValue } from "../runtime/types";
 import { count } from "./aggregation";
 import { divide, multiply, substract, sum } from "./arithmetic";
@@ -33,7 +33,7 @@ const OPERATION_REGISTRY: Record<Operation, OperationFn> = {
  */
 export function executeOperation(operation: string, args: RuntimeValue[]): RuntimeValue {
   if (!isOperation(operation)) {
-    throw new RuntimeError("UNKNOWN_OPERATION", `La operación '${operation}' no existe`);
+    throw new DataflowError("UNKNOWN_OPERATION", `La operación '${operation}' no existe`);
   }
 
   return OPERATION_REGISTRY[operation](args);

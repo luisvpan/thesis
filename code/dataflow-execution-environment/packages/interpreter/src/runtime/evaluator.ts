@@ -12,7 +12,7 @@ import type {
 } from "../analyzer/ast";
 import { executeOperation } from "../operations";
 import { NULO, bag } from "./bag";
-import { RuntimeError } from "./errors";
+import { DataflowError } from "./errors";
 import type { DependencyGraph } from "./graph";
 import { toFraction } from "./rational";
 import type {
@@ -26,7 +26,7 @@ import type {
 
 export interface EvaluationResult {
   results: Map<string, RuntimeValue>;
-  errors: RuntimeError[];
+  errors: DataflowError[];
 }
 
 export class LazyEvaluator {
@@ -45,14 +45,14 @@ export class LazyEvaluator {
   /** EvaluarPrograma(programa) → (valores, errores) — §2.3.1 */
   async evaluate(): Promise<EvaluationResult> {
     const results = new Map<string, RuntimeValue>();
-    const errors: RuntimeError[] = [];
+    const errors: DataflowError[] = [];
 
     for (const sinkId of this.graph.sinkIds) {
       this.currentSinkId = sinkId;
       try {
         results.set(sinkId, await this.evaluateNode(sinkId));
       } catch (err) {
-        if (err instanceof RuntimeError) {
+        if (err instanceof DataflowError) {
           errors.push(err.situate({ sinkId }));
         } else {
           throw err;
@@ -84,7 +84,7 @@ export class LazyEvaluator {
 
     const node = this.graph.nodes.get(nodeId);
     if (!node) {
-      throw new RuntimeError("UNDEFINED_REFERENCE", `No existe el nodo '${nodeId}'`, {
+      throw new DataflowError("UNDEFINED_REFERENCE", `No existe el nodo '${nodeId}'`, {
         nodeId,
       });
     }
@@ -132,7 +132,7 @@ export class LazyEvaluator {
         try {
           return executeOperation(stmt.operation, args);
         } catch (err) {
-          if (err instanceof RuntimeError) {
+          if (err instanceof DataflowError) {
             const cause =
               err.argumentIndex !== undefined
                 ? stmt.arguments[err.argumentIndex]?.name

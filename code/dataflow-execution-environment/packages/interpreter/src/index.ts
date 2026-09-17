@@ -2,21 +2,30 @@ export {
   Interpreter,
   type EvaluationStats,
   type ExecuteResult,
-  type ParseError,
 } from "./interpreter";
 
+// Errores: una sola forma para las tres fases (§4). Los códigos se exportan
+// también como valores, para poder recorrerlos o construir un mapa de mensajes.
 export {
-  RuntimeError,
+  DataflowError,
+  ERROR_CODES,
+  RUNTIME_ERROR_CODES,
+  STATIC_ERROR_CODES,
+  SYNTAX_ERROR_CODES,
+  isDataflowError,
   type ErrorCode,
   type ErrorPhase,
-  type ErrorSite,
   type RuntimeErrorCode,
   type StaticErrorCode,
+  type SyntaxErrorCode,
 } from "./runtime/errors";
 
 export { serialize, deserialize, type SerializeResult } from "./serializer";
 
 export { formatValue } from "./formatter";
+
+// Construcción de programas
+export { createProgram, ProgramBuilder } from "./program-builder";
 
 // Construcción de valores
 export {

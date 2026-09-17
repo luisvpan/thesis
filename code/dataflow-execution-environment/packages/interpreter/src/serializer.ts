@@ -14,8 +14,8 @@ import type {
 } from "./analyzer/ast";
 import { DataflowLexer } from "./analyzer/lexer";
 import { parserInstance } from "./analyzer/parser";
-import { DataflowSyntaxError } from "./analyzer/syntax-error";
 import { visitorInstance } from "./analyzer/visitor";
+import { DataflowError, isDataflowError, syntaxError } from "./runtime/errors";
 import type {
   BagLiteral,
   CriterionLiteral,
@@ -26,29 +26,21 @@ import type {
 import { ImmutableBag } from "./bag-builder";
 import type { CPACategory, Entry } from "./runtime/types";
 
-export interface ParseError {
-  message: string;
-  line?: number;
-  column?: number;
-}
-
 export interface SerializeResult {
   program: Program | null;
-  errors: ParseError[];
+  errors: DataflowError[];
 }
 
 /** Texto → AST. Los errores de sintaxis se devuelven con su posición (§4.1). */
-export function parseToAst(input: string): { ast: ASTProgram | null; errors: ParseError[] } {
+export function parseToAst(input: string): { ast: ASTProgram | null; errors: DataflowError[] } {
   const lexResult = DataflowLexer.tokenize(input);
 
   if (lexResult.errors.length > 0) {
     return {
       ast: null,
-      errors: lexResult.errors.map((error) => ({
-        message: error.message,
-        line: error.line,
-        column: error.column,
-      })),
+      errors: lexResult.errors.map((error) =>
+        syntaxError(error.message, { line: error.line, column: error.column })
+      ),
     };
   }
 
@@ -58,20 +50,16 @@ export function parseToAst(input: string): { ast: ASTProgram | null; errors: Par
   if (parserInstance.errors.length > 0) {
     return {
       ast: null,
-      errors: parserInstance.errors.map((error) => ({
-        message: error.message,
-        line: error.token.startLine,
-        column: error.token.startColumn,
-      })),
+      errors: parserInstance.errors.map((error) =>
+        syntaxError(error.message, { line: error.token.startLine, column: error.token.startColumn })
+      ),
     };
   }
 
   try {
     return { ast: visitorInstance.visit(cst) as ASTProgram, errors: [] };
   } catch (err) {
-    if (err instanceof DataflowSyntaxError) {
-      return { ast: null, errors: [{ message: err.message, line: err.line, column: err.column }] };
-    }
+    if (isDataflowError(err)) return { ast: null, errors: [err] };
     throw err;
   }
 }
@@ -99,21 +87,20 @@ function astStatementToStatement(stmt: ASTStatement): Statement {
       return {
         type: "SourceStatement",
         identifier: stmt.identifier,
-        // Un `source` sin valor es `nulo`: la bolsa vacía.
-        value: stmt.value ? astLiteralToLiteral(stmt.value) : ImmutableBag.of([]),
+        value: stmt.value ? astLiteralToLiteral(stmt.value) : undefined,
       };
     case "TransformStatement":
       return {
         type: "TransformStatement",
         identifier: stmt.identifier,
-        operation: stmt.operation ?? "",
+        operation: stmt.operation,
         arguments: stmt.arguments.map((argument) => ({ type: "Identifier", name: argument.name })),
       };
     case "SinkStatement":
       return {
         type: "SinkStatement",
         identifier: stmt.identifier,
-        sourceIdentifier: stmt.sourceIdentifier ?? "",
+        sourceIdentifier: stmt.sourceIdentifier,
       };
   }
 }
@@ -162,16 +149,19 @@ function astCriterionLiteralToCriterionLiteral(literal: ASTCriterionLiteral): Cr
 // Program (Fraction) → texto
 // =============================================================================
 
+// Un nodo incompleto se escribe sin valor (`source x = ;`), que es como lo
+// admite la gramática y como vuelve a leerse (§2.5).
 function deserializeStatement(stmt: Statement): string {
   switch (stmt.type) {
     case "SourceStatement":
-      return `source ${stmt.identifier} = ${deserializeLiteral(stmt.value)};`;
-    case "TransformStatement":
-      return `transform ${stmt.identifier} = ${stmt.operation}(${stmt.arguments
-        .map((argument) => argument.name)
-        .join(", ")});`;
+      return `source ${stmt.identifier} = ${stmt.value ? deserializeLiteral(stmt.value) : ""};`;
+    case "TransformStatement": {
+      if (!stmt.operation) return `transform ${stmt.identifier} = ;`;
+      const args = stmt.arguments.map((argument) => argument.name).join(", ");
+      return `transform ${stmt.identifier} = ${stmt.operation}(${args});`;
+    }
     case "SinkStatement":
-      return `sink ${stmt.identifier} = ${stmt.sourceIdentifier};`;
+      return `sink ${stmt.identifier} = ${stmt.sourceIdentifier ?? ""};`;
   }
 }
 

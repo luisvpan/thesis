@@ -116,7 +116,79 @@ describe("analyze", () => {
         transform a = substract(x);
         transform b = inventada(x);
         sink s = a;
+        sink r = b;
       `)
     ).toEqual(["ARITY_ERROR", "UNKNOWN_OPERATION"]);
+  });
+});
+
+describe("solo se valida lo que alcanza alguna salida", () => {
+  test("un transform con mala aridad que ninguna salida alcanza no invalida nada", () => {
+    expect(
+      codesOf(`
+        source x = ${three};
+        transform suelto = substract(x);
+        transform bueno = sum(x, x);
+        sink s = bueno;
+      `)
+    ).toEqual([]);
+  });
+
+  test("y sí lo invalida en cuanto se conecta a una salida", () => {
+    expect(
+      codesOf(`
+        source x = ${three};
+        transform suelto = substract(x);
+        transform bueno = sum(x, x);
+        sink s = bueno;
+        sink r = suelto;
+      `)
+    ).toEqual(["ARITY_ERROR"]);
+  });
+
+  test("un nombre declarado dos veces fuera del alcance tampoco invalida", () => {
+    expect(
+      codesOf(`
+        source x = ${three};
+        source suelto = ${apple};
+        source suelto = ${three};
+        sink s = x;
+      `)
+    ).toEqual([]);
+
+    expect(
+      codesOf(`
+        source x = ${three};
+        source suelto = ${apple};
+        source suelto = ${three};
+        sink s = x;
+        sink r = suelto;
+      `)
+    ).toEqual(["DUPLICATE_IDENTIFIER"]);
+  });
+
+  test("un ciclo que ninguna salida alcanza no invalida", () => {
+    expect(
+      codesOf(`
+        source x = ${three};
+        transform a = sum(b, x);
+        transform b = sum(a, x);
+        sink s = x;
+      `)
+    ).toEqual([]);
+  });
+
+  test("una referencia sin resolver fuera del alcance tampoco", () => {
+    expect(
+      codesOf(`
+        source x = ${three};
+        transform suelto = sum(no_existe, x);
+        sink s = x;
+      `)
+    ).toEqual([]);
+  });
+
+  test("sin salidas no hay nada que validar", () => {
+    expect(codesOf(`source x = ${three}; transform t = substract(x);`)).toEqual([]);
   });
 });

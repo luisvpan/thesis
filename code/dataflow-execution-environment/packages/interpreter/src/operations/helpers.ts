@@ -7,7 +7,7 @@
 import type Fraction from "fraction.js";
 import { NULO, asNumber, isNulo } from "../runtime/bag";
 import { isCriterionComplete } from "../runtime/criteria";
-import { RuntimeError } from "../runtime/errors";
+import { DataflowError } from "../runtime/errors";
 import type { Bag, Criterion, RuntimeValue } from "../runtime/types";
 import { isBag, isCriterion } from "../runtime/types";
 
@@ -19,7 +19,7 @@ export function bagAt(args: RuntimeValue[], index: number, operation: string): B
   const value = args[index];
   if (value === undefined) return NULO;
   if (!isBag(value)) {
-    throw new RuntimeError(
+    throw new DataflowError(
       "TYPE_ERROR",
       `${operation} espera una bolsa en la posición ${index + 1}, y recibió un ${value.kind}`,
       { argumentIndex: index }
@@ -47,7 +47,7 @@ export function scalarAt(
 
   const number = asNumber(value);
   if (number === null) {
-    throw new RuntimeError(
+    throw new DataflowError(
       "EXPECTED_NUMBER",
       `${operation} espera un número como ${role}, y recibió una bolsa que no lo es`,
       { argumentIndex: index }

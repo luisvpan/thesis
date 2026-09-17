@@ -1,22 +1,81 @@
 // §4 Errores: naturaleza, nodo, nodo causante y salida.
 
 import { describe, expect, test } from "bun:test";
-import { Interpreter } from "../index";
-import { RuntimeError } from "../runtime/errors";
+import {
+  ERROR_CODES,
+  Interpreter,
+  RUNTIME_ERROR_CODES,
+  STATIC_ERROR_CODES,
+  SYNTAX_ERROR_CODES,
+  isDataflowError,
+  type DataflowError,
+  type ErrorCode,
+} from "../index";
 import { dataLiteral, numberLiteral } from "./helpers";
 
 const num = numberLiteral;
 
-async function errorsOf(program: string): Promise<RuntimeError[]> {
-  const result = await new Interpreter().execute(program);
-  return result.errors.filter((error): error is RuntimeError => error instanceof RuntimeError);
-}
-
-async function firstError(program: string): Promise<RuntimeError> {
-  const [error] = await errorsOf(program);
+async function firstError(program: string): Promise<DataflowError> {
+  const [error] = (await new Interpreter().execute(program)).errors;
   if (!error) throw new Error("se esperaba un error y no hubo ninguno");
   return error;
 }
+
+describe("Forma del error", () => {
+  test("las tres fases comparten forma: phase + code + detail", async () => {
+    const sintaxis = await firstError("source x = 5;");
+    expect(sintaxis.phase).toBe("syntax");
+    expect(sintaxis.code).toBe("SYNTAX_ERROR");
+    expect(sintaxis.line).toBe(1);
+
+    const estatico = await firstError(`source x = ${num(1)}; transform t = substract(x); sink s = t;`);
+    expect(estatico.phase).toBe("static");
+    expect(estatico.code).toBe("ARITY_ERROR");
+
+    const ejecucion = await firstError(`
+      source a = ${num(1)};
+      source cero = ${num(0)};
+      transform t = divide(a, cero);
+      sink s = t;
+    `);
+    expect(ejecucion.phase).toBe("runtime");
+    expect(ejecucion.code).toBe("DIVISION_BY_ZERO");
+
+    // El detalle se conserva aparte del mensaje situado.
+    expect(ejecucion.message).toContain(ejecucion.detail);
+    expect(ejecucion.message).not.toBe(ejecucion.detail);
+  });
+
+  test("los códigos se exportan como valores, para recorrerlos", () => {
+    expect(ERROR_CODES).toContain("DIVISION_BY_ZERO");
+    expect(ERROR_CODES).toHaveLength(
+      SYNTAX_ERROR_CODES.length + STATIC_ERROR_CODES.length + RUNTIME_ERROR_CODES.length
+    );
+
+    // Un mapa de mensajes exhaustivo: si mañana aparece un código nuevo, no compila.
+    const mensajes: Record<ErrorCode, string> = {
+      SYNTAX_ERROR: "el programa no se entiende",
+      DUPLICATE_IDENTIFIER: "hay dos cosas con el mismo nombre",
+      UNDEFINED_REFERENCE: "falta algo por conectar",
+      CIRCULAR_DEPENDENCY: "esto se muerde la cola",
+      UNKNOWN_OPERATION: "esa operación no existe",
+      ARITY_ERROR: "faltan o sobran cosas",
+      TYPE_ERROR: "eso no va ahí",
+      INVALID_CRITERION: "ese criterio no sirve aquí",
+      INVALID_OBJECT: "a ese objeto le falta identidad",
+      EXPECTED_NUMBER: "aquí hace falta un número",
+      DIVISION_BY_ZERO: "no se puede repartir entre cero",
+    };
+
+    expect(Object.keys(mensajes).sort()).toEqual([...ERROR_CODES].sort());
+  });
+
+  test("isDataflowError reconoce los errores del intérprete", async () => {
+    const [error] = (await new Interpreter().execute("source x = 5;")).errors;
+    expect(isDataflowError(error)).toBe(true);
+    expect(isDataflowError(new Error("otra cosa"))).toBe(false);
+  });
+});
 
 describe("Errores de sintaxis (§4.1)", () => {
   test("un grupo con un criterio dentro no se ajusta a la gramática", async () => {
@@ -146,7 +205,8 @@ describe("Errores estáticos (§4.2)", () => {
 
   test("objeto inválido: un componente de identidad en blanco", async () => {
     const error = await firstError(
-      `source x = {"sourceType": "data", "category": "concreto", "type": "comida", "quantity": 2};`
+      `source x = {"sourceType": "data", "category": "concreto", "type": "comida", "quantity": 2};
+       sink s = x;`
     );
     expect(error.code).toBe("INVALID_OBJECT");
     expect(error.detail).toContain("subtype");

@@ -70,6 +70,12 @@ export function dataLiteral(
   return `{"sourceType": "data", "category": "${category}", "type": "${type}", "subtype": "${subtype}", "quantity": ${quantity}${extra.join("")}}`;
 }
 
+/** El valor de un atributo en cada entrada, en el orden de la bolsa. */
+export function attributes(value: RuntimeValue, key: string): (string | undefined)[] {
+  if (value.kind !== "bolsa") throw new Error(`Se esperaba una bolsa, y llegó un ${value.kind}`);
+  return value.entries.map((item) => item.attributes[key]);
+}
+
 /** El valor de una bolsa de una sola entrada, como fracción exacta. */
 export function only(value: RuntimeValue): string {
   const list = pairs(value);
