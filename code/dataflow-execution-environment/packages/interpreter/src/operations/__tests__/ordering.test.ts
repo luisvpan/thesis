@@ -1,7 +1,7 @@
 // §3.3.1 — orden
 
 import { describe, expect, test } from "bun:test";
-import { attributes, bagOf, entry, orderCriterion, pairs } from "../../__tests__/helpers";
+import { attributes, bagOf, entry, num, orderCriterion, pairs } from "../../__tests__/helpers";
 import { order } from "../ordering";
 
 const size = (subtype: string, quantity: number, value: string) =>
@@ -93,6 +93,29 @@ describe("order — §3.3.1", () => {
       orderCriterion(["quantity"], { quantity: "asc" }),
     ]);
     expect(pairs(result)).toEqual(["pera:3", "manzana:6"]);
+  });
+
+  test("pero no agrupa lo abstracto: cada número se ordena por separado", () => {
+    const numeros = bagOf(...num(7).entries, ...num(2).entries, ...num(5).entries);
+
+    expect(pairs(order([numeros, orderCriterion(["quantity"], { quantity: "asc" })]))).toEqual([
+      "racional:2",
+      "racional:5",
+      "racional:7",
+    ]);
+    expect(pairs(order([numeros, orderCriterion(["quantity"], { quantity: "desc" })]))).toEqual([
+      "racional:7",
+      "racional:5",
+      "racional:2",
+    ]);
+  });
+
+  test("en una bolsa mixta, lo concreto se agrupa y lo abstracto no", () => {
+    const result = order([
+      bagOf(entry("manzana", 2), ...num(7).entries, entry("manzana", 3), ...num(1).entries),
+      orderCriterion(["quantity"], { quantity: "asc" }),
+    ]);
+    expect(pairs(result)).toEqual(["racional:1", "manzana:5", "racional:7"]);
   });
 
   test("sin criterios completos devuelve la bolsa sin cambios", () => {

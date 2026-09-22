@@ -19,7 +19,7 @@ export function sum(args: RuntimeValue[]): RuntimeValue {
     entries.push(...bagAt(args, index, "sum").entries);
   }
 
-  return bag(aggregate(entries));
+  return bag(aggregate({ entries }));
 }
 
 /**
@@ -28,8 +28,8 @@ export function sum(args: RuntimeValue[]): RuntimeValue {
  * con cantidad negativa, y las que resulten 0 se conservan.
  */
 export function substract(args: RuntimeValue[]): RuntimeValue {
-  const minuend = aggregate(bagAt(args, 0, "substract").entries);
-  const subtrahend = aggregate(bagAt(args, 1, "substract").entries);
+  const minuend = aggregate({ entries: bagAt(args, 0, "substract").entries });
+  const subtrahend = aggregate({ entries: bagAt(args, 1, "substract").entries });
 
   const remaining = new Map(subtrahend.map((entry) => [identityKey(entry), entry]));
   const result: Entry[] = [];

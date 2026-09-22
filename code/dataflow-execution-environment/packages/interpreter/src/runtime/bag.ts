@@ -6,7 +6,7 @@
 
 import type Fraction from "fraction.js";
 import * as rational from "./rational";
-import type { Bag, Entry } from "./types";
+import type { Bag, CPACategory, Entry } from "./types";
 
 /** La bolsa vacía: el vector cero (§1.2.5). */
 export const NULO: Bag = Object.freeze({ kind: "bolsa", entries: Object.freeze([]) }) as Bag;
@@ -38,29 +38,47 @@ export function withQuantity(entry: Entry, quantity: Fraction): Entry {
   return { ...entry, attributes: { ...entry.attributes }, quantity };
 }
 
+export interface AggregateOptions {
+  entries: readonly Entry[];
+  /**
+   * Categoría que **no** se agrupa: sus entradas salen tal cual, cada una en su
+   * posición. Lo usan las operaciones que agregan para ordenar o seleccionar,
+   * con `"abstracto"`: cada número es una carta que el niño puso sobre la mesa,
+   * y fundirlas sería quedarse sin nada que ordenar (§3, convenciones).
+   */
+  keep?: CPACategory;
+}
+
 /**
  * Forma reducida: una entrada por identidad, en orden de primera aparición, con
  * la suma de sus cantidades. Las cantidades 0 **se conservan** (§1.2.2c).
  */
-export function aggregate(entries: readonly Entry[]): Entry[] {
-  const groups = new Map<string, Entry>();
+export function aggregate({ entries, keep }: AggregateOptions): Entry[] {
+  const result: Entry[] = [];
+  const positions = new Map<string, number>();
 
   for (const entry of entries) {
+    if (entry.category === keep) {
+      result.push(withQuantity(entry, entry.quantity));
+      continue;
+    }
+
     const key = identityKey(entry);
-    const previous = groups.get(key);
-    groups.set(
-      key,
-      previous
-        ? withQuantity(previous, rational.add(previous.quantity, entry.quantity))
-        : withQuantity(entry, entry.quantity)
-    );
+    const at = positions.get(key);
+
+    if (at === undefined) {
+      positions.set(key, result.length);
+      result.push(withQuantity(entry, entry.quantity));
+    } else {
+      result[at] = withQuantity(result[at], rational.add(result[at].quantity, entry.quantity));
+    }
   }
 
-  return Array.from(groups.values());
+  return result;
 }
 
 export function aggregated(value: Bag): Bag {
-  return bag(aggregate(value.entries));
+  return bag(aggregate({ entries: value.entries }));
 }
 
 /**
@@ -71,7 +89,7 @@ export function aggregated(value: Bag): Bag {
 export function denote(value: Bag): Map<string, Fraction> {
   const vector = new Map<string, Fraction>();
 
-  for (const entry of aggregate(value.entries)) {
+  for (const entry of aggregate({ entries: value.entries })) {
     if (!entry.quantity.equals(rational.zero())) {
       vector.set(identityKey(entry), entry.quantity);
     }
