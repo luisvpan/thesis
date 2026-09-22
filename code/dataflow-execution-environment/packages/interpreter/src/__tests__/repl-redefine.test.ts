@@ -1,48 +1,38 @@
-import { describe, test, expect } from "bun:test";
-import { Interpreter } from "../index";
-import type { CPAObject } from "../runtime/types";
-import Fraction from "fraction.js";
+// El REPL redefine sentencias por identificador: reejecuta el programa entero
+// y el valor de las salidas se actualiza en cascada.
 
-describe("REPL redefinition behavior", () => {
-  test("allows redefining source values using Map-based statements", async () => {
+import { describe, expect, test } from "bun:test";
+import { Interpreter } from "../index";
+import { numberLiteral, only } from "./helpers";
+
+const num = numberLiteral;
+
+describe("Redefinición en el REPL", () => {
+  test("redefinir una fuente actualiza las salidas que dependen de ella", async () => {
     const interpreter = new Interpreter();
     const statements = new Map<string, string>();
-    const sinkNames = new Set<string>();
 
-    function extractId(line: string): string | null {
-      const match = line.match(/^(?:source|transform|sink)\s+(\w+)\s*=/);
-      return match ? match[1] : null;
+    async function add(line: string) {
+      const id = line.match(/^(?:source|transform|sink)\s+(\w+)\s*=/)?.[1];
+      if (!id) throw new Error(`sentencia no reconocida: ${line}`);
+      statements.set(id, line); // redefine si ya existía
+      return interpreter.execute(Array.from(statements.values()).join("\n"));
     }
 
-    async function addStatement(line: string) {
-      const id = extractId(line);
-      if (!id) return null;
+    await add(`source x = ${num(5)};`);
+    await add(`source y = ${num(3)};`);
+    await add("transform suma = sum(x, y);");
+    const first = await add("sink resultado = suma;");
 
-      const isSink = line.startsWith("sink ");
-      statements.set(id, line); // Replaces if exists
-      if (isSink) sinkNames.add(id);
+    expect(first.errors).toHaveLength(0);
+    expect(only(first.results.get("resultado")!)).toBe("8");
 
-      const program = Array.from(statements.values()).join("\n");
-      return await interpreter.execute(program);
-    }
+    const second = await add(`source x = ${num(10)};`);
+    expect(second.errors).toHaveLength(0);
+    expect(only(second.results.get("resultado")!)).toBe("13");
 
-    // Initial setup
-    await addStatement('source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 5};');
-    await addStatement('source y = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 3};');
-    await addStatement("transform suma = sum(x, y);");
-    const result1 = await addStatement("sink resultado = suma;");
-
-    expect(result1?.errors).toHaveLength(0);
-    expect((result1!.results.get("resultado") as CPAObject).quantity.equals(new Fraction(8))).toBe(true);
-
-    // Redefine x
-    const result2 = await addStatement('source x = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 10};');
-    expect(result2?.errors).toHaveLength(0);
-    expect((result2!.results.get("resultado") as CPAObject).quantity.equals(new Fraction(13))).toBe(true);
-
-    // Redefine y
-    const result3 = await addStatement('source y = {"category": "abstracto", "type": "numero", "subtype": "racional", "quantity": 20};');
-    expect(result3?.errors).toHaveLength(0);
-    expect((result3!.results.get("resultado") as CPAObject).quantity.equals(new Fraction(30))).toBe(true);
+    const third = await add(`source y = ${num(20)};`);
+    expect(third.errors).toHaveLength(0);
+    expect(only(third.results.get("resultado")!)).toBe("30");
   });
 });

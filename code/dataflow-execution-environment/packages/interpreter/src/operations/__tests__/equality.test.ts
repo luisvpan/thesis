@@ -1,139 +1,57 @@
-import { describe, test, expect } from "bun:test";
-import Fraction from "fraction.js";
+// §3.2.3 — igualdad denotacional
+
+import { describe, expect, test } from "bun:test";
+import { NULO } from "../../runtime/bag";
+import type { BooleanValue } from "../../runtime/types";
+import { bagOf, entry, num } from "../../__tests__/helpers";
 import { compare } from "../equality";
-import type { CPAObject, ArrayValue, BooleanValue } from "../../runtime/types";
 
-const apple = (qty: number): CPAObject => ({
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "manzana",
-  quantity: new Fraction(qty),
-  attributes: {},
-});
+function equal(a: Parameters<typeof compare>[0][number], b: Parameters<typeof compare>[0][number]): boolean {
+  return (compare([a, b]) as BooleanValue).value;
+}
 
-const pear = (qty: number): CPAObject => ({
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "pera",
-  quantity: new Fraction(qty),
-  attributes: {},
-});
-
-const grape = (qty: number): CPAObject => ({
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "uva",
-  quantity: new Fraction(qty),
-  attributes: {},
-});
-
-describe("compare (unit)", () => {
-  describe("element vs element", () => {
-    test("equal elements return true", () => {
-      const result = compare([apple(3), apple(3)]) as BooleanValue;
-      expect(result.kind).toBe("booleano");
-      expect(result.value).toBe(true);
-    });
-
-    test("different quantities return false", () => {
-      const result = compare([apple(2), apple(3)]) as BooleanValue;
-      expect(result.value).toBe(false);
-    });
-
-    test("different types return false", () => {
-      const result = compare([apple(1), pear(1)]) as BooleanValue;
-      expect(result.value).toBe(false);
+describe("compare — §3.2.3", () => {
+  test("devuelve un booleano", () => {
+    expect(compare([bagOf(entry("manzana", 3)), bagOf(entry("manzana", 3))])).toEqual({
+      kind: "booleano",
+      value: true,
     });
   });
 
-  describe("array vs element", () => {
-    test("array of 3 apples equals 3 apples", () => {
-      const arr: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(1), apple(1), apple(1)],
-      };
-      const result = compare([arr, apple(3)]) as BooleanValue;
-      expect(result.value).toBe(true);
-    });
-
-    test("array with different total returns false", () => {
-      const arr: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(1), apple(1)],
-      };
-      const result = compare([arr, apple(3)]) as BooleanValue;
-      expect(result.value).toBe(false);
-    });
+  test("ignora la agrupación", () => {
+    expect(equal(bagOf(entry("manzana", 3)), bagOf(entry("manzana", 1), entry("manzana", 2)))).toBe(
+      true
+    );
   });
 
-  describe("array vs array", () => {
-    test("[apple, apple, apple] equals [apple, 2 apples]", () => {
-      const arr1: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(1), apple(1), apple(1)],
-      };
-      const arr2: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(1), apple(2)],
-      };
-      const result = compare([arr1, arr2]) as BooleanValue;
-      expect(result.value).toBe(true);
-    });
-
-    test("[2 apples, 2 pears, grape] equals [apple, apple, pear, pear, grape]", () => {
-      const arr1: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(2), pear(2), grape(1)],
-      };
-      const arr2: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(1), apple(1), pear(1), pear(1), grape(1)],
-      };
-      const result = compare([arr1, arr2]) as BooleanValue;
-      expect(result.value).toBe(true);
-    });
-
-    test("[apple, pear] does not equal [apple, apple]", () => {
-      const arr1: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(1), pear(1)],
-      };
-      const arr2: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(1), apple(1)],
-      };
-      const result = compare([arr1, arr2]) as BooleanValue;
-      expect(result.value).toBe(false);
-    });
-
-    test("[2 apples] does not equal [3 apples]", () => {
-      const arr1: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(2)],
-      };
-      const arr2: ArrayValue = {
-        kind: "arreglo",
-        elements: [apple(3)],
-      };
-      const result = compare([arr1, arr2]) as BooleanValue;
-      expect(result.value).toBe(false);
-    });
-
-    test("empty arrays are equal", () => {
-      const arr1: ArrayValue = { kind: "arreglo", elements: [] };
-      const arr2: ArrayValue = { kind: "arreglo", elements: [] };
-      const result = compare([arr1, arr2]) as BooleanValue;
-      expect(result.value).toBe(true);
-    });
+  test("ignora el orden", () => {
+    expect(
+      equal(
+        bagOf(entry("manzana", 2), entry("pera", 1)),
+        bagOf(entry("pera", 1), entry("manzana", 2))
+      )
+    ).toBe(true);
   });
 
-  describe("error handling", () => {
-    test("throws error with wrong arity", () => {
-      expect(() => compare([apple(1)])).toThrow();
-      expect(() => compare([apple(1), apple(1), apple(1)])).toThrow();
-    });
+  test("ignora las cantidades 0", () => {
+    expect(equal(bagOf(entry("manzana", 0)), NULO)).toBe(true);
+    expect(equal(bagOf(entry("manzana", 0), entry("pera", 0)), NULO)).toBe(true);
+    expect(equal(bagOf(entry("manzana", 2), entry("manzana", -2)), NULO)).toBe(true);
+  });
+
+  test("distingue vectores distintos", () => {
+    expect(equal(bagOf(entry("manzana", 2)), bagOf(entry("manzana", 3)))).toBe(false);
+    expect(equal(bagOf(entry("manzana", 2)), bagOf(entry("pera", 2)))).toBe(false);
+  });
+
+  test("los atributos son parte de la identidad", () => {
+    expect(
+      equal(bagOf(entry("cubo", 1, { color: "rojo" })), bagOf(entry("cubo", 1, { color: "azul" })))
+    ).toBe(false);
+  });
+
+  test("compara racionales de forma exacta", () => {
+    expect(equal(num("1/3"), num("1/3"))).toBe(true);
+    expect(equal(num("1/3"), num("0.333"))).toBe(false);
   });
 });

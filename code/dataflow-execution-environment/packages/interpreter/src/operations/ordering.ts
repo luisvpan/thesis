@@ -1,177 +1,81 @@
-import type { RuntimeValue, CPAObject, CriteriaObject } from "../runtime/types";
-import { isCriteriaComplete } from "../runtime/types";
-import { separationPass } from "./utils";
+// Orden — LANGUAGE_SPEC.md §3.3.1
+//
+// Una sola operación: la dirección vive en el criterio, no en el nombre.
 
-/**
- * Get a property value from a CPAObject for comparison.
- * Supports: category, type, subtype, quantity, or any attribute key.
- */
-function getItemProperty(item: CPAObject, prop: string): string {
-  switch (prop) {
-    case "category":
-      return item.category;
-    case "type":
-      return item.type;
-    case "subtype":
-      return item.subtype;
-    case "quantity":
-      return item.quantity.valueOf().toString();
-    default:
-      return item.attributes[prop] ?? "";
-  }
+import { aggregate, bag } from "../runtime/bag";
+import { QUANTITY_PROPERTY, entryText, isDirection, isSequence } from "../runtime/criteria";
+import * as rational from "../runtime/rational";
+import type { Criterion, CriterionValue, Entry, RuntimeValue } from "../runtime/types";
+import { bagAt, criteriaFrom } from "./helpers";
+
+interface SortKey {
+  property: string;
+  value: CriterionValue;
 }
 
-/**
- * Compare two items by a property with optional sequence values.
- * If sequenceValues is an array, items are ordered by their position in the sequence.
- * Otherwise, alphabetical comparison is used.
- */
-function compareByProperty(
-  a: CPAObject,
-  b: CPAObject,
-  prop: string,
-  sequenceValues: string | string[] | undefined,
-  isAscending: boolean
-): number {
-  const valA = getItemProperty(a, prop);
-  const valB = getItemProperty(b, prop);
+/** Las claves de ordenamiento, de izquierda a derecha: la primera manda. */
+function sortKeys(criteria: Criterion[]): SortKey[] {
+  const keys: SortKey[] = [];
 
-  let cmp: number;
-
-  if (Array.isArray(sequenceValues)) {
-    // Order by position in sequence (items not in sequence go to the end)
-    const indexA = sequenceValues.indexOf(valA);
-    const indexB = sequenceValues.indexOf(valB);
-    const posA = indexA === -1 ? Infinity : indexA;
-    const posB = indexB === -1 ? Infinity : indexB;
-    cmp = posA - posB;
-  } else {
-    // Alphabetical comparison
-    cmp = valA.localeCompare(valB);
-  }
-
-  return isAscending ? cmp : -cmp;
-}
-
-/**
- * Compiled criteria from RTL compilation.
- */
-interface CompiledCriteria {
-  properties: string[];
-  values: Record<string, string | string[]>;
-}
-
-/**
- * Compile criteria right-to-left.
- * Later criteria have priority - their properties come first in the sort order,
- * and their values override earlier values for the same property.
- */
-function compileCriteriaRTL(criteriaElements: (CriteriaObject | CriteriaObject[])[]): CompiledCriteria {
-  // 1. Unroll criteria groups into flat timeline
-  const timeline: CriteriaObject[] = [];
-  for (const element of criteriaElements) {
-    if (Array.isArray(element)) {
-      timeline.push(...element);
-    } else {
-      timeline.push(element);
+  for (const criterion of criteria) {
+    for (const property of criterion.properties) {
+      keys.push({ property, value: criterion.values[property]! });
     }
   }
 
-  // 2. Filter out incomplete criteria (those without values for their properties)
-  const completeCriteria = timeline.filter(isCriteriaComplete);
+  return keys;
+}
 
-  // 3. Compile right-to-left
-  const finalProperties: string[] = [];
-  const finalValues: Record<string, string | string[]> = {};
+/** La posición de una entrada en una secuencia explícita; los ausentes, al final. */
+function sequencePosition(entry: Entry, property: string, sequence: string[]): number {
+  const text = entryText(entry, property);
+  const position = text === undefined ? -1 : sequence.indexOf(text);
+  return position === -1 ? Number.POSITIVE_INFINITY : position;
+}
 
-  for (let i = completeCriteria.length - 1; i >= 0; i--) {
-    const current = completeCriteria[i];
-
-    // Add properties in order (RTL means later ones come first)
-    for (const prop of current.properties) {
-      if (!finalProperties.includes(prop)) {
-        finalProperties.push(prop);
-      }
-    }
-
-    // Merge values (RTL means later values have priority)
-    for (const [key, value] of Object.entries(current.values)) {
-      if (!(key in finalValues)) {
-        finalValues[key] = value;
-      }
-    }
+function compareByKey(a: Entry, b: Entry, key: SortKey): number {
+  if (isSequence(key.value)) {
+    // La secuencia *es* el orden, así que no lleva dirección. Dos entradas fuera
+    // de la secuencia empatan (y las desempata el orden previo).
+    const left = sequencePosition(a, key.property, key.value);
+    const right = sequencePosition(b, key.property, key.value);
+    if (left === right) return 0;
+    return left < right ? -1 : 1;
   }
 
-  return { properties: finalProperties, values: finalValues };
+  if (!isDirection(key.value)) return 0;
+
+  const comparison =
+    key.property === QUANTITY_PROPERTY
+      ? // La cantidad se compara numéricamente, no como texto.
+        rational.compare(a.quantity, b.quantity)
+      : (entryText(a, key.property) ?? "").localeCompare(entryText(b, key.property) ?? "");
+
+  return key.value === "asc" ? comparison : -comparison;
 }
 
 /**
- * Wrap result: single element returns unwrapped, multiple as array.
- */
-function wrapResult(items: CPAObject[]): RuntimeValue {
-  if (items.length === 1) {
-    return items[0];
-  }
-  return { kind: "arreglo", elements: items };
-}
-
-/**
- * Execute ordering with criteria-based sorting.
+ * `order(bolsa, criterio, …) → bolsa`.
  *
- * Behavior:
- * - No criteria: returns data in original order (no-op)
- * - With criteria: stable sort by criteria, ties maintain original order
+ * Descarta los criterios incompletos; si no queda ninguno, devuelve la bolsa sin
+ * cambios. Agrupa por identidad y ordena aplicando los criterios en orden: el
+ * primero manda y los siguientes desempatan. El orden es estable.
  */
-function executeOrder(args: RuntimeValue[], isAscending: boolean): RuntimeValue {
-  const { dataItems, criteriaElements } = separationPass(args);
+export function order(args: RuntimeValue[]): RuntimeValue {
+  const value = bagAt(args, 0, "order");
+  const keys = sortKeys(criteriaFrom(args, 1));
 
-  // If no data items, return empty array
-  if (dataItems.length === 0) {
-    return { kind: "arreglo", elements: [] };
-  }
+  if (keys.length === 0) return value;
 
-  // No criteria = no-op (return in original order)
-  if (criteriaElements.length === 0) {
-    return wrapResult(dataItems);
-  }
+  const decorated = aggregate(value.entries).map((entry, index) => ({ entry, index }));
 
-  // Compile criteria RTL
-  const compiled = compileCriteriaRTL(criteriaElements);
-
-  // No complete criteria after compilation = no-op
-  if (compiled.properties.length === 0) {
-    return wrapResult(dataItems);
-  }
-
-  // Stable sort: use original index as tiebreaker
-  const indexed = dataItems.map((item, i) => ({ item, i }));
-  indexed.sort((a, b) => {
-    for (const prop of compiled.properties) {
-      const cmp = compareByProperty(a.item, b.item, prop, compiled.values[prop], isAscending);
-      if (cmp !== 0) return cmp;
+  decorated.sort((a, b) => {
+    for (const key of keys) {
+      const comparison = compareByKey(a.entry, b.entry, key);
+      if (comparison !== 0) return comparison;
     }
-    // Tie: maintain original order
-    return a.i - b.i;
+    return a.index - b.index;
   });
 
-  const sorted = indexed.map(x => x.item);
-  return wrapResult(sorted);
-}
-
-/**
- * Order ascending operation:
- * - No criteria: returns data in original order (no-op)
- * - With criteria: stable sort ascending by criteria properties
- */
-export function orderAsc(args: RuntimeValue[]): RuntimeValue {
-  return executeOrder(args, true);
-}
-
-/**
- * Order descending operation:
- * - No criteria: returns data in original order (no-op)
- * - With criteria: stable sort descending by criteria properties
- */
-export function orderDesc(args: RuntimeValue[]): RuntimeValue {
-  return executeOrder(args, false);
+  return bag(decorated.map(({ entry }) => entry));
 }

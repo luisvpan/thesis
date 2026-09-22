@@ -1,5 +1,7 @@
 export * from "./types";
+export * from "./bag";
+export * from "./criteria";
 export * from "./errors";
 export * from "./rational";
 export * from "./graph";
-export { LazyEvaluator, type EvaluationResult } from "./evaluator";
+export { LazyEvaluator, evaluateLiteral, type EvaluationResult } from "./evaluator";

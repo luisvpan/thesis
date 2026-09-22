@@ -1,4 +1,10 @@
-// AST Node Types for the Dataflow Language v4.0.0
+// AST del lenguaje dataflow — LANGUAGE_SPEC.md §5
+//
+// Es la salida del parser: la forma textual ya estructurada, con las cantidades
+// todavía como texto. La API pública (`program.ts`) es su equivalente con
+// `Fraction` y con la bolsa como único valor de datos.
+
+export type { Operation } from "../operations/signatures";
 
 export type Program = {
   type: "Program";
@@ -10,126 +16,109 @@ export type Statement = SourceStatement | TransformStatement | SinkStatement;
 export type SourceStatement = {
   type: "SourceStatement";
   identifier: string;
-  value?: Literal;  // Optional for incomplete programs
+  /** Opcional: un `source` sin valor evalúa a `nulo` (§2.5). */
+  value?: Literal;
 };
 
 export type TransformStatement = {
   type: "TransformStatement";
   identifier: string;
-  operation?: Operation;  // Optional for incomplete programs
+  /**
+   * El nombre de la operación, tal cual se escribió: `operation ::= identifier`
+   * (§5.1). Que pertenezca al conjunto reconocido lo verifica la pasada
+   * estática (§4.2.4). Opcional: un `transform` sin operación evalúa a `nulo`.
+   */
+  operation?: string;
   arguments: Expression[];
 };
 
 export type SinkStatement = {
   type: "SinkStatement";
   identifier: string;
-  sourceIdentifier?: string;  // Optional for incomplete programs
+  /** Opcional: un `sink` sin fuente evalúa a `nulo` (§2.5). */
+  sourceIdentifier?: string;
 };
 
-// Operations
-export type Operation =
-  | "sum"
-  | "substract"
-  | "multiply"
-  | "divide"
-  | "less_than"
-  | "greater_than"
-  | "order_asc"
-  | "order_desc"
-  | "filter"
-  | "first"
-  | "last"
-  | "count"
-  | "compare";
+// =============================================================================
+// Expresiones — `argument_list ::= identifier ("," identifier)*` (§5.1)
+// =============================================================================
 
-// Expressions
-export type Expression = IdentifierExpression | Literal;
+export type Expression = IdentifierExpression;
 
 export type IdentifierExpression = {
   type: "Identifier";
   name: string;
 };
 
-// Literals
-// Note: NumberLiteral is not a top-level literal in grammar v3.1.0
-// Numbers are only allowed inside object kvPairs (for quantity values)
-export type Literal = ObjectLiteral | StringLiteral | ArrayLiteral | GroupLiteral;
+// =============================================================================
+// Literales
+// =============================================================================
 
-export type StringLiteral = {
-  type: "StringLiteral";
-  value: string;  // Without quotes
-};
+export type Literal = ObjectLiteral | GroupLiteral;
 
-export type ArrayLiteral = {
-  type: "ArrayLiteral";
-  elements: Expression[];
-};
+/** `object_literal ::= data_literal | criteria_literal` */
+export type ObjectLiteral = DataLiteral | CriterionLiteral;
 
-// Group Literal - array containing only ObjectLiterals (CPA objects)
+/** `group ::= "[" (data_literal ("," data_literal)*)? "]"` — solo datos (§4.1). */
 export type GroupLiteral = {
   type: "GroupLiteral";
-  elements: ObjectLiteral[];
+  elements: DataLiteral[];
 };
 
-// =============================================================================
-// Object Literals (v4.0.0) - Discriminated by sourceType
-// =============================================================================
-
-// ObjectLiteral is a union of DataLiteral and CriteriaLiteral
-export type ObjectLiteral = DataLiteral | CriteriaLiteral;
-
-// Data Literal - CPA objects with category, type, subtype, quantity
 export type DataLiteral = {
   type: "DataLiteral";
   sourceType: "data";
   category: string;
-  objType: string;      // "type" in source, renamed to avoid keyword
+  /** `"type"` en el texto; renombrado para no chocar con el discriminante. */
+  objType: string;
   subtype: string;
   quantity: string;
   attributes: ObjectProperty[];
 };
 
-// Criteria Literal - For filter and order operations
-export type CriteriaLiteral = {
-  type: "CriteriaLiteral";
-  sourceType: "criteria";
-  properties: string[];       // Properties to match/order by
-  values: ObjectProperty[];   // Key-value pairs for criteria values
+/** `criteria_kind ::= '"filter"' | '"order"'` (§5.1). */
+export type CriterionSubtype = "filter" | "order";
+
+export type CriterionLiteral = {
+  type: "CriterionLiteral";
+  sourceType: CriterionSubtype;
+  properties: string[];
+  values: ObjectProperty[];
 };
 
-// Key-value pair (value can be string or array of strings)
 export type ObjectProperty = {
   key: string;
   value: string | string[];
 };
 
-// Helper type for CPA categories (for type checking)
 export type CPACategory = "abstracto" | "pictorico" | "concreto";
 
-// =============================================================================
-// Type Guards for ObjectLiteral
-// =============================================================================
+export const CPA_CATEGORIES: readonly CPACategory[] = ["abstracto", "pictorico", "concreto"];
 
-export function isDataLiteral(obj: ObjectLiteral): obj is DataLiteral {
-  return obj.type === "DataLiteral";
-}
-
-export function isCriteriaLiteral(obj: ObjectLiteral): obj is CriteriaLiteral {
-  return obj.type === "CriteriaLiteral";
+export function isCPACategory(value: string): value is CPACategory {
+  return (CPA_CATEGORIES as readonly string[]).includes(value);
 }
 
 // =============================================================================
-// Helper Functions
+// Type guards
 // =============================================================================
 
-// Helper function to get a property value from a DataLiteral's attributes
+export function isDataLiteral(literal: Literal): literal is DataLiteral {
+  return literal.type === "DataLiteral";
+}
+
+export function isCriterionLiteral(literal: Literal): literal is CriterionLiteral {
+  return literal.type === "CriterionLiteral";
+}
+
+export function isGroupLiteral(literal: Literal): literal is GroupLiteral {
+  return literal.type === "GroupLiteral";
+}
+
 export function getDataAttribute(obj: DataLiteral, key: string): string | string[] | undefined {
-  const prop = obj.attributes.find(p => p.key === key);
-  return prop?.value;
+  return obj.attributes.find((property) => property.key === key)?.value;
 }
 
-// Helper function to get a value from a CriteriaLiteral
-export function getCriteriaValue(obj: CriteriaLiteral, key: string): string | string[] | undefined {
-  const prop = obj.values.find(p => p.key === key);
-  return prop?.value;
+export function getCriterionValue(obj: CriterionLiteral, key: string): string | string[] | undefined {
+  return obj.values.find((property) => property.key === key)?.value;
 }

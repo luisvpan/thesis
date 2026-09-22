@@ -1,35 +1,27 @@
+// Parser — LANGUAGE_SPEC.md §5.1
+//
+// Las tres declaraciones tienen su valor opcional: un nodo a medio escribir es
+// sintácticamente válido y evalúa a `nulo` (§2.5).
+
 import { CstParser } from "chevrotain";
 import {
   allTokens,
-  Source,
-  Transform,
-  Sink,
-  Sum,
-  Substract,
-  Multiply,
-  Divide,
-  LessThan,
-  GreaterThan,
-  OrderAsc,
-  OrderDesc,
-  Filter,
-  First,
-  Last,
-  Count,
-  Compare,
-  Equals,
-  Semicolon,
-  Comma,
   Colon,
-  LParen,
-  RParen,
-  LBrace,
-  RBrace,
-  LBracket,
-  RBracket,
-  StringLiteral,
-  NumberLiteral,
+  Comma,
+  Equals,
   Identifier,
+  LBrace,
+  LBracket,
+  LParen,
+  NumberLiteral,
+  RBrace,
+  RBracket,
+  RParen,
+  Semicolon,
+  Sink,
+  Source,
+  StringLiteral,
+  Transform,
 } from "./lexer";
 
 export class DataflowParser extends CstParser {
@@ -45,7 +37,7 @@ export class DataflowParser extends CstParser {
     });
   });
 
-  // statement ::= source_statement | transform_statement | sink_statement
+  // statement ::= source_decl | transform_decl | sink_decl
   private statement = this.RULE("statement", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.sourceStatement) },
@@ -54,7 +46,7 @@ export class DataflowParser extends CstParser {
     ]);
   });
 
-  // source_statement ::= "source" identifier "=" literal? ";"
+  // source_decl ::= "source" identifier "=" (object_literal | group)? ";"
   private sourceStatement = this.RULE("sourceStatement", () => {
     this.CONSUME(Source);
     this.CONSUME(Identifier);
@@ -65,13 +57,14 @@ export class DataflowParser extends CstParser {
     this.CONSUME(Semicolon);
   });
 
-  // transform_statement ::= "transform" identifier "=" (operation "(" argument_list? ")")? ";"
+  // transform_decl ::= "transform" identifier "=" (operation "(" argument_list? ")")? ";"
+  // operation ::= identifier
   private transformStatement = this.RULE("transformStatement", () => {
     this.CONSUME(Transform);
     this.CONSUME(Identifier);
     this.CONSUME(Equals);
     this.OPTION(() => {
-      this.SUBRULE(this.operation);
+      this.CONSUME2(Identifier);
       this.CONSUME(LParen);
       this.OPTION2(() => {
         this.SUBRULE(this.argumentList);
@@ -81,7 +74,7 @@ export class DataflowParser extends CstParser {
     this.CONSUME(Semicolon);
   });
 
-  // sink_statement ::= "sink" identifier "=" identifier? ";"
+  // sink_decl ::= "sink" identifier "=" identifier? ";"
   private sinkStatement = this.RULE("sinkStatement", () => {
     this.CONSUME(Sink);
     this.CONSUME1(Identifier);
@@ -92,67 +85,29 @@ export class DataflowParser extends CstParser {
     this.CONSUME(Semicolon);
   });
 
-  // operation ::= "sum" | "substract" | "multiply" | "divide" | "less_than" | "greater_than" | "order_asc" | "order_desc" | "filter" | "first" | "last" | "count" | "compare"
-  private operation = this.RULE("operation", () => {
-    this.OR([
-      { ALT: () => this.CONSUME(Sum) },
-      { ALT: () => this.CONSUME(Substract) },
-      { ALT: () => this.CONSUME(Multiply) },
-      { ALT: () => this.CONSUME(Divide) },
-      { ALT: () => this.CONSUME(LessThan) },
-      { ALT: () => this.CONSUME(GreaterThan) },
-      { ALT: () => this.CONSUME(OrderAsc) },
-      { ALT: () => this.CONSUME(OrderDesc) },
-      { ALT: () => this.CONSUME(Filter) },
-      { ALT: () => this.CONSUME(First) },
-      { ALT: () => this.CONSUME(Last) },
-      { ALT: () => this.CONSUME(Count) },
-      { ALT: () => this.CONSUME(Compare) },
-    ]);
-  });
-
   // argument_list ::= identifier ("," identifier)*
+  // Los argumentos son solo identificadores: todo dato o criterio se declara en
+  // su propio `source` y se referencia por nombre.
   private argumentList = this.RULE("argumentList", () => {
-    this.SUBRULE(this.expression);
+    this.CONSUME(Identifier);
     this.MANY(() => {
       this.CONSUME(Comma);
-      this.SUBRULE2(this.expression);
+      this.CONSUME2(Identifier);
     });
   });
 
-  // expression ::= identifier | literal
-  private expression = this.RULE("expression", () => {
-    this.OR([
-      { ALT: () => this.CONSUME(Identifier) },
-      { ALT: () => this.SUBRULE(this.literal) },
-    ]);
-  });
-
-  // literal ::= object_literal | group | array_literal | string_literal
-  // Note: NumberLiteral is only allowed inside object kvPairs (for quantity values)
-  // Note: group must come before arrayLiteral to prioritize object-only arrays
+  // object_literal | group
   private literal = this.RULE("literal", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.objectLiteral) },
-      {
-        GATE: () => this.isGroupAhead(),
-        ALT: () => this.SUBRULE(this.group),
-      },
-      { ALT: () => this.SUBRULE(this.arrayLiteral) },
-      { ALT: () => this.CONSUME(StringLiteral) },
+      { ALT: () => this.SUBRULE(this.group) },
     ]);
   });
 
-  // Helper to check if we're looking at a group (array of objects only)
-  private isGroupAhead(): boolean {
-    // Look ahead: [ followed by { or ]
-    const tokens = this.LA(1);
-    if (tokens.tokenType !== LBracket) return false;
-    const next = this.LA(2);
-    return next.tokenType === LBrace || next.tokenType === RBracket;
-  }
-
-  // group ::= "[" (object_literal ("," object_literal)*)? "]"
+  // group ::= "[" (data_literal ("," data_literal)*)? "]"
+  // La homogeneidad (solo datos) la comprueba el visitor: el parser acepta
+  // cualquier object_literal y el criterio dentro de un grupo es un error de
+  // sintaxis reportado con posición (§4.1).
   private group = this.RULE("group", () => {
     this.CONSUME(LBracket);
     this.OPTION(() => {
@@ -165,21 +120,7 @@ export class DataflowParser extends CstParser {
     this.CONSUME(RBracket);
   });
 
-  // array_literal ::= "[" (expression ("," expression)*)? "]"
-  private arrayLiteral = this.RULE("arrayLiteral", () => {
-    this.CONSUME(LBracket);
-    this.OPTION(() => {
-      this.SUBRULE(this.expression);
-      this.MANY(() => {
-        this.CONSUME(Comma);
-        this.SUBRULE2(this.expression);
-      });
-    });
-    this.CONSUME(RBracket);
-  });
-
   // object_literal ::= "{" (kv_pair ("," kv_pair)*)? "}"
-  // Flexible: parses any key-value pairs where key is string and value is string or number
   private objectLiteral = this.RULE("objectLiteral", () => {
     this.CONSUME(LBrace);
     this.OPTION(() => {
@@ -198,13 +139,13 @@ export class DataflowParser extends CstParser {
     this.CONSUME(StringLiteral);
     this.CONSUME(Colon);
     this.OR([
-      { ALT: () => this.SUBRULE(this.kvArrayLiteral) },  // ["a", "b", "c"]
+      { ALT: () => this.SUBRULE(this.kvArrayLiteral) },
       { ALT: () => this.CONSUME2(StringLiteral) },
       { ALT: () => this.CONSUME(NumberLiteral) },
     ]);
   });
 
-  // array_literal for kv_value ::= "[" (string_literal ("," string_literal)*)? "]"
+  // array_literal ::= "[" (string_literal ("," string_literal)*)? "]"
   private kvArrayLiteral = this.RULE("kvArrayLiteral", () => {
     this.CONSUME(LBracket);
     this.OPTION(() => {

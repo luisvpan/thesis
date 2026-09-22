@@ -33,11 +33,15 @@ export function useManualExecuteProgram(
         setEvalResults(new Map(result.results));
         setNodes((nds) => mergeProgramOutputsFromResults(nds, result.results!));
 
+        // Solo un número o un total agrupado se pueden mostrar como cifra; un
+        // booleano o un arreglo de números, no.
         const firstResult = result.results.values().next().value;
         const numericResult =
           firstResult?.kind === "number"
             ? firstResult.value
-            : firstResult?.result.totalAmount;
+            : firstResult?.kind === "semantic"
+              ? firstResult.result.totalAmount
+              : null;
         setExecutionResult(numericResult ?? null);
         setExecutionError(null);
 

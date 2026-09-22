@@ -60,7 +60,7 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   /** For exact fraction display of pure rationals (e.g., "13/4" instead of 3.25) */
   numerator?: string;
   denominator?: string;
-  /** Ordered array of abstract numbers (e.g., from order_asc/order_desc) */
+  /** Ordered array of abstract numbers (e.g., from order) */
   numberArrayValues?: NumberArrayDisplayItem[];
   /** Resultado booleano (p. ej. compare). */
   booleanValue?: boolean;
@@ -174,7 +174,7 @@ function buildSinkBody(
     };
   }
 
-  // Ordered array of abstract numbers (e.g., from order_asc/order_desc)
+  // Ordered array of abstract numbers (e.g., from order)
   if (data.numberArrayValues && data.numberArrayValues.length > 0) {
     const formatted = data.numberArrayValues.map((item) =>
       formatFractionText(item.numerator, item.denominator)

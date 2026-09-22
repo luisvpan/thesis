@@ -1,99 +1,84 @@
-// Serialization utilities for converting between dataflow strings and Program objects
+// Conversión entre el texto de un programa y su forma estructurada.
+//
+// `serialize` lee texto y devuelve un `Program` (cantidades ya en `Fraction`);
+// `deserialize` hace el camino inverso. La forma JSON-esca del texto es la
+// gramática de §5.
 
 import Fraction from "fraction.js";
+import type {
+  CriterionLiteral as ASTCriterionLiteral,
+  DataLiteral as ASTDataLiteral,
+  Literal as ASTLiteral,
+  Program as ASTProgram,
+  Statement as ASTStatement,
+} from "./analyzer/ast";
 import { DataflowLexer } from "./analyzer/lexer";
 import { parserInstance } from "./analyzer/parser";
 import { visitorInstance } from "./analyzer/visitor";
+import { DataflowError, isDataflowError, syntaxError } from "./runtime/errors";
 import type {
-  Program as ASTProgram,
-  Statement as ASTStatement,
-  Literal as ASTLiteral,
-  Expression as ASTExpression,
-  ObjectLiteral as ASTObjectLiteral,
-  DataLiteral as ASTDataLiteral,
-  CriteriaLiteral as ASTCriteriaLiteral,
-} from "./analyzer/ast";
-import type {
+  BagLiteral,
+  CriterionLiteral,
+  Literal,
   Program,
   Statement,
-  Literal,
-  Expression,
-  ObjectLiteral,
-  DataLiteral,
-  CriteriaLiteral,
 } from "./program";
-
-export interface ParseError {
-  message: string;
-  line?: number;
-  column?: number;
-}
+import { ImmutableBag } from "./bag-builder";
+import type { CPACategory, Entry } from "./runtime/types";
 
 export interface SerializeResult {
   program: Program | null;
-  errors: ParseError[];
+  errors: DataflowError[];
 }
 
-/**
- * Serializes a dataflow string into a Program object.
- * Converts string numeric values to Fraction for exact arithmetic.
- */
-export function serialize(input: string): SerializeResult {
-  const errors: ParseError[] = [];
-
-  // Tokenize
+/** Texto → AST. Los errores de sintaxis se devuelven con su posición (§4.1). */
+export function parseToAst(input: string): { ast: ASTProgram | null; errors: DataflowError[] } {
   const lexResult = DataflowLexer.tokenize(input);
 
   if (lexResult.errors.length > 0) {
-    for (const error of lexResult.errors) {
-      errors.push({
-        message: error.message,
-        line: error.line,
-        column: error.column,
-      });
-    }
-    return { program: null, errors };
+    return {
+      ast: null,
+      errors: lexResult.errors.map((error) =>
+        syntaxError(error.message, { line: error.line, column: error.column })
+      ),
+    };
   }
 
-  // Parse
   parserInstance.input = lexResult.tokens;
   const cst = parserInstance.program();
 
   if (parserInstance.errors.length > 0) {
-    for (const error of parserInstance.errors) {
-      errors.push({
-        message: error.message,
-        line: error.token.startLine,
-        column: error.token.startColumn,
-      });
-    }
-    return { program: null, errors };
+    return {
+      ast: null,
+      errors: parserInstance.errors.map((error) =>
+        syntaxError(error.message, { line: error.token.startLine, column: error.token.startColumn })
+      ),
+    };
   }
 
-  // Build AST
-  const ast = visitorInstance.visit(cst) as ASTProgram;
-
-  // Convert AST to Program (string -> Fraction)
-  const program = astToProgram(ast);
-
-  return { program, errors: [] };
+  try {
+    return { ast: visitorInstance.visit(cst) as ASTProgram, errors: [] };
+  } catch (err) {
+    if (isDataflowError(err)) return { ast: null, errors: [err] };
+    throw err;
+  }
 }
 
-/**
- * Deserializes a Program object into a dataflow string.
- * Converts Fraction numeric values back to string representation.
- */
+export function serialize(input: string): SerializeResult {
+  const { ast, errors } = parseToAst(input);
+  return ast ? { program: astToProgram(ast), errors: [] } : { program: null, errors };
+}
+
 export function deserialize(program: Program): string {
   return program.statements.map(deserializeStatement).join("\n");
 }
 
-// Internal conversion: AST (string) -> Program (Fraction)
+// =============================================================================
+// AST (texto) → Program (Fraction)
+// =============================================================================
 
-function astToProgram(ast: ASTProgram): Program {
-  return {
-    type: "Program",
-    statements: ast.statements.map(astStatementToStatement),
-  };
+export function astToProgram(ast: ASTProgram): Program {
+  return { type: "Program", statements: ast.statements.map(astStatementToStatement) };
 }
 
 function astStatementToStatement(stmt: ASTStatement): Statement {
@@ -102,174 +87,134 @@ function astStatementToStatement(stmt: ASTStatement): Statement {
       return {
         type: "SourceStatement",
         identifier: stmt.identifier,
-        value: stmt.value ? astLiteralToLiteral(stmt.value) : { type: "OtherLiteral", value: "" },
+        value: stmt.value ? astLiteralToLiteral(stmt.value) : undefined,
       };
     case "TransformStatement":
       return {
         type: "TransformStatement",
         identifier: stmt.identifier,
-        operation: stmt.operation ?? "sum",
-        arguments: stmt.arguments.map(astExpressionToExpression),
+        operation: stmt.operation,
+        arguments: stmt.arguments.map((argument) => ({ type: "Identifier", name: argument.name })),
       };
     case "SinkStatement":
       return {
         type: "SinkStatement",
         identifier: stmt.identifier,
-        sourceIdentifier: stmt.sourceIdentifier ?? "",
+        sourceIdentifier: stmt.sourceIdentifier,
       };
   }
 }
 
-function astExpressionToExpression(expr: ASTExpression): Expression {
-  if (expr.type === "Identifier") {
-    return { type: "Identifier", name: expr.name };
-  }
-  return astLiteralToLiteral(expr);
-}
-
-function astLiteralToLiteral(lit: ASTLiteral): Literal {
-  switch (lit.type) {
-    case "ArrayLiteral":
-      return {
-        type: "ArrayLiteral",
-        elements: lit.elements.map(astExpressionToExpression),
-      };
-    case "StringLiteral":
-      return {
-        type: "OtherLiteral",
-        value: lit.value,
-      };
+function astLiteralToLiteral(literal: ASTLiteral): Literal {
+  switch (literal.type) {
     case "DataLiteral":
-    case "CriteriaLiteral":
-      return astObjectLiteralToObjectLiteral(lit);
+      return ImmutableBag.of([astDataLiteralToEntry(literal)]);
     case "GroupLiteral":
-      return {
-        type: "ArrayLiteral",
-        elements: lit.elements.map(astObjectLiteralToObjectLiteral),
-      };
+      return ImmutableBag.of(literal.elements.map(astDataLiteralToEntry));
+    case "CriterionLiteral":
+      return astCriterionLiteralToCriterionLiteral(literal);
   }
 }
 
-function astObjectLiteralToObjectLiteral(obj: ASTObjectLiteral): ObjectLiteral {
-  if (obj.type === "DataLiteral") {
-    return astDataLiteralToDataLiteral(obj);
-  }
-  return astCriteriaLiteralToCriteriaLiteral(obj);
-}
-
-function astDataLiteralToDataLiteral(obj: ASTDataLiteral): DataLiteral {
-  // Convert attributes array to Record
+function astDataLiteralToEntry(literal: ASTDataLiteral): Entry {
   const attributes: Record<string, string> = {};
-  for (const prop of obj.attributes) {
-    // For DataLiteral attributes, value should be string (not array)
-    attributes[prop.key] = Array.isArray(prop.value) ? prop.value[0] : prop.value;
+  for (const property of literal.attributes) {
+    attributes[property.key] = Array.isArray(property.value) ? property.value[0] : property.value;
   }
 
   return {
-    type: "DataLiteral",
-    sourceType: "data",
-    category: obj.category,
-    objType: obj.objType,
-    subtype: obj.subtype,
-    quantity: new Fraction(obj.quantity || "1"),
+    category: literal.category as CPACategory,
+    type: literal.objType,
+    subtype: literal.subtype,
     attributes,
+    quantity: new Fraction(literal.quantity || "1"),
   };
 }
 
-function astCriteriaLiteralToCriteriaLiteral(obj: ASTCriteriaLiteral): CriteriaLiteral {
-  // Convert values array to Record
+function astCriterionLiteralToCriterionLiteral(literal: ASTCriterionLiteral): CriterionLiteral {
   const values: Record<string, string | string[]> = {};
-  for (const prop of obj.values) {
-    values[prop.key] = prop.value;
+  for (const property of literal.values) {
+    values[property.key] = property.value;
   }
 
   return {
-    type: "CriteriaLiteral",
-    sourceType: "criteria",
-    properties: [...obj.properties],
+    type: "CriterionLiteral",
+    sourceType: literal.sourceType,
+    properties: [...literal.properties],
     values,
   };
 }
 
-// Internal conversion: Program (Fraction) -> dataflow string
+// =============================================================================
+// Program (Fraction) → texto
+// =============================================================================
 
+// Un nodo incompleto se escribe sin valor (`source x = ;`), que es como lo
+// admite la gramática y como vuelve a leerse (§2.5).
 function deserializeStatement(stmt: Statement): string {
   switch (stmt.type) {
     case "SourceStatement":
-      return `source ${stmt.identifier} = ${deserializeLiteral(stmt.value)};`;
-    case "TransformStatement":
-      return `transform ${stmt.identifier} = ${stmt.operation}(${stmt.arguments.map(deserializeExpression).join(", ")});`;
-    case "SinkStatement":
-      return `sink ${stmt.identifier} = ${stmt.sourceIdentifier};`;
-  }
-}
-
-function deserializeExpression(expr: Expression): string {
-  if (expr.type === "Identifier") {
-    return expr.name;
-  }
-  return deserializeLiteral(expr);
-}
-
-function deserializeLiteral(lit: Literal): string {
-  switch (lit.type) {
-    case "ArrayLiteral":
-      return `[${lit.elements.map(deserializeExpression).join(", ")}]`;
-    case "OtherLiteral":
-      return `"${lit.value}"`;
-    case "DataLiteral":
-      return deserializeDataLiteral(lit);
-    case "CriteriaLiteral":
-      return deserializeCriteriaLiteral(lit);
-  }
-}
-
-function deserializeDataLiteral(obj: DataLiteral): string {
-  const props: string[] = [
-    `"sourceType": "data"`,
-    `"category": "${obj.category}"`,
-    `"type": "${obj.objType}"`,
-    `"subtype": "${obj.subtype}"`,
-    `"quantity": ${fractionToString(obj.quantity)}`,
-  ];
-
-  // Add attributes
-  for (const [key, value] of Object.entries(obj.attributes)) {
-    props.push(`"${key}": "${value}"`);
-  }
-
-  return `{${props.join(", ")}}`;
-}
-
-function deserializeCriteriaLiteral(obj: CriteriaLiteral): string {
-  const props: string[] = [
-    `"sourceType": "criteria"`,
-    `"properties": [${obj.properties.map(p => `"${p}"`).join(", ")}]`,
-  ];
-
-  // Add values
-  for (const [key, value] of Object.entries(obj.values)) {
-    if (Array.isArray(value)) {
-      props.push(`"${key}": [${value.map(v => `"${v}"`).join(", ")}]`);
-    } else {
-      props.push(`"${key}": "${value}"`);
+      return `source ${stmt.identifier} = ${stmt.value ? deserializeLiteral(stmt.value) : ""};`;
+    case "TransformStatement": {
+      if (!stmt.operation) return `transform ${stmt.identifier} = ;`;
+      const args = stmt.arguments.map((argument) => argument.name).join(", ");
+      return `transform ${stmt.identifier} = ${stmt.operation}(${args});`;
     }
+    case "SinkStatement":
+      return `sink ${stmt.identifier} = ${stmt.sourceIdentifier ?? ""};`;
+  }
+}
+
+function deserializeLiteral(literal: Literal): string {
+  return literal.type === "CriterionLiteral"
+    ? deserializeCriterion(literal)
+    : deserializeBag(literal);
+}
+
+/** Una entrada se escribe como objeto; 0 o varias, como grupo. */
+function deserializeBag(literal: BagLiteral): string {
+  if (literal.entries.length === 1) return deserializeEntry(literal.entries[0]);
+  return `[${literal.entries.map(deserializeEntry).join(", ")}]`;
+}
+
+function deserializeEntry(entry: Entry): string {
+  const properties = [
+    `"sourceType": "data"`,
+    `"category": "${entry.category}"`,
+    `"type": "${entry.type}"`,
+    `"subtype": "${entry.subtype}"`,
+    `"quantity": ${fractionToString(entry.quantity)}`,
+  ];
+
+  for (const [key, value] of Object.entries(entry.attributes)) {
+    properties.push(`"${key}": "${value}"`);
   }
 
-  return `{${props.join(", ")}}`;
+  return `{${properties.join(", ")}}`;
+}
+
+function deserializeCriterion(criterion: CriterionLiteral): string {
+  const properties = [
+    `"sourceType": "${criterion.sourceType}"`,
+    `"properties": [${criterion.properties.map((property) => `"${property}"`).join(", ")}]`,
+  ];
+
+  for (const [key, value] of Object.entries(criterion.values)) {
+    properties.push(
+      Array.isArray(value)
+        ? `"${key}": [${value.map((item) => `"${item}"`).join(", ")}]`
+        : `"${key}": "${String(value)}"`
+    );
+  }
+
+  return `{${properties.join(", ")}}`;
 }
 
 /**
- * Converts a Fraction to its string representation.
- * Uses decimal format for whole numbers and simple decimals,
- * or the original string representation for exact fractions.
+ * Un racional se escribe como entero o como fracción `n/d`: nunca como decimal,
+ * que perdería exactitud (`1/3` no es `0.333…`).
  */
-function fractionToString(f: Fraction): string {
-  // If it's a whole number, return as integer
-  if (f.d === 1n) {
-    return f.n.toString();
-  }
-
-  // Otherwise return as decimal
-  return f.valueOf().toString();
+function fractionToString(value: Fraction): string {
+  const sign = value.s < 0n ? "-" : "";
+  return value.d === 1n ? `${sign}${value.n}` : `${sign}${value.n}/${value.d}`;
 }

@@ -1,69 +1,35 @@
-import { describe, test, expect } from "bun:test";
-import Fraction from "fraction.js";
+// §3.6.1 — agregación
+
+import { describe, expect, test } from "bun:test";
+import { asNumber } from "../../runtime/bag";
+import type { Bag } from "../../runtime/types";
+import { bagOf, entry, only, pairs } from "../../__tests__/helpers";
 import { count } from "../aggregation";
-import type { CPAObject, ArrayValue } from "../../runtime/types";
+import { multiply } from "../arithmetic";
 
-const apple = (qty: number): CPAObject => ({
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "manzana",
-  quantity: new Fraction(qty),
-  attributes: {},
-});
-
-const pear = (qty: number): CPAObject => ({
-  kind: "cpa",
-  category: "concreto",
-  type: "comida",
-  subtype: "pera",
-  quantity: new Fraction(qty),
-  attributes: {},
-});
-
-describe("count (unit)", () => {
-  test("counts single element", () => {
-    const result = count([apple(3)]) as CPAObject;
-    expect(result.kind).toBe("cpa");
-    expect(result.category).toBe("abstracto");
-    expect(result.quantity.equals(new Fraction(3))).toBe(true);
+describe("count — §3.6.1", () => {
+  test("suma las cantidades sin importar la identidad", () => {
+    expect(only(count([bagOf(entry("manzana", 2), entry("pera", 3))]))).toBe("5");
   });
 
-  test("counts multiple elements", () => {
-    const result = count([apple(1), pear(2)]) as CPAObject;
-    expect(result.quantity.equals(new Fraction(3))).toBe(true);
+  test("no agrupa: totaliza también los repetidos", () => {
+    expect(only(count([bagOf(entry("manzana", 2), entry("manzana", 4))]))).toBe("6");
   });
 
-  test("counts array of elements", () => {
-    const arr: ArrayValue = {
-      kind: "arreglo",
-      elements: [apple(1), apple(2), pear(3)],
-    };
-    const result = count([arr]) as CPAObject;
-    expect(result.quantity.equals(new Fraction(6))).toBe(true);
+  test("suma racionales de forma exacta", () => {
+    expect(only(count([bagOf(entry("manzana", "1/2"), entry("manzana", "1/2"))]))).toBe("1");
   });
 
-  test("counts nested arrays", () => {
-    const inner: ArrayValue = {
-      kind: "arreglo",
-      elements: [apple(1), apple(1)],
-    };
-    const outer: ArrayValue = {
-      kind: "arreglo",
-      elements: [inner, pear(3)],
-    };
-    const result = count([outer]) as CPAObject;
-    expect(result.quantity.equals(new Fraction(5))).toBe(true);
+  test("sobre nulo da el número 0", () => {
+    const result = count([bagOf()]) as Bag;
+    expect(only(result)).toBe("0");
+    expect(result.entries[0].category).toBe("abstracto");
+    expect(result.entries[0].type).toBe("numero");
   });
 
-  test("returns zero for empty input", () => {
-    const result = count([]) as CPAObject;
-    expect(result.quantity.equals(new Fraction(0))).toBe(true);
-  });
-
-  test("returns zero for empty array", () => {
-    const arr: ArrayValue = { kind: "arreglo", elements: [] };
-    const result = count([arr]) as CPAObject;
-    expect(result.quantity.equals(new Fraction(0))).toBe(true);
+  test("el resultado es un número y puede alimentar a multiply", () => {
+    const total = count([bagOf(entry("manzana", 2), entry("pera", 3))]) as Bag;
+    expect(asNumber(total)?.valueOf()).toBe(5);
+    expect(pairs(multiply([bagOf(entry("uva", 2)), total]))).toEqual(["uva:10"]);
   });
 });

@@ -119,6 +119,10 @@ export function doAxisAlignedBoundsOverlap(
   );
 }
 
+/**
+ * Solo cartas fuente: la zona declara una bolsa con las entradas de sus cartas,
+ * y un operador no declara datos que se puedan poner dentro de ella.
+ */
 export function shouldIncludeNodeInArrayZone(
   n: DataflowNode,
   openId: string,
@@ -126,8 +130,7 @@ export function shouldIncludeNodeInArrayZone(
   bounds: AxisAlignedBounds
 ): boolean {
   if (n.id === openId || n.id === closeId) return false;
-  if (n.type === "programOutput") return false;
-  if (n.type !== "source" && n.type !== "operator") return false;
+  if (n.type !== "source") return false;
   return doAxisAlignedBoundsOverlap(getFlowCardBounds(n), bounds);
 }
 
@@ -145,8 +148,8 @@ function isNodeTypeThatHidesHandlesWhenInArrayZone(n: DataflowNode): boolean {
  * `zone-in`. Unión si hay varias zonas.
  */
 /**
- * Nodos fuente/operador dentro de la zona de un `arrayClose`, en el mismo orden
- * que `flowToProgram` (izquierda→derecha, luego arriba→abajo).
+ * Cartas fuente dentro de la zona de un `arrayClose`, en el mismo orden que
+ * `flowToProgram` (izquierda→derecha, luego arriba→abajo).
  */
 export function getOrderedArrayZoneMembers(
   closeNodeId: string,
