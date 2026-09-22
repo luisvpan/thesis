@@ -44,6 +44,22 @@ export type OperatorFlowNodeData = VisionNodeMeta &
 
 export type OperatorFlowNode = Node<OperatorFlowNodeData, 'operator'>;
 
+const ORDER_PROPERTY_LABEL: Record<string, string> = {
+  quantity: 'cantidad',
+  size: 'tamaño',
+  color: 'color',
+  subtype: 'forma',
+};
+
+/**
+ * Hay cuatro cartas de orden repartidas en dos operadores: lo que las distingue
+ * es por qué propiedad ordenan, así que el rótulo lo dice.
+ */
+function operatorTitle(operator: OperatorType, criterio?: { property: string }): string {
+  if (!criterio) return operator;
+  return `${operator} · ${ORDER_PROPERTY_LABEL[criterio.property] ?? criterio.property}`;
+}
+
 function operatorSymbol(operator: OperatorType): string {
   if (operator === 'adicion') return '+';
   if (operator === 'sustraccion') return '-';
@@ -220,7 +236,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
       ) : null}
       <FlowNodeCard
         family="transformation"
-        title={operator}
+        title={operatorTitle(operator, d.criterio)}
         content={<span className="text-xs font-black text-slate-100">{operatorSymbol(operator)}</span>}
         subtitle={
           d.booleanValue !== undefined
