@@ -26,6 +26,7 @@ import { DECK_SECTION_ITEMS } from '@/data/yoloDeckCatalog';
 import { ModelDeckSidebar } from '@/components/ModelDeckSidebar';
 import { ArrowLeft, Eye, Volume2 } from 'lucide-react';
 import { useDataflowPage } from './useDataflowPage';
+import { MusicPlayerModal } from '@/components/MusicPlayerModal';
 
 const nodeTypes: NodeTypes = {
   source: SourceFlowNode,
@@ -40,14 +41,6 @@ const edgeTypes: EdgeTypes = {
   default: DataflowEdge,
   arrayZoneEdge: ArrayZoneEdge,
 };
-
-function speakTitle(title: string, subtitle: string) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(`${title}. ${subtitle}`);
-  u.lang = 'es-ES';
-  window.speechSynthesis.speak(u);
-}
 
 export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef, showSocketFab = true, rootClassName = 'h-screen w-screen flex flex-col bg-slate-900', extraAsideSections, enableDeveloperTools = false }: {
   isSandbox: boolean;
@@ -77,6 +70,7 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
     clearSelection();
   }, [viewMode, clearSelection]);
   const [showOperatorResults, setShowOperatorResults] = useState(false);
+  const [showMusicModal, setShowMusicModal] = useState(false);
 
   const spawnAllCards = () => {
     Object.values(DECK_SECTION_ITEMS).flat().forEach((yoloClass) => {
@@ -92,7 +86,7 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
           to={backTo}
           className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors shrink-0 text-2xl font-semibold px-5 py-4 rounded-xl hover:bg-slate-700/50"
         >
-          <ArrowLeft className="w-10 h-10 shrink-0" />
+          <ArrowLeft className="w-10 h-10 shrink-0 pointer-events-none" />
           Volver
         </Link>
 
@@ -105,30 +99,30 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+        <div className="flex gap-6 items-center shrink-0 flex-wrap justify-end">
           <button
             type="button"
             onClick={() => setShowOperatorResults((v) => !v)}
             aria-pressed={showOperatorResults}
-            className={`flex items-center gap-3 px-5 py-4 min-h-[4.5rem] rounded-xl text-lg font-semibold transition-colors border-2 shadow-lg ${
+            className={`flex items-center gap-3 px-5 py-4 min-h-[6rem] rounded-xl text-2xl font-semibold transition-colors border-2 shadow-lg ${
               showOperatorResults ? 'bg-teal-800 hover:bg-teal-700 border-teal-500 text-teal-50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-100'
             }`}
           >
-            <Eye className="w-9 h-9 shrink-0" strokeWidth={2} aria-hidden />
+            <Eye className="w-9 h-9 shrink-0 pointer-events-none" strokeWidth={2} aria-hidden />
             Mostrar resultados
           </button>
-          <div className="mr-4 inline-flex overflow-hidden rounded-xl border-2 border-slate-600 shadow-lg" role="group" aria-label="Modo de visualización">
-            <button type="button" onClick={() => setViewMode('concreto')} className={`px-4 py-4 text-xl font-black ${viewMode === 'concreto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>C</button>
-            <button type="button" onClick={() => setViewMode('pictorico')} className={`border-l-2 border-slate-600 px-4 py-4 text-xl font-black ${viewMode === 'pictorico' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>P</button>
-            <button type="button" onClick={() => setViewMode('abstracto')} className={`border-l-2 border-slate-600 px-4 py-4 text-xl font-black ${viewMode === 'abstracto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>A</button>
+          <div className=" flex overflow-hidden rounded-xl border-2 border-slate-600 shadow-lg" role="group" aria-label="Modo de visualización">
+            <button type="button" onClick={() => setViewMode('concreto')} className={`p-5 flex min-h-[6rem] min-w-[6rem] items-center justify-center text-4xl font-black ${viewMode === 'concreto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>C</button>
+            <button type="button" onClick={() => setViewMode('pictorico')} className={`p-5 flex min-h-[6rem] min-w-[6rem] items-center justify-center border-l-2 border-slate-600 text-4xl font-black ${viewMode === 'pictorico' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>P</button>
+            <button type="button" onClick={() => setViewMode('abstracto')} className={`p-5 flex min-h-[6rem] min-w-[6rem] items-center justify-center border-l-2 border-slate-600 text-4xl font-black ${viewMode === 'abstracto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>A</button>
           </div>
           <button
             type="button"
-            onClick={() => speakTitle(levelConfig.title, levelConfig.subtitle)}
-            className="p-5 min-h-[4.5rem] min-w-[4.5rem] rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-colors border-2 border-slate-600 flex items-center justify-center shadow-lg"
-            title="Reproducir título"
+            onClick={() => setShowMusicModal(true)}
+            className="p-5 min-h-[6rem] min-w-[6rem] rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-colors border-2 border-slate-600 flex items-center justify-center shadow-lg"
+            title="Música"
           >
-            <Volume2 className="w-12 h-12" strokeWidth={2} />
+            <Volume2 className="w-12 h-12 pointer-events-none" strokeWidth={2} />
           </button>
         </div>
       </header>
@@ -223,6 +217,7 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
       </div>
 
       {showSocketFab ? <SocketInfoFab /> : null}
+      {showMusicModal ? <MusicPlayerModal onClose={() => setShowMusicModal(false)} /> : null}
     </div>
   );
 }

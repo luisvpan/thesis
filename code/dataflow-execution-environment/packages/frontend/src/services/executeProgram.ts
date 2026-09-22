@@ -17,6 +17,7 @@ import { dataForProgramHash } from "@/contexts/node/visionNodeMeta";
 import type { Edge } from "@xyflow/react";
 import { logger } from "@/lib/logger";
 import { jsonReplacer, toJsonSafe } from "@/utils/jsonReplacer";
+import { describeCountedNoun, nounForm } from "@/utils/spanishGrammar";
 
 // ============================================================================
 // Tipos para agrupación jerárquica de resultados
@@ -81,6 +82,7 @@ export type SingleCpaObjectMeta = {
   type: string;      // "cap", "stick", "montessori", "forma", "comida"
   subtype: string;
   color: string;
+  size?: string;
   quantity: number;
   // For exact fraction display (e.g., "13/4" instead of 3.25)
   numerator: string;
@@ -240,6 +242,9 @@ function runtimeOutputToResultValue(output: RuntimeValue): ResultValue | undefin
         type: entry.type,
         subtype: entry.subtype,
         color: entry.attributes.color ?? "",
+        // El tamaño lo usa el encabezado del resultado único para concordar el
+        // adjetivo ("1 estrella grande").
+        size: entry.attributes.size,
         quantity: Number(entry.quantity.valueOf()),
         ...extractFraction(entry.quantity),
       },
@@ -270,33 +275,28 @@ function getFractionString(entry: Entry): string {
 }
 
 // ============================================================================
-// Pluralización simple para español
+// Sustantivos y concordancia de género/número para español
 // ============================================================================
+// (diccionario centralizado en @/utils/spanishGrammar, compartido con el
+// encabezado del resultado único y el texto para TTS)
 
-const PLURALS: Record<string, string> = {
-  forma: "formas",
-  comida: "comidas",
-  montessori: "montessoris",
-  cap: "tapas",
-  stick: "paletas",
-  numero: "números",
-  cuadrado: "cuadrados",
-  circulo: "círculos",
-  triangulo: "triángulos",
-  rectangulo: "rectángulos",
-  rombo: "rombos",
-  estrella: "estrellas",
-  trapecio: "trapecios",
-  uva: "uvas",
-  pera: "peras",
-  manzana: "manzanas",
-  hamburguesa: "hamburguesas",
-  pasta: "pastas",
+// Tipos cuyo sustantivo real no es el `subtype` que entrega el intérprete,
+// sino el propio `type`: para montessori/cap/stick el "subtipo" agrupado es
+// en realidad el color (no hay un subtipo semántico distinto del color).
+const NOUN_BY_TYPE: Record<string, string> = {
+  montessori: "montessori",
+  cap: "cap",
+  stick: "stick",
 };
 
-function pluralize(word: string, count: number): string {
-  if (count === 1) return word;
-  return PLURALS[word] ?? word + "s";
+/** Clave de sustantivo real para un grupo de subtipo dado su tipo padre. */
+function subtypeNounKey(typeKey: string, subtype: string): string {
+  return NOUN_BY_TYPE[typeKey] ?? subtype;
+}
+
+/** Para montessori/cap/stick, la clave de agrupación ES el color. */
+function impliedColor(typeKey: string, subtype: string): string | undefined {
+  return NOUN_BY_TYPE[typeKey] ? subtype : undefined;
 }
 
 // ============================================================================
@@ -450,10 +450,9 @@ function generateDescription(
 }
 
 function describeType(type: TypeGroup): string {
-  const typeName = pluralize(type.type, type.totalAmount);
-
   // Número abstracto: mostrar el valor
   if (type.type === "numero") {
+    const typeName = nounForm("numero", type.totalAmount);
     // Usar fracción exacta si tenemos un solo número, sino usar decimal
     const val = type.rationalFractionStr || String(type.rationalValue ?? type.totalAmount);
     // Un solo número: "el número X"
@@ -464,6 +463,8 @@ function describeType(type: TypeGroup): string {
     return `${type.totalAmount} ${typeName} (suma: ${val})`;
   }
 
+  const typeName = nounForm(type.type, type.totalAmount);
+
   // Sin subtipos (no debería pasar para forma/comida, pero por seguridad)
   if (type.subtypes.length === 0) {
     return `${type.totalAmount} ${typeName}`;
@@ -471,38 +472,50 @@ function describeType(type: TypeGroup): string {
 
   // Un solo subtipo
   if (type.subtypes.length === 1) {
-    return describeSubtype(type.subtypes[0]);
+    return describeSubtype(type.type, type.subtypes[0]);
   }
 
   // Múltiples subtipos
-  const subDescs = type.subtypes.map((s) => describeSubtype(s));
+  const subDescs = type.subtypes.map((s) => describeSubtype(type.type, s));
   return `${type.totalAmount} ${typeName}: ${subDescs.join(", ")}`;
 }
 
-function describeSubtype(sub: SubtypeGroup): string {
-  const name = pluralize(sub.subtype, sub.totalAmount);
+function describeSubtype(typeKey: string, sub: SubtypeGroup): string {
+  const nounKey = subtypeNounKey(typeKey, sub.subtype);
+  const groupColor = impliedColor(typeKey, sub.subtype);
 
   // Un solo item: incluir tamaño/color, usar fracción exacta
   if (sub.items.length === 1) {
     const item = sub.items[0];
-    const amt = item.fractionStr;
-    if (item.size) return `${amt} ${name} ${item.size}`;
-    if (item.color) return `${amt} ${name} ${item.color}`;
-    return `${amt} ${name}`;
+    const phrase = describeCountedNoun(nounKey, sub.totalAmount, {
+      size: item.size,
+      color: item.color ?? groupColor,
+    });
+    return `${item.fractionStr} ${phrase}`;
   }
 
-  // Múltiples items del mismo subtipo con diferentes atributos
-  if (sub.items.some((i) => i.size)) {
-    const sizeDescs = sub.items.map((i) => `${i.fractionStr} ${i.size}`);
-    return `${sub.totalAmount} ${name} (${sizeDescs.join(", ")})`;
+  // Múltiples items del mismo subtipo: si comparten tamaño/color, resumir;
+  // si no, detallar cada uno por separado.
+  const sizes = new Set(sub.items.map((i) => i.size ?? ""));
+  const colors = new Set(sub.items.map((i) => i.color ?? groupColor ?? ""));
+  const uniform = sizes.size <= 1 && colors.size <= 1;
+
+  if (uniform) {
+    const [item] = sub.items;
+    return describeCountedNoun(nounKey, sub.totalAmount, {
+      size: item?.size,
+      color: item?.color ?? groupColor,
+    });
   }
 
-  if (sub.items.some((i) => i.color)) {
-    const colorDescs = sub.items.map((i) => `${i.fractionStr} ${i.color}`);
-    return `${sub.totalAmount} ${name} (${colorDescs.join(", ")})`;
-  }
-
-  return `${sub.totalAmount} ${name}`;
+  const itemDescs = sub.items.map((item) => {
+    const phrase = describeCountedNoun(nounKey, item.amount, {
+      size: item.size,
+      color: item.color ?? groupColor,
+    });
+    return `${item.fractionStr} ${phrase}`;
+  });
+  return `${sub.totalAmount} ${nounForm(nounKey, sub.totalAmount)} (${itemDescs.join(", ")})`;
 }
 
 // ============================================================================

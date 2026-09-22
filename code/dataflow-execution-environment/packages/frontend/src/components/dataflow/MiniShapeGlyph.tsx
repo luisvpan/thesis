@@ -19,12 +19,21 @@ const MINI_SHAPE_PX: Record<ShapeSize, number> = {
   grande: 30,
 };
 
+/** Tamaños ampliados para la carta de resultado (no el token que viaja por las conexiones). */
+const MINI_SHAPE_PX_LARGE: Record<ShapeSize, number> = {
+  pequeño: 22,
+  mediano: 36,
+  grande: 48,
+};
+
 type MiniShapeGlyphProps = {
   shape: ShapeType;
   size: ShapeSize;
   color: ShapeColor;
   /** Pictórico: forma teal genérica manteniendo silueta y escala. */
   generic?: boolean;
+  /** Tamaño ampliado para la carta de resultado; por defecto, tamaño del token que viaja por las conexiones. */
+  large?: boolean;
 };
 
 export function MiniShapeGlyph({
@@ -32,10 +41,11 @@ export function MiniShapeGlyph({
   size,
   color,
   generic = false,
+  large = false,
 }: MiniShapeGlyphProps) {
   const uid = useId().replace(/:/g, '');
   const hex = generic ? GENERIC_COLOR : (SHAPE_COLORS[color] ?? '#94a3b8');
-  const px = MINI_SHAPE_PX[size];
+  const px = (large ? MINI_SHAPE_PX_LARGE : MINI_SHAPE_PX)[size];
   const gradId = `mini-${shape}-${uid}`;
 
   const gradient = (

@@ -1,7 +1,7 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
-import { Hourglass, Volume2 } from 'lucide-react';
+import { Hourglass, Loader2, Volume2 } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
@@ -25,8 +25,9 @@ import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import { FLOW_NODE_INTERACTIVE_CLASS } from './flowNodeChrome';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
-import { speakSpanish } from '@/utils/speakSpanish';
+import { speakSpanish, type SpeechStatus } from '@/utils/speakSpanish';
 import { buildSinkResultSpeechText } from '@/utils/sinkResultSpeech';
+import { describeCountedNoun } from '@/utils/spanishGrammar';
 // Imports for result rendering heuristics - available for future use
 import {
   computeMultiplicationGrouping,
@@ -69,6 +70,9 @@ export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutp
 
 const MAX_GLYPHS = 36;
 
+/** Estilo compartido para las respuestas en texto (descripción semántica y encabezado de objeto único). */
+const ANSWER_TEXT_CLASS = 'text-2xl font-black leading-snug tracking-wide text-teal-100';
+
 function SingleCpaGlyphStrip({
   meta,
   viewMode,
@@ -76,7 +80,7 @@ function SingleCpaGlyphStrip({
   meta: SingleCpaObjectMeta;
   viewMode: ResultViewMode;
 }) {
-  const { type, subtype, color, quantity } = meta;
+  const { type, subtype, color, size, quantity } = meta;
   const count = Math.min(quantity, MAX_GLYPHS);
   const overflow = quantity - count;
   const generic = viewMode === 'pictorico';
@@ -85,17 +89,24 @@ function SingleCpaGlyphStrip({
     const key = `glyph-${i}`;
     switch (type) {
       case 'montessori':
-        return <MontessoriCubeGlyph key={key} color={color} generic={generic} />;
+        return <MontessoriCubeGlyph key={key} color={color} generic={generic} large />;
       case 'cap':
-        return <CapGlyph key={key} color={color} generic={generic} />;
+        return <CapGlyph key={key} color={color} generic={generic} large />;
       case 'stick':
-        return <StickGlyph key={key} color={color} generic={generic} />;
+        return <StickGlyph key={key} color={color} generic={generic} large />;
       case 'forma':
         return (
-          <FormaGlyph key={key} subtype={subtype} color={color} generic={generic} />
+          <FormaGlyph
+            key={key}
+            subtype={subtype}
+            color={color}
+            size={size}
+            generic={generic}
+            large
+          />
         );
       case 'comida':
-        return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} />;
+        return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} large />;
       default:
         return null;
     }
@@ -107,7 +118,7 @@ function SingleCpaGlyphStrip({
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <div className="flex flex-wrap justify-start gap-1.5">{glyphs}</div>
+      <div className="flex flex-wrap justify-start gap-2.5">{glyphs}</div>
       {overflow > 0 ? (
         <span className="text-[10px] font-medium text-slate-400">+{overflow} más</span>
       ) : null}
@@ -115,23 +126,24 @@ function SingleCpaGlyphStrip({
   );
 }
 
+// Para montessori/cap/stick el "subtipo" real de la frase es el tipo (cubo,
+// tapa, paleta); el color de meta.color ya coincide con el usado internamente.
+const NOUN_KEY_BY_TYPE: Record<string, string> = {
+  montessori: 'montessori',
+  cap: 'cap',
+  stick: 'stick',
+};
+
 function singleCpaHeaderText(meta: SingleCpaObjectMeta, viewMode: ResultViewMode): string {
   if (viewMode === 'abstracto') {
     return String(meta.quantity);
   }
-  const colorPart = meta.color ? meta.color.toUpperCase() : '';
-  const typeLabels: Record<string, string> = {
-    montessori: 'cubos',
-    cap: 'tapas',
-    stick: 'paletas',
-    forma: meta.subtype,
-    comida: meta.subtype,
-  };
-  const label = typeLabels[meta.type] ?? meta.type;
-  if (colorPart) {
-    return `${meta.quantity} ${label} ${colorPart}`.trim();
-  }
-  return `${meta.quantity} ${label}`.trim();
+  const nounKey = NOUN_KEY_BY_TYPE[meta.type] ?? meta.subtype;
+  const phrase = describeCountedNoun(nounKey, meta.quantity, {
+    size: meta.size,
+    color: meta.color,
+  });
+  return `${meta.quantity} ${phrase}`.trim();
 }
 
 type SinkBodyParts = {
@@ -183,24 +195,26 @@ function buildSinkBody(
       const den = data.denominator ?? meta.denominator ?? '1';
       return {
         headerRight: (
-          <span className="text-3xl font-black tabular-nums text-white">
+          <span className="text-6xl font-black tabular-nums text-white">
             {formatFraction(num, den)}
           </span>
         ),
       };
     }
     return {
-      headerRight: singleCpaHeaderText(meta, viewMode),
+      headerRight: (
+        <span className={ANSWER_TEXT_CLASS}>{singleCpaHeaderText(meta, viewMode)}</span>
+      ),
       resultVisual: <SingleCpaGlyphStrip meta={meta} viewMode={viewMode} />,
     };
   }
 
   if (data.description) {
     return {
-      headerRight: data.description,
+      headerRight: <span className={ANSWER_TEXT_CLASS}>{data.description}</span>,
       resultVisual:
         data.visualStrip && data.visualStrip.length > 0 ? (
-          <ResultArrayVisual items={data.visualStrip} align="start" />
+          <ResultArrayVisual items={data.visualStrip} align="start" large />
         ) : undefined,
     };
   }
@@ -266,10 +280,44 @@ export function ProgramOutputFlowNode({
   const { headerRight, resultVisual } = buildSinkBody(data, executionError, viewMode);
   const trackId = readTrackId(data);
   const speechText = buildSinkResultSpeechText(data, executionError, viewMode);
+  const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle');
+  const isSpeechBusy = speechStatus === 'loading' || speechStatus === 'speaking';
+
+  const speechButton = (
+    <button
+      type="button"
+      disabled={!speechText || isSpeechBusy}
+      onClick={() => {
+        if (speechText) void speakSpanish(speechText, setSpeechStatus);
+      }}
+      className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} w-24 h-24 relative z-30 flex shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-teal-600 bg-teal-800 px-2 py-2 text-sm font-semibold text-teal-50 shadow transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60`}
+      title={
+        speechText
+          ? speechStatus === 'loading'
+            ? 'Preparando la voz…'
+            : 'Escuchar el resultado'
+          : 'Sin resultado para reproducir'
+      }
+    >
+      {speechStatus === 'loading' ? (
+        <Loader2
+          className="h-12 w-12 shrink-0 animate-spin pointer-events-none"
+          strokeWidth={2}
+          aria-hidden
+        />
+      ) : (
+        <Volume2
+          className={`h-12 w-12 shrink-0 pointer-events-none ${speechStatus === 'speaking' ? 'animate-pulse' : ''}`}
+          strokeWidth={2}
+          aria-hidden
+        />
+      )}
+    </button>
+  );
 
   return (
     <div
-      className={`relative flex w-70 -translate-x-[10%] -translate-y-[40%] flex-col-reverse gap-2 ${shellClass}`}
+      className={`relative flex w-70 -translate-x-[10%] -translate-y-[13%] ${shellClass}`}
     >
       <div className="pointer-events-none relative h-65 w-full">
         <TrackIdBadge trackId={trackId} />
@@ -282,7 +330,11 @@ export function ProgramOutputFlowNode({
           accepts={['any']}
           style={{ transform: 'translateX(-100px) translateY(-150%)' }}
         />
-        <SinkFlowNodeCard headerRight={headerRight} resultVisual={resultVisual} />
+        <SinkFlowNodeCard
+          headerRight={headerRight}
+          resultVisual={resultVisual}
+          actionButton={speechButton}
+        />
         <ClickableHandle
           type="source"
           position={Position.Right}
@@ -293,16 +345,6 @@ export function ProgramOutputFlowNode({
           style={{ transform: 'translateX(100px) translateY(-150%)' }}
         />
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          if (speechText) speakSpanish(speechText);
-        }}
-        className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} w-20 h-20 relative z-30 flex shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-teal-600 bg-teal-800 px-3 py-2 text-sm font-semibold text-teal-50 shadow transition-colors hover:bg-teal-700`}
-        title={speechText ? 'Escuchar el resultado' : 'Sin resultado para reproducir'}
-      >
-        <Volume2 className="h-10 w-10 shrink-0" strokeWidth={2} aria-hidden />
-      </button>
     </div>
   );
 }

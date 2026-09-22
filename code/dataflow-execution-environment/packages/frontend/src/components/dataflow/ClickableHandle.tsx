@@ -133,7 +133,7 @@ export function ClickableHandle({
       type={type}
       position={position}
       id={id}
-      className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} !h-20 !w-20 !border-2 ${shapeClass} ${colorClass} ${cooldownClass} ${shakeClass} ${
+      className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} z-99 !h-20 !w-20 !border-2 ${shapeClass} ${colorClass} ${cooldownClass} ${shakeClass} ${
         hideInArrayZone ? "invisible! pointer-events-none!" : ""
       } ${
         disabled

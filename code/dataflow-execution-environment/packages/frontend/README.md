@@ -1,5 +1,27 @@
 # React + TypeScript + Vite
 
+## Música de fondo
+
+El reproductor arma su lista sola: `src/data/musicPlaylist.ts` hace
+`import.meta.glob('/src/assets/*.{mp3,wav}')`, así que la lista es, literalmente, los
+archivos de audio que haya en `src/assets/`. No hace falta registrar nada a mano.
+
+**Los archivos de audio no están versionados**, a propósito: pesaban 180 MB —148 MB solo
+en cinco WAV sin comprimir— y en git eso no se puede deshacer, porque los objetos quedan
+en el historial aunque después se borren los archivos. Sin ellos el proyecto compila
+igual y el reproductor aparece con la lista vacía.
+
+Para reponerlos, deja los archivos en `src/assets/` teniendo en cuenta que:
+
+- **MP3, no WAV.** Para música de fondo en un navegador la diferencia no se oye y el
+  archivo pesa alrededor de una quinta parte.
+- Si aun así el conjunto se va a decenas de MB, mejor no meterlo en el repo: o Git LFS, o
+  servirlo desde fuera y apuntar `PLAYLIST` a esas URLs.
+- El título de cada pista sale del nombre del archivo, sin extensión y sin el paréntesis
+  final (`Aftertune - Crystals (Original Mix).mp3` → "Aftertune - Crystals").
+
+## Plantilla
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
