@@ -14,6 +14,7 @@ import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dat
 import { isOrderOperatorType, isSingleInputOperatorType, resolveStickColor } from "../types/card-types";
 import { isPictorialColorYoloClass } from "../data/pictorialColors";
 import type { DataflowNode } from "../contexts/node/types";
+import type { OrderCriterio } from "../data/yoloDeckCatalog";
 import { getOrderedArrayZoneMembers } from "./arrayZoneGeometry";
 import {
   resolveNumberSourceId,
@@ -53,6 +54,31 @@ function orderDirection(operator: string): "asc" | "desc" {
 /** Identificador del criterio implícito de un operador de orden. */
 function orderCriterionId(operatorNodeId: string): string {
   return `${operatorNodeId}__criterio`;
+}
+
+/**
+ * El criterio de orden que declara una carta, en sus dos formas: por secuencia
+ * de valores (el tamaño) o por orden natural de la propiedad (la cantidad).
+ *
+ * Una secuencia *es* el orden, así que para el sentido inverso se invierte la
+ * secuencia en vez de pedirle una dirección. Una carta sin criterio —hecha a
+ * mano, o de una sesión anterior— ordena por cantidad, que es lo que hacía
+ * antes de que las cartas lo declararan.
+ */
+function orderCriterionOf(criterio: OrderCriterio | undefined, direction: "asc" | "desc") {
+  const property = criterio?.property ?? "quantity";
+  const sequence = criterio?.sequence;
+
+  return createOrderCriterion({
+    properties: [property],
+    values: {
+      [property]: sequence
+        ? direction === "asc"
+          ? [...sequence]
+          : [...sequence].reverse()
+        : direction,
+    },
+  });
 }
 
 // Normalizar tamaños a formas masculinas (el intérprete solo entiende masculino)
@@ -247,24 +273,11 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
     if (isOrderOperatorType(operator)) {
       // El criterio va en su propio `source` y se referencia por nombre: los
       // argumentos de un transform son solo identificadores.
-      const direction = orderDirection(operator);
       const criterionId = orderCriterionId(node.id);
 
       program = program.source(
         criterionId,
-        data.criterio
-          ? createOrderCriterion({
-              properties: [data.criterio.property],
-              values: {
-                // La secuencia *es* el orden, así que para el sentido inverso
-                // se invierte la secuencia.
-                [data.criterio.property]:
-                  direction === "asc"
-                    ? [...data.criterio.sequence]
-                    : [...data.criterio.sequence].reverse(),
-              },
-            })
-          : createOrderCriterion({ properties: ["quantity"], values: { quantity: direction } })
+        orderCriterionOf(data.criterio, orderDirection(operator))
       );
 
       args.push(criterionId);

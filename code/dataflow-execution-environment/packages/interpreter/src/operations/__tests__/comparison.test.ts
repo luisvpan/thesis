@@ -18,6 +18,11 @@ describe("lessThan — §3.2.1", () => {
     expect(pairs(lessThan([bagOf(entry("manzana", 2), entry("manzana", 3)), num(4)]))).toEqual([]);
   });
 
+  test("pero no agrupa lo abstracto: cada número se compara por separado", () => {
+    const numeros = bagOf(...num(7).entries, ...num(2).entries, ...num(5).entries);
+    expect(pairs(lessThan([numeros, num(4)]))).toEqual(["racional:2"]);
+  });
+
   test("sin coincidencias devuelve nulo", () => {
     expect(pairs(lessThan([bagOf(entry("pera", 5)), num(2)]))).toEqual([]);
   });
@@ -47,6 +52,11 @@ describe("greaterThan — §3.2.2", () => {
     expect(pairs(greaterThan([bagOf(entry("manzana", 2), entry("manzana", 3)), num(4)]))).toEqual([
       "manzana:5",
     ]);
+  });
+
+  test("pero no agrupa lo abstracto", () => {
+    const numeros = bagOf(...num(7).entries, ...num(2).entries, ...num(5).entries);
+    expect(pairs(greaterThan([numeros, num(4)]))).toEqual(["racional:7", "racional:5"]);
   });
 
   test("sin coincidencias devuelve nulo", () => {

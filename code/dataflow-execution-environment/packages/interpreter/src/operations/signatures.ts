@@ -44,7 +44,12 @@ export interface OperationSignature {
   /** `null` = sin tope. */
   maxArity: number | null;
   result: ValueCategory;
-  /** Si agrupa por identidad antes de actuar (§3, convenciones). */
+  /**
+   * Si agrupa por identidad antes de actuar (§3, convenciones). Las que agregan
+   * para ordenar o seleccionar (`order`, `less_than`, `greater_than`) dejan
+   * fuera las entradas abstractas: cada carta de número se ordena o se compara
+   * por separado.
+   */
   aggregates: boolean;
 }
 

@@ -1,7 +1,7 @@
 # Especificación del Lenguaje Dataflow
 
-**Versión:** 0.2.1 (borrador)
-**Fecha:** 2026-09-17
+**Versión:** 0.3.0 (borrador)
+**Fecha:** 2026-09-22
 **Estado:** Documento vivo — se actualiza a medida que la implementación revela casos borde o mejores diseños.
 
 ---
@@ -260,6 +260,7 @@ Convenciones comunes a todas las operaciones (no se repiten en cada ficha):
 - **Ignoran `nulo`**: un argumento `nulo` se trata como ausente.
 - **Conservan el orden** de las entradas; solo la operación de orden lo altera.
 - **Agrupación (bolsa vs vector).** Como una bolsa admite entradas repetidas de la misma identidad, cada operación indica si **agrupa** (colapsa los repetidos por identidad antes de actuar) o trabaja **entrada por entrada**. Las cantidades 0 se conservan siempre en el resultado. Cuando agrupar o no da el mismo vector, la elección es indistinta y la ficha lo señala (se prefiere entrada por entrada).
+- **Las entradas abstractas no se agrupan al ordenar ni al seleccionar.** Las operaciones que agrupan para **ordenar o seleccionar** (`less_than`, `greater_than` y `order`) dejan fuera de esa agrupación las entradas de categoría `abstracto`: cada una se ordena o se compara por separado. La razón es que un número es, casi siempre, una unidad que el usuario colocó para ordenarla o compararla con otras, y colapsar `{ número↦7, número↦2, número↦5 }` en `{ número↦14 }` dejaría sin nada que ordenar justo en el caso más común. Las entradas `concreto` y `pictórico` sí se agrupan, porque ahí los repetidos de una misma identidad son el mismo objeto contado varias veces. La **aritmética** (`sum`, `substract`) agrupa todo, sin excepción: para eso está.
 - La **Firma** indica cuántos argumentos admite cada operación; pasar un número de argumentos que no corresponde es un **error de aridad**.
 - La **Firma** indica el tipo de cada argumento; pasar un argumento de otro tipo (una bolsa donde se espera un criterio, o al revés) es un **error de tipo**.
 
@@ -376,11 +377,11 @@ divide({ manzana↦1 }, { número↦3 })              = { manzana↦1/3 }
 **Pasos** (`less_than(a, k) → valor`):
 
 1. Sea `u` el valor del número `k` (el umbral).
-2. **Agrupar `a` por identidad** (sumar los repetidos), de modo que cada identidad tenga una cantidad total.
+2. **Agrupar `a` por identidad** (sumar los repetidos), de modo que cada identidad tenga una cantidad total. Las entradas **abstractas** no se agrupan: cada una conserva su cantidad.
 3. Conservar las entradas cuya cantidad total sea menor que `u`; descartar las demás.
 4. Devolver la bolsa con las entradas conservadas.
 
-**Nota.** **Agrupa por identidad** antes de comparar, para que el resultado dependa solo del vector: dos bolsas que denotan lo mismo (`{ manzana↦2, manzana↦3 }` y `{ manzana↦5 }`) se comparan igual.
+**Nota.** **Agrupa por identidad** antes de comparar, para que el resultado dependa solo del vector: dos bolsas que denotan lo mismo (`{ manzana↦2, manzana↦3 }` y `{ manzana↦5 }`) se comparan igual. Lo abstracto es la excepción, de modo que `less_than({ número↦7, número↦2, número↦5 }, { número↦4 })` da `{ número↦2 }` y no `nulo`.
 
 **Errores.** Ninguno propio.
 
@@ -401,11 +402,11 @@ less_than({ pera↦5 }, { número↦2 })              = nulo
 **Pasos** (`greater_than(a, k) → valor`):
 
 1. Sea `u` el valor del número `k` (el umbral).
-2. **Agrupar `a` por identidad** (sumar los repetidos).
+2. **Agrupar `a` por identidad** (sumar los repetidos), salvo las entradas **abstractas**, que no se agrupan.
 3. Conservar las entradas cuya cantidad total sea mayor que `u`; descartar las demás.
 4. Devolver la bolsa con las entradas conservadas.
 
-**Nota.** Como `less_than`, **agrupa por identidad** antes de comparar (resultado bien definido sobre el vector).
+**Nota.** Como `less_than`, **agrupa por identidad** antes de comparar (resultado bien definido sobre el vector), con la misma excepción para lo abstracto.
 
 **Errores.** Ninguno propio.
 
@@ -452,11 +453,11 @@ compare({ manzana↦2 }, { manzana↦3 })                  = falso
 **Pasos** (`order(a, criterios…) → valor`):
 
 1. Descartar los criterios incompletos. Si no queda ninguno, devolver `a` sin cambios.
-2. **Agrupar `a` por identidad** (colapsar los repetidos).
+2. **Agrupar `a` por identidad** (colapsar los repetidos), salvo las entradas **abstractas**, que se ordenan una por una.
 3. Ordenar las entradas aplicando los criterios: el **primero** manda y los siguientes desempatan, en orden.
 4. Devolver la bolsa reordenada.
 
-**Nota.** **Agrupa por identidad** antes de ordenar: los repetidos de una misma identidad se combinan, y luego se ordenan las identidades distintas. Un criterio de orden puede usar la **cantidad** como propiedad (a diferencia del criterio de filtro).
+**Nota.** **Agrupa por identidad** antes de ordenar: los repetidos de una misma identidad se combinan, y luego se ordenan las identidades distintas. Lo abstracto queda fuera de esa agrupación, porque si no, ordenar `{ número↦7, número↦2, número↦5 }` devolvería `{ número↦14 }` y no habría nada que ordenar. Un criterio de orden puede usar la **cantidad** como propiedad (a diferencia del criterio de filtro).
 
 **Formas de un criterio de orden:**
 
@@ -475,6 +476,9 @@ order({ manzana↦3, pera↦1, uva↦2 }, criterio(cantidad, asc))
 
 order({ manzana↦3, pera↦1, uva↦2 }, criterio(cantidad, desc))
     = { manzana↦3, uva↦2, pera↦1 }
+
+order({ número↦7, número↦2, número↦5 }, criterio(cantidad, asc))
+    = { número↦2, número↦5, número↦7 }     (lo abstracto no se agrupa)
 
 order({ estrella(grande)↦1, estrella(pequeña)↦1, estrella(mediana)↦1 },
       criterio(tamaño = [pequeña, mediana, grande]))

@@ -3,6 +3,7 @@ import { Interpreter, isBag, type RuntimeValue } from "@dataflow/interpreter";
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "@/contexts/node/types";
 import { flowToProgram, resolveFlowSourceId } from "./flowToProgram";
+import { spawnActionForYoloClass } from "@/data/yoloDeckCatalog";
 
 /** Un resultado numérico: una bolsa de una sola entrada. */
 function numericValue(value: RuntimeValue): number {
@@ -86,6 +87,59 @@ describe("flowToProgram programOutput chain", () => {
 
     expect(numericValue(results.get("output_out1")!)).toBe(1);
     expect(numericValue(results.get("output_out2")!)).toBe(5);
+  });
+});
+
+describe("las cuatro cartas de orden", () => {
+  /** El criterio que emite la carta del mazo con esa clase YOLO. */
+  function criterionOf(yoloClass: string) {
+    const spawn = spawnActionForYoloClass(yoloClass);
+    if (spawn?.kind !== "operator") throw new Error(`${yoloClass} no es un operador`);
+
+    const nodes = [
+      { id: "grp", type: "arrayClose", position: { x: 0, y: 0 }, data: {} },
+      {
+        id: "ord",
+        type: "operator",
+        position: { x: 0, y: 0 },
+        // Lo que guarda el nodo al crear la carta, criterio incluido.
+        data: { operator: spawn.operator, criterio: spawn.criterio },
+      },
+    ] as DataflowNode[];
+    const edges: Edge[] = [
+      { id: "e1", source: "grp", target: "ord", sourceHandle: "out", targetHandle: "a" },
+    ];
+
+    const program = flowToProgram(nodes, edges);
+    const criterion = program.statements.find(
+      (s) => s.type === "SourceStatement" && s.identifier === "ord__criterio"
+    );
+    if (criterion?.type !== "SourceStatement" || criterion.value.type !== "CriterionLiteral") {
+      throw new Error("falta el source del criterio de orden");
+    }
+    return criterion.value.values;
+  }
+
+  test("las del mazo traen su criterio: dos por cantidad y dos por tamaño", () => {
+    expect(criterionOf("ascending")).toEqual({ quantity: "asc" });
+    expect(criterionOf("descending")).toEqual({ quantity: "desc" });
+    expect(criterionOf("smallest_to_largest")).toEqual({
+      size: ["pequeño", "mediano", "grande"],
+    });
+    expect(criterionOf("largest_to_smallest")).toEqual({
+      size: ["grande", "mediano", "pequeño"],
+    });
+  });
+
+  test("ninguna pareja emite lo mismo", () => {
+    const criterios = [
+      "ascending",
+      "descending",
+      "smallest_to_largest",
+      "largest_to_smallest",
+    ].map((carta) => JSON.stringify(criterionOf(carta)));
+
+    expect(new Set(criterios).size).toBe(4);
   });
 });
 

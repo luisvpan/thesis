@@ -58,8 +58,9 @@ function compareByKey(a: Entry, b: Entry, key: SortKey): number {
  * `order(bolsa, criterio, …) → bolsa`.
  *
  * Descarta los criterios incompletos; si no queda ninguno, devuelve la bolsa sin
- * cambios. Agrupa por identidad y ordena aplicando los criterios en orden: el
- * primero manda y los siguientes desempatan. El orden es estable.
+ * cambios. Agrupa por identidad —salvo lo abstracto— y ordena aplicando los
+ * criterios en orden: el primero manda y los siguientes desempatan. El orden es
+ * estable.
  */
 export function order(args: RuntimeValue[]): RuntimeValue {
   const value = bagAt(args, 0, "order");
@@ -67,7 +68,12 @@ export function order(args: RuntimeValue[]): RuntimeValue {
 
   if (keys.length === 0) return value;
 
-  const decorated = aggregate(value.entries).map((entry, index) => ({ entry, index }));
+  // Agrupa por identidad, salvo lo abstracto: cada carta de número es una
+  // entrada que el niño quiere ver ordenada, no un sumando (§3, convenciones).
+  const decorated = aggregate({ entries: value.entries, keep: "abstracto" }).map((entry, index) => ({
+    entry,
+    index,
+  }));
 
   decorated.sort((a, b) => {
     for (const key of keys) {

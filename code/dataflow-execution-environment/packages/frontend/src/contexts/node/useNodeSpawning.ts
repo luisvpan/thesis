@@ -1,5 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import type { OperatorType } from "@/types/card-types";
+import type { OrderCriterio } from "@/data/yoloDeckCatalog";
 import { spawnActionForYoloClass } from "@/data/yoloDeckCatalog";
 import type { DataflowNode } from "./types";
 import { getNodePortsForType } from "./getNodePortsForType";
@@ -43,7 +44,13 @@ export function useNodeSpawning(setNodes: SetNodes, nodesDraggable = false) {
   );
 
   const addOperatorNode = useCallback(
-    (operator: OperatorType, position?: { x: number; y: number }) => {
+    (
+      operator: OperatorType,
+      position?: { x: number; y: number },
+      // Las cartas de orden se distinguen entre sí por su criterio, no por el
+      // operador: sin él, las de tamaño y las de cantidad serían la misma carta.
+      criterio?: OrderCriterio
+    ) => {
       const id = `op${operator}_${Date.now()}`;
       setNodes((nds) => [
         ...nds,
@@ -55,7 +62,7 @@ export function useNodeSpawning(setNodes: SetNodes, nodesDraggable = false) {
               x: 320 + (nds.filter((n) => n.type === "operator").length % 2) * 200,
               y: 120,
             },
-            data: { operator },
+            data: criterio ? { operator, criterio } : { operator },
           },
           nodesDraggable
         ),
@@ -132,7 +139,8 @@ export function useNodeSpawning(setNodes: SetNodes, nodesDraggable = false) {
       const spawn = spawnActionForYoloClass(yoloClass);
       if (!spawn) return;
       if (spawn.kind === "number") return addNumberNode(spawn.value);
-      if (spawn.kind === "operator") return addOperatorNode(spawn.operator);
+      if (spawn.kind === "operator")
+        return addOperatorNode(spawn.operator, undefined, spawn.criterio);
       if (spawn.kind === "resultCard") return addResultCard();
       if (spawn.kind === "arrayOpen") {
         setNodes((nds) => [

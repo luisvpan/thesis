@@ -9,6 +9,7 @@ import type {
 } from "../../components/dataflow";
 import type { DiceZoneFlowNodeData } from "../../components/dataflow/DiceZoneFlowNode";
 import type { OperatorType } from "../../types/card-types";
+import type { OrderCriterio } from "../../data/yoloDeckCatalog";
 import type { HandleKind } from "../../components/dataflow/handle-kinds";
 import type { PortHighlightState } from "../../components/dataflow/connectionRules";
 import type { ResultValue } from "../../services/executeProgram";
@@ -74,7 +75,8 @@ export type NodeContextState = {
   addNumberNode: (value: number, position?: { x: number; y: number }) => void;
   addOperatorNode: (
     operator: OperatorType,
-    position?: { x: number; y: number }
+    position?: { x: number; y: number },
+    criterio?: OrderCriterio
   ) => void;
   addResultAnchorPair: () => void;
   addResultCard: () => void;

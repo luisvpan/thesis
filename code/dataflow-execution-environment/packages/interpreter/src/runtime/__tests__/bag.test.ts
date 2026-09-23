@@ -25,11 +25,46 @@ describe("identidad", () => {
 });
 
 describe("agregación y denotación", () => {
+  const show = (entries: ReturnType<typeof aggregate>) =>
+    entries.map((item) => `${item.subtype}:${item.quantity.toFraction()}`);
+
   test("aggregate colapsa por identidad y conserva los ceros", () => {
-    const entries = aggregate([entry("manzana", 2), entry("pera", 3), entry("manzana", -2)]);
-    expect(entries.map((item) => `${item.subtype}:${item.quantity.toFraction()}`)).toEqual([
-      "manzana:0",
-      "pera:3",
+    const entries = aggregate({
+      entries: [entry("manzana", 2), entry("pera", 3), entry("manzana", -2)],
+    });
+    expect(show(entries)).toEqual(["manzana:0", "pera:3"]);
+  });
+
+  test("cada grupo sale en la posición de su primera aparición", () => {
+    const entries = aggregate({
+      entries: [entry("pera", 1), entry("manzana", 2), entry("pera", 4)],
+    });
+    expect(show(entries)).toEqual(["pera:5", "manzana:2"]);
+  });
+
+  test("`keep` deja esa categoría sin agrupar, en su sitio", () => {
+    const numero = (quantity: number) =>
+      entry("racional", quantity, {}, { category: "abstracto", type: "numero" });
+
+    const entries = aggregate({
+      entries: [numero(7), entry("manzana", 2), numero(2), entry("manzana", 3), numero(5)],
+      keep: "abstracto",
+    });
+
+    expect(show(entries)).toEqual([
+      "racional:7",
+      "manzana:5",
+      "racional:2",
+      "racional:5",
+    ]);
+  });
+
+  test("sin `keep`, lo abstracto se agrupa como todo lo demás", () => {
+    const numero = (quantity: number) =>
+      entry("racional", quantity, {}, { category: "abstracto", type: "numero" });
+
+    expect(show(aggregate({ entries: [numero(7), numero(2), numero(5)] }))).toEqual([
+      "racional:14",
     ]);
   });
 

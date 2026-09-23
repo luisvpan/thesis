@@ -121,7 +121,11 @@ export function deckLabel(yoloClass: string): string {
   return m[yoloClass] ?? yoloClass;
 }
 
+/** Propiedades de identidad, para filtrar; `quantity` solo la usa el orden. */
 export type CriteriaProperty = 'size' | 'color' | 'subtype';
+
+/** Propiedad por la que puede ordenar una carta de orden. */
+export type OrderProperty = CriteriaProperty | 'quantity';
 
 export type CriteriaValues = {
   size?: 'pequeño' | 'mediano' | 'grande';
@@ -129,9 +133,16 @@ export type CriteriaValues = {
   subtype?: 'circulo' | 'cuadrado' | 'triangulo';
 };
 
+/**
+ * El criterio implícito de una carta de orden: por qué propiedad ordena.
+ *
+ * Con `sequence`, esa secuencia *es* el orden (pequeño → mediano → grande) y se
+ * invierte para el sentido descendente. Sin ella, se ordena por el orden natural
+ * de la propiedad, que es el caso de la cantidad.
+ */
 export type OrderCriterio = {
-  property: CriteriaProperty;
-  sequence: string[];
+  property: OrderProperty;
+  sequence?: string[];
 };
 
 export type DeckSpawnAction =
@@ -163,8 +174,6 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
     subtract: 'sustraccion',
     multiply: 'multiplicacion',
     division: 'division',
-    ascending: 'orden-menor-mayor',
-    descending: 'orden-mayor-menor',
     filter: 'filtrar-general',
     compare: 'comparar',
     first: 'primero',
@@ -173,22 +182,22 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   };
   if (x in op) return { kind: 'operator', operator: op[x] };
 
-  // Operadores de ordenamiento por size (con criterio implícito)
+  // Las cuatro cartas de orden. El operador lleva el sentido y el criterio dice
+  // por qué propiedad se ordena: dos por cantidad y dos por tamaño.
   const SIZE_SEQUENCE = ['pequeño', 'mediano', 'grande'];
-  if (x === 'smallest_to_largest') {
-    return {
-      kind: 'operator',
+  const ORDER: Record<string, { operator: OperatorType; criterio: OrderCriterio }> = {
+    ascending: { operator: 'orden-menor-mayor', criterio: { property: 'quantity' } },
+    descending: { operator: 'orden-mayor-menor', criterio: { property: 'quantity' } },
+    smallest_to_largest: {
       operator: 'orden-menor-mayor',
       criterio: { property: 'size', sequence: SIZE_SEQUENCE },
-    };
-  }
-  if (x === 'largest_to_smallest') {
-    return {
-      kind: 'operator',
+    },
+    largest_to_smallest: {
       operator: 'orden-mayor-menor',
       criterio: { property: 'size', sequence: SIZE_SEQUENCE },
-    };
-  }
+    },
+  };
+  if (x in ORDER) return { kind: 'operator', ...ORDER[x] };
 
   // Colores pictóricos → Criteria literals (no shapes)
   const colorCriteria: Record<string, CriteriaValues['color']> = {
