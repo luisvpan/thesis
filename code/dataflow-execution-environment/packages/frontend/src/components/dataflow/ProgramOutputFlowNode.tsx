@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
-import { Hourglass, Loader2, Volume2 } from 'lucide-react';
+import { Hourglass, Loader2, TriangleAlert, Volume2 } from 'lucide-react';
 import { useNode } from '@/contexts/NodeContext';
 import { useResultCardUi } from '@/contexts/ResultCardUiContext';
 import { ClickableHandle } from './ClickableHandle';
@@ -72,6 +72,8 @@ const MAX_GLYPHS = 36;
 
 /** Estilo compartido para las respuestas en texto (descripción semántica y encabezado de objeto único). */
 const ANSWER_TEXT_CLASS = 'text-2xl font-black leading-snug tracking-wide text-teal-100';
+/** Mismo tamaño que ANSWER_TEXT_CLASS, en tono de error. */
+const ERROR_TEXT_CLASS = 'text-2xl font-black leading-snug tracking-wide text-red-400';
 
 function SingleCpaGlyphStrip({
   meta,
@@ -159,7 +161,14 @@ function buildSinkBody(
   if (executionError) {
     return {
       headerRight: (
-        <span className="text-sm font-semibold text-red-400">Error</span>
+        <div className="flex items-start gap-2">
+          <TriangleAlert
+            className="h-6 w-6 shrink-0 text-red-400"
+            strokeWidth={2.5}
+            aria-hidden
+          />
+          <span className={`${ERROR_TEXT_CLASS} whitespace-pre-line`}>{executionError}</span>
+        </div>
       ),
     };
   }
