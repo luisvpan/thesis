@@ -122,13 +122,25 @@ const MESSAGE_BY_CODE: Record<ErrorCode, string> = {
   INVALID_CRITERION: "Ese criterio no sirve para esta operación.",
   INVALID_OBJECT: "A esta carta le falta decir qué es.",
   EXPECTED_NUMBER: "Aquí hace falta un número.",
-  DIVISION_BY_ZERO: "No se puede repartir entre cero.",
+  DIVISION_BY_ZERO: "No se puede dividir entre cero.",
 };
 
+/** El nombre de una carta física para el niño: "Carta 4110", no el id interno. */
+function describeCard(nodeId: string | undefined): string | null {
+  if (!nodeId) return null;
+  const match = nodeId.replace(/__criterio$/, "").match(/^card_(\d+)$/);
+  return match ? `Carta ${match[1]}` : null;
+}
+
+/**
+ * Lo que se pinta en la carta de salida: la frase de aula y, si se sabe, la
+ * carta culpable. El detalle exacto del intérprete se queda en el log, que es
+ * donde sirve.
+ */
 function describeError(error: DataflowError): string {
   const friendly = MESSAGE_BY_CODE[error.code];
-  const where = error.nodeId ? ` (${error.nodeId})` : "";
-  return `${friendly}${where} — ${error.detail}`;
+  const card = describeCard(error.causeNodeId ?? error.nodeId);
+  return card ? `${friendly} (${card})` : friendly;
 }
 
 function formatInterpreterErrors(errors: DataflowError[]): string {
