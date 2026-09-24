@@ -20,7 +20,11 @@ import {
   FormaGlyph,
   ComidaGlyph,
 } from './CpaGlyphs';
-import type { ResultVisualItem, SingleCpaObjectMeta } from '@/services/executeProgram';
+import type {
+  OutputErrorInfo,
+  ResultVisualItem,
+  SingleCpaObjectMeta,
+} from '@/services/executeProgram';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import { FLOW_NODE_INTERACTIVE_CLASS } from './flowNodeChrome';
@@ -64,6 +68,8 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   numberArrayValues?: NumberArrayDisplayItem[];
   /** Resultado booleano (p. ej. compare). */
   booleanValue?: boolean;
+  /** Los errores que apagaron esta salida en la última ejecución (§4). */
+  errors?: OutputErrorInfo[];
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
@@ -153,12 +159,21 @@ type SinkBodyParts = {
   resultVisual?: ReactNode;
 };
 
+/** Los errores que apagaron *esta* salida; los de otra no son asunto suyo (§4). */
+function ownErrorText(data: ProgramOutputFlowNodeData): string | null {
+  const errors = data.errors ?? [];
+  if (errors.length === 0) return null;
+  return errors.map((error) => error.text).join("\n");
+}
+
 function buildSinkBody(
   data: ProgramOutputFlowNodeData,
-  executionError: string | null | undefined,
+  programError: string | null | undefined,
   viewMode: ResultViewMode
 ): SinkBodyParts {
-  if (executionError) {
+  const errorText = ownErrorText(data) ?? programError;
+
+  if (errorText) {
     return {
       headerRight: (
         <div className="flex items-start gap-2">
@@ -167,7 +182,7 @@ function buildSinkBody(
             strokeWidth={2.5}
             aria-hidden
           />
-          <span className={`${ERROR_TEXT_CLASS} whitespace-pre-line`}>{executionError}</span>
+          <span className={`${ERROR_TEXT_CLASS} whitespace-pre-line`}>{errorText}</span>
         </div>
       ),
     };

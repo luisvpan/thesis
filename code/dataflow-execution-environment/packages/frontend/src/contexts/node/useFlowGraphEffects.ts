@@ -118,19 +118,21 @@ export function useFlowGraphEffects({
     executorRef.current
       .execute(nodes, edges)
       .then((result) => {
-        if (result.success && result.results) {
-          setExecutionError(null);
-          setEvalResults(new Map(result.results));
+        // Una salida rota no borra el valor de las demás: se aplican los
+        // resultados que sí hay y cada error va a su carta.
+        setExecutionError(result.programError);
+        setEvalResults(new Map(result.results));
 
-          setNodes((nds) => {
-            const merged = mergeProgramOutputsFromResults(nds, result.results!);
-            return merged === nds ? nds : merged;
-          });
-        } else if (result.error) {
-          setExecutionResult(null);
-          setEvalResults(new Map());
-          setExecutionError(result.error);
-        }
+        setNodes((nds) => {
+          const merged = mergeProgramOutputsFromResults(
+            nds,
+            result.results,
+            result.errorsByOutput
+          );
+          return merged === nds ? nds : merged;
+        });
+
+        if (result.programError) setExecutionResult(null);
       })
       .catch((err) => {
         logger.execute.error("Unhandled execution error", {

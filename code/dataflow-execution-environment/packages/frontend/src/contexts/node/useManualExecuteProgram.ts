@@ -29,29 +29,27 @@ export function useManualExecuteProgram(
     try {
       const result = await executorRef.current.execute(nodes, edges);
 
-      if (result.success && result.results && result.results.size > 0) {
-        setEvalResults(new Map(result.results));
-        setNodes((nds) => mergeProgramOutputsFromResults(nds, result.results!));
+      // Aunque alguna salida falle, las demás traen su valor: se aplican los
+      // resultados y los errores a la vez, cada uno a su carta.
+      setEvalResults(new Map(result.results));
+      setNodes((nds) =>
+        mergeProgramOutputsFromResults(nds, result.results, result.errorsByOutput)
+      );
+      setExecutionError(result.programError);
 
-        // Solo un número o un total agrupado se pueden mostrar como cifra; un
-        // booleano o un arreglo de números, no.
-        const firstResult = result.results.values().next().value;
-        const numericResult =
-          firstResult?.kind === "number"
-            ? firstResult.value
-            : firstResult?.kind === "semantic"
-              ? firstResult.result.totalAmount
-              : null;
-        setExecutionResult(numericResult ?? null);
-        setExecutionError(null);
+      // Solo un número o un total agrupado se pueden mostrar como cifra; un
+      // booleano o un arreglo de números, no.
+      const firstResult = result.results.values().next().value;
+      const numericResult =
+        firstResult?.kind === "number"
+          ? firstResult.value
+          : firstResult?.kind === "semantic"
+            ? firstResult.result.totalAmount
+            : null;
+      setExecutionResult(numericResult ?? null);
 
-        const stats = executorRef.current.getStats();
-        logger.executeProgram.debug("Execution stats", { stats });
-      } else {
-        setExecutionResult(null);
-        setEvalResults(new Map());
-        setExecutionError(result.error || "Error desconocido");
-      }
+      const stats = executorRef.current.getStats();
+      logger.executeProgram.debug("Execution stats", { stats });
     } catch (err) {
       setExecutionResult(null);
       setEvalResults(new Map());

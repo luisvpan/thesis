@@ -1,5 +1,5 @@
 import type { OperatorFlowNodeData } from "@/components/dataflow";
-import type { ResultValue } from "@/services/executeProgram";
+import type { OutputErrorInfo, ResultValue } from "@/services/executeProgram";
 import {
   resultValueToDisplayData,
   type FlowResultDisplayData,
@@ -27,22 +27,42 @@ function displayDataUnchanged(
   );
 }
 
-/** Aplica resultados del intérprete a nodos `programOutput` y `operator`. */
+function sameErrors(current: OutputErrorInfo[] | undefined, next: OutputErrorInfo[]): boolean {
+  return safeJsonStringify(current ?? []) === safeJsonStringify(next);
+}
+
+/**
+ * Aplica resultados del intérprete a nodos `programOutput` y `operator`, y deja
+ * en cada carta de salida los errores que le tocan: un error de una salida no es
+ * asunto de las demás (§4).
+ */
 export function mergeProgramOutputsFromResults(
   nodes: DataflowNode[],
-  results: Map<string, ResultValue>
+  results: Map<string, ResultValue>,
+  errorsByOutput: Map<string, OutputErrorInfo[]> = new Map()
 ): DataflowNode[] {
   try {
     let changed = false;
     const updated = nodes.map((n) => {
       if (n.type !== "programOutput" && n.type !== "operator") return n;
+
+      const currentData = n.data as FlowResultDisplayData &
+        OperatorFlowNodeData & { errors?: OutputErrorInfo[] };
+
+      // Los errores solo cuelgan de las cartas de salida.
+      const errors = n.type === "programOutput" ? (errorsByOutput.get(n.id) ?? []) : [];
+      const errorsChanged = n.type === "programOutput" && !sameErrors(currentData.errors, errors);
+
       const resultValue = results.get(n.id);
-      if (resultValue === undefined) return n;
+      if (resultValue === undefined) {
+        if (!errorsChanged) return n;
+        changed = true;
+        return { ...n, data: { ...n.data, errors } };
+      }
 
       const newData = resultValueToDisplayData(resultValue);
-      const currentData = n.data as FlowResultDisplayData & OperatorFlowNodeData;
 
-      if (displayDataUnchanged(currentData, newData)) {
+      if (displayDataUnchanged(currentData, newData) && !errorsChanged) {
         return n;
       }
 
@@ -71,7 +91,7 @@ export function mergeProgramOutputsFromResults(
         };
       }
 
-      return { ...n, data: { ...n.data, ...newData } };
+      return { ...n, data: { ...n.data, ...newData, errors } };
     });
     return changed ? updated : nodes;
   } catch (err) {

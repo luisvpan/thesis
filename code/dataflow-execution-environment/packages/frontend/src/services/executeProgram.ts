@@ -163,11 +163,73 @@ function logInterpreterErrors(errors: DataflowError[]): void {
   }
 }
 
-export type ExecuteResult = {
-  success: boolean;
-  results?: Map<string, ResultValue>;
-  error?: string;
+/** Un error ya traducido, en forma plana para poder viajar en `node.data`. */
+export type OutputErrorInfo = {
+  code: ErrorCode;
+  /** Lo que se pinta en la carta. */
+  text: string;
+  /** El nodo donde ocurrió y el que lo causó, para señalarlos en el lienzo. */
+  nodeId?: string;
+  causeNodeId?: string;
 };
+
+export type ExecuteResult = {
+  /** No falló ninguna salida ni hubo errores de programa. */
+  success: boolean;
+  results: Map<string, ResultValue>;
+  /** Errores por carta de salida (id del nodo `programOutput` del lienzo). */
+  errorsByOutput: Map<string, OutputErrorInfo[]>;
+  /**
+   * Lo que no pertenece a ninguna salida: un error de sintaxis o un fallo
+   * interno. En el lienzo no debería ocurrir nunca.
+   */
+  programError: string | null;
+};
+
+const EMPTY_RESULT: Omit<ExecuteResult, "programError" | "success"> = {
+  results: new Map(),
+  errorsByOutput: new Map(),
+};
+
+/** Del id del sink del intérprete (`output_x`) al id del nodo en el lienzo. */
+function outputNodeIdOf(sinkId: string): string {
+  return sinkId.startsWith("output_") ? sinkId.slice("output_".length) : sinkId;
+}
+
+/**
+ * Reparte cada error entre las salidas a las que apaga. Un error sin salidas
+ * —sintaxis, o un fallo nuestro— no es de nadie y sube como error de programa.
+ */
+function routeErrors(errors: DataflowError[]): {
+  byOutput: Map<string, OutputErrorInfo[]>;
+  orphans: DataflowError[];
+} {
+  const byOutput = new Map<string, OutputErrorInfo[]>();
+  const orphans: DataflowError[] = [];
+
+  for (const error of errors) {
+    if (error.sinkIds.length === 0) {
+      orphans.push(error);
+      continue;
+    }
+
+    const info: OutputErrorInfo = {
+      code: error.code,
+      text: describeError(error),
+      nodeId: error.nodeId,
+      causeNodeId: error.causeNodeId,
+    };
+
+    for (const sinkId of error.sinkIds) {
+      const nodeId = outputNodeIdOf(sinkId);
+      const list = byOutput.get(nodeId);
+      if (list) list.push(info);
+      else byOutput.set(nodeId, [info]);
+    }
+  }
+
+  return { byOutput, orphans };
+}
 
 /**
  * Extracts numerator and denominator from a Fraction.js object.
@@ -604,7 +666,7 @@ export function createProgramExecutor() {
       edges: Edge[]
     ): Promise<ExecuteResult> {
       if (nodes.length === 0) {
-        return { success: false, error: "No hay nodos para ejecutar" };
+        return { ...EMPTY_RESULT, success: false, programError: "No hay nodos para ejecutar" };
       }
 
       // Check if program changed
@@ -624,19 +686,18 @@ export function createProgramExecutor() {
       try {
         const { results, errors } = await interpreter.execute(program);
 
+        // Los errores ya no cortan: una salida rota no impide que las demás
+        // muestren su valor, así que se reparten y se sigue.
+        const { byOutput, orphans } = routeErrors(errors);
         if (errors.length > 0) {
           logInterpreterErrors(errors);
-          const errorMsg = formatInterpreterErrors(errors);
-          logger.execute.error("Interpreter errors", { errorMsg });
-          return { success: false, error: errorMsg };
         }
+        const programError = orphans.length > 0 ? formatInterpreterErrors(orphans) : null;
 
         const resultsMap = new Map<string, ResultValue>();
 
         for (const [resultId, output] of results) {
-          const nodeId = resultId.startsWith("output_")
-            ? resultId.replace("output_", "")
-            : resultId;
+          const nodeId = outputNodeIdOf(resultId);
           const converted = runtimeOutputToResultValue(output);
           if (converted) {
             resultsMap.set(nodeId, converted);
@@ -645,9 +706,9 @@ export function createProgramExecutor() {
           }
         }
 
-        if (resultsMap.size === 0) {
+        if (resultsMap.size === 0 && errors.length === 0) {
           logger.execute.warn("No results found");
-          return { success: false, error: "Sin resultados" };
+          return { ...EMPTY_RESULT, success: false, programError: "Sin resultados" };
         }
 
         // Check if results changed
@@ -664,15 +725,21 @@ export function createProgramExecutor() {
           lastResultsHash = currentResultsHash;
         }
 
-        return { success: true, results: resultsMap };
+        return {
+          success: errors.length === 0,
+          results: resultsMap,
+          errorsByOutput: byOutput,
+          programError,
+        };
       } catch (err) {
         logger.execute.error("Exception during execution", {
           error: err instanceof Error ? err.message : String(err),
           stack: err instanceof Error ? err.stack : undefined,
         });
         return {
+          ...EMPTY_RESULT,
           success: false,
-          error: err instanceof Error ? err.message : "Error de ejecución",
+          programError: err instanceof Error ? err.message : "Error de ejecución",
         };
       }
     },

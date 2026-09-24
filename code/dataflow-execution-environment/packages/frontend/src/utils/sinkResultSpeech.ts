@@ -32,10 +32,13 @@ function singleCpaSpeechText(meta: SingleCpaObjectMeta): string {
 /** Texto listo para TTS según el resultado del sink; `null` si aún no hay nada que decir. */
 export function buildSinkResultSpeechText(
   data: ProgramOutputFlowNodeData,
-  executionError: string | null | undefined,
+  programError: string | null | undefined,
   _viewMode: ResultViewMode
 ): string | null {
-  if (executionError?.trim()) {
+  // Una salida rota no dice nada; la de al lado sí, aunque hayan fallado en la
+  // misma ejecución.
+  if ((data.errors?.length ?? 0) > 0) return null;
+  if (programError?.trim()) {
     return null;
   }
 
