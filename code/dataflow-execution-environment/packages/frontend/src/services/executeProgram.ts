@@ -18,6 +18,7 @@ import type { Edge } from "@xyflow/react";
 import { logger } from "@/lib/logger";
 import { jsonReplacer, toJsonSafe } from "@/utils/jsonReplacer";
 import { describeCountedNoun, nounForm } from "@/utils/spanishGrammar";
+import { describeNode } from "@/utils/describeNode";
 
 // ============================================================================
 // Tipos para agrupación jerárquica de resultados
@@ -108,44 +109,80 @@ export type ResultValue =
     };
 
 /**
- * Mensaje para el aula, por código de error. El intérprete ya trae un detalle
- * exacto; esto lo traduce a algo que un niño pueda leer.
+ * Qué pasó y qué hacer, por código de error. El intérprete ya trae un detalle
+ * exacto; esto lo traduce a algo que un niño pueda leer y arreglar.
+ *
+ * Son los once códigos, con el compilador comprobando que no falte ninguno.
  */
-const MESSAGE_BY_CODE: Record<ErrorCode, string> = {
-  SYNTAX_ERROR: "Hay algo mal escrito en el programa.",
-  DUPLICATE_IDENTIFIER: "Hay dos cartas con el mismo nombre.",
-  UNDEFINED_REFERENCE: "Falta conectar una carta.",
-  CIRCULAR_DEPENDENCY: "Las cartas se apuntan en círculo y no se puede empezar.",
-  UNKNOWN_OPERATION: "Esa operación no existe.",
-  ARITY_ERROR: "A esta operación le faltan o le sobran cartas.",
-  TYPE_ERROR: "Esa carta no va en ese lugar.",
-  INVALID_CRITERION: "Ese criterio no sirve para esta operación.",
-  INVALID_OBJECT: "A esta carta le falta decir qué es.",
-  EXPECTED_NUMBER: "Aquí hace falta un número.",
-  DIVISION_BY_ZERO: "No se puede dividir entre cero.",
+const ERROR_BY_CODE: Record<ErrorCode, { message: string; hint: string }> = {
+  SYNTAX_ERROR: {
+    message: "Hay algo mal escrito en el programa.",
+    hint: "Esto no debería pasar con las cartas: avisa a quien cuide el programa.",
+  },
+  DUPLICATE_IDENTIFIER: {
+    message: "Hay dos cartas con el mismo nombre.",
+    hint: "Quita una de las dos de la mesa.",
+  },
+  UNDEFINED_REFERENCE: {
+    message: "Falta conectar una carta.",
+    hint: "Esto no debería pasar con las cartas: avisa a quien cuide el programa.",
+  },
+  CIRCULAR_DEPENDENCY: {
+    message: "Las cartas se apuntan en círculo y no se puede empezar.",
+    hint: "Quita una de las flechas del círculo para que haya un principio.",
+  },
+  UNKNOWN_OPERATION: {
+    message: "Esa operación no existe.",
+    hint: "Cambia la carta de operación por una de las del mazo.",
+  },
+  ARITY_ERROR: {
+    message: "A esta operación le faltan o le sobran cartas.",
+    hint: "Mira cuántas cartas necesita y conéctale las que le falten.",
+  },
+  TYPE_ERROR: {
+    message: "Esa carta no va en ese lugar.",
+    hint: "Prueba con otra carta: ahí no encaja la que hay puesta.",
+  },
+  INVALID_CRITERION: {
+    message: "Ese criterio no sirve para esta operación.",
+    hint: "Para filtrar hacen falta cartas de filtro, y para ordenar, de orden.",
+  },
+  INVALID_OBJECT: {
+    message: "A esta carta le falta decir qué es.",
+    hint: "Ponla de nuevo sobre la mesa para que la cámara la lea bien.",
+  },
+  EXPECTED_NUMBER: {
+    message: "Aquí hace falta un número.",
+    hint: "Cambia esa carta por una de número.",
+  },
+  DIVISION_BY_ZERO: {
+    message: "No se puede dividir entre cero.",
+    hint: "Cambia el cero por otro número.",
+  },
 };
 
-/** El nombre de una carta física para el niño: "Carta 4110", no el id interno. */
-function describeCard(nodeId: string | undefined): string | null {
-  if (!nodeId) return null;
-  const match = nodeId.replace(/__criterio$/, "").match(/^card_(\d+)$/);
-  return match ? `Carta ${match[1]}` : null;
-}
+/** Nombra un nodo como se vería en la mesa; sin lienzo delante, no nombra nada. */
+export type NodeNamer = (nodeId: string | undefined) => string | null;
+
+const NO_NAMES: NodeNamer = () => null;
 
 /**
  * Lo que se pinta en la carta de salida: la frase de aula y, si se sabe, la
- * carta culpable. El detalle exacto del intérprete se queda en el log, que es
- * donde sirve.
+ * carta culpable por su nombre. El detalle exacto del intérprete se queda en el
+ * log, que es donde sirve.
  */
-function describeError(error: DataflowError): string {
-  const friendly = MESSAGE_BY_CODE[error.code];
-  const card = describeCard(error.causeNodeId ?? error.nodeId);
-  return card ? `${friendly} (${card})` : friendly;
+function describeError(error: DataflowError, nameOf: NodeNamer): string {
+  const { message } = ERROR_BY_CODE[error.code];
+  const culprit = nameOf(error.causeNodeId ?? error.nodeId);
+  return culprit ? `${message} (${culprit})` : message;
 }
 
 function formatInterpreterErrors(errors: DataflowError[]): string {
   return errors
-    .map((error, index) => `${errors.length > 1 ? `${index + 1}. ` : ""}${describeError(error)}`)
+    .map(
+      (error, index) =>
+        `${errors.length > 1 ? `${index + 1}. ` : ""}${describeError(error, NO_NAMES)}`
+    )
     .join("\n");
 }
 
@@ -168,9 +205,14 @@ export type OutputErrorInfo = {
   code: ErrorCode;
   /** Lo que se pinta en la carta. */
   text: string;
+  /** La solución probable, para el popup de la salida. */
+  hint: string;
   /** El nodo donde ocurrió y el que lo causó, para señalarlos en el lienzo. */
   nodeId?: string;
   causeNodeId?: string;
+  /** Sus nombres en la mesa, ya redactados. */
+  nodeName?: string;
+  causeName?: string;
 };
 
 export type ExecuteResult = {
@@ -200,7 +242,10 @@ function outputNodeIdOf(sinkId: string): string {
  * Reparte cada error entre las salidas a las que apaga. Un error sin salidas
  * —sintaxis, o un fallo nuestro— no es de nadie y sube como error de programa.
  */
-function routeErrors(errors: DataflowError[]): {
+function routeErrors(
+  errors: DataflowError[],
+  nameOf: NodeNamer
+): {
   byOutput: Map<string, OutputErrorInfo[]>;
   orphans: DataflowError[];
 } {
@@ -215,9 +260,12 @@ function routeErrors(errors: DataflowError[]): {
 
     const info: OutputErrorInfo = {
       code: error.code,
-      text: describeError(error),
+      text: describeError(error, nameOf),
+      hint: ERROR_BY_CODE[error.code].hint,
       nodeId: error.nodeId,
       causeNodeId: error.causeNodeId,
+      nodeName: nameOf(error.nodeId) ?? undefined,
+      causeName: nameOf(error.causeNodeId) ?? undefined,
     };
 
     for (const sinkId of error.sinkIds) {
@@ -687,8 +735,11 @@ export function createProgramExecutor() {
         const { results, errors } = await interpreter.execute(program);
 
         // Los errores ya no cortan: una salida rota no impide que las demás
-        // muestren su valor, así que se reparten y se sigue.
-        const { byOutput, orphans } = routeErrors(errors);
+        // muestren su valor, así que se reparten y se sigue. Los nodos se
+        // nombran aquí, que es donde se tiene el lienzo delante.
+        const { byOutput, orphans } = routeErrors(errors, (nodeId) =>
+          describeNode(nodeId, nodes, edges)
+        );
         if (errors.length > 0) {
           logInterpreterErrors(errors);
         }

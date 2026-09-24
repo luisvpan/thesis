@@ -90,7 +90,7 @@ const SIZE_MAP: Record<string, string> = {
   grande: "grande",
 };
 
-function normalizeSize(size: string | undefined): string {
+export function normalizeSize(size: string | undefined): string {
   if (!size) return "mediano";
   return SIZE_MAP[size] ?? size;
 }
