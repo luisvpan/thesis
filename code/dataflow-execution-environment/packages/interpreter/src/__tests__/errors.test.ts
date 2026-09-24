@@ -11,7 +11,7 @@ import {
   type DataflowError,
   type ErrorCode,
 } from "../index";
-import { dataLiteral, numberLiteral } from "./helpers";
+import { dataLiteral, numberLiteral, only } from "./helpers";
 
 const num = numberLiteral;
 
@@ -212,7 +212,7 @@ describe("Errores estáticos (§4.2)", () => {
     expect(error.detail).toContain("subtype");
   });
 
-  test("un error estático invalida el programa completo: no se evalúa nada", async () => {
+  test("se aísla por salida: la salida sana calcula igual (§4.2)", async () => {
     const result = await new Interpreter().execute(`
       source x = ${num(1)};
       transform sano = sum(x, x);
@@ -220,8 +220,30 @@ describe("Errores estáticos (§4.2)", () => {
       sink a = sano;
       sink b = roto;
     `);
+
     expect(result.errors).toHaveLength(1);
-    expect(result.results.size).toBe(0);
+    expect(result.errors[0].code).toBe("ARITY_ERROR");
+    expect(result.errors[0].sinkIds).toEqual(["b"]);
+
+    expect(only(result.results.get("a")!)).toBe("2");
+    expect(result.results.has("b")).toBe(false);
+  });
+
+  test("un nodo que alcanzan dos salidas las apaga a las dos", async () => {
+    const result = await new Interpreter().execute(`
+      source x = ${num(1)};
+      transform roto = substract(x);
+      transform despues = sum(roto, x);
+      sink a = roto;
+      sink b = despues;
+      sink c = x;
+    `);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].sinkIds.sort()).toEqual(["a", "b"]);
+    expect(result.results.has("a")).toBe(false);
+    expect(result.results.has("b")).toBe(false);
+    expect(only(result.results.get("c")!)).toBe("1");
   });
 });
 
@@ -237,7 +259,7 @@ describe("Errores de ejecución (§4.3)", () => {
     expect(error.phase).toBe("runtime");
     expect(error.nodeId).toBe("escaladas");
     expect(error.causeNodeId).toBe("otras");
-    expect(error.sinkId).toBe("result");
+    expect(error.sinkIds).toEqual(["result"]);
     expect(error.message).toContain("en 'escaladas'");
     expect(error.message).toContain("por 'otras'");
     expect(error.message).toContain("salida 'result'");
@@ -253,7 +275,7 @@ describe("Errores de ejecución (§4.3)", () => {
     expect(error.code).toBe("DIVISION_BY_ZERO");
     expect(error.nodeId).toBe("mal");
     expect(error.causeNodeId).toBe("cero");
-    expect(error.sinkId).toBe("result");
+    expect(error.sinkIds).toEqual(["result"]);
   });
 
   test("están aislados por salida (§4.3)", async () => {

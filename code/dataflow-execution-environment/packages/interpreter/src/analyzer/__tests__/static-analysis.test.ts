@@ -5,10 +5,14 @@ import { buildGraph } from "../../runtime/graph";
 import { parseToAst } from "../../serializer";
 import { analyze } from "../static-analysis";
 
-function codesOf(program: string): string[] {
+function errorsOf(program: string) {
   const { ast, errors } = parseToAst(program);
   if (!ast) throw new Error(`error de sintaxis: ${errors[0]?.message}`);
-  return analyze(buildGraph(ast)).map((error) => error.code);
+  return analyze(buildGraph(ast));
+}
+
+function codesOf(program: string): string[] {
+  return errorsOf(program).map((error) => error.code);
 }
 
 const apple = `{"category": "concreto", "type": "comida", "subtype": "manzana", "quantity": 2}`;
@@ -119,6 +123,52 @@ describe("analyze", () => {
         sink r = b;
       `)
     ).toEqual(["ARITY_ERROR", "UNKNOWN_OPERATION"]);
+  });
+});
+
+describe("cada error dice a qué salidas apaga", () => {
+  test("una sola salida", () => {
+    const [error] = errorsOf(`
+      source x = ${three};
+      transform roto = substract(x);
+      sink s = roto;
+    `);
+    expect(error.sinkIds).toEqual(["s"]);
+  });
+
+  test("varias, si el nodo culpable alimenta a varias", () => {
+    const [error] = errorsOf(`
+      source x = ${three};
+      transform roto = substract(x);
+      transform despues = sum(roto, x);
+      sink a = roto;
+      sink b = despues;
+    `);
+    expect(error.sinkIds.sort()).toEqual(["a", "b"]);
+  });
+
+  test("ninguna: un nodo que no alcanza ninguna salida no produce error", () => {
+    expect(
+      errorsOf(`
+        source x = ${three};
+        transform suelto = substract(x);
+        sink s = x;
+      `)
+    ).toEqual([]);
+  });
+
+  test("el ciclo lleva su camino como dato, no solo en el mensaje", () => {
+    const [error] = errorsOf(`
+      source x = ${three};
+      transform a = sum(b, x);
+      transform b = sum(a, x);
+      sink s = a;
+    `);
+    expect(error.code).toBe("CIRCULAR_DEPENDENCY");
+    // El camino se cierra sobre sí mismo: a → b → a
+    expect(error.relatedNodeIds.length).toBeGreaterThan(1);
+    expect(error.relatedNodeIds.at(0)).toBe(error.relatedNodeIds.at(-1)!);
+    expect(error.sinkIds).toEqual(["s"]);
   });
 });
 

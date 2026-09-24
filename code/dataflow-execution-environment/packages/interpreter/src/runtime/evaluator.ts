@@ -33,13 +33,20 @@ export class LazyEvaluator {
   private graph: DependencyGraph;
   private resultsCache: Map<string, RuntimeValue>;
   private pendingEvaluations: Map<string, Promise<RuntimeValue>>;
+  /** Las salidas a calcular; por defecto, todas las del programa. */
+  private sinkIds: string[];
   /** La salida cuyo cálculo está en curso, para situar los errores (§4). */
   private currentSinkId?: string;
 
-  constructor(graph: DependencyGraph, resultsCache?: Map<string, RuntimeValue>) {
+  constructor(
+    graph: DependencyGraph,
+    resultsCache?: Map<string, RuntimeValue>,
+    sinkIds?: string[]
+  ) {
     this.graph = graph;
     this.resultsCache = resultsCache ?? new Map();
     this.pendingEvaluations = new Map();
+    this.sinkIds = sinkIds ?? graph.sinkIds;
   }
 
   /** EvaluarPrograma(programa) → (valores, errores) — §2.3.1 */
@@ -47,13 +54,13 @@ export class LazyEvaluator {
     const results = new Map<string, RuntimeValue>();
     const errors: DataflowError[] = [];
 
-    for (const sinkId of this.graph.sinkIds) {
+    for (const sinkId of this.sinkIds) {
       this.currentSinkId = sinkId;
       try {
         results.set(sinkId, await this.evaluateNode(sinkId));
       } catch (err) {
         if (err instanceof DataflowError) {
-          errors.push(err.situate({ sinkId }));
+          errors.push(err.situate({ sinkIds: [sinkId] }));
         } else {
           throw err;
         }
@@ -140,7 +147,7 @@ export class LazyEvaluator {
             throw err.situate({
               nodeId: stmt.identifier,
               causeNodeId: cause ?? stmt.identifier,
-              sinkId: this.currentSinkId,
+              sinkIds: this.currentSinkId ? [this.currentSinkId] : [],
             });
           }
           throw err;

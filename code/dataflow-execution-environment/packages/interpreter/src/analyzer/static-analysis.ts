@@ -26,14 +26,15 @@ interface InferredCategory {
 }
 
 export function analyze(graph: DependencyGraph): DataflowError[] {
-  const reached = reachableFromSinks(graph);
+  const reaching = sinksReachingEachNode(graph);
+  const sinksOf = (nodeId: string): string[] => reaching.get(nodeId) ?? [];
 
   // La bien-formación va primero (§2.2): sin ella, el resto de los chequeos no
   // tiene sobre qué razonar.
   const structural = [
-    ...duplicateIdentifiers(graph, reached),
-    ...unresolvedReferences(graph, reached),
-    ...cycles(graph),
+    ...duplicateIdentifiers(graph, sinksOf),
+    ...unresolvedReferences(graph, reaching, sinksOf),
+    ...cycles(graph, sinksOf),
   ];
   if (structural.length > 0) return structural;
 
@@ -58,12 +59,13 @@ export function analyze(graph: DependencyGraph): DataflowError[] {
   };
 
   for (const node of graph.nodes.values()) {
-    if (!reached.has(node.id)) continue;
+    if (!reaching.has(node.id)) continue;
     const stmt = node.statement;
+    const sinkIds = sinksOf(node.id);
 
     if (stmt.type === "SourceStatement" && stmt.value) {
-      errors.push(...invalidObjects(stmt.identifier, stmt.value));
-      errors.push(...malformedCriteria(stmt.identifier, stmt.value));
+      errors.push(...invalidObjects(stmt.identifier, stmt.value, sinkIds));
+      errors.push(...malformedCriteria(stmt.identifier, stmt.value, sinkIds));
       continue;
     }
 
@@ -75,7 +77,7 @@ export function analyze(graph: DependencyGraph): DataflowError[] {
         new DataflowError(
           "UNKNOWN_OPERATION",
           `La operación '${stmt.operation}' no existe`,
-          { nodeId: stmt.identifier }
+          { nodeId: stmt.identifier, sinkIds }
         )
       );
       continue;
@@ -90,7 +92,7 @@ export function analyze(graph: DependencyGraph): DataflowError[] {
         new DataflowError(
           "ARITY_ERROR",
           `${stmt.operation} admite ${describeArity(signature)} argumentos, y recibió ${args.length}`,
-          { nodeId: stmt.identifier }
+          { nodeId: stmt.identifier, sinkIds }
         )
       );
       continue;
@@ -109,7 +111,7 @@ export function analyze(graph: DependencyGraph): DataflowError[] {
           new DataflowError(
             "TYPE_ERROR",
             `${stmt.operation} espera ${article(parameter.category)} en la posición ${index + 1}, y '${argument.name}' es ${article(actual.category)}`,
-            { nodeId: stmt.identifier, causeNodeId: argument.name }
+            { nodeId: stmt.identifier, causeNodeId: argument.name, sinkIds }
           )
         );
         continue;
@@ -121,7 +123,7 @@ export function analyze(graph: DependencyGraph): DataflowError[] {
           new DataflowError(
             "INVALID_CRITERION",
             `${stmt.operation} espera un criterio de ${name(parameter.criterion)} en la posición ${index + 1}, y '${argument.name}' es de ${name(actual.criterion)}`,
-            { nodeId: stmt.identifier, causeNodeId: argument.name }
+            { nodeId: stmt.identifier, causeNodeId: argument.name, sinkIds }
           )
         );
       }
@@ -136,22 +138,36 @@ export function analyze(graph: DependencyGraph): DataflowError[] {
 // =============================================================================
 
 /**
- * Los nodos que alcanza alguna salida, siguiendo las dependencias hacia atrás.
- * La marca de visitados hace que un ciclo no cuelgue el recorrido: el ciclo lo
- * reporta después su propio chequeo.
+ * Para cada nodo, las salidas que lo alcanzan siguiendo las dependencias hacia
+ * atrás. Un nodo ausente del mapa no lo alcanza ninguna salida: no participa en
+ * la evaluación, así que tampoco se valida.
+ *
+ * Es un recorrido por salida, con su propia marca de visitados para que un ciclo
+ * no cuelgue el paseo; el ciclo lo reporta después su propio chequeo.
  */
-function reachableFromSinks(graph: DependencyGraph): Set<string> {
-  const reached = new Set<string>();
-  const pending = [...graph.sinkIds];
+type SinksByNode = Map<string, string[]>;
 
-  while (pending.length > 0) {
-    const id = pending.pop()!;
-    if (reached.has(id)) continue;
-    reached.add(id);
-    pending.push(...(graph.nodes.get(id)?.dependencies ?? []));
+function sinksReachingEachNode(graph: DependencyGraph): SinksByNode {
+  const reaching: SinksByNode = new Map();
+
+  for (const sinkId of graph.sinkIds) {
+    const seen = new Set<string>();
+    const pending = [sinkId];
+
+    while (pending.length > 0) {
+      const id = pending.pop()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+
+      const sinks = reaching.get(id);
+      if (sinks) sinks.push(sinkId);
+      else reaching.set(id, [sinkId]);
+
+      pending.push(...(graph.nodes.get(id)?.dependencies ?? []));
+    }
   }
 
-  return reached;
+  return reaching;
 }
 
 // =============================================================================
@@ -165,29 +181,38 @@ function reachableFromSinks(graph: DependencyGraph): Set<string> {
  * salida depende de él, el programa es ambiguo; si no lo alcanza ninguna, da
  * igual cuál de las dos declaraciones habría ganado.
  */
-function duplicateIdentifiers(graph: DependencyGraph, reached: Set<string>): DataflowError[] {
+function duplicateIdentifiers(
+  graph: DependencyGraph,
+  sinksOf: (nodeId: string) => string[]
+): DataflowError[] {
   return graph.duplicateIds
-    .filter((id) => reached.has(id))
+    .filter((id) => sinksOf(id).length > 0)
     .map(
       (id) =>
         new DataflowError("DUPLICATE_IDENTIFIER", `El nombre '${id}' está declarado más de una vez`, {
           nodeId: id,
+          sinkIds: sinksOf(id),
         })
     );
 }
 
 /** §4.2.2 Referencia sin resolver */
-function unresolvedReferences(graph: DependencyGraph, reached: Set<string>): DataflowError[] {
+function unresolvedReferences(
+  graph: DependencyGraph,
+  reaching: SinksByNode,
+  sinksOf: (nodeId: string) => string[]
+): DataflowError[] {
   const errors: DataflowError[] = [];
 
   for (const node of graph.nodes.values()) {
-    if (!reached.has(node.id)) continue;
+    if (!reaching.has(node.id)) continue;
     for (const dependency of node.dependencies) {
       if (!graph.nodes.has(dependency)) {
         errors.push(
           new DataflowError("UNDEFINED_REFERENCE", `No existe ningún nodo llamado '${dependency}'`, {
             nodeId: node.id,
             causeNodeId: dependency,
+            sinkIds: sinksOf(node.id),
           })
         );
       }
@@ -198,7 +223,7 @@ function unresolvedReferences(graph: DependencyGraph, reached: Set<string>): Dat
 }
 
 /** §4.2.3 Ciclo. Recorre desde las salidas, que es justo lo alcanzable. */
-function cycles(graph: DependencyGraph): DataflowError[] {
+function cycles(graph: DependencyGraph, sinksOf: (nodeId: string) => string[]): DataflowError[] {
   const errors: DataflowError[] = [];
   const visited = new Set<string>();
   const stack = new Set<string>();
@@ -209,6 +234,10 @@ function cycles(graph: DependencyGraph): DataflowError[] {
       errors.push(
         new DataflowError("CIRCULAR_DEPENDENCY", `Ciclo de dependencias: ${cycle.join(" → ")}`, {
           nodeId,
+          // El camino también como dato: quien lo pinte no debería tener que
+          // partir el mensaje por las flechas.
+          relatedNodeIds: cycle,
+          sinkIds: sinksOf(nodeId),
         })
       );
       return;
@@ -270,7 +299,7 @@ function dataLiteralsOf(literal: Literal): DataLiteral[] {
 }
 
 /** §4.2.8 Objeto inválido: un componente de identidad CPA en blanco. */
-function invalidObjects(nodeId: string, literal: Literal): DataflowError[] {
+function invalidObjects(nodeId: string, literal: Literal, sinkIds: string[]): DataflowError[] {
   const errors: DataflowError[] = [];
 
   for (const data of dataLiteralsOf(literal)) {
@@ -289,7 +318,7 @@ function invalidObjects(nodeId: string, literal: Literal): DataflowError[] {
         new DataflowError(
           "INVALID_OBJECT",
           `Un objeto de datos necesita ${missing.map((key) => `"${key}"`).join(", ")}: sin eso no denota una identidad real`,
-          { nodeId }
+          { nodeId, sinkIds }
         )
       );
     }
@@ -303,7 +332,7 @@ function invalidObjects(nodeId: string, literal: Literal): DataflowError[] {
  * solo admite un valor único por propiedad, y solo sobre propiedades de
  * identidad — nunca sobre la cantidad (§1.3).
  */
-function malformedCriteria(nodeId: string, literal: Literal): DataflowError[] {
+function malformedCriteria(nodeId: string, literal: Literal, sinkIds: string[]): DataflowError[] {
   if (literal.type !== "CriterionLiteral" || literal.sourceType !== "filter") return [];
 
   const errors: DataflowError[] = [];
@@ -314,7 +343,7 @@ function malformedCriteria(nodeId: string, literal: Literal): DataflowError[] {
       new DataflowError(
         "INVALID_CRITERION",
         "Un criterio de filtro prueba la identidad, no la cantidad",
-        { nodeId }
+        { nodeId, sinkIds }
       )
     );
   }
@@ -325,7 +354,7 @@ function malformedCriteria(nodeId: string, literal: Literal): DataflowError[] {
         new DataflowError(
           "INVALID_CRITERION",
           `Un criterio de filtro fija un valor único por propiedad, y "${value.key}" tiene varios`,
-          { nodeId }
+          { nodeId, sinkIds }
         )
       );
     }

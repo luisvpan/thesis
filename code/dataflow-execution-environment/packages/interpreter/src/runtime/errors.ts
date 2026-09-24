@@ -53,8 +53,15 @@ export interface ErrorSite {
   nodeId?: string;
   /** El nodo que causó la falla; coincide con `nodeId` si la falla es local. */
   causeNodeId?: string;
-  /** La salida en cuyo cálculo bajo demanda apareció. */
-  sinkId?: string;
+  /**
+   * Las salidas en cuyo camino está el nodo. Para un error de ejecución es la
+   * que se estaba calculando; para uno estático, todas las que alcanzan al nodo
+   * —que son justo las que se quedan sin valor, porque el error se aísla por
+   * salida (§4.2).
+   */
+  sinkIds?: string[];
+  /** Los demás nodos implicados, cuando el error señala a varios (un ciclo). */
+  relatedNodeIds?: string[];
   /**
    * Posición del argumento culpable, cuando una operación falla por el valor de
    * uno de ellos. El evaluador la traduce a `causeNodeId`, que es quien conoce
@@ -73,7 +80,8 @@ export class DataflowError extends Error {
   readonly detail: string;
   nodeId?: string;
   causeNodeId?: string;
-  sinkId?: string;
+  sinkIds: string[];
+  readonly relatedNodeIds: string[];
   readonly argumentIndex?: number;
   readonly line?: number;
   readonly column?: number;
@@ -86,7 +94,8 @@ export class DataflowError extends Error {
     this.phase = phaseOf(code);
     this.nodeId = site.nodeId;
     this.causeNodeId = site.causeNodeId ?? site.nodeId;
-    this.sinkId = site.sinkId;
+    this.sinkIds = site.sinkIds ?? [];
+    this.relatedNodeIds = site.relatedNodeIds ?? [];
     this.argumentIndex = site.argumentIndex;
     this.line = site.line;
     this.column = site.column;
@@ -101,7 +110,7 @@ export class DataflowError extends Error {
   situate(site: ErrorSite): this {
     this.nodeId ??= site.nodeId;
     this.causeNodeId ??= site.causeNodeId ?? this.nodeId;
-    this.sinkId ??= site.sinkId;
+    if (this.sinkIds.length === 0 && site.sinkIds) this.sinkIds = site.sinkIds;
     this.message = describe(this);
     return this;
   }
@@ -123,7 +132,10 @@ function describe(error: DataflowError): string {
   if (error.causeNodeId && error.causeNodeId !== error.nodeId) {
     parts.push(`por '${error.causeNodeId}'`);
   }
-  if (error.sinkId) parts.push(`salida '${error.sinkId}'`);
+  if (error.sinkIds.length === 1) parts.push(`salida '${error.sinkIds[0]}'`);
+  else if (error.sinkIds.length > 1) {
+    parts.push(`salidas ${error.sinkIds.map((id) => `'${id}'`).join(", ")}`);
+  }
   if (error.line !== undefined) {
     parts.push(error.column === undefined ? `línea ${error.line}` : `línea ${error.line}, columna ${error.column}`);
   }

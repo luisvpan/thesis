@@ -1,7 +1,7 @@
 # Especificación del Lenguaje Dataflow
 
-**Versión:** 0.3.0 (borrador)
-**Fecha:** 2026-09-22
+**Versión:** 0.4.0 (borrador)
+**Fecha:** 2026-09-24
 **Estado:** Documento vivo — se actualiza a medida que la implementación revela casos borde o mejores diseños.
 
 ---
@@ -595,9 +595,9 @@ count(nulo)                           = { número↦0 }
 
 ## 4. Errores
 
-Un **error** es una condición que impide producir un valor. Cada error informa su **naturaleza** (qué salió mal) y el **nodo donde ocurrió** (el que se estaba procesando). Cuando la causa está en otro nodo —típicamente una de sus dependencias— informa además **qué nodo la causó** (coincide con el anterior si la falla es local). Y si surgió durante la evaluación, informa la **salida** (el `sink`) en cuyo cálculo bajo demanda apareció. Así todo error queda situado: qué pasó, dónde, por causa de qué y para qué salida.
+Un **error** es una condición que impide producir un valor. Cada error informa su **naturaleza** (qué salió mal) y el **nodo donde ocurrió** (el que se estaba procesando). Cuando la causa está en otro nodo —típicamente una de sus dependencias— informa además **qué nodo la causó** (coincide con el anterior si la falla es local). E informa las **salidas** (los `sink`) en cuyo camino está ese nodo, que son exactamente las que se quedan sin valor: para un error de ejecución es la salida que se estaba calculando; para uno estático, todas las que alcanzan al nodo. Así todo error queda situado: qué pasó, dónde, por causa de qué y a qué salidas afecta.
 
-Los errores se distinguen por el momento en que se detectan: los **errores de sintaxis**, al leer el texto del programa; los **errores estáticos**, sobre la estructura ya construida, antes de evaluar; y los **errores de ejecución**, al evaluar un nodo.
+Los errores se distinguen por el momento en que se detectan: los **errores de sintaxis**, al leer el texto del programa; los **errores estáticos**, sobre la estructura ya construida, antes de evaluar; y los **errores de ejecución**, al evaluar un nodo. Los dos últimos están **aislados por salida**: una salida cuyo camino está limpio produce su valor aunque otra falle.
 
 ### 4.1 Errores de sintaxis
 
@@ -608,7 +608,9 @@ Se detectan al analizar el texto del programa contra la gramática (al final del
 
 ### 4.2 Errores estáticos
 
-Se detectan sobre la estructura del programa ya construida, sin evaluar, y solo sobre los nodos que **alcanzan alguna salida**: los nodos que ningún `sink` alcanza no participan en la evaluación, de modo que tampoco se validan, y una sentencia todavía sin conectar no invalida nada. Un error estático **invalida el programa completo**: no llega a evaluarse ningún nodo.
+Se detectan sobre la estructura del programa ya construida, sin evaluar, y solo sobre los nodos que **alcanzan alguna salida**: los nodos que ningún `sink` alcanza no participan en la evaluación, de modo que tampoco se validan, y una sentencia todavía sin conectar no invalida nada.
+
+Un error estático **apaga las salidas en cuyo camino está el nodo culpable**, y solo esas: no llega a evaluarse ninguno de sus nodos, mientras que las demás salidas se calculan con normalidad. Es el mismo aislamiento que ya tienen los errores de ejecución, y responde a lo mismo que §2.5: un programa a medio construir sigue dando lo que sí sabe dar.
 
 1. **Nombre duplicado** — dos nodos declaran el mismo nombre. Los nombres deben ser únicos entre los nodos que alcanzan alguna salida.
 2. **Referencia sin resolver** — un nodo menciona un nombre que ningún nodo declara.
@@ -621,7 +623,7 @@ Se detectan sobre la estructura del programa ya construida, sin evaluar, y solo 
 
 ### 4.3 Errores de ejecución
 
-Surgen al evaluar un nodo, porque dependen de los valores calculados. Están **aislados por salida**: un error al evaluar un nodo afecta solo a las salidas que dependen de él; las demás salidas producen su valor con normalidad.
+Surgen al evaluar un nodo, porque dependen de los valores calculados. Están **aislados por salida**, igual que los estáticos: un error al evaluar un nodo afecta solo a las salidas que dependen de él; las demás producen su valor con normalidad.
 
 1. **Número esperado** — una operación que necesita un número (el escalar de `multiply` y `divide`, el umbral de `less_than` y `greater_than`) recibe una bolsa que, al calcularse, no resulta ser un número. Que un argumento sea una bolsa se conoce sin evaluar, pero que esa bolsa sea un número solo se sabe con su valor.
 2. **División por cero** — `divide` recibe el divisor 0.

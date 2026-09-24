@@ -48,10 +48,10 @@ export class Interpreter {
 
     const newGraph = buildGraph(ast);
 
+    // Un error estático no apaga el programa entero: apaga las salidas en cuyo
+    // camino está el nodo culpable (§4.2). Las demás se calculan igual.
     const staticErrors = analyze(newGraph);
-    if (staticErrors.length > 0) {
-      return { results: new Map(), errors: staticErrors };
-    }
+    const blocked = new Set(staticErrors.flatMap((error) => error.sinkIds));
 
     if (this.currentGraph) {
       const diff = diffGraphs(this.currentGraph, newGraph);
@@ -63,7 +63,11 @@ export class Interpreter {
 
     this.currentGraph = newGraph;
 
-    const evaluator = new LazyEvaluator(newGraph, this.resultsCache);
+    const evaluator = new LazyEvaluator(
+      newGraph,
+      this.resultsCache,
+      newGraph.sinkIds.filter((sinkId) => !blocked.has(sinkId))
+    );
     const { results, errors } = await evaluator.evaluate();
 
     this.lastStats = {
@@ -72,7 +76,7 @@ export class Interpreter {
       total: totalNodes,
     };
 
-    return { results, errors };
+    return { results, errors: [...staticErrors, ...errors] };
   }
 
   /** Invalida los nodos cambiados y, en cascada, todo lo que depende de ellos. */

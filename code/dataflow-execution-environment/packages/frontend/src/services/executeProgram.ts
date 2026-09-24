@@ -155,7 +155,7 @@ function logInterpreterErrors(errors: DataflowError[]): void {
       code: error.code,
       nodeId: error.nodeId,
       causeNodeId: error.causeNodeId,
-      sinkId: error.sinkId,
+      sinkIds: error.sinkIds,
       line: error.line,
       column: error.column,
       message: error.message,
