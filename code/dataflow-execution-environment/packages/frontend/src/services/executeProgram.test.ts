@@ -40,6 +40,72 @@ const aMedias: Edge[] = [
   { id: "a", source: "card_10", target: "roto", sourceHandle: "out", targetHandle: "a" },
 ];
 
+/**
+ * Una zona con seis manzanas dividida entre `divisor`. La zona es una bolsa de
+ * seis entradas —una por carta—, que es justo el caso por donde se colaba el
+ * fallo: dividir entrada por entrada devolvía seis medias manzanas y la tira
+ * pintaba las seis de vuelta.
+ */
+function sixApplesOver(divisor: number) {
+  const apples = Array.from({ length: 6 }, (_, i) => ({
+    id: `manzana_${i}`,
+    type: "source",
+    position: { x: 300 + i * 260, y: 0 },
+    data: { variant: "food", food: "manzana" },
+  }));
+
+  const nodes = [
+    { id: "abrir", type: "arrayOpen", position: { x: 0, y: 0 }, data: {} },
+    ...apples,
+    { id: "cerrar", type: "arrayClose", position: { x: 2000, y: 0 }, data: {} },
+    // Lejos de la zona, o la carta del divisor entraría en la bolsa.
+    { id: "divisor", type: "source", position: { x: 0, y: 900 }, data: { variant: "number", value: divisor } },
+    { id: "div", type: "operator", position: { x: 2600, y: 900 }, data: { operator: "division" } },
+    { id: "out", type: "programOutput", position: { x: 3200, y: 900 }, data: {} },
+  ] as DataflowNode[];
+
+  const edges: Edge[] = [
+    { id: "z", source: "abrir", target: "cerrar", sourceHandle: "zone-out", targetHandle: "zone-in" },
+    { id: "a", source: "cerrar", target: "div", sourceHandle: "out", targetHandle: "a" },
+    { id: "b", source: "divisor", target: "div", sourceHandle: "out", targetHandle: "b" },
+    { id: "c", source: "div", target: "out", sourceHandle: "out", targetHandle: "in" },
+  ];
+
+  return { nodes, edges };
+}
+
+async function divisionResult(divisor: number) {
+  const { nodes, edges } = sixApplesOver(divisor);
+  const result = await createProgramExecutor().execute(nodes, edges);
+  expect(result.errorsByOutput.get("out")).toBeUndefined();
+
+  const value = result.results.get("out");
+  if (value?.kind !== "semantic") throw new Error(`se esperaba un resultado CPA, y llegó ${value?.kind}`);
+  return value.result;
+}
+
+describe("dividir un grupo de cartas", () => {
+  test("entre 2 pinta la mitad, no el grupo entero", async () => {
+    const result = await divisionResult(2);
+    expect(result.totalAmount).toBe(3);
+    expect(result.visualStrip).toHaveLength(3);
+  });
+
+  test("entre 3 el total es exacto", async () => {
+    // Sumando cada entrada por separado daban 1.9999999999999998.
+    const result = await divisionResult(3);
+    expect(result.totalAmount).toBe(2);
+    expect(result.visualStrip).toHaveLength(2);
+  });
+
+  test("con resto, la tira no inventa un objeto entero", async () => {
+    const result = await divisionResult(4);
+    expect(result.totalAmount).toBe(1.5);
+    expect(result.visualStrip).toHaveLength(1);
+    expect(result.description).toContain("3/2");
+  });
+});
+
 describe("los errores van a la salida que apagan", () => {
   test("un error de ejecución no apaga la otra salida", async () => {
     const { nodes, edges } = twoFlows("division", conectado);

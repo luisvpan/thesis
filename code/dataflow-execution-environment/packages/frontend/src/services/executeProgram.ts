@@ -431,7 +431,9 @@ function buildVisualStrip(entries: readonly Entry[]): ResultVisualItem[] {
   const strip: ResultVisualItem[] = [];
 
   for (const entry of entries) {
-    const n = Math.max(0, Math.min(24, Math.round(getAmount(entry) || 0)));
+    // Hacia abajo, nunca hacia arriba: media manzana no se dibuja como una
+    // manzana entera. La fracción exacta la lleva el texto (`fractionStr`).
+    const n = Math.max(0, Math.min(24, Math.floor(getAmount(entry) || 0)));
     if (n === 0) continue;
 
     const color = entry.attributes.color ?? "verde";
