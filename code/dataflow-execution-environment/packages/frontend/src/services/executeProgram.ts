@@ -19,6 +19,7 @@ import { logger } from "@/lib/logger";
 import { jsonReplacer, toJsonSafe } from "@/utils/jsonReplacer";
 import { describeCountedNoun, nounForm } from "@/utils/spanishGrammar";
 import { describeNode } from "@/utils/describeNode";
+import { isDrawableFraction } from "@/components/dataflow/fractionGeometry";
 
 // ============================================================================
 // Tipos para agrupación jerárquica de resultados
@@ -71,12 +72,19 @@ export type ResultVisualForma = {
 export type ResultVisualComida = { kind: "comida"; subtype: string; color: string };
 export type ResultVisualCap = { kind: "cap"; color: string };
 export type ResultVisualStick = { kind: "stick"; color: string };
-export type ResultVisualItem =
+/** La porción presente de un objeto incompleto: `n` de `d` regiones. */
+export type VisualFraction = { numerator: number; denominator: number };
+
+export type ResultVisualItem = (
   | ResultVisualMontessori
   | ResultVisualForma
   | ResultVisualComida
   | ResultVisualCap
-  | ResultVisualStick;
+  | ResultVisualStick
+) & {
+  /** Si está, el objeto se pinta incompleto en vez de entero. */
+  fraction?: VisualFraction;
+};
 
 /** Metadata for single CPA object rendering */
 export type SingleCpaObjectMeta = {
@@ -427,39 +435,61 @@ function impliedColor(typeKey: string, subtype: string): string | undefined {
 
 const MAX_VISUAL_UNITS = 48;
 
+/** El glifo que le corresponde a una entrada, sin cantidad todavía. */
+function visualItemOf(entry: Entry): ResultVisualItem | null {
+  const color = entry.attributes.color ?? "verde";
+  const size = entry.attributes.size ?? "mediano";
+
+  switch (entry.type) {
+    case "montessori":
+      return { kind: "montessori", color };
+    case "forma":
+      return { kind: "forma", subtype: entry.subtype, size, color };
+    case "comida":
+      return { kind: "comida", subtype: entry.subtype, color };
+    case "cap":
+      return { kind: "cap", color };
+    case "stick":
+      return { kind: "stick", color };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Lo que sobra tras los objetos enteros, como `n` de `d` regiones. `null` si la
+ * cantidad es exacta, si es negativa —no hay objeto incompleto que pintar— o si
+ * el denominador se dispara: ahí la fracción solo se lee en el texto.
+ */
+function fractionalPart(entry: Entry): VisualFraction | null {
+  const qty = entry.quantity as unknown as { n?: unknown; d?: unknown; s?: unknown };
+  if (typeof qty.n !== "bigint" || typeof qty.d !== "bigint") return null;
+  if (qty.s === -1n) return null;
+
+  const numerator = Number(qty.n % qty.d);
+  const denominator = Number(qty.d);
+
+  return isDrawableFraction(numerator, denominator) ? { numerator, denominator } : null;
+}
+
 function buildVisualStrip(entries: readonly Entry[]): ResultVisualItem[] {
   const strip: ResultVisualItem[] = [];
 
   for (const entry of entries) {
-    // Hacia abajo, nunca hacia arriba: media manzana no se dibuja como una
-    // manzana entera. La fracción exacta la lleva el texto (`fractionStr`).
-    const n = Math.max(0, Math.min(24, Math.floor(getAmount(entry) || 0)));
-    if (n === 0) continue;
+    const item = visualItemOf(entry);
+    if (!item) continue;
 
-    const color = entry.attributes.color ?? "verde";
-    const size = entry.attributes.size ?? "mediano";
+    // Los enteros primero y el resto al final, como un número mixto: 3/2
+    // manzanas son una manzana y otra a la que le falta la mitad.
+    const whole = Math.max(0, Math.min(24, Math.floor(getAmount(entry) || 0)));
 
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < whole; i++) {
       if (strip.length >= MAX_VISUAL_UNITS) return strip;
-
-      switch (entry.type) {
-        case "montessori":
-          strip.push({ kind: "montessori", color });
-          break;
-        case "forma":
-          strip.push({ kind: "forma", subtype: entry.subtype, size, color });
-          break;
-        case "comida":
-          strip.push({ kind: "comida", subtype: entry.subtype, color });
-          break;
-        case "cap":
-          strip.push({ kind: "cap", color });
-          break;
-        case "stick":
-          strip.push({ kind: "stick", color });
-          break;
-      }
+      strip.push({ ...item });
     }
+
+    const fraction = fractionalPart(entry);
+    if (fraction && strip.length < MAX_VISUAL_UNITS) strip.push({ ...item, fraction });
   }
 
   return strip;

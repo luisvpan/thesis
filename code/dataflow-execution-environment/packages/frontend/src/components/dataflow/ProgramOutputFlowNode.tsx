@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { Hourglass, Loader2, TriangleAlert, Volume2 } from 'lucide-react';
@@ -20,6 +20,8 @@ import {
   FormaGlyph,
   ComidaGlyph,
 } from './CpaGlyphs';
+import { FractionGlyph } from './FractionGlyph';
+import { isDrawableFraction } from './fractionGeometry';
 import type {
   OutputErrorInfo,
   ResultVisualItem,
@@ -77,6 +79,13 @@ const ANSWER_TEXT_CLASS = 'text-2xl font-black leading-snug tracking-wide text-t
 /** Mismo tamaño que ANSWER_TEXT_CLASS, en tono de error. */
 const ERROR_TEXT_CLASS = 'text-2xl font-black leading-snug tracking-wide text-red-400';
 
+/** Lo que sobra del último objeto, como `n` de `d` regiones; `null` si está entero. */
+function partialOf(meta: SingleCpaObjectMeta): { numerator: number; denominator: number } | null {
+  const denominator = Number(meta.denominator);
+  const numerator = Number(meta.numerator) % denominator;
+  return isDrawableFraction(numerator, denominator) ? { numerator, denominator } : null;
+}
+
 function SingleCpaGlyphStrip({
   meta,
   viewMode,
@@ -85,38 +94,43 @@ function SingleCpaGlyphStrip({
   viewMode: ResultViewMode;
 }) {
   const { type, subtype, color, size, quantity } = meta;
-  const count = Math.min(quantity, MAX_GLYPHS);
-  const overflow = quantity - count;
+  const whole = Math.min(Math.max(0, Math.floor(quantity)), MAX_GLYPHS);
+  const overflow = Math.max(0, Math.floor(quantity)) - whole;
   const generic = viewMode === 'pictorico';
 
-  const glyphs = Array.from({ length: count }, (_, i) => {
-    const key = `glyph-${i}`;
+  const glyph = () => {
     switch (type) {
       case 'montessori':
-        return <MontessoriCubeGlyph key={key} color={color} generic={generic} large />;
+        return <MontessoriCubeGlyph color={color} generic={generic} large />;
       case 'cap':
-        return <CapGlyph key={key} color={color} generic={generic} large />;
+        return <CapGlyph color={color} generic={generic} large />;
       case 'stick':
-        return <StickGlyph key={key} color={color} generic={generic} large />;
+        return <StickGlyph color={color} generic={generic} large />;
       case 'forma':
-        return (
-          <FormaGlyph
-            key={key}
-            subtype={subtype}
-            color={color}
-            size={size}
-            generic={generic}
-            large
-          />
-        );
+        return <FormaGlyph subtype={subtype} color={color} size={size} generic={generic} large />;
       case 'comida':
-        return <ComidaGlyph key={key} subtype={subtype} color={color} generic={generic} large />;
+        return <ComidaGlyph subtype={subtype} color={color} generic={generic} large />;
       default:
         return null;
     }
-  });
+  };
 
-  if (count === 0) {
+  const glyphs: ReactNode[] = Array.from({ length: whole }, (_, i) => (
+    <Fragment key={`glyph-${i}`}>{glyph()}</Fragment>
+  ));
+
+  // El último va incompleto cuando la cantidad no es entera: 3/2 manzanas son
+  // una manzana y otra a la que le falta la mitad.
+  const partial = partialOf(meta);
+  if (partial) {
+    glyphs.push(
+      <FractionGlyph key="glyph-parcial" {...partial}>
+        {glyph()}
+      </FractionGlyph>
+    );
+  }
+
+  if (glyphs.length === 0) {
     return <span className="text-slate-500 text-sm italic">vacío</span>;
   }
 

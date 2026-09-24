@@ -98,11 +98,27 @@ describe("dividir un grupo de cartas", () => {
     expect(result.visualStrip).toHaveLength(2);
   });
 
-  test("con resto, la tira no inventa un objeto entero", async () => {
+  test("con resto, el último objeto va incompleto", async () => {
     const result = await divisionResult(4);
     expect(result.totalAmount).toBe(1.5);
-    expect(result.visualStrip).toHaveLength(1);
     expect(result.description).toContain("3/2");
+
+    // Una manzana entera y otra a la que le falta la mitad.
+    expect(result.visualStrip).toHaveLength(2);
+    expect(result.visualStrip[0].fraction).toBeUndefined();
+    expect(result.visualStrip[1].fraction).toEqual({ numerator: 1, denominator: 2 });
+  });
+
+  test("sin parte entera, el objeto es solo la porción presente", async () => {
+    const result = await divisionResult(7);
+    expect(result.visualStrip).toHaveLength(1);
+    expect(result.visualStrip[0].fraction).toEqual({ numerator: 6, denominator: 7 });
+  });
+
+  test("un denominador ilegible se queda solo en el texto", async () => {
+    const result = await divisionResult(13);
+    expect(result.visualStrip).toHaveLength(0);
+    expect(result.description).toContain("6/13");
   });
 });
 

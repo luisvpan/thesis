@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { ResultVisualItem } from '@/services/executeProgram';
 import {
   MontessoriCubeGlyph,
@@ -6,6 +7,7 @@ import {
   CapGlyph,
   StickGlyph,
 } from './CpaGlyphs';
+import { FractionGlyph } from './FractionGlyph';
 
 type ResultArrayVisualProps = {
   items: ResultVisualItem[];
@@ -17,30 +19,37 @@ type ResultArrayVisualProps = {
 
 const MAX_SHOW = 36;
 
-function renderGlyph(item: ResultVisualItem, index: number, large: boolean) {
-  const key = `v-${index}`;
+function glyphFor(item: ResultVisualItem, large: boolean) {
   switch (item.kind) {
     case 'montessori':
-      return <MontessoriCubeGlyph key={key} color={item.color} large={large} />;
+      return <MontessoriCubeGlyph color={item.color} large={large} />;
     case 'forma':
       return (
-        <FormaGlyph
-          key={key}
-          subtype={item.subtype}
-          size={item.size}
-          color={item.color}
-          large={large}
-        />
+        <FormaGlyph subtype={item.subtype} size={item.size} color={item.color} large={large} />
       );
     case 'cap':
-      return <CapGlyph key={key} color={item.color} large={large} />;
+      return <CapGlyph color={item.color} large={large} />;
     case 'stick':
-      return <StickGlyph key={key} color={item.color} large={large} />;
+      return <StickGlyph color={item.color} large={large} />;
     case 'comida':
-      return <ComidaGlyph key={key} subtype={item.subtype} color={item.color} large={large} />;
+      return <ComidaGlyph subtype={item.subtype} color={item.color} large={large} />;
     default:
       return null;
   }
+}
+
+function renderGlyph(item: ResultVisualItem, index: number, large: boolean) {
+  const key = `v-${index}`;
+  const glyph = glyphFor(item, large);
+  if (!glyph) return null;
+
+  if (!item.fraction) return <Fragment key={key}>{glyph}</Fragment>;
+
+  return (
+    <FractionGlyph key={key} {...item.fraction}>
+      {glyph}
+    </FractionGlyph>
+  );
 }
 
 export function ResultArrayVisual({
