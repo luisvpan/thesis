@@ -45,10 +45,10 @@ export interface OperationSignature {
   maxArity: number | null;
   result: ValueCategory;
   /**
-   * Si agrupa por identidad antes de actuar (§3, convenciones). Las que agregan
-   * para ordenar o seleccionar (`order`, `less_than`, `greater_than`) dejan
-   * fuera las entradas abstractas: cada carta de número se ordena o se compara
-   * por separado.
+   * Si agrupa por identidad antes de actuar (§3, convenciones). Todas menos la
+   * aritmética que suma (`sum`, `substract`) dejan fuera las entradas
+   * abstractas: cada carta de número se escala, se ordena o se compara por
+   * separado.
    */
   aggregates: boolean;
 }
@@ -62,8 +62,8 @@ export const SIGNATURES: Record<Operation, OperationSignature> = {
   // §3.1 Aritmética
   sum: { parameters: [], rest: BOLSA, minArity: 1, maxArity: null, result: "bolsa", aggregates: true },
   substract: { parameters: [BOLSA, BOLSA], minArity: 2, maxArity: 2, result: "bolsa", aggregates: true },
-  multiply: { parameters: [BOLSA, NUMERO], minArity: 2, maxArity: 2, result: "bolsa", aggregates: false },
-  divide: { parameters: [BOLSA, NUMERO], minArity: 2, maxArity: 2, result: "bolsa", aggregates: false },
+  multiply: { parameters: [BOLSA, NUMERO], minArity: 2, maxArity: 2, result: "bolsa", aggregates: true },
+  divide: { parameters: [BOLSA, NUMERO], minArity: 2, maxArity: 2, result: "bolsa", aggregates: true },
 
   // §3.2 Comparación
   less_than: { parameters: [BOLSA, NUMERO], minArity: 2, maxArity: 2, result: "bolsa", aggregates: true },

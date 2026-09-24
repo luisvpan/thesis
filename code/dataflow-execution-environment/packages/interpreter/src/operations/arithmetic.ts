@@ -3,7 +3,7 @@
 import { aggregate, bag, identityKey, withQuantity } from "../runtime/bag";
 import { DataflowError } from "../runtime/errors";
 import * as rational from "../runtime/rational";
-import type { Entry, RuntimeValue } from "../runtime/types";
+import type { Bag, Entry, RuntimeValue } from "../runtime/types";
 import { bagAt, scalarAt } from "./helpers";
 
 /**
@@ -51,9 +51,22 @@ export function substract(args: RuntimeValue[]): RuntimeValue {
 }
 
 /**
+ * La bolsa a escalar, en forma reducida. `multiply` y `divide` **fabrican**
+ * cantidades, así que emiten la forma canónica: la agrupación que traen sus
+ * argumentos es la que el niño puso sobre la mesa, y escalarla entrada por
+ * entrada inventaría pilas que nadie colocó —seis medias manzanas donde hay
+ * tres— que luego `first` y `last` leerían como si fueran reales (§3.1.3-4).
+ *
+ * Lo abstracto queda fuera de la agrupación: cada carta de número es una unidad
+ * aparte, y fundirlas daría `multiply({7,2,5}, 2) = {28}` (§3, convenciones).
+ */
+function scalable(value: Bag): Entry[] {
+  return aggregate({ entries: value.entries, keep: "abstracto" });
+}
+
+/**
  * `multiply(bolsa, número) → bolsa` — binaria. La posición desambigua: el
- * segundo argumento es siempre el escalar (§3.1.3). Opera **entrada por
- * entrada** y conserva los repetidos.
+ * segundo argumento es siempre el escalar (§3.1.3).
  */
 export function multiply(args: RuntimeValue[]): RuntimeValue {
   const value = bagAt(args, 0, "multiply");
@@ -61,12 +74,12 @@ export function multiply(args: RuntimeValue[]): RuntimeValue {
 
   if (scalar === null) return value;
 
-  return bag(value.entries.map((entry) => withQuantity(entry, rational.multiply(entry.quantity, scalar))));
+  return bag(scalable(value).map((entry) => withQuantity(entry, rational.multiply(entry.quantity, scalar))));
 }
 
 /**
  * `divide(bolsa, número) → bolsa` — binaria. El segundo argumento es el divisor
- * (§3.1.4). Como `multiply`, opera entrada por entrada.
+ * (§3.1.4). Como `multiply`, agrupa antes de escalar.
  */
 export function divide(args: RuntimeValue[]): RuntimeValue {
   const value = bagAt(args, 0, "divide");
@@ -78,5 +91,5 @@ export function divide(args: RuntimeValue[]): RuntimeValue {
     throw new DataflowError("DIVISION_BY_ZERO", "divide no admite el divisor 0", { argumentIndex: 1 });
   }
 
-  return bag(value.entries.map((entry) => withQuantity(entry, rational.divide(entry.quantity, divisor))));
+  return bag(scalable(value).map((entry) => withQuantity(entry, rational.divide(entry.quantity, divisor))));
 }

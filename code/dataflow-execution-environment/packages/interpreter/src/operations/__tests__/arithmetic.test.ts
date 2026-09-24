@@ -88,10 +88,22 @@ describe("multiply — §3.1.3", () => {
     ]);
   });
 
-  test("opera entrada por entrada y conserva los repetidos", () => {
+  test("agrupa los repetidos antes de escalar", () => {
     expect(pairs(multiply([bagOf(entry("manzana", 2), entry("manzana", 3)), num(4)]))).toEqual([
-      "manzana:8",
-      "manzana:12",
+      "manzana:20",
+    ]);
+  });
+
+  test("las cartas de número no se funden entre sí", () => {
+    const numbers = bagOf(
+      entry("racional", 7, {}, { category: "abstracto", type: "numero" }),
+      entry("racional", 2, {}, { category: "abstracto", type: "numero" }),
+      entry("racional", 5, {}, { category: "abstracto", type: "numero" })
+    );
+    expect(pairs(multiply([numbers, num(2)]))).toEqual([
+      "racional:14",
+      "racional:4",
+      "racional:10",
     ]);
   });
 
@@ -125,6 +137,19 @@ describe("divide — §3.1.4", () => {
 
   test("el resultado es exacto", () => {
     expect(pairs(divide([bagOf(entry("manzana", 1)), num(3)]))).toEqual(["manzana:1/3"]);
+  });
+
+  test("agrupa los repetidos antes de dividir", () => {
+    // Seis cartas de manzana entre 2 son tres manzanas, no seis medias: la
+    // operación no fabrica pilas que nadie puso sobre la mesa.
+    const six = bagOf(...Array.from({ length: 6 }, () => entry("manzana", 1)));
+    expect(pairs(divide([six, num(2)]))).toEqual(["manzana:3"]);
+  });
+
+  test("da lo mismo sobre dos bolsas denotacionalmente iguales", () => {
+    const loose = bagOf(entry("manzana", 1), entry("manzana", 1), entry("manzana", 1));
+    const grouped = bagOf(entry("manzana", 3));
+    expect(pairs(divide([loose, num(2)]))).toEqual(pairs(divide([grouped, num(2)])));
   });
 
   test("el divisor 0 es error de ejecución", () => {

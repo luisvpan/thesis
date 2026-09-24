@@ -1,6 +1,6 @@
 # Especificación del Lenguaje Dataflow
 
-**Versión:** 0.4.0 (borrador)
+**Versión:** 0.5.0 (borrador)
 **Fecha:** 2026-09-24
 **Estado:** Documento vivo — se actualiza a medida que la implementación revela casos borde o mejores diseños.
 
@@ -259,8 +259,8 @@ Convenciones comunes a todas las operaciones (no se repiten en cada ficha):
 
 - **Ignoran `nulo`**: un argumento `nulo` se trata como ausente.
 - **Conservan el orden** de las entradas; solo la operación de orden lo altera.
-- **Agrupación (bolsa vs vector).** Como una bolsa admite entradas repetidas de la misma identidad, cada operación indica si **agrupa** (colapsa los repetidos por identidad antes de actuar) o trabaja **entrada por entrada**. Las cantidades 0 se conservan siempre en el resultado. Cuando agrupar o no da el mismo vector, la elección es indistinta y la ficha lo señala (se prefiere entrada por entrada).
-- **Las entradas abstractas no se agrupan al ordenar ni al seleccionar.** Las operaciones que agrupan para **ordenar o seleccionar** (`less_than`, `greater_than` y `order`) dejan fuera de esa agrupación las entradas de categoría `abstracto`: cada una se ordena o se compara por separado. La razón es que un número es, casi siempre, una unidad que el usuario colocó para ordenarla o compararla con otras, y colapsar `{ número↦7, número↦2, número↦5 }` en `{ número↦14 }` dejaría sin nada que ordenar justo en el caso más común. Las entradas `concreto` y `pictórico` sí se agrupan, porque ahí los repetidos de una misma identidad son el mismo objeto contado varias veces. La **aritmética** (`sum`, `substract`) agrupa todo, sin excepción: para eso está.
+- **Agrupación (bolsa vs vector).** Como una bolsa admite entradas repetidas de la misma identidad, cada operación indica si **agrupa** (colapsa los repetidos por identidad antes de actuar) o trabaja **entrada por entrada**. Las cantidades 0 se conservan siempre en el resultado. Cuando agrupar o no da el mismo vector, **se agrupa**: la elección es indistinta para el vector, pero no para lo que venga después, porque las operaciones de acceso (§3.5) leen la representación. Una operación que **fabrica** cantidades y no agrupara inventaría agrupaciones que nadie colocó —seis medias manzanas donde hay tres—, y `first` las leería como si fueran reales. Así, la agrupación que sobrevive en una bolsa es siempre la de las **fuentes**: la disposición física sobre la mesa.
+- **Las entradas abstractas no se agrupan, salvo al sumar.** Las operaciones que agrupan para **escalar, ordenar o seleccionar** (`multiply`, `divide`, `less_than`, `greater_than` y `order`) dejan fuera de esa agrupación las entradas de categoría `abstracto`: cada una se escala, se ordena o se compara por separado. La razón es que un número es, casi siempre, una unidad que el usuario colocó para ordenarla, compararla o escalarla junto a otras, y colapsar `{ número↦7, número↦2, número↦5 }` en `{ número↦14 }` dejaría sin nada que ordenar justo en el caso más común (o daría `{ número↦28 }` al duplicar, en vez de `{ número↦14, número↦4, número↦10 }`). Las entradas `concreto` y `pictórico` sí se agrupan, porque ahí los repetidos de una misma identidad son el mismo objeto contado varias veces. La **aritmética** (`sum`, `substract`) agrupa todo, sin excepción: para eso está.
 - La **Firma** indica cuántos argumentos admite cada operación; pasar un número de argumentos que no corresponde es un **error de aridad**.
 - La **Firma** indica el tipo de cada argumento; pasar un argumento de otro tipo (una bolsa donde se espera un criterio, o al revés) es un **error de tipo**.
 
@@ -319,15 +319,16 @@ substract({ manzana↦1 }, { pera↦2 })             = { manzana↦1, pera↦-2 
 
 **Firma:** `multiply(bolsa, número) → bolsa` — binaria. El primer argumento es la bolsa a escalar; el segundo, un **número** que actúa como **escalar**.
 
-**Resumen.** Escala la bolsa: multiplica la cantidad de cada una de sus entradas por el escalar (escalar × vector).
+**Resumen.** Escala la bolsa: multiplica por el escalar la cantidad de cada identidad (escalar × vector).
 
 **Pasos** (`multiply(a, k) → valor`):
 
 1. Sea `s` el valor del número `k` (el escalar).
-2. Multiplicar por `s` la cantidad de cada entrada de `a`.
-3. Devolver la bolsa resultante.
+2. **Agrupar `a` por identidad** (sumar los repetidos), salvo las entradas **abstractas**, que se escalan una por una.
+3. Multiplicar por `s` la cantidad de cada entrada resultante.
+4. Devolver la bolsa resultante.
 
-**Nota.** La **posición** desambigua el papel del número: el segundo argumento siempre se interpreta como escalar, no como un objeto CPA. Opera **entrada por entrada** y conserva los repetidos; agrupar primero daría el mismo vector (el escalado distribuye), así que la elección es indistinta.
+**Nota.** La **posición** desambigua el papel del número: el segundo argumento siempre se interpreta como escalar, no como un objeto CPA. **Agrupa por identidad** antes de escalar: el escalado distribuye, así que el vector es el mismo de una forma u otra, pero escalar entrada por entrada dejaría en el resultado una agrupación que la operación se inventó y que `first` y `last` leerían como real (§3, convenciones).
 
 **Errores.** Ninguno propio.
 
@@ -336,8 +337,9 @@ substract({ manzana↦1 }, { pera↦2 })             = { manzana↦1, pera↦-2 
 ```
 multiply({ manzana↦2 }, { número↦3 })            = { manzana↦6 }
 multiply({ manzana↦2, pera↦5 }, { número↦10 })   = { manzana↦20, pera↦50 }
-multiply({ manzana↦2, manzana↦3 }, { número↦4 }) = { manzana↦8, manzana↦12 }
+multiply({ manzana↦2, manzana↦3 }, { número↦4 }) = { manzana↦20 }
 multiply({ número↦2 }, { número↦3 })             = { número↦6 }
+multiply({ número↦7, número↦2 }, { número↦2 })   = { número↦14, número↦4 }
 multiply({ manzana↦2 }, { número↦1/2 })          = { manzana↦1 }
 ```
 
@@ -345,16 +347,17 @@ multiply({ manzana↦2 }, { número↦1/2 })          = { manzana↦1 }
 
 **Firma:** `divide(bolsa, número) → bolsa` — binaria. El primer argumento es la bolsa; el segundo, un **número** que actúa como **divisor**.
 
-**Resumen.** Divide la bolsa: divide la cantidad de cada una de sus entradas entre el divisor (escalar⁻¹ × vector).
+**Resumen.** Divide la bolsa: divide entre el divisor la cantidad de cada identidad (escalar⁻¹ × vector).
 
 **Pasos** (`divide(a, k) → valor`):
 
 1. Sea `d` el valor del número `k` (el divisor).
 2. Si `d = 0`, es un error (división por cero).
-3. Dividir por `d` la cantidad de cada entrada de `a`.
-4. Devolver la bolsa resultante.
+3. **Agrupar `a` por identidad** (sumar los repetidos), salvo las entradas **abstractas**, que se dividen una por una.
+4. Dividir por `d` la cantidad de cada entrada resultante.
+5. Devolver la bolsa resultante.
 
-**Nota.** Como `multiply`, opera **entrada por entrada** y conserva los repetidos; agrupar primero daría el mismo vector.
+**Nota.** Como `multiply`, **agrupa por identidad** antes de dividir. Es lo que hace que seis cartas de manzana entre 2 sean `{ manzana↦3 }` y no seis medias manzanas: la operación no fabrica pilas que nadie colocó sobre la mesa.
 
 **Errores.** División por cero: si el divisor es 0.
 
@@ -363,6 +366,7 @@ multiply({ manzana↦2 }, { número↦1/2 })          = { manzana↦1 }
 ```
 divide({ manzana↦6 }, { número↦2 })              = { manzana↦3 }
 divide({ manzana↦6, pera↦4 }, { número↦2 })      = { manzana↦3, pera↦2 }
+divide({ manzana↦1, manzana↦1 }, { número↦2 })   = { manzana↦1 }
 divide({ manzana↦1 }, { número↦3 })              = { manzana↦1/3 }
 ```
 
@@ -521,7 +525,7 @@ filter({ estrella(roja)↦2, estrella(azul)↦1, círculo(roja)↦3 },
 
 ### 3.5 Acceso
 
-Las operaciones de acceso leen el **orden actual** de la bolsa; por eso suelen combinarse con una operación de orden previa. Trabajan **entrada por entrada** (no agrupan): sobre una bolsa con repetidos de una misma identidad, seleccionan una entrada individual, no su total.
+Las operaciones de acceso leen el **orden actual** de la bolsa; por eso suelen combinarse con una operación de orden previa. Trabajan **entrada por entrada** (no agrupan): sobre una bolsa con repetidos de una misma identidad, seleccionan una entrada individual, no su total. Esos repetidos vienen siempre de las **fuentes** —la disposición física sobre la mesa—, porque las operaciones que fabrican cantidades entregan la forma agrupada (§3, convenciones); así, señalar "la primera" señala una carta que el usuario puso, no una pila inventada por una operación.
 
 #### 3.5.1 `first` — primera
 

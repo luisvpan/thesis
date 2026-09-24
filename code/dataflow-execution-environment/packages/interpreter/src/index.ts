@@ -69,4 +69,8 @@ export type {
 
 export { isBag, isBoolean, isCriterion } from "./runtime/types";
 
+// La forma reducida de una bolsa (§1.2.2): una entrada por identidad. Es la
+// única manera de pedir su denotación desde fuera.
+export { aggregate, type AggregateOptions } from "./runtime/bag";
+
 export { OPERATIONS, isOperation } from "./operations/signatures";
