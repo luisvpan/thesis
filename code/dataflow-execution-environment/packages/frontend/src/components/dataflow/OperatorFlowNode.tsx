@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Node, NodeProps, Edge } from '@xyflow/react';
-import { Position, useReactFlow } from '@xyflow/react';
+import { Position } from '@xyflow/react';
 import { ClickableHandle } from './ClickableHandle';
 import {
   type OperatorType,
-  type DivisionMode,
   isFilterOperatorType,
   isMathOperatorType,
   isSingleInputOperatorType,
@@ -15,10 +14,9 @@ import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import type { NodeErrorMark } from '@/contexts/node/errorMarks';
 import { useNode } from '@/contexts/NodeContext';
-import type { DataflowNode, PortKindInfo } from '@/contexts/node/types';
+import type { PortKindInfo } from '@/contexts/node/types';
 import type { HandleKind } from './handle-kinds';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
-import type { SourceFlowNodeData } from './SourceFlowNode';
 import type { ProgramOutputFlowNodeData } from './ProgramOutputFlowNode';
 
 export type OperatorFlowNodeData = VisionNodeMeta &
@@ -37,8 +35,6 @@ export type OperatorFlowNodeData = VisionNodeMeta &
     operator: OperatorType;
     /** Resumen numérico en la carta del operador (sincronizado con `value`). */
     result?: number;
-    /** Modo de visualización para división: partitivo o cuotativo. Solo aplica cuando operator === 'division'. */
-    divisionMode?: DivisionMode;
     /** Criterio implícito para operadores de ordenamiento (ej: smallest_to_largest tiene criterio size). */
     criterio?: OrderCriterio;
     /** Papel de la carta en el error de una salida, si lo tiene (§4). */
@@ -140,55 +136,16 @@ function useOutputKind(
   }, [nodeId, operator, edges, getPortKindInfo]);
 }
 
-/**
- * Determina si el input "a" de una división está conectado a un CPA (no a un número).
- * Usado para mostrar/ocultar el toggle partitivo/cuotativo.
- */
-function useDivisionHasCpaInput(
-  nodeId: string,
-  operator: OperatorType,
-  nodes: DataflowNode[],
-  edges: Edge[]
-): boolean {
-  return useMemo(() => {
-    if (operator !== 'division') return false;
-    const aEdge = edges.find((e) => e.target === nodeId && e.targetHandle === 'a');
-    if (!aEdge) return false;
-    const aSource = nodes.find((n) => n.id === aEdge.source);
-    if (!aSource) return false;
-    if (aSource.type === 'source') {
-      const d = aSource.data as SourceFlowNodeData;
-      return d.variant !== 'number';
-    }
-    return aSource.type === 'operator' || aSource.type === 'arrayClose';
-  }, [nodeId, operator, nodes, edges]);
-}
-
 export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   const d = (data ?? {}) as OperatorFlowNodeData;
   const operator = d.operator ?? 'adicion';
   const isSingleInputOp = isSingleInputOperatorType(operator);
-  const { registerPortKind, unregisterPortKinds, nodes, edges, getPortKindInfo } = useNode();
-  const { setNodes } = useReactFlow();
+  const { registerPortKind, unregisterPortKinds, edges, getPortKindInfo } = useNode();
   const shellClass = useFlowNodeShellClass();
 
   const acceptsA = getHandleAccepts(operator, 'a');
   const acceptsB = getHandleAccepts(operator, 'b');
   const producesOut = useOutputKind(id, operator, edges, getPortKindInfo);
-
-  // Division toggle: only show when input "a" is CPA (not a number)
-  const showDivisionToggle = useDivisionHasCpaInput(id, operator, nodes, edges);
-  const divisionMode = d.divisionMode ?? 'partitivo';
-
-  const toggleDivisionMode = useCallback(() => {
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === id
-          ? { ...n, data: { ...n.data, divisionMode: divisionMode === 'partitivo' ? 'cuotativo' : 'partitivo' } }
-          : n
-      )
-    );
-  }, [id, divisionMode, setNodes]);
 
   // Register port kinds when component mounts or operator/output changes
   useEffect(() => {
@@ -203,17 +160,6 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
   return (
     <div className={`relative h-52 w-30 -translate-x-[15%] -translate-y-[45%] ${shellClass}`}>
       <TrackIdBadge trackId={readTrackId(d)} />
-      {/* Toggle partitivo/cuotativo para divisiones CPA */}
-      {showDivisionToggle && (
-        <button
-          type="button"
-          onClick={toggleDivisionMode}
-          className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-semibold tracking-wide rounded bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors z-10"
-          title={divisionMode === 'partitivo' ? 'Dividir en N grupos' : 'Grupos de tamaño N'}
-        >
-          {divisionMode === 'partitivo' ? 'Partitiva' : 'Cuotativa'}
-        </button>
-      )}
       <ClickableHandle
         type="target"
         position={Position.Left}

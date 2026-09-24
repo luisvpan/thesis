@@ -33,13 +33,6 @@ import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 import { speakSpanish, type SpeechStatus } from '@/utils/speakSpanish';
 import { buildSinkResultSpeechText } from '@/utils/sinkResultSpeech';
 import { describeCountedNoun } from '@/utils/spanishGrammar';
-// Imports for result rendering heuristics - available for future use
-import {
-  computeMultiplicationGrouping,
-  computeDivisionGrouping,
-  type MultiplicationGrouping,
-  type DivisionGrouping,
-} from './result-rendering-heuristics';
 
 /** Item in an ordered number array */
 export type NumberArrayDisplayItem = {
@@ -281,15 +274,6 @@ function buildSinkBody(
     ),
   };
 }
-
-// Re-export types for external use
-export type { MultiplicationGrouping, DivisionGrouping };
-
-// Re-export functions for external use
-export {
-  computeMultiplicationGrouping,
-  computeDivisionGrouping,
-};
 
 export function ProgramOutputFlowNode({
   id,
