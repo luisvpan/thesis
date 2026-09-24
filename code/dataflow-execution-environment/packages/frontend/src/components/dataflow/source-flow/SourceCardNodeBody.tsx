@@ -32,6 +32,7 @@ export function SourceCardNodeBody({
       subtitle={subtitle}
       className={cardStyleClassName}
       showHeader={showHeader}
+      errorMark={data.errorMark}
     />
   );
 }

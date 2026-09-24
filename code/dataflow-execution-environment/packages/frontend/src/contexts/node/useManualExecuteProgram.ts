@@ -2,6 +2,7 @@ import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction 
 import type { Edge } from "@xyflow/react";
 import type { ProgramExecutor, ResultValue } from "@/services/executeProgram";
 import { mergeProgramOutputsFromResults } from "./mergeProgramOutputsFromResults";
+import { applyErrorMarks } from "./errorMarks";
 import type { DataflowNode } from "./types";
 import { logger } from "@/lib/logger";
 
@@ -33,7 +34,11 @@ export function useManualExecuteProgram(
       // resultados y los errores a la vez, cada uno a su carta.
       setEvalResults(new Map(result.results));
       setNodes((nds) =>
-        mergeProgramOutputsFromResults(nds, result.results, result.errorsByOutput)
+        applyErrorMarks(
+          mergeProgramOutputsFromResults(nds, result.results, result.errorsByOutput),
+          edges,
+          result.errorsByOutput
+        )
       );
       setExecutionError(result.programError);
 

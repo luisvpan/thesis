@@ -27,6 +27,7 @@ import type {
 } from '@/services/executeProgram';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import type { NodeErrorMark } from '@/contexts/node/errorMarks';
 import { FLOW_NODE_INTERACTIVE_CLASS } from './flowNodeChrome';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 import { speakSpanish, type SpeechStatus } from '@/utils/speakSpanish';
@@ -70,6 +71,8 @@ export type ProgramOutputFlowNodeData = VisionNodeMeta & {
   booleanValue?: boolean;
   /** Los errores que apagaron esta salida en la última ejecución (§4). */
   errors?: OutputErrorInfo[];
+  /** Papel de la carta en ese error; en una salida, siempre `sink`. */
+  errorMark?: NodeErrorMark;
 };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
@@ -358,6 +361,7 @@ export function ProgramOutputFlowNode({
           headerRight={headerRight}
           resultVisual={resultVisual}
           actionButton={speechButton}
+          errorMark={data.errorMark}
         />
         <ClickableHandle
           type="source"

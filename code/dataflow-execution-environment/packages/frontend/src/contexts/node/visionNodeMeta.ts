@@ -35,9 +35,10 @@ export const EVAL_RESULT_DISPLAY_KEYS = [
   "denominator",
   "result",
   "booleanValue",
-  // Los errores de la última ejecución: son consecuencia del programa, no parte
-  // de él, así que no deben invalidar su hash.
+  // Los errores de la última ejecución y las marcas que ponen en las cartas: son
+  // consecuencia del programa, no parte de él, así que no invalidan su hash.
   "errors",
+  "errorMark",
 ] as const;
 
 /** Copia de `data` sin metadatos de tracking (para hashes / comparación estable). */

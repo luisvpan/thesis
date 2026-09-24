@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { NodeErrorMark } from "@/contexts/node/errorMarks";
+import { NodeErrorBadge } from "./NodeErrorBadge";
 
 type SinkFlowNodeCardProps = {
   /** Texto principal (descripción semántica, error, valor, etc.) */
@@ -7,6 +9,8 @@ type SinkFlowNodeCardProps = {
   resultVisual?: ReactNode;
   /** Botón de "Escuchar" (u otra acción), mostrado junto al texto del resultado. */
   actionButton?: ReactNode;
+  /** Distintivo de error de esta salida; al pulsarlo cuenta qué pasó (§4). */
+  errorMark?: NodeErrorMark;
   className?: string;
 };
 
@@ -18,12 +22,14 @@ export function SinkFlowNodeCard({
   headerRight,
   resultVisual,
   actionButton,
+  errorMark,
   className = "",
 }: SinkFlowNodeCardProps) {
   return (
     <div
-      className={`flex w-full flex-col gap-3 px-3 pb-3 text-white ${className}`}
+      className={`relative flex w-full flex-col gap-3 px-3 pb-3 text-white ${className}`}
     >
+      <NodeErrorBadge mark={errorMark} />
       <div className="ml-36 flex w-full items-end gap-3 text-md font-semibold leading-snug text-teal-200">
         {actionButton}
       </div>

@@ -6,6 +6,7 @@ import type { ShapeType, ShapeSize, ShapeColor, FoodType, MontessoriColor, CapCo
 import type { CriteriaProperty, CriteriaValues } from '@/data/yoloDeckCatalog';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import type { NodeErrorMark } from '@/contexts/node/errorMarks';
 import { useNode } from '@/contexts/NodeContext';
 import type { HandleKind } from './handle-kinds';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
@@ -13,7 +14,10 @@ import { SOURCE_NODE_WRAPPER_CLASS } from './source-flow/sourceNodeLayout';
 import { renderSourceFlowNodeBody } from './source-flow/renderSourceFlowNodeBody';
 import { isNumberMergeTail } from '@/utils/numberTouchMerge';
 
-type VisionSynced = VisionNodeMeta;
+type VisionSynced = VisionNodeMeta & {
+  /** Papel de la carta en el error de una salida, si lo tiene (§4). */
+  errorMark?: NodeErrorMark;
+};
 
 export type SourceFlowNodeData = VisionSynced &
   (

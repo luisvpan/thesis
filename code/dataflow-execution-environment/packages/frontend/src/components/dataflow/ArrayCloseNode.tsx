@@ -3,6 +3,7 @@ import type { Node, NodeProps } from '@xyflow/react';
 import { Position } from '@xyflow/react';
 import { useNode } from '@/contexts/NodeContext';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import type { NodeErrorMark } from '@/contexts/node/errorMarks';
 import {
   ARRAY_CLOSE_ZONE_IN_TOP_FRAC,
   ARRAY_ZONE_IN_HANDLE_STYLE,
@@ -12,7 +13,10 @@ import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 
-export type ArrayCloseNodeData = VisionNodeMeta;
+export type ArrayCloseNodeData = VisionNodeMeta & {
+  /** Papel del grupo en el error de una salida, si lo tiene (§4). */
+  errorMark?: NodeErrorMark;
+};
 export type ArrayCloseNode = Node<ArrayCloseNodeData, 'arrayClose'>;
 
 export function ArrayCloseNode({ id, data }: NodeProps<ArrayCloseNode>) {
@@ -41,6 +45,7 @@ export function ArrayCloseNode({ id, data }: NodeProps<ArrayCloseNode>) {
         family="transformation"
         title="Cerrar arreglo"
         content={<span className="text-xs font-black text-slate-100">]</span>}
+        errorMark={data.errorMark}
       />
       <ClickableHandle
         type="source"

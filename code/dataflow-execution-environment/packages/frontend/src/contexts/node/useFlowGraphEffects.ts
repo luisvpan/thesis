@@ -12,6 +12,7 @@ import { computeProgramHash } from "@/services/executeProgram";
 import type { CardDetectionsPayload } from "../VisionContext";
 import { VISION_FLOW_MIN_SIZE } from "./constants";
 import { mergeProgramOutputsFromResults } from "./mergeProgramOutputsFromResults";
+import { applyErrorMarks } from "./errorMarks";
 import { mergeVisionFrameIntoNodes } from "./mergeVisionFrameIntoNodes";
 import { applyNumberTouchMerge } from "@/utils/numberTouchMerge";
 import { logger } from "@/lib/logger";
@@ -124,9 +125,9 @@ export function useFlowGraphEffects({
         setEvalResults(new Map(result.results));
 
         setNodes((nds) => {
-          const merged = mergeProgramOutputsFromResults(
-            nds,
-            result.results,
+          const merged = applyErrorMarks(
+            mergeProgramOutputsFromResults(nds, result.results, result.errorsByOutput),
+            edges,
             result.errorsByOutput
           );
           return merged === nds ? nds : merged;

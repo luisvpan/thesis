@@ -13,6 +13,7 @@ import type { OrderCriterio } from '@/data/yoloDeckCatalog';
 import { FlowNodeCard } from './FlowNodeCard';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
+import type { NodeErrorMark } from '@/contexts/node/errorMarks';
 import { useNode } from '@/contexts/NodeContext';
 import type { DataflowNode, PortKindInfo } from '@/contexts/node/types';
 import type { HandleKind } from './handle-kinds';
@@ -40,6 +41,8 @@ export type OperatorFlowNodeData = VisionNodeMeta &
     divisionMode?: DivisionMode;
     /** Criterio implícito para operadores de ordenamiento (ej: smallest_to_largest tiene criterio size). */
     criterio?: OrderCriterio;
+    /** Papel de la carta en el error de una salida, si lo tiene (§4). */
+    errorMark?: NodeErrorMark;
   };
 
 export type OperatorFlowNode = Node<OperatorFlowNodeData, 'operator'>;
@@ -236,6 +239,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
       ) : null}
       <FlowNodeCard
         family="transformation"
+        errorMark={d.errorMark}
         title={operatorTitle(operator, d.criterio)}
         content={<span className="text-xs font-black text-slate-100">{operatorSymbol(operator)}</span>}
         subtitle={
