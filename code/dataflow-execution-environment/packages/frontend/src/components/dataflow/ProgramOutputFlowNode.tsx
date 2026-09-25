@@ -22,11 +22,8 @@ import {
 } from './CpaGlyphs';
 import { FractionGlyph } from './FractionGlyph';
 import { isDrawableFraction } from './fractionGeometry';
-import type {
-  OutputErrorInfo,
-  ResultVisualItem,
-  SingleCpaObjectMeta,
-} from '@/services/executeProgram';
+import type { OutputErrorInfo, SingleCpaObjectMeta } from '@/services/executeProgram';
+import type { WithResultValue } from '@/utils/resultValueDisplay';
 import { TrackIdBadge } from './TrackIdBadge';
 import { readTrackId, type VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
 import type { NodeErrorMark } from '@/contexts/node/errorMarks';
@@ -36,39 +33,14 @@ import { speakSpanish, type SpeechStatus } from '@/utils/speakSpanish';
 import { buildSinkResultSpeechText } from '@/utils/sinkResultSpeech';
 import { describeCountedNoun } from '@/utils/spanishGrammar';
 
-/** Item in an ordered number array */
-export type NumberArrayDisplayItem = {
-  value: number;
-  numerator: string;
-  denominator: string;
-};
-
-/** Solo frontend: muestra salida tras ejecutar; valor numérico o descripción semántica. */
-export type ProgramOutputFlowNodeData = VisionNodeMeta & {
-  /** Valor numérico para resultados racionales */
-  value?: number;
-  /** Descripción semántica para resultados de arreglo */
-  description?: string;
-  /** Cubos / iconos en orden del arreglo (Montessori, forma, comida). */
-  visualStrip?: ResultVisualItem[];
-  /** Elementos originales sin expandir, para re-ordenamiento en frontend. */
-  originalElements?: unknown[];
-  /** Set to true when result is a single CPAObject (not an array) */
-  isSingleCpaObject?: boolean;
-  /** Metadata for single CPA object rendering */
-  singleCpaObjectMeta?: SingleCpaObjectMeta;
-  /** For exact fraction display of pure rationals (e.g., "13/4" instead of 3.25) */
-  numerator?: string;
-  denominator?: string;
-  /** Ordered array of abstract numbers (e.g., from order) */
-  numberArrayValues?: NumberArrayDisplayItem[];
-  /** Resultado booleano (p. ej. compare). */
-  booleanValue?: boolean;
-  /** Los errores que apagaron esta salida en la última ejecución (§4). */
-  errors?: OutputErrorInfo[];
-  /** Papel de la carta en ese error; en una salida, siempre `sink`. */
-  errorMark?: NodeErrorMark;
-};
+/** Solo frontend: lo que muestra una salida tras ejecutar. */
+export type ProgramOutputFlowNodeData = VisionNodeMeta &
+  WithResultValue & {
+    /** Los errores que apagaron esta salida en la última ejecución (§4). */
+    errors?: OutputErrorInfo[];
+    /** Papel de la carta en ese error; en una salida, siempre `sink`. */
+    errorMark?: NodeErrorMark;
+  };
 
 export type ProgramOutputFlowNode = Node<ProgramOutputFlowNodeData, 'programOutput'>;
 
@@ -198,95 +170,104 @@ function buildSinkBody(
     };
   }
 
-  if (data.booleanValue !== undefined) {
+  const result = data.resultValue;
+
+  if (!result) {
     return {
       headerRight: (
-        <span className="text-3xl font-black uppercase tracking-wide text-white">
-          {data.booleanValue ? 'verdadero' : 'falso'}
+        <span className="flex items-center justify-end gap-1.5 text-slate-500 italic">
+          <Hourglass className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+          Sin resultado
         </span>
       ),
     };
   }
 
-  // Ordered array of abstract numbers (e.g., from order)
-  if (data.numberArrayValues && data.numberArrayValues.length > 0) {
-    const formatted = data.numberArrayValues.map((item) =>
-      formatFractionText(item.numerator, item.denominator)
-    );
-    return {
-      headerRight: (
-        <span className="text-2xl font-black tabular-nums text-white">
-          [{formatted.join(', ')}]
-        </span>
-      ),
-    };
-  }
-
-  if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
-    const meta = data.singleCpaObjectMeta;
-    if (viewMode === 'abstracto') {
-      const num = data.numerator ?? meta.numerator ?? String(meta.quantity);
-      const den = data.denominator ?? meta.denominator ?? '1';
+  // Una forma a la vez, y el compilador comprueba que estén todas: el orden de
+  // las ramas ya no decide nada.
+  switch (result.kind) {
+    case 'boolean':
       return {
         headerRight: (
-          <span className="text-6xl font-black tabular-nums text-white">
-            {formatFraction(num, den)}
+          <span className="text-3xl font-black uppercase tracking-wide text-white">
+            {result.value ? 'verdadero' : 'falso'}
+          </span>
+        ),
+      };
+
+    case 'numberArray': {
+      const formatted = result.values.map((item) =>
+        formatFractionText(item.numerator, item.denominator)
+      );
+      return {
+        headerRight: (
+          <span className="text-2xl font-black tabular-nums text-white">
+            [{formatted.join(', ')}]
           </span>
         ),
       };
     }
-    return {
-      headerRight: (
-        <span className={ANSWER_TEXT_CLASS}>{singleCpaHeaderText(meta, viewMode)}</span>
-      ),
-      resultVisual: <SingleCpaGlyphStrip meta={meta} viewMode={viewMode} />,
-    };
-  }
 
-  if (data.description) {
-    return {
-      headerRight: <span className={ANSWER_TEXT_CLASS}>{data.description}</span>,
-      resultVisual:
-        data.visualStrip && data.visualStrip.length > 0 ? (
-          <ResultArrayVisual items={data.visualStrip} align="start" large />
-        ) : undefined,
-    };
-  }
-
-  if (data.value !== undefined) {
-    if (viewMode === 'pictorico' && Number.isInteger(data.value) && data.value >= 0 && data.value <= 24) {
+    case 'number': {
+      const { value, numerator, denominator } = result;
+      if (viewMode === 'pictorico' && Number.isInteger(value) && value >= 0 && value <= 24) {
+        return {
+          headerRight: <span className="tabular-nums text-white">{value}</span>,
+          resultVisual: (
+            <div className="flex justify-start">
+              {formatResultCpa(value, viewMode, numerator, denominator)}
+            </div>
+          ),
+        };
+      }
       return {
-        headerRight: <span className="tabular-nums text-white">{data.value}</span>,
-        resultVisual: (
-          <div className="flex justify-start">
-            {formatResultCpa(data.value, viewMode, data.numerator, data.denominator)}
-          </div>
+        headerRight: (
+          <span
+            className={
+              viewMode === 'abstracto'
+                ? 'text-6xl font-black tabular-nums text-white'
+                : 'text-lg font-bold text-sky-300'
+            }
+          >
+            {formatResultCpa(value, viewMode, numerator, denominator)}
+          </span>
         ),
       };
     }
-    return {
-      headerRight: (
-        <span
-          className={
-            viewMode === 'abstracto'
-              ? 'text-6xl font-black tabular-nums text-white'
-              : 'text-lg font-bold text-sky-300'
-          }
-        >
-          {formatResultCpa(data.value, viewMode, data.numerator, data.denominator)}
-        </span>
-      ),
-    };
-  }
 
-  return {
-    headerRight: (
-      <span className="flex items-center justify-end gap-1.5 text-slate-500 italic">
-        <Hourglass className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-        Sin resultado
-      </span>
-    ),
-  };
+    case 'semantic': {
+      // Un solo objeto se pinta como carta; varios, como grupo. La fracción sale
+      // de su propio meta, que es donde vive.
+      const meta = result.singleCpaObjectMeta;
+
+      if (meta) {
+        if (viewMode === 'abstracto') {
+          return {
+            headerRight: (
+              <span className="text-6xl font-black tabular-nums text-white">
+                {formatFraction(meta.numerator, meta.denominator)}
+              </span>
+            ),
+          };
+        }
+        return {
+          headerRight: (
+            <span className={ANSWER_TEXT_CLASS}>{singleCpaHeaderText(meta, viewMode)}</span>
+          ),
+          resultVisual: <SingleCpaGlyphStrip meta={meta} viewMode={viewMode} />,
+        };
+      }
+
+      const { description, visualStrip } = result.result;
+      return {
+        headerRight: <span className={ANSWER_TEXT_CLASS}>{description}</span>,
+        resultVisual:
+          visualStrip.length > 0 ? (
+            <ResultArrayVisual items={visualStrip} align="start" large />
+          ) : undefined,
+      };
+    }
+  }
 }
 
 export function ProgramOutputFlowNode({

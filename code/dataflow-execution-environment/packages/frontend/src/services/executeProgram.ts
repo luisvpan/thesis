@@ -16,7 +16,6 @@ import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
 import type { Edge } from "@xyflow/react";
 import { logger } from "@/lib/logger";
-import { toJsonSafe } from "@/utils/jsonReplacer";
 import { describeCountedNoun, nounForm } from "@/utils/spanishGrammar";
 import { describeNode } from "@/utils/describeNode";
 import { isDrawableFraction } from "@/components/dataflow/fractionGeometry";
@@ -57,8 +56,6 @@ interface SemanticResult {
   description: string;
   /** Orden de aparición para la tira gráfica bajo el texto (cubos / iconos). */
   visualStrip: ResultVisualItem[];
-  /** Elementos originales sin expandir, para re-ordenamiento en frontend. */
-  originalElements: unknown[];
 }
 
 /** Unidad visual en la carta de salida (orden = orden del arreglo aplanado). */
@@ -569,7 +566,6 @@ function groupEntries(entries: readonly Entry[]): SemanticResult {
     totalAmount,
     description: generateDescription(categories, totalAmount),
     visualStrip: buildVisualStrip(entries),
-    originalElements: toJsonSafe([...entries]),
   };
 }
 

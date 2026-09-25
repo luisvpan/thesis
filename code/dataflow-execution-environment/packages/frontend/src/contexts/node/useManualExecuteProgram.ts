@@ -1,6 +1,7 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import type { Edge } from "@xyflow/react";
 import type { ProgramExecutor, ResultValue } from "@/services/executeProgram";
+import { numericValueOf } from "@/utils/resultValueDisplay";
 import { mergeProgramOutputsFromResults } from "./mergeProgramOutputsFromResults";
 import { applyErrorMarks } from "./errorMarks";
 import type { DataflowNode } from "./types";
@@ -45,13 +46,7 @@ export function useManualExecuteProgram(
       // Solo un número o un total agrupado se pueden mostrar como cifra; un
       // booleano o un arreglo de números, no.
       const firstResult = result.results.values().next().value;
-      const numericResult =
-        firstResult?.kind === "number"
-          ? firstResult.value
-          : firstResult?.kind === "semantic"
-            ? firstResult.result.totalAmount
-            : null;
-      setExecutionResult(numericResult ?? null);
+      setExecutionResult(numericValueOf(firstResult) ?? null);
 
       const stats = executorRef.current.getStats();
       logger.executeProgram.debug("Execution stats", { stats });

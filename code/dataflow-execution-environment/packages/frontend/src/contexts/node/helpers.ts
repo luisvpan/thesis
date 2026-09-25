@@ -3,6 +3,7 @@ import type {
   ProgramOutputFlowNodeData,
   SourceFlowNodeData,
 } from "@/components/dataflow";
+import { numericValueOf } from "@/utils/resultValueDisplay";
 import {
   VISION_FLOW_MIN_SIZE,
   VISION_NODE_HALF_H,
@@ -41,16 +42,12 @@ export function visionToFlowPosition(
 
 export function getNodeValue(node: DataflowNode | null | undefined): number | undefined {
   if (!node?.data) return undefined;
-  if (node.type === "programOutput") {
-    const v = (node.data as ProgramOutputFlowNodeData).value;
-    return typeof v === "number" ? v : undefined;
-  }
   if (node.type === "source") {
     const d = node.data as SourceFlowNodeData;
     return d.variant === "number" ? d.value : undefined;
   }
-  const d = node.data as OperatorFlowNodeData;
-  return d.result;
+  const d = node.data as ProgramOutputFlowNodeData | OperatorFlowNodeData;
+  return numericValueOf(d.resultValue);
 }
 
 export function getRightmostEvaluableNode(nodes: DataflowNode[]): DataflowNode | null {

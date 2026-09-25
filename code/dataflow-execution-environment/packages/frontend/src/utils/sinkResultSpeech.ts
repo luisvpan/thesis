@@ -42,27 +42,24 @@ export function buildSinkResultSpeechText(
     return null;
   }
 
-  if (data.booleanValue !== undefined) {
-    return data.booleanValue ? 'verdadero' : 'falso';
-  }
+  const result = data.resultValue;
+  if (!result) return null;
 
-  // Ordered array of abstract numbers
-  if (data.numberArrayValues && data.numberArrayValues.length > 0) {
-    const spoken = data.numberArrayValues.map((item) => spokenNumber(item.value));
-    return spoken.join(', ');
-  }
+  switch (result.kind) {
+    case 'boolean':
+      return result.value ? 'verdadero' : 'falso';
 
-  if (data.isSingleCpaObject && data.singleCpaObjectMeta) {
-    return singleCpaSpeechText(data.singleCpaObjectMeta);
-  }
+    case 'numberArray':
+      return result.values.map((item) => spokenNumber(item.value)).join(', ');
 
-  if (data.description?.trim()) {
-    return replaceDigitsWithSpanishWords(data.description.trim());
-  }
+    case 'number':
+      return Number.isFinite(result.value) ? spokenNumber(result.value) : null;
 
-  if (data.value !== undefined && Number.isFinite(data.value)) {
-    return spokenNumber(data.value);
-  }
+    case 'semantic': {
+      if (result.singleCpaObjectMeta) return singleCpaSpeechText(result.singleCpaObjectMeta);
 
-  return null;
+      const description = result.result.description.trim();
+      return description ? replaceDigitsWithSpanishWords(description) : null;
+    }
+  }
 }

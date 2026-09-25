@@ -12,11 +12,8 @@ import { foodEmoji } from '@/data/foodEmoji';
 import { DiceFace } from './source-flow/DiceFace';
 import { isPictorialColorYoloClass } from '@/data/pictorialColors';
 import { getOrderedArrayZoneMembers } from '@/utils/arrayZoneGeometry';
-import {
-  hasFlowResultDisplay,
-  resultValueToDisplayData,
-  type FlowResultDisplayData,
-} from '@/utils/evalResultDisplay';
+import type { ResultValue } from '@/services/executeProgram';
+import { numericValueOf } from '@/utils/resultValueDisplay';
 
 const ARRAY_STRIP_SHELL =
   'flex max-w-[min(28rem,85vw)] items-center gap-1 px-1.5 py-1 shadow-lg pointer-events-none';
@@ -70,48 +67,40 @@ function SourceMiniContent({
   }
 }
 
-function EvalResultMiniToken({ data }: { data: FlowResultDisplayData }) {
-  if (data.visualStrip && data.visualStrip.length > 0) {
-    return (
-      <div className="max-w-48 scale-75 origin-center">
-        <ResultArrayVisual items={data.visualStrip.slice(0, 6)} align="start" />
-      </div>
-    );
-  }
-  if (data.value !== undefined) {
-    return (
-      <span className="text-xl font-bold text-teal-300 tabular-nums">{data.value}</span>
-    );
-  }
-  if (data.description) {
+function EvalResultMiniToken({ result }: { result: ResultValue }) {
+  if (result.kind === 'semantic') {
+    const { visualStrip, description } = result.result;
+    if (visualStrip.length > 0) {
+      return (
+        <div className="max-w-48 scale-75 origin-center">
+          <ResultArrayVisual items={visualStrip.slice(0, 6)} align="start" />
+        </div>
+      );
+    }
     return (
       <span className="max-w-32 truncate text-xs font-medium text-slate-300">
-        {data.description}
+        {description}
       </span>
     );
   }
-  return null;
+
+  const value = numericValueOf(result);
+  if (value === undefined) return null;
+
+  return <span className="text-xl font-bold text-teal-300 tabular-nums">{value}</span>;
 }
 
-function resolveEvalDisplayData(
+/** El resultado de este nodo: el de la última ejecución, o el que guarda su carta. */
+function resolveEvalResult(
   node: DataflowNode,
-  evalResults: Map<string, import('@/services/executeProgram').ResultValue>
-): FlowResultDisplayData | null {
+  evalResults: Map<string, ResultValue>
+): ResultValue | null {
   const fromEval = evalResults.get(node.id);
-  if (fromEval) {
-    return resultValueToDisplayData(fromEval);
-  }
+  if (fromEval) return fromEval;
+
   if (node.type === 'operator' || node.type === 'programOutput') {
     const d = node.data as ProgramOutputFlowNodeData | OperatorFlowNodeData;
-    if (hasFlowResultDisplay(d)) {
-      return d;
-    }
-    if (node.type === 'operator') {
-      const opData = node.data as OperatorFlowNodeData;
-      if (opData.result !== undefined) {
-        return { value: opData.result };
-      }
-    }
+    return d.resultValue ?? null;
   }
   return null;
 }
@@ -123,16 +112,13 @@ function NodeMiniVisual({
 }: {
   node: DataflowNode;
   viewMode: ResultViewMode;
-  evalResults: Map<string, import('@/services/executeProgram').ResultValue>;
+  evalResults: Map<string, ResultValue>;
 }) {
   if (node.type === 'source') {
     return <SourceMiniContent data={node.data as SourceFlowNodeData} viewMode={viewMode} />;
   }
-  const display = resolveEvalDisplayData(node, evalResults);
-  if (display) {
-    return <EvalResultMiniToken data={display} />;
-  }
-  return null;
+  const result = resolveEvalResult(node, evalResults);
+  return result ? <EvalResultMiniToken result={result} /> : null;
 }
 
 function ArrayCloseMiniToken({
@@ -171,12 +157,11 @@ function ArrayCloseMiniToken({
 
 export function hasEdgeSourceMiniToken(
   node: DataflowNode,
-  evalResults: Map<string, import('@/services/executeProgram').ResultValue>
+  evalResults: Map<string, ResultValue>
 ): boolean {
   if (node.type === 'source' || node.type === 'arrayClose' || node.type === 'diceZone') return true;
   if (node.type === 'operator' || node.type === 'programOutput') {
-    const display = resolveEvalDisplayData(node, evalResults);
-    return display != null && hasFlowResultDisplay(display);
+    return resolveEvalResult(node, evalResults) !== null;
   }
   return false;
 }
@@ -212,13 +197,11 @@ export function EdgeSourceMiniToken({ node, viewMode }: EdgeSourceMiniTokenProps
   }
 
   if (node.type === 'operator' || node.type === 'programOutput') {
-    const display = resolveEvalDisplayData(node, evalResults);
-    if (!display || !hasFlowResultDisplay(display)) {
-      return null;
-    }
+    const result = resolveEvalResult(node, evalResults);
+    if (!result) return null;
     return (
       <div className="flex max-w-[min(20rem,80vw)] items-center justify-center rounded-md px-2 py-1 shadow-lg">
-        <EvalResultMiniToken data={display} />
+        <EvalResultMiniToken result={result} />
       </div>
     );
   }

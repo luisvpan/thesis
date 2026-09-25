@@ -17,24 +17,12 @@ import { useNode } from '@/contexts/NodeContext';
 import type { PortKindInfo } from '@/contexts/node/types';
 import type { HandleKind } from './handle-kinds';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
-import type { ProgramOutputFlowNodeData } from './ProgramOutputFlowNode';
+import type { ResultValue } from '@/services/executeProgram';
+import { numericValueOf, type WithResultValue } from '@/utils/resultValueDisplay';
 
 export type OperatorFlowNodeData = VisionNodeMeta &
-  Pick<
-    ProgramOutputFlowNodeData,
-    | 'value'
-    | 'description'
-    | 'visualStrip'
-    | 'originalElements'
-    | 'isSingleCpaObject'
-    | 'singleCpaObjectMeta'
-    | 'numerator'
-    | 'denominator'
-    | 'booleanValue'
-  > & {
+  WithResultValue & {
     operator: OperatorType;
-    /** Resumen numérico en la carta del operador (sincronizado con `value`). */
-    result?: number;
     /** Criterio implícito para operadores de ordenamiento (ej: smallest_to_largest tiene criterio size). */
     criterio?: OrderCriterio;
     /** Papel de la carta en el error de una salida, si lo tiene (§4). */
@@ -42,6 +30,15 @@ export type OperatorFlowNodeData = VisionNodeMeta &
   };
 
 export type OperatorFlowNode = Node<OperatorFlowNodeData, 'operator'>;
+
+/** Lo que la carta del operador dice de su resultado, en una línea. */
+function operatorSubtitle(result: ResultValue | undefined): string {
+  if (!result) return 'esperando entradas';
+  if (result.kind === 'boolean') return result.value ? 'verdadero' : 'falso';
+
+  const value = numericValueOf(result);
+  return value !== undefined ? `resultado: ${value}` : 'listo';
+}
 
 const ORDER_PROPERTY_LABEL: Record<string, string> = {
   quantity: 'cantidad',
@@ -188,15 +185,7 @@ export function OperatorFlowNode({ id, data }: NodeProps<OperatorFlowNode>) {
         errorMark={d.errorMark}
         title={operatorTitle(operator, d.criterio)}
         content={<span className="text-xs font-black text-slate-100">{operatorSymbol(operator)}</span>}
-        subtitle={
-          d.booleanValue !== undefined
-            ? d.booleanValue
-              ? 'verdadero'
-              : 'falso'
-            : d.result !== undefined
-              ? `resultado: ${d.result}`
-              : 'esperando entradas'
-        }
+        subtitle={operatorSubtitle(d.resultValue)}
       />
       <ClickableHandle
         type="source"
