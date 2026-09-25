@@ -14,64 +14,6 @@ export type VisionNodeMeta = {
   lostSinceMs?: number;
 };
 
-/** Campos de visión que no deben invalidar el hash del programa ni re-ejecutar. */
-export const VISION_META_KEYS: (keyof VisionNodeMeta)[] = [
-  "trackId",
-  "visionStatus",
-  "lastSeenAt",
-  "firstSeenAt",
-  "lostSinceMs",
-];
-
-/** Resultados de ejecución en `node.data`; no deben invalidar el hash del programa. */
-export const EVAL_RESULT_DISPLAY_KEYS = [
-  "value",
-  "description",
-  "visualStrip",
-  "originalElements",
-  "isSingleCpaObject",
-  "singleCpaObjectMeta",
-  "numerator",
-  "denominator",
-  "result",
-  "booleanValue",
-  // Los errores de la última ejecución y las marcas que ponen en las cartas: son
-  // consecuencia del programa, no parte de él, así que no invalidan su hash.
-  "errors",
-  "errorMark",
-] as const;
-
-/** Copia de `data` sin metadatos de tracking (para hashes / comparación estable). */
-export function dataWithoutVisionMeta(data: unknown): Record<string, unknown> {
-  if (!data || typeof data !== "object") return {};
-  const out = { ...(data as Record<string, unknown>) };
-  for (const key of VISION_META_KEYS) {
-    delete out[key];
-  }
-  return out;
-}
-
-/** Campos de UI del dado que no deben invalidar el hash del programa. */
-export const DICE_UI_KEYS = ["isRolling", "previewFace"] as const;
-
-/** Copia de `data` para el hash del programa (sin visión ni resultados ya calculados). */
-export function dataForProgramHash(data: unknown): Record<string, unknown> {
-  const out = dataWithoutVisionMeta(data);
-  const isDiceNode =
-    (out as { variant?: string }).variant === 'dice' ||
-    (out as { nodekind?: string }).nodekind === 'diceZone';
-  for (const key of EVAL_RESULT_DISPLAY_KEYS) {
-    // Dice value is user input (rolled result), not a computed display value —
-    // keep it in the hash so rolling triggers re-execution.
-    if (isDiceNode && key === 'value') continue;
-    delete out[key];
-  }
-  for (const key of DICE_UI_KEYS) {
-    delete out[key];
-  }
-  return out;
-}
-
 /** Tiempo en estado `lost` antes de atenuar la carta (ms). */
 export const VISION_LOST_DIM_AFTER_MS = 400;
 

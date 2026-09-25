@@ -4,6 +4,7 @@
 
 import {
   Interpreter,
+  deserialize,
   isBag,
   isBoolean,
   type DataflowError,
@@ -13,10 +14,9 @@ import {
 } from "@dataflow/interpreter";
 import { flowToProgram } from "@/utils/flowToProgram";
 import type { DataflowNode } from "@/contexts/NodeContext";
-import { dataForProgramHash } from "@/contexts/node/visionNodeMeta";
 import type { Edge } from "@xyflow/react";
 import { logger } from "@/lib/logger";
-import { jsonReplacer, toJsonSafe } from "@/utils/jsonReplacer";
+import { toJsonSafe } from "@/utils/jsonReplacer";
 import { describeCountedNoun, nounForm } from "@/utils/spanishGrammar";
 import { describeNode } from "@/utils/describeNode";
 import { isDrawableFraction } from "@/components/dataflow/fractionGeometry";
@@ -676,31 +676,6 @@ function describeSubtype(typeKey: string, sub: SubtypeGroup): string {
 // Executor principal
 // ============================================================================
 
-/**
- * Hash del programa (nodos + aristas) para detectar cambios semánticos.
- * Excluye posición en lienzo y metadatos de visión que cambian cada frame WS.
- */
-export function computeProgramHash(nodes: DataflowNode[], edges: Edge[]): string {
-  const nodesKey = nodes
-    .filter((n) => n.type === "source" || n.type === "operator" || n.type === "programOutput")
-    .map(
-      (n) =>
-        `${n.id}:${n.type}:${JSON.stringify(dataForProgramHash(n.data), jsonReplacer)}`
-    )
-    .sort()
-    .join("|");
-  const edgesKey = edges
-    .map((e) => `${e.source}->${e.target}:${e.sourceHandle ?? ""}-${e.targetHandle ?? ""}`)
-    .sort()
-    .join("|");
-  return `${nodesKey}::${edgesKey}`;
-}
-
-/** @deprecated internal alias */
-function hashProgram(nodes: DataflowNode[], edges: Edge[]): string {
-  return computeProgramHash(nodes, edges);
-}
-
 function resultValueFingerprint(v: ResultValue): string {
   switch (v.kind) {
     case "number":
@@ -733,8 +708,12 @@ function hashResults(results: Map<string, ResultValue>): string {
 export function createProgramExecutor() {
   const interpreter = new Interpreter();
 
-  // Cache for change detection - only log when something actually changes
-  let lastProgramHash: string | null = null;
+  // El programa ya escrito es la huella exacta del lienzo: si no cambió, no hay
+  // nada que recalcular. Compararlo con los datos de las cartas no sirve, porque
+  // el programa también sale de la geometría —quién está dentro de un grupo,
+  // qué cifras se tocan— y eso no vive en `node.data`.
+  let lastProgramText: string | null = null;
+  let lastResult: ExecuteResult | null = null;
   let lastResultsHash: string | null = null;
 
   return {
@@ -749,19 +728,13 @@ export function createProgramExecutor() {
         return { ...EMPTY_RESULT, success: false, programError: "No hay nodos para ejecutar" };
       }
 
-      // Check if program changed
-      const currentProgramHash = hashProgram(nodes, edges);
-      const programChanged = currentProgramHash !== lastProgramHash;
-
       const program = flowToProgram(nodes, edges);
+      const programText = deserialize(program);
 
-      // Only log program details when it actually changed
-      if (programChanged) {
-        logger.execute.info("Program changed", {
-          statements: program.statements.length,
-        });
-        lastProgramHash = currentProgramHash;
-      }
+      if (programText === lastProgramText && lastResult) return lastResult;
+
+      logger.execute.info("Program changed", { statements: program.statements.length });
+      lastProgramText = programText;
 
       try {
         const { results, errors } = await interpreter.execute(program);
@@ -791,7 +764,8 @@ export function createProgramExecutor() {
 
         if (resultsMap.size === 0 && errors.length === 0) {
           logger.execute.warn("No results found");
-          return { ...EMPTY_RESULT, success: false, programError: "Sin resultados" };
+          lastResult = { ...EMPTY_RESULT, success: false, programError: "Sin resultados" };
+          return lastResult;
         }
 
         // Check if results changed
@@ -808,17 +782,21 @@ export function createProgramExecutor() {
           lastResultsHash = currentResultsHash;
         }
 
-        return {
+        lastResult = {
           success: errors.length === 0,
           results: resultsMap,
           errorsByOutput: byOutput,
           programError,
         };
+        return lastResult;
       } catch (err) {
         logger.execute.error("Exception during execution", {
           error: err instanceof Error ? err.message : String(err),
           stack: err instanceof Error ? err.stack : undefined,
         });
+        // Sin memorizar: una excepción puede ser pasajera, y volver a intentarlo
+        // en el siguiente cambio no cuesta nada.
+        lastProgramText = null;
         return {
           ...EMPTY_RESULT,
           success: false,
@@ -833,7 +811,8 @@ export function createProgramExecutor() {
      */
     reset() {
       interpreter.reset();
-      lastProgramHash = null;
+      lastProgramText = null;
+      lastResult = null;
       lastResultsHash = null;
       logger.execute.info("Interpreter reset");
     },

@@ -8,7 +8,7 @@ import { useNode } from '@/contexts/NodeContext';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
 
 export type DiceZoneFlowNodeData = VisionNodeMeta & {
-  /** Discriminator so dataForProgramHash can keep the rolled value in the program hash. */
+  /** Discriminante del nodo dentro de la unión de tipos del lienzo. */
   readonly nodekind: 'diceZone';
   value?: number;
 };

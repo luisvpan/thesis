@@ -17,8 +17,9 @@ import type { DataflowNode } from "../contexts/node/types";
 import type { OrderCriterio } from "../data/yoloDeckCatalog";
 import { getOrderedArrayZoneMembers } from "./arrayZoneGeometry";
 import {
+  buildNumberTouchLookup,
+  getNumberTouchGroups,
   resolveNumberSourceId,
-  shouldEmitNumberSource,
 } from "./numberTouchMerge";
 import { logger } from "@/lib/logger";
 
@@ -183,16 +184,26 @@ function entryOf(node: DataflowNode): EntrySpec | null {
   }
 }
 
-/** Identificador en el programa para un nodo origen de arista (fuente, operador o salida). */
+/**
+ * Identificador en el programa para un nodo origen de arista (fuente, operador
+ * o salida).
+ *
+ * `primaryByMemberId` es el mapa de fusión por contacto ya calculado. Se pasa
+ * hecho porque calcularlo recorre todas las cartas numéricas por pares, y aquí
+ * se pregunta una vez por arista.
+ */
 export function resolveFlowSourceId(
   nodeId: string,
-  nodes: DataflowNode[]
+  nodes: DataflowNode[],
+  primaryByMemberId?: Map<string, string>
 ): string {
   const node = nodes.find((n) => n.id === nodeId);
   if (node?.type === "programOutput") {
     return `output_${nodeId}`;
   }
-  return resolveNumberSourceId(nodeId, nodes);
+  return primaryByMemberId
+    ? primaryByMemberId.get(nodeId) ?? nodeId
+    : resolveNumberSourceId(nodeId, nodes);
 }
 
 /**
@@ -200,6 +211,11 @@ export function resolveFlowSourceId(
  */
 export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
   logger.flow.debug("Input", { nodes: nodes.length, edges: edges.length });
+
+  // Una sola vez por programa: agrupar las cartas numéricas que se tocan es
+  // cuadrático, y este programa se construye en cada cambio del lienzo.
+  const { primaryByMemberId } = buildNumberTouchLookup(getNumberTouchGroups(nodes));
+  const sourceIdOf = (nodeId: string) => resolveFlowSourceId(nodeId, nodes, primaryByMemberId);
 
   let program = createProgram();
 
@@ -224,7 +240,9 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
       continue;
     }
 
-    if (data.variant === "number" && !shouldEmitNumberSource(node.id, nodes)) continue;
+    // Solo el primario de cada grupo táctil emite su fuente: los demás dígitos
+    // ya están dentro de la cifra que declara.
+    if (data.variant === "number" && sourceIdOf(node.id) !== node.id) continue;
 
     const entry = entryOf(node);
     if (entry) program = program.source(node.id, createBag().add(entry));
@@ -268,7 +286,7 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
           return 0;
         });
 
-    const args = sortedEdges.map((e) => resolveFlowSourceId(e.source, nodes));
+    const args = sortedEdges.map((e) => sourceIdOf(e.source));
 
     if (isOrderOperatorType(operator)) {
       // El criterio va en su propio `source` y se referencia por nombre: los
@@ -300,18 +318,21 @@ export function flowToProgram(nodes: DataflowNode[], edges: Edge[]): Program {
 
     if (!inputEdge) continue;
 
-    // Verify the source is an evaluable node (source, operator, or arrayClose)
+    // El origen tiene que declarar un valor. El dado también: `connectionRules`
+    // deja tenderle la conexión, así que dejarlo fuera aquí apagaba la salida
+    // sin decir por qué.
     const sourceNode = nodes.find((n) => n.id === inputEdge.source);
     if (
       !sourceNode ||
       (sourceNode.type !== "source" &&
         sourceNode.type !== "operator" &&
-        sourceNode.type !== "arrayClose")
+        sourceNode.type !== "arrayClose" &&
+        sourceNode.type !== "diceZone")
     ) {
       continue;
     }
 
-    program = program.sink(`output_${node.id}`, resolveFlowSourceId(inputEdge.source, nodes));
+    program = program.sink(`output_${node.id}`, sourceIdOf(inputEdge.source));
   }
 
   const built = program.build();

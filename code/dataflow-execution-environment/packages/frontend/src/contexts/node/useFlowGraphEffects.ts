@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useRef,
   type Dispatch,
   type MutableRefObject,
   type RefObject,
@@ -8,7 +7,6 @@ import {
 } from "react";
 import type { Edge } from "@xyflow/react";
 import type { ProgramExecutor, ResultValue } from "@/services/executeProgram";
-import { computeProgramHash } from "@/services/executeProgram";
 import type { CardDetectionsPayload } from "../VisionContext";
 import { VISION_FLOW_MIN_SIZE } from "./constants";
 import { mergeProgramOutputsFromResults } from "./mergeProgramOutputsFromResults";
@@ -50,8 +48,6 @@ export function useFlowGraphEffects({
   setExecutionResult,
   setEvalResults,
 }: UseFlowGraphEffectsParams): void {
-  const lastProgramHashRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (!visionSyncEnabled || !lastCardFrame) return;
     const flowEl = flowContainerRef.current;
@@ -112,10 +108,9 @@ export function useFlowGraphEffects({
 
     if (evalNodes.length === 0 || !executorRef.current) return;
 
-    const programHash = computeProgramHash(nodes, edges);
-    if (programHash === lastProgramHashRef.current) return;
-    lastProgramHashRef.current = programHash;
-
+    // Sin compuerta aquí: el ejecutor corta solo si el programa no cambió, que
+    // es quien lo tiene escrito delante. Un lienzo quieto devuelve el mismo
+    // resultado y las guardas de identidad de abajo evitan el render.
     executorRef.current
       .execute(nodes, edges)
       .then((result) => {

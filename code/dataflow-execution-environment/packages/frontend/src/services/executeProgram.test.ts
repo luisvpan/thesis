@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Edge } from "@xyflow/react";
 import type { DataflowNode } from "@/contexts/node/types";
-import { createProgramExecutor } from "./executeProgram";
+import { createProgramExecutor, type ProgramExecutor } from "./executeProgram";
 
 /**
  * Dos flujos independientes sobre la misma mesa: el de arriba se rompe y el de
@@ -119,6 +119,77 @@ describe("dividir un grupo de cartas", () => {
     const result = await divisionResult(13);
     expect(result.visualStrip).toHaveLength(0);
     expect(result.description).toContain("6/13");
+  });
+});
+
+/** Dos manzanas fijas dentro de la zona y una tercera donde se le diga. */
+function zoneWithLooseApple(loose: { x: number; y: number }) {
+  const nodes = [
+    { id: "abrir", type: "arrayOpen", position: { x: 0, y: 0 }, data: {} },
+    { id: "m1", type: "source", position: { x: 300, y: 0 }, data: { variant: "food", food: "manzana" } },
+    { id: "m2", type: "source", position: { x: 560, y: 0 }, data: { variant: "food", food: "manzana" } },
+    { id: "m3", type: "source", position: loose, data: { variant: "food", food: "manzana" } },
+    { id: "cerrar", type: "arrayClose", position: { x: 2000, y: 0 }, data: {} },
+    { id: "out", type: "programOutput", position: { x: 2600, y: 0 }, data: {} },
+  ] as DataflowNode[];
+
+  const edges: Edge[] = [
+    { id: "z", source: "abrir", target: "cerrar", sourceHandle: "zone-out", targetHandle: "zone-in" },
+    { id: "s", source: "cerrar", target: "out", sourceHandle: "out", targetHandle: "in" },
+  ];
+
+  return { nodes, edges };
+}
+
+function totalOf(result: Awaited<ReturnType<ProgramExecutor["execute"]>>): number | undefined {
+  const value = result.results.get("out");
+  return value?.kind === "semantic" ? value.result.totalAmount : undefined;
+}
+
+describe("el lienzo cambia sin que cambien los datos de las cartas", () => {
+  test("mover una carta dentro del grupo recalcula la salida", async () => {
+    // El programa sale también de la geometría: quién está dentro de la zona se
+    // decide por posición, que no vive en `node.data`.
+    const executor = createProgramExecutor();
+
+    const { nodes: fuera, edges } = zoneWithLooseApple({ x: 820, y: 900 });
+    expect(totalOf(await executor.execute(fuera, edges))).toBe(2);
+
+    const { nodes: dentro } = zoneWithLooseApple({ x: 820, y: 0 });
+    expect(totalOf(await executor.execute(dentro, edges))).toBe(3);
+  });
+
+  test("tirar el dado recalcula la salida", async () => {
+    const executor = createProgramExecutor();
+
+    const canvas = (value: number) =>
+      [
+        { id: "dado", type: "diceZone", position: { x: 0, y: 0 }, data: { nodekind: "diceZone", value } },
+        { id: "out", type: "programOutput", position: { x: 600, y: 0 }, data: {} },
+      ] as DataflowNode[];
+    const edges: Edge[] = [
+      { id: "e", source: "dado", target: "out", sourceHandle: "out", targetHandle: "in" },
+    ];
+
+    expect(await executor.execute(canvas(3), edges).then((r) => r.results.get("out"))).toMatchObject({
+      kind: "number",
+      value: 3,
+    });
+    expect(await executor.execute(canvas(6), edges).then((r) => r.results.get("out"))).toMatchObject({
+      kind: "number",
+      value: 6,
+    });
+  });
+
+  test("mover una carta suelta lejos de todo no cambia nada", async () => {
+    const executor = createProgramExecutor();
+    const edges = zoneWithLooseApple({ x: 820, y: 900 }).edges;
+
+    const antes = await executor.execute(zoneWithLooseApple({ x: 820, y: 900 }).nodes, edges);
+    const despues = await executor.execute(zoneWithLooseApple({ x: 900, y: 1500 }).nodes, edges);
+
+    // Mismo programa, mismo resultado: la compuerta sigue evitando el trabajo.
+    expect(despues).toBe(antes);
   });
 });
 

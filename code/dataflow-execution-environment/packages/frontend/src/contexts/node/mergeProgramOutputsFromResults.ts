@@ -32,6 +32,24 @@ function sameErrors(current: OutputErrorInfo[] | undefined, next: OutputErrorInf
 }
 
 /**
+ * Lo que se le borra a una carta que esta vez no trajo resultado —porque le
+ * quitaron la entrada, o porque su camino se apagó—. Sin esto se queda pintando
+ * la respuesta de la corrida anterior, que ya no es respuesta de nada.
+ */
+const CLEARED_DISPLAY: FlowResultDisplayData = {
+  value: undefined,
+  description: undefined,
+  visualStrip: undefined,
+  originalElements: undefined,
+  isSingleCpaObject: undefined,
+  singleCpaObjectMeta: undefined,
+  numerator: undefined,
+  denominator: undefined,
+  numberArrayValues: undefined,
+  booleanValue: undefined,
+};
+
+/**
  * Aplica resultados del intérprete a nodos `programOutput` y `operator`, y deja
  * en cada carta de salida los errores que le tocan: un error de una salida no es
  * asunto de las demás (§4).
@@ -54,10 +72,22 @@ export function mergeProgramOutputsFromResults(
       const errorsChanged = n.type === "programOutput" && !sameErrors(currentData.errors, errors);
 
       const resultValue = results.get(n.id);
+
       if (resultValue === undefined) {
-        if (!errorsChanged) return n;
+        const alreadyClear = displayDataUnchanged(currentData, CLEARED_DISPLAY);
+        if (alreadyClear && !errorsChanged) return n;
+
         changed = true;
-        return { ...n, data: { ...n.data, errors } };
+        // `data` es una unión discriminada por el tipo de nodo y esparcirla la
+        // aplana; los campos de resultado son comunes, así que se reafirma.
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            ...CLEARED_DISPLAY,
+            ...(n.type === "operator" ? { result: undefined } : { errors }),
+          },
+        } as DataflowNode;
       }
 
       const newData = resultValueToDisplayData(resultValue);
