@@ -363,7 +363,7 @@ El presente trabajo tuvo como objetivo desarrollar un ambiente de programación 
 
 En primer lugar, se llevó a cabo una etapa de revisión de conceptos para obtener detalles sobre el pensamiento computacional y su desarrollo en edades tempranas. A continuación, se realizó un análisis exhaustivo para comprender la aplicación de la programación tangible en entornos de realidad aumentada, con el fin de fomentar el pensamiento computacional.
 
-Posteriormente, se procedió al diseño y desarrollo del entorno, que incluye dos aspectos: la construcción del hardware, que funcionó como interfaz de interacción humano-computador, y el desarrollo del software, encargado de procesar la información recibida a través del hardware. Adicionalmente, se propuso un protocolo de pruebas que se aplicó durante la validación posterior a la construcción del entorno.
+Posteriormente, se procedió al diseño y desarrollo del entorno, que incluye dos aspectos: la construcción del hardware, que funcionó como interfaz de interacción humano-computador, y el desarrollo del software, encargado de procesar la información recibida a través del hardware. Tras esto, el entorno construido se validó mediante una matriz de trazabilidad entre requerimientos y funcionalidades y mediante el juicio de expertos en interacción humano-computador y en medios didácticos.
 
 Finalmente, se elaboró la documentación correspondiente, incluyendo el manual del sistema y el manual de usuario.
 
@@ -547,11 +547,13 @@ Este enfoque resulta pertinente para el presente trabajo porque su contribución
 
 == Técnicas e instrumentos de recolección de datos
 
-Según #cite(<arias2012>, form: "prose"), las técnicas de recolección de datos son los métodos establecidos para recopilar información, mientras que los instrumentos son las herramientas, dispositivos o formatos empleados para ello. En este trabajo se recurrió a dos técnicas: la revisión documental y la entrevista semiestructurada.
+Según #cite(<arias2012>, form: "prose"), las técnicas de recolección de datos son los métodos establecidos para recopilar información, mientras que los instrumentos son las herramientas, dispositivos o formatos empleados para ello. En este trabajo se recurrió a tres técnicas: la revisión documental, la entrevista semiestructurada y la entrevista no estructurada.
 
 La revisión documental permitió construir el marco teórico, el estado del arte y los criterios de diseño del ambiente. Las fuentes consultadas incluyeron artículos académicos, libros e informes de trabajos de grado.
 
 La entrevista semiestructurada, descrita por #cite(<arias2012>, form: "prose") como una conversación orientada a la obtención de datos que combina preguntas predeterminadas con preguntas abiertas de profundización, se empleó para recoger perspectivas de personas con conocimiento directo del contexto educativo.
+
+La entrevista no estructurada es en la que, según #cite(<arias2012>, form: "prose"), no se dispone de una guía de preguntas elaboradas previamente, aunque la conversación se orienta por objetivos preestablecidos que definen el tema de la entrevista. Esta técnica se aplicó a los expertos consultados tras la demostración del ambiente durante la etapa de validación, con el fin de recoger libremente sus valoraciones sobre este.
 
 == Metodología de Desarrollo Utilizada
 Al analizar las características del trabajo de investigación, se consideró el enfoque a adoptar. Dado que no se previó un contacto constante con el cliente y que los requisitos aún no estaban bien definidos, se decidió optar por un enfoque basado en prototipos, con el fin de definir los requerimientos finales a través de los prototipos realizados y sus validaciones.
@@ -828,10 +830,6 @@ Se adopta una separación entre núcleo sin estado y adaptadores delgados. El in
 
 // Una actividad agrupa: el enunciado del problema, la explicación de los conceptos involucrados, las condiciones durante el desarrollo, el inicio de la tarea y el resultado esperado. Los niños resuelven la actividad construyendo un programa con el lenguaje tangible y los elementos provistos por el ambiente. El sistema permite a los docentes crear, editar y organizar actividades alineadas al currículo de matemáticas de 1.er a 3.er grado (MPPE, 2023) y orientadas al desarrollo del pensamiento computacional en la franja de edad objetivo.
 
-=== Guía de diseño de actividades
-
-La guía incluye actividades modelo con problemas y soluciones de referencia elaboradas por los autores del ambiente, inspiradas en el mismo currículo. Su función es formativa: no debe interpretarse como catálogo cerrado de los únicos problemas que el ambiente admite, ni como restricción a la variedad de soluciones válidas. Se enfatiza el papel activo del niño en la exploración de estrategias y soluciones.
-
 // La gramática EBNF completa se consigna en el Apéndice A (<appendix-a>), tomada de la especificación viva del lenguaje (GRAMMAR_SPEC.md, v4.2.0). Cualquier divergencia futura entre implementación y especificación debe resolverse actualizando primero la especificación y luego el texto del diseño, para conservar trazabilidad académica.
 
 == Construir un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Base al Diseño Realizado
@@ -988,8 +986,7 @@ La tercera evolución consistió en una extensión del lenguaje, reflejada en la
 
 == Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
 
-La validación del ambiente se aborda en tres frentes complementarios: una verificación interna que contrasta los requerimientos del sistema con las funcionalidades efectivamente construidas, mediante una matriz de trazabilidad; una evaluación por juicio de expertos en interacción humano-computador (IHC) y en medios didácticos; y pruebas de comprensión y usabilidad con niños del rango etario objetivo.
-//TODO: cuando se ejecuten, integrar aquí los resultados de la evaluación por expertos (punto 3) y de las pruebas con niños (punto 4).
+La validación del ambiente se abordó en dos frentes complementarios: una verificación interna, que contrastó los requerimientos del sistema con las funcionalidades efectivamente construidas mediante una matriz de trazabilidad, y una evaluación por juicio de expertos en interacción humano-computador (IHC) y en medios didácticos, que valoró el ambiente como sistema interactivo y como recurso educativo.
 
 === Matriz de requerimientos contra funcionalidades
 
@@ -1019,21 +1016,56 @@ Con el fin de verificar que el sistema construido responde a lo especificado, se
   ],
 ) <requirements-to-functionalities-matrix>
 
-Como se observa en la @requirements-to-functionalities-matrix, los cinco requerimientos funcionales se encuentran satisfechos: la construcción y captura de los programas tangibles, el reconocimiento de los elementos y de las conexiones, la interpretación con evaluación incremental, la ejecución con salida proyectada y la retroalimentación que guía la construcción. De los requerimientos no funcionales, el manejo de errores de disposición está satisfecho, mientras que la presentación auditiva y los elementos persuasivos están parcialmente cubiertos y la usabilidad efectiva queda pendiente. Estos últimos, de naturaleza pedagógica y de experiencia, motivan los dos frentes de evaluación que se describen a continuación.
+Como se observa en la @requirements-to-functionalities-matrix, los cinco requerimientos funcionales se encuentran satisfechos: la construcción y captura de los programas tangibles, el reconocimiento de los elementos y de las conexiones, la interpretación con evaluación incremental, la ejecución con salida proyectada y la retroalimentación que guía la construcción. De los requerimientos no funcionales, el manejo de errores de disposición está satisfecho, mientras que la presentación auditiva y los elementos persuasivos están parcialmente cubiertos y la usabilidad efectiva queda pendiente. Estos últimos, de naturaleza pedagógica y de experiencia, motivaron la evaluación por juicio de expertos que se describe a continuación.
 
 === Evaluación por juicio de expertos
 
-La calidad del ambiente como sistema interactivo y como recurso educativo se evalúa mediante juicio de expertos, con dos perfiles complementarios: un experto en interacción humano-computador (IHC), que valora la interfaz, la interacción tangible, la usabilidad y el manejo de errores; y un experto en medios didácticos, que valora la pertinencia pedagógica del ambiente, la progresión concreto-pictórico-abstracto y su alineación con el currículo. A cada experto se le aplica un instrumento estructurado (rúbrica o cuestionario) cuyos resultados se reportan como parte de la validación.
-//TODO: pendiente de ejecución (punto 3). Definir los instrumentos de evaluación, seleccionar a los expertos y registrar y analizar sus valoraciones. Los instrumentos de evaluación deben incluirse como apéndices, incluyendo las respuestas de los expertos.
+La calidad del ambiente como sistema interactivo y como recurso educativo se valoró mediante el juicio de dos expertos con perfiles complementarios: un experto en interacción humano-computador (IHC), que valoró la interfaz, la interacción tangible y la experiencia de uso, y un experto en medios didácticos con experiencia docente, que valoró la pertinencia del ambiente como recurso para el proceso de enseñanza-aprendizaje. A cada experto se le presentó una demostración del ambiente en funcionamiento, tras la cual se recogieron sus observaciones mediante una entrevista no estructurada #cite(<arias2012>). En la demostración se expuso el modo de uso para el que fue concebido el ambiente: una actividad colaborativa entre el docente y los niños, en la que el docente actúa como conductor o guía.
 
-=== Pruebas de comprensión y usabilidad con niños
+Dado que el experto en medios didácticos puede desempeñarse como docente de 1#super[er] a 3#super[er] grado y, por tanto, como usuario final del ambiente, su evaluación constituyó además una prueba de usabilidad desde la perspectiva del docente. Este experto valoró positivamente la paleta de colores del ambiente y la sencillez con que se comprende su funcionamiento. Consideró, además, que el ambiente es aplicable en el salón de clases como recurso utilizado por el docente para apoyar el proceso de enseñanza-aprendizaje, con especial utilidad en la evaluación de los aprendizajes. Como aspecto por mejorar, señaló la retroalimentación que el ambiente ofrece al usuario; en respuesta, los autores plantearon reforzar la retroalimentación sonora y la presentación de los errores. Sugirió, por último, incorporar música relajante durante el uso del ambiente.
 
-La validación se completa con pruebas realizadas con niños del rango etario objetivo, organizadas en torno a actividades modelo (con descripción de la actividad, roles, pasos a seguir y resultado esperado). Las pruebas de usabilidad observan si los niños logran usar el ambiente, contabilizando el éxito en las tareas, errores, necesidad de ayuda y satisfacción, mientras que las pruebas de comprensión observan si entienden lo que construyen y los conceptos de pensamiento computacional involucrados.
-//TODO: pendiente de ejecución (punto 4). Definir el protocolo y las actividades modelo, las métricas de usabilidad y de comprensión, y registrar y analizar los resultados.
+El experto en IHC expresó su preocupación por la cantidad de contenido programático que abarca el ambiente, en caso de que fuera utilizado directamente por los niños. Se le aclaró que el ambiente está concebido para ser usado por docentes en conjunto con niños, con el docente como conductor o guía de la actividad. Aun con esta precisión, el experto sostuvo que dicho rol exige que el docente conozca a fondo el ambiente, por lo que recomendó diseñar guías de actividades modelo que los docentes puedan tomar como inspiración para elaborar sus propias actividades, así como dejar explícitas las restricciones del sistema. Asimismo, observó fallos en la detección de cartas durante la demostración y advirtió que podrían resultar frustrantes tanto para los docentes como para los niños, por lo que recomendó mejorar la detección. Finalmente, recomendó que el informe haga hincapié en que el ambiente será usado por docentes y niños, con el docente como conductor o guía. La @expert-judgment-table resume las observaciones de ambos expertos y la respuesta de los autores a cada una.
 
-//* Vídeo mostrándole a Chilina León y comentarios que nos dió
+#figure(
+  [
+    #set text(size: 9pt)
+    #table(
+      columns: (auto, 1.2fr, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header([*Experto*], [*Observación*], [*Respuesta de los autores*]),
+      [Medios didácticos], [Valoró positivamente la paleta de colores y la sencillez para comprender el ambiente], [Fortaleza; se conserva],
+      [Medios didácticos], [Consideró el ambiente aplicable en el aula como recurso del docente para el proceso de enseñanza-aprendizaje, con énfasis en la evaluación], [Fortaleza; coincide con el uso mediado por el docente],
+      [Medios didácticos], [Recomendó mejorar la retroalimentación al usuario], [Reforzar la retroalimentación sonora y la presentación de los errores],
+      [Medios didácticos], [Sugirió incorporar música relajante], [Sugerencia registrada para versiones futuras],
+      [IHC], [Expresó preocupación por la cantidad de contenido programático si el ambiente fuera usado directamente por niños], [Se aclaró que el ambiente se concibe para uso colaborativo, con el docente como conductor o guía],
+      [IHC], [Advirtió que el docente, como guía, debe conocer a fondo el ambiente], [Diseñar guías de actividades modelo y explicitar las restricciones del sistema],
+      [IHC], [Observó fallos en la detección de cartas durante la demostración], [Mejorar la detección de las cartas],
+    )
+  ],
+  caption: [
+    Observaciones de los expertos en medios didácticos y en IHC y respuesta de los autores a cada una.
+  ],
+) <expert-judgment-table>
+//TODO: indicar en la columna de respuesta cuáles de estas mejoras se implementaron antes de la entrega (por ejemplo, la retroalimentación sonora) y cuáles quedan como recomendación.
 
-//* Que dijo Andreina???
+Las observaciones de ambos expertos coinciden en que el ambiente alcanza su propósito cuando se usa bajo la conducción del docente: el experto en medios didácticos lo sitúa como un recurso del docente para el proceso de enseñanza-aprendizaje, y el experto en IHC condiciona su uso con niños a que el docente conozca a fondo el ambiente. Las áreas de mejora señaladas son consistentes con la matriz de trazabilidad: la retroalimentación corresponde al requerimiento RNF-04, cubierto de forma parcial, y los fallos de detección afectan al reconocimiento de las piezas del requerimiento RF-02, que, aunque satisfecho en términos funcionales, requiere mayor fiabilidad para no interrumpir la actividad. En cuanto a la usabilidad (RNF-01), la evaluación del experto en medios didácticos, como potencial docente de 1#super[er] a 3#super[er] grado, aporta evidencia favorable desde la perspectiva del docente, con lo que el requerimiento pasa a estar cubierto de forma parcial; resta comprobar la usabilidad y la comprensión del ambiente por parte de los niños del rango etario objetivo. La @requirements-after-experts-matrix recoge este cambio de estado, único derivado de la evaluación por juicio de expertos respecto de la @requirements-to-functionalities-matrix.
+
+#figure(
+  [
+    #set text(size: 9pt)
+    #table(
+      columns: (auto, 1fr, auto, 1.3fr, auto),
+      align: (center + horizon, left + horizon, center + horizon, left + horizon, center + horizon),
+      inset: 4pt,
+      table.header([*Cód. Req.*], [*Requerimiento*], [*Estado anterior*], [*Evidencia de la evaluación por expertos*], [*Estado actual*]),
+      [RNF-01], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado], [Pendiente], [Valoración favorable de la claridad visual y la sencillez del ambiente por parte del experto en medios didácticos, como potencial docente de 1#super[er] a 3#super[er] grado; resta la comprobación con niños], [Parcial],
+    )
+  ],
+  caption: [
+    Requerimientos cuyo estado de cobertura cambió tras la evaluación por juicio de expertos.
+  ],
+) <requirements-after-experts-matrix>
 
 // == Realizar la Documentación Formal del Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
 
@@ -1060,23 +1092,32 @@ En el plano del lenguaje, el diseño de flujo de datos, con declaraciones de fue
 
 La construcción del ambiente, llevada a cabo mediante un enfoque evolutivo basado en prototipos #cite(<pressman2010>), produjo un sistema integrado que articula el subsistema de visión por computador, el lenguaje ERAE con su intérprete y la interfaz de usuario. Se concluye que la metodología por prototipos fue determinante para un proyecto de naturaleza experimental con requerimientos inicialmente poco definidos: el resultado de cada prototipo definió el requerimiento del siguiente —la resolución insuficiente del Kinect v1 motivó el cambio al Kinect v2; la fragilidad de la detección por contornos condujo a la detección por aprendizaje profundo; la latencia entre procesos llevó a consolidar el intérprete como librería embebida; y la imposibilidad de representar las conexiones entre las piezas, evidenciada en el sexto prototipo, impulsó el sistema de puertos tipados, reglas estructurales y _walkers_ del séptimo—. Esta cadena de decisiones, que solo pudo establecerse al construir y evaluar sucesivamente el sistema, confirma la pertinencia del enfoque adoptado.
 
-Entre los logros técnicos se cuentan el reconocimiento robusto de las piezas mediante modelos de detección de objetos, un intérprete del lenguaje ERAE que funciona como librería embebida con evaluación incremental y verificación de tipos y aridad, la calibración mediante homografía, la detección de toques con un detector híbrido y la integración entre la visión y el intérprete a través de un servidor de relevo y de la interfaz, que traduce el grafo visual de piezas y conexiones en un programa ejecutable. Con el séptimo prototipo se alcanzó, por primera vez, una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada constituyen un programa evaluable de manera incremental, con lo que el objetivo de construcción se considera cumplido en tanto el artefacto existe y opera.
+Entre los logros técnicos se cuentan el reconocimiento de las piezas mediante modelos de detección de objetos, más robusto que la detección por contornos de los primeros prototipos, un intérprete del lenguaje ERAE que funciona como librería embebida con evaluación incremental y verificación de tipos y aridad, la calibración mediante homografía, la detección de toques con un detector híbrido y la integración entre la visión y el intérprete a través de un servidor de relevo y de la interfaz, que traduce el grafo visual de piezas y conexiones en un programa ejecutable. Con el séptimo prototipo se alcanzó, por primera vez, una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada constituyen un programa evaluable de manera incremental, con lo que el objetivo de construcción se considera cumplido en tanto el artefacto existe y opera.
 
-No obstante, se concluye también que varias de las mejoras introducidas durante la construcción —en particular las relativas a la precisión de la calibración y al rendimiento de la detección— no fueron aún cuantificadas formalmente, por lo que su valoración corresponde al objetivo de validación, todavía pendiente. Esta distinción preserva la coherencia entre lo efectivamente construido y aquello que solo podrá afirmarse tras la validación empírica del ambiente.
+No obstante, se concluye también que varias de las mejoras introducidas durante la construcción —en particular las relativas a la precisión de la calibración y al rendimiento de la detección— no fueron cuantificadas formalmente, y durante la validación se observaron fallos en la detección de cartas. Esta distinción preserva la coherencia entre lo efectivamente construido y aquello que solo podrá afirmarse tras una medición formal del desempeño del ambiente.
 
-// Validar el ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
+== Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
+
+La validación permite concluir que el ambiente es viable como recurso educativo usado por docentes y niños en conjunto, con el docente como conductor o guía de la actividad, y no como una herramienta que los niños utilicen de forma autónoma. La matriz de trazabilidad muestra que el ambiente satisface sus cinco requerimientos funcionales y el manejo de errores de disposición, mientras que la retroalimentación auditiva y los elementos persuasivos se cubren de forma parcial. El juicio de expertos confirma esta lectura desde fuera del equipo de desarrollo: el experto en medios didácticos valora la claridad visual y la sencillez del ambiente y lo considera aplicable en el aula como recurso del docente para el proceso de enseñanza-aprendizaje, en especial para la evaluación; el experto en IHC, por su parte, advierte que la cantidad de contenido programático exige que el docente conozca a fondo el ambiente para poder guiar a los niños.
+
+De la validación se desprenden tres condiciones para la adopción del ambiente en el aula: una retroalimentación más completa, en particular la sonora y la presentación de los errores; una detección de cartas lo bastante fiable como para no frustrar a docentes ni a niños; y material de apoyo para el docente, en forma de actividades modelo y de una descripción explícita de las restricciones del sistema. La usabilidad del ambiente cuenta con una valoración favorable desde la perspectiva del docente, aportada por el experto en medios didácticos como potencial profesor de 1#super[er] a 3#super[er] grado; en cambio, al no haberse realizado pruebas con niños, la usabilidad y la comprensión del ambiente por parte de los niños de 6 a 9 años, así como su efecto sobre el desarrollo del pensamiento computacional, quedan por comprobar empíricamente.
+
 // Realizar la documentación formal del ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
-//TODO: pendientes la conclusión del objetivo general y las conclusiones de los objetivos 4 (validar) y 5 (documentar); deben anteceder a la sección de Recomendaciones cuando se redacten.
+//TODO: pendientes la conclusión del objetivo general y la del objetivo 5 (documentar); deben anteceder a la sección de Recomendaciones cuando se redacten.
 
 == Recomendaciones
 
-A partir de la experiencia de construcción se recomienda documentar cuantitativamente el desempeño del sistema antes de la validación, estableciendo mediciones reproducibles de latencia y velocidad de procesamiento, error de calibración y precisión de la detección de piezas mediante métricas como la matriz de confusión. Estas mediciones convertirían en evidencia verificable varias de las mejoras hoy descritas de forma cualitativa.
+A partir de la experiencia de construcción se recomienda documentar cuantitativamente el desempeño del sistema, estableciendo mediciones reproducibles de latencia y velocidad de procesamiento, error de calibración y precisión de la detección de piezas mediante métricas como la matriz de confusión. Estas mediciones convertirían en evidencia verificable varias de las mejoras hoy descritas de forma cualitativa.
 
-En cuanto a la detección de piezas, se recomienda reentrenar el modelo con el lote completo de piezas previsto por el lenguaje —incluidas las incorporadas en las últimas evoluciones, como tapas, paletas, cubos y dado— y versionar tanto el conjunto de datos como su configuración, a fin de garantizar la reproducibilidad del entrenamiento.
+En cuanto a la detección de piezas, se recomienda reentrenar el modelo con el lote completo de piezas previsto por el lenguaje —incluidas las incorporadas en las últimas evoluciones, como tapas, paletas, cubos y dado— y versionar tanto el conjunto de datos como su configuración, a fin de garantizar la reproducibilidad del entrenamiento. Esta recomendación se ve reforzada por los fallos de detección observados durante el juicio de expertos, que, según el experto en IHC, podrían resultar frustrantes para docentes y niños durante una actividad.
 
 Para preservar la trazabilidad arquitectónica, se recomienda mantener sincronizada la especificación viva del lenguaje con el informe y documentar, mediante una decisión de arquitectura formal, el reemplazo del servidor anterior por el servidor de relevo actual, dado que las decisiones de arquitectura existentes aún describen componentes ya superados. Asimismo, conviene documentar los requisitos de hardware y las dificultades de compatibilidad observadas con el sensor de profundidad, por su impacto en la estabilidad del sistema.
 
-Finalmente, dado que las conclusiones alcanzadas son de orden técnico y de diseño, se recomienda planificar la validación del ambiente con niños del rango etario objetivo y con docentes de los primeros grados de educación básica, de modo que los beneficios pedagógicos que la teoría anticipa —el desarrollo del pensamiento computacional y el aprendizaje colaborativo— puedan confirmarse empíricamente. Para ello resulta aconsejable desarrollar y poner a prueba la guía de actividades alineada con el currículo y con los principios de la programación tangible colaborativa #cite(<suzuki1993>).
+Dado que el ambiente está concebido para ser usado por docentes y niños en conjunto, con el docente como conductor o guía, se recomienda que su desarrollo y su adopción se orienten a apoyar ese rol. En concreto, se recomienda elaborar una guía de actividades modelo, alineada con el currículo y con los principios de la programación tangible colaborativa #cite(<suzuki1993>), que los docentes puedan tomar como inspiración para diseñar sus propias actividades, e incluir en el manual de usuario una descripción explícita de las restricciones del sistema, de modo que el docente conozca de antemano el alcance del ambiente antes de conducir una actividad con los niños.
+
+En cuanto a la retroalimentación, se recomienda completar las señales sonoras de reconocimiento, advertencia y error y mejorar la presentación de los errores, tal como sugirió el experto en medios didácticos, y valorar la incorporación de música relajante durante el uso del ambiente.
+
+Finalmente, dado que la usabilidad del ambiente se valoró únicamente desde la perspectiva del docente, se recomienda realizar pruebas de usabilidad y de comprensión con niños de 6 a 9 años, en actividades conducidas por el docente. Las pruebas de usabilidad permitirían observar si los niños logran usar el ambiente —éxito en las tareas, errores, necesidad de ayuda y satisfacción—, y las de comprensión, si entienden lo que construyen y los conceptos de pensamiento computacional involucrados, de modo que los beneficios pedagógicos que la teoría anticipa —el desarrollo del pensamiento computacional y el aprendizaje colaborativo— puedan confirmarse empíricamente.
 
 #pagebreak(weak: true)
 
