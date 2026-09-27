@@ -664,69 +664,63 @@ Este capítulo describe el diseño del ambiente de aprendizaje y del lenguaje de
 
 === Requisitos y contexto
 
-El ambiente está dirigido a niños de 6 a 9 años y a docentes de educación primaria (1#super[er] a 3#super[er] grado). Los niños construyen soluciones a problemas planteados por el docente, manipulando elementos tangibles y la interacción digital sobre la superficie de trabajo; se prioriza que cada niño exprese su forma de resolver el problema con los medios disponibles, sin imponer una única solución óptima. Los docentes orientan el uso del ambiente y el desarrollo del pensamiento computacional.
+El ambiente está dirigido a niños de 6 a 9 años y a docentes de educación primaria (1#super[er] a 3#super[er] grado), y está concebido para que ambos lo usen en conjunto, con el docente como conductor o guía de la actividad. En ocasiones, el docente es el principal constructor de la solución: plantea el problema, dispone las piezas y pide la colaboración de los niños para decidir qué colocar y cómo conectarlo. En otras, actúa como guía: son los niños quienes construyen la solución, y el docente los apoya y orienta durante la construcción. En ambos casos se prioriza que los niños expresen su forma de resolver el problema con los medios disponibles, sin imponer una única solución óptima.
 // el sistema debe permitir crear y gestionar actividades alineadas al currículo.
 
 Los contenidos sobre los que se apoyan datos, operaciones, actividades de ejemplo y criterios de integración en aula se toman de los énfasis curriculares para la educación primaria del Estado venezolano #cite(<mppe2023>), en lo correspondiente a matemáticas de 1#super[er] a 3#super[er] grado, de modo que el ambiente pueda incorporarse de forma coherente a las planificaciones de esos grados.
 
 === Arquitectura física y lógica del ambiente
 
-El sistema se concibe como una interfaz de usuario tangible (TUI) de tipo tabletop. Las entradas físicas se realizan mediante la TUI (piezas, regiones); las conexiones digitales (generadas a través de toques sobre la superficie y reconocidas como enlaces en el grafo) y las salidas se canalizan por la proyección sobre la superficie. Así se satisface el requerimiento de que los programas combinen elementos tangibles y conexiones digitales que representen datos, flujos y operaciones.
+El ambiente se concibe como una interfaz de usuario tangible de tipo _tabletop_ #cite(<ishii2008>): una mesa sobre cuya superficie se proyecta la interfaz y sobre la que, en ese mismo espacio, los niños colocan los objetos tangibles. Que el espacio donde se actúa y aquel donde se recibe la retroalimentación coincidan es deliberado, pues es el requisito del acoplamiento perceptual descrito en el marco teórico.
 
-El ambiente material incluye, como mínimo, un conjunto de elementos tangibles y representaciones digitales asociadas que denotan orígenes de datos u operaciones sobre datos (que, articulados con las conexiones inferidas, constituyen un programa en el lenguaje tangible); un computador; un proyector; una cámara de color y de profundidad; y una superficie plana dividida en al menos dos zonas. En una zona se colocan exclusivamente los elementos tangibles; en la otra se proyecta la interfaz y tiene lugar la interacción entre lo tangible y lo digital. La cámara captura la escena en esa segunda zona, envía la información al computador, el cual procesa la imagen, reconoce elementos, posiciones y relaciones entre orígenes de datos y zonas de transformación, interpreta y ejecuta el programa inferido y proyecta la salida sobre la superficie plana.
+El ambiente material comprende un conjunto de objetos tangibles y de cartas, descritos en la especificación del lenguaje; un computador; un proyector, que proyecta la interfaz sobre la mesa; un sensor Kinect v2, que capta imágenes de color, de profundidad e infrarrojas de la superficie; y la propia mesa, donde conviven los objetos físicos y la proyección. La @final-environment-figure muestra el ambiente en uso, con un programa construido sobre la mesa.
 
-A nivel lógico, el flujo a seguir es: captura; reconstrucción del programa (representación estructurada); interpretación y ejecución; presentación de resultados y retroalimentación (visual y auditiva) que orienta al niño durante y después de la construcción. El núcleo de interpretación y ejecución se describe en la sección de integración; aquí basta señalar que está pensado para operar sobre representaciones del programa compatibles con la especificación del lenguaje ERAE.
-
-//TODO: leer y conciliar términos (datos vs orígenes de datos, ver si este último es necesario, y así), además de formas de interacción con el ambiente
-=== Interacción y percepción
-
-==== Áreas delimitadas para orígenes de datos y zonas de transformación
-
-Los orígenes de datos y las zonas de transformación los definen los niños al colocar elementos tangibles y al delimitar regiones sobre la superficie. Esas regiones se detectan por visión por computador. Cada región acotada puede interpretarse como un origen de datos o como una zona de transformación. Si es un origen de datos, los elementos tangibles dentro de la región son los valores que conforman dicho origen; si es una zona de transformación, los elementos tangibles en su interior representan las operaciones que se aplicarán a los datos procedentes de los orígenes conectados.
-
-==== Conexiones entre orígenes de datos y zonas de transformación
-
-Las conexiones no se materializan con cables ni con piezas adicionales: son conexiones digitales trazadas por los niños sobre la superficie (por ejemplo, mediante toques). La cámara y el computador reconocen esas conexiones y establecen la relación entre orígenes y zonas de transformación.
-
-La interfaz refleja orígenes, zonas y conexiones inferidas a partir de lo físico y lo trazado. Esto cumple el requerimiento de retroalimentación para guiar durante la construcción y el requerimiento no funcional de retroalimentación visual y auditiva. En lo visual, entre otras cosas, se incluye:
-
-- Resaltar orígenes de datos y zonas de transformación reconocidos.
-- Resaltar conexiones reconocidas entre orígenes y zonas de transformación.
-- Mostrar mensajes de error o advertencia cuando el programa sea inválido o incompleto.
-- Resaltar orígenes o conexiones erróneas o inválidas (manejo de errores de disposición).
-- Señalar elementos tangibles no reconocidos o no utilizados en el programa actual.
-
-En lo auditivo, se complementa con señales sonoras acordes a reconocimiento correcto, advertencia o error, de modo que la guía no dependa solo de la vista. El modo incremental de integración (véase más adelante) refuerza la guía continua mientras el grafo está aún incompleto.
-
-==== Ejecución y salida
-
-La salida del programa se muestra en la interfaz proyectada sobre la superficie plana, usando las representaciones digitales del lenguaje. La composición de piezas físicas, conexiones digitales trazadas y elementos en pantalla constituye la representación visible de un programa que aborda el problema de la actividad en curso. El diseño de la interfaz gráfica que materializa esta proyección se muestra en la @fifth-prototype-design-figure.
+A nivel lógico, el sistema se organiza en tres subsistemas: el subsistema de visión por computador, que reconoce los objetos tangibles y los toques sobre la superficie; la interfaz, que representa lo reconocido como un grafo sobre un lienzo proyectado y traduce ese grafo a la representación textual del lenguaje; y el intérprete del lenguaje ERAE, que evalúa el programa. El ciclo es continuo: cada vez que cambia la disposición sobre la mesa, la interfaz actualiza el grafo, el intérprete reevalúa solo lo que cambió y la proyección muestra los resultados, de modo que la retroalimentación acompaña al niño durante toda la construcción.
 
 #figure(
-  image("images/fifth-prototype-design.png"),
+  image("images/final-environment.jpeg", width: 70%),
   caption: [
-    Diseño de la interfaz gráfica del entorno de desarrollo integrado (IDE) para el lenguaje de programación.
+    Ambiente en uso: un programa construido sobre la mesa, con objetos tangibles, cartas, conexiones establecidas mediante toques y el resultado proyectado.
   ],
-) <fifth-prototype-design-figure>
+) <final-environment-figure>
+
+=== Interacción y percepción
+
+==== Colocación y reconocimiento de las piezas
+
+El niño construye un programa colocando piezas tangibles sobre la mesa: objetos concretos, cartas de datos, cartas de criterio y cartas de operación. El subsistema de visión reconoce cada pieza y su posición, y la interfaz la representa en el lienzo en el mismo lugar donde se encuentra la pieza física, con sus puertos de entrada y de salida alrededor. Así, el niño ve junto a cada pieza cómo puede conectarse y, al evaluarse el programa, qué resultado produce.
+
+==== Conexiones mediante toques
+
+Las conexiones no se materializan con cables ni con piezas adicionales. Para conectar dos piezas, el niño toca sobre la superficie, uno después del otro, los puertos que desea enlazar; el subsistema de visión detecta los toques y la interfaz crea la conexión si es compatible. Cada puerto admite una clase de dato —números, objetos, criterios o grupos—, y una conexión incompatible se rechaza con una señal visual sobre el puerto. Reglas estructurales completan esta verificación: por ejemplo, una ordenación solo admite un grupo como entrada.
+
+==== Grupos y números de varias cifras
+
+Parte de la estructura del programa se infiere de la disposición física. Para formar un grupo, el niño coloca una carta de apertura y una de cierre, las enlaza con un toque y deja entre ambas las piezas que quiere reunir: todas las que quedan dentro de esa zona forman el grupo. Del mismo modo, las cartas de dígitos colocadas una junto a otra forman un número de varias cifras.
+
+==== Retroalimentación y salida
+
+La interfaz proyectada guía la construcción de forma continua, lo que responde al requerimiento de retroalimentación durante la construcción de programas:
+
+- Resalta las piezas reconocidas y las conexiones establecidas.
+- Anima sobre cada conexión el dato que circula por ella, mediante elementos denominados _walkers_.
+- Muestra, cuando se activa la opción "Mostrar resultados", el resultado intermedio de cada operación.
+- Señala con una insignia las piezas en las que el intérprete detecta un error, y agita el puerto cuando se intenta una conexión incompatible.
+- Presenta el resultado del programa en la carta de salida y permite escucharlo mediante síntesis de voz, con un botón situado junto a ella.
+
+Además, el docente puede alternar el modo de visualización de los resultados entre concreto, pictórico y abstracto, lo que cambia solo su apariencia y no su significado.
 
 === Visión del lenguaje en el ambiente
 
-El lenguaje ERAE es un lenguaje de flujo de datos (dataflow), donde los programas se representan como grafos de nodos que producen valores, los transforman y declaran salidas. En el ambiente, ese grafo tiene una parte tangible (piezas, disposición, regiones) y una parte digital (conexiones inferidas del trazado, proyección, estado de reconocimiento, mensajes y retroalimentación sonora), en línea con los requerimientos de datos, flujos y operaciones combinados en una sola construcción compartida entre el niño y el sistema.
+El lenguaje ERAE es un lenguaje de flujo de datos (dataflow), donde los programas se representan como grafos de nodos que producen valores, los transforman y declaran salidas. En el ambiente, ese grafo tiene una parte tangible (las piezas y su disposición sobre la mesa) y una parte digital (las conexiones establecidas mediante toques, la proyección, el estado de reconocimiento, los mensajes y la síntesis de voz), en línea con los requerimientos de datos, flujos y operaciones combinados en una sola construcción compartida entre el niño y el sistema.
 
-No se persigue la Turing-completitud como objetivo pedagógico; se busca un lenguaje suficientemente expresivo para un subconjunto de problemas acordes al currículo citado, y simple de interpretar por niños de 6 a 9 años. La evaluación del programa es dirigida por demanda: parte de las salidas y evalúa solo los nodos de los que estas dependen. ERAE toma de Lucid #cite(<wadge1985>) esta estrategia, la ausencia de estado mutable y la organización de los programas como redes de filtros funcionales; a diferencia de Lucid, cuyos filtros operan sobre historias infinitas de valores, los valores de ERAE son finitos. El diseño visual del lenguaje, con la disposición de datos, operaciones y flujos sobre la superficie, se muestra en la @fourth-prototype-visual-design-figure.
-
-#figure(
-  image("images/fourth-prototype-visual-design.jpeg"),
-  caption: [
-    Diseño visual del lenguaje de programación basado en el paradigma de programación dataflow, con algunos detalles sobre la interfaz gráfica.
-  ],
-) <fourth-prototype-visual-design-figure>
+No se persigue la Turing-completitud como objetivo pedagógico; se busca un lenguaje suficientemente expresivo para un subconjunto de problemas acordes al currículo citado, y simple de interpretar por niños de 6 a 9 años. La evaluación del programa es dirigida por demanda: parte de las salidas y evalúa solo los nodos de los que estas dependen. ERAE toma de Lucid #cite(<wadge1985>) esta estrategia, la ausencia de estado mutable y la organización de los programas como redes de filtros funcionales; a diferencia de Lucid, cuyos filtros operan sobre historias infinitas de valores, los valores de ERAE son finitos.
 
 El dominio de valores, las operaciones y la estructura sintáctica del lenguaje se presentan en la siguiente sección.
 
 === Especificación del lenguaje de programación tangible ERAE
 
-ERAE es, ante todo, un lenguaje visual y tangible: los programas se construyen disponiendo cartas físicas sobre la superficie de trabajo y trazando conexiones digitales entre ellas. La especificación que sigue describe ese lenguaje visual —sus piezas, su estructura y sus garantías—; la representación textual interna sobre la que opera el intérprete se menciona al final. La especificación completa del lenguaje textual, en su versión 1.0.0, incluida su gramática formal, se consigna en el #link(<appendix-a>)[Apéndice A].
+ERAE es, ante todo, un lenguaje visual y tangible: los programas se construyen disponiendo piezas físicas sobre la superficie de trabajo y enlazándolas mediante toques. La especificación que sigue describe ese lenguaje visual —sus piezas, su estructura y sus garantías—; la representación textual interna sobre la que opera el intérprete se menciona al final. La especificación completa del lenguaje textual, en su versión 1.0.0, incluida su gramática formal, se consigna en el #link(<appendix-a>)[Apéndice A].
 
 ==== Filosofía de diseño
 
@@ -739,21 +733,15 @@ Los principios rectores del lenguaje son:
 
 ==== Piezas tangibles
 
-La unidad léxica del lenguaje visual es la carta: una pieza física tipo naipe que porta una imagen reconocible por el subsistema de visión y por el niño. El mazo se organiza en cuatro grupos. Los tres primeros siguen la progresión concreto-pictórico-abstracto, derivada de los modos de representación enactivo, icónico y simbólico de #cite(<bruner1966>, form: "prose") y coherente con la transición de la etapa preoperacional a la de operaciones concretas descrita en el marco teórico:
+Las piezas tangibles del lenguaje son de dos clases: las que representan datos y las que no. Las piezas de datos siguen la progresión concreto-pictórico-abstracto, derivada de los modos de representación enactivo, icónico y simbólico de #cite(<bruner1966>, form: "prose") y coherente con la transición de la etapa preoperacional a la de operaciones concretas descrita en el marco teórico:
 
-- *Cartas concretas:* representan objetos cotidianos manipulables: alimentos (manzana, hamburguesa, pera, uvas), cubos de tipo Montessori, tapas y paletas de colores. Con ellas se trabajan las operaciones de suma, resta, filtrado y ordenación sobre colecciones de objetos familiares.
-- *Cartas pictóricas:* representan figuras geométricas (círculo, cuadrado, triángulo) en tres tamaños y varios colores, junto con cartas de criterio que denotan propiedades (tamaño, color o forma) y parametrizan el filtrado.
-- *Cartas abstractas:* representan los dígitos del 0 al 9 y habilitan el repertorio aritmético completo, incluyendo la multiplicación y la división, reservadas a este nivel.
-- *Cartas estructurales, comunes a los tres niveles:* la carta de resultado, que designa la salida del programa, y las cartas de apertura y cierre de colección, que agrupan varias cartas de datos en un solo conjunto.
+- *Objetos concretos:* objetos físicos manipulables, como tapas y paletas de colores y cubos de tipo Montessori, que el niño coloca directamente sobre la mesa.
+- *Cartas pictóricas:* representan objetos como alimentos y figuras geométricas, algunos con varios tamaños y colores.
+- *Cartas abstractas:* representan los dígitos del 0 al 9; colocadas una junto a otra, forman números de varias cifras.
 
-Las cartas de operación representan la suma, la resta, la multiplicación, la división, el filtrado, la comparación de igualdad y las operaciones de acceso y conteo (primera, última y contar). La ordenación se representa con cuatro cartas que incorporan su propio criterio: de menor a mayor y de mayor a menor según la cantidad, y de pequeño a grande y de grande a pequeño según el tamaño. Las operaciones de umbral del lenguaje, menor que y mayor que, no tienen, por ahora, carta en el mazo. El repertorio disponible se controla entregando a los niños el subconjunto del mazo acorde a la actividad y a su nivel. El diseño tipo carta de las piezas se muestra en la @sixth-prototype-pieces-design-figure.
 
-#figure(
-  image("images/sixth-prototype-pieces-design.jpeg"),
-  caption: [
-    Diseño tipo carta de las piezas tangibles del ambiente.
-  ],
-) <sixth-prototype-pieces-design-figure>
+Las piezas que no representan datos son cartas, comunes a los tres niveles: las cartas de operación, las cartas de criterio, que denotan propiedades (tamaño, color o forma) y parametrizan el filtrado, las cartas de apertura y cierre de grupo y la carta de salida. Todas las operaciones se representan con cartas. Las cartas de operación representan la suma, la resta, la multiplicación, la división, el filtrado, la comparación de igualdad y las operaciones de acceso y conteo (primera, última y contar). La ordenación se representa con cuatro cartas que incorporan su propio criterio: de menor a mayor y de mayor a menor según la cantidad, y de pequeño a grande y de grande a pequeño según el tamaño. Las operaciones de umbral del lenguaje, menor que y mayor que, no tienen, por ahora, carta en el mazo. El repertorio disponible puede controlarse entregando a los niños el subconjunto del mazo acorde a la actividad que se quiera llevar a cabo. El diseño tipo carta de las piezas se muestra en la @sixth-prototype-pieces-design-figure.
+// TODO: agregar una figura con el mazo final (objetos concretos y cartas pictóricas, abstractas, de operación, de criterio, de grupo y de salida) cuando se disponga de la fotografía.
 
 ==== Estructura de un programa
 
@@ -902,6 +890,13 @@ Dado que se usaría un paradigma de programación dataflow, se decidió que se s
 
 Se llevó a cabo una investigación sobre los lenguajes de programación dataflow, tomando como referente a Lucid #cite(<wadge1985>), por ser un lenguaje de programación dataflow purista, y se definieron los elementos básicos del lenguaje de programación visual, incluyendo los tipos de bloques, las operaciones disponibles, y la forma en que los bloques se conectan para formar programas. Este diseño puede verse en la @fourth-prototype-visual-design-figure. Las operaciones disponibles se basarían en el currículum de matemáticas de educación básica, con el objetivo de fomentar el desarrollo del pensamiento computacional a través de conceptos matemáticos, y se incluirían operaciones como suma, resta, multiplicación, división, entre otras. En pro de una correcta división de las responsabilidades del sistema, se separó el lenguaje de programación visual en dos partes: un apartado de detección de piezas, que se encargaría de detectar las piezas físicas colocadas por los usuarios y traducirlas a una representación interna del programa; y un apartado de ejecución, que se encargaría de ejecutar el programa representado internamente y enviar los resultados a la interfaz gráfica. Esta separación permitiría una mayor flexibilidad y mantenibilidad del sistema, facilitando la incorporación de nuevas piezas y operaciones en el futuro.
 
+#figure(
+  image("images/fourth-prototype-visual-design.jpeg"),
+  caption: [
+    Diseño visual preliminar del lenguaje de programación de flujo de datos, elaborado en el cuarto prototipo.
+  ],
+) <fourth-prototype-visual-design-figure>
+
 Durante el desarrollo de este prototipo, el enfoque estuvo en la implementación del apartado de ejecución del lenguaje de programación dataflow, para lo cual se definieron 3 representaciones de los programas formados por los bloques visuales: una de intercambio, basada en JSON; una textual, para entrada y depuración; y un formato en memoria, para uso interno por el entorno de ejecución; y se implementó un intérprete para ejecutar estos programas (denominado inicialmente compilador y _runtime_, terminología que fue revisada en iteraciones posteriores al consolidarse la evaluación directa de los programas). Se decidió usar TypeScript como lenguaje de programación, debido a su flexibilidad, facilidad para el desarrollo rápido, y su capacidad para manejar estructuras de datos complejas mediante su tipado; Bun como motor de ejecución, pues permite la ejecución directa de programas escritos en TypeScript sin un paso previo de transpilación, y provee ventajas de rendimiento contra sus competidores Node y Deno; y la librería Chevrotain, que provee un kit de herramientas para la construcción de _parsers_; facilitando la implementación del entorno. Además, se implementó un servidor HTTP y uno de WebSockets, para lo cual se utilizó la librería Elysia, que permiten la comunicación con la interfaz gráfica y el apartado de visión por computador. // Este prototipo puede verse en la @fourth-prototype-figure.
 
 //TODO: colocar imágenes/tablas de las 3 representaciones de los programas, quizás todo en apéndices. Para JSON, puede ser la interfaz de TS. Para la representación textual, la EBNF del lenguaje con las consideraciones semánticas, que este sí sería un apéndice 100%. Para la representación en memoria, una tabla con la estructura de datos usada para representar los programas internamente.
@@ -921,6 +916,13 @@ Con base en el diseño del ambiente, se planteó continuar con la interfaz gráf
 
 El diseño propuesto puede verse en la @fifth-prototype-design-figure, y se enfocó en la creación de una interfaz gráfica que permitiera a los usuarios interactuar con el entorno de programación tangible de manera intuitiva, facilitando la creación de programas mediante la manipulación de bloques digitales que representaran las futuras piezas físicas. Se decidió llamar a esta interfaz "modo sandbox" del IDE.
 
+#figure(
+  image("images/fifth-prototype-design.png"),
+  caption: [
+    Boceto preliminar de la interfaz gráfica del entorno de desarrollo integrado (IDE), elaborado en el quinto prototipo.
+  ],
+) <fifth-prototype-design-figure>
+
 Se implementaron características como la visualización del programa en tiempo real, la posibilidad de arrastrar y soltar bloques para crear programas, y una sección de resultados donde se mostraban los resultados de la ejecución del programa. Además, se buscó crear una experiencia de usuario atractiva mediante el uso de colores y una disposición clara de los elementos en la interfaz. Este prototipo fue desarrollado en TypeScript, usando la librería React para la construcción de la interfaz gráfica, y la librería React Flow para la representación visual de los datos, operaciones y flujos de datos. // Este prototipo puede verse en la @fifth-prototype-figure.
 
 //TODO: colocar imagen del prototipo
@@ -938,6 +940,13 @@ Al finalizar el desarrollo de la interfaz gráfica del modo sandbox, se vio que 
 Continuando con el prototipo 5, se decidió integrarle la detección de piezas físicas mediante el Kinect v1, por dificultades temporales con el Kinect v2/* especificar que estas dificultades estaban relacionadas con problemas de compatibilidad de estándar USB y rendimiento */; y el uso de un nuevo modelo de detección de objetos basado en aprendizaje profundo, pues se cambió el diseño de las piezas físicas a usar, requiriendo de un reentrenamiento del modelo. Además, se planteó comenzar la integración con el entorno de ejecución del lenguaje de programación dataflow, optando por la integración mediante WebSockets para la comunicación.
 
 Se llevó a cabo un rediseño de las piezas físicas a usar, buscando cubrir los datos y operaciones que se definieron para el lenguaje, un diseño sencillo de entender y usar para los niños, pero no tan complejo en aras de facilitar la detección por parte del modelo, resultando en un diseño tipo carta. Estas nuevas piezas pueden verse en la @sixth-prototype-pieces-design-figure. Además, también se hicieron modificaciones en la interfaz gráfica del modo sandbox, entre ellas usar colores oscuros, para facilitar la visualización de la proyección del entorno virtual sobre la superficie física.
+
+#figure(
+  image("images/sixth-prototype-pieces-design.jpeg"),
+  caption: [
+    Diseño preliminar tipo carta de las piezas tangibles, elaborado en el sexto prototipo.
+  ],
+) <sixth-prototype-pieces-design-figure>
 
 Al entrenar el nuevo modelo de detección de objetos, se comenzó con el modelo YOLO11n, con un dataset en el que las _bounding boxes_ comprendían toda la carta, incluyendo las etiquetas ("Operador", "Resta", "Tortuga", etc.), áreas blancas alrededor de la pieza, e imagen de la pieza; este modelo tenía dificultades para detectar las piezas, principalmente por la confusión entre clases, por lo que se decidió ajustar las _bounding boxes_ para que solo comprendieran el área de la imagen de la pieza, sin incluir las etiquetas ni áreas blancas, lo que llevó a una pequeña mejora en la detección, pero sin llegar a los resultados esperados. Finalmente, se cambió al modelo YOLO11s, una versión ligeramente más pesada y potente que YOLO11n #cite(<ultralytics2024>), con el que se observó una mejora apreciable en la detección de las piezas físicas, si bien esta comparación fue cualitativa y no se respaldó con métricas formales. Posteriormente se exploró también YOLO26n #cite(<ultralytics2026>), una variante ligera más reciente de la misma familia. Además, se implementó una integración básica con el entorno de ejecución del lenguaje de programación dataflow mediante WebSockets, enviando las piezas reconocidas al entorno, pero sin las conexiones entre estas. Este prototipo puede verse en la @sixth-prototype-figure.
 
@@ -1007,9 +1016,9 @@ Con el fin de verificar que el sistema construido responde a lo especificado, se
       [RF-02], [El sistema debe capturar la disposición de los elementos tangibles y conexiones digitales, y procesar la información para reconocer los elementos y sus conexiones], [Captura con cámara de color y profundidad; reconocimiento de cartas y de toques, calibración por homografía y relevo de los datos a la interfaz], [Satisfecho],
       [RF-03], [El sistema debe interpretar los programas representados por los elementos tangibles y conexiones digitales, traduciéndolos a una representación ejecutable], [Traducción del grafo visual a un programa e interpretación con el intérprete ERAE embebido], [Satisfecho],
       [RF-04], [El sistema debe ejecutar los programas y mostrar la salida en una interfaz gráfica proyectada sobre una superficie plana], [Ejecución con evaluación bajo demanda e incremental y visualización de la salida en la interfaz proyectada], [Satisfecho],
-      [RF-05], [El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas], [Evaluación incremental, resaltado de orígenes, zonas y conexiones, y walkers sobre las conexiones], [Satisfecho],
-      [RNF-01], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado], [Modos de juego y sandbox e interfaz basada en cartas; su usabilidad efectiva requiere comprobación con usuarios], [Pendiente],
-      [RNF-02], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años], [Elementos lúdicos implementados (diseño colorido, dado, síntesis de voz); su efecto en el interés requiere validación con niños], [Parcial],
+      [RF-05], [El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas], [Evaluación incremental, resaltado de piezas y conexiones, _walkers_ sobre las conexiones y resultados intermedios bajo demanda], [Satisfecho],
+      [RNF-01], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado], [Interfaz basada en piezas tangibles y uso guiado por el docente; su usabilidad efectiva requiere comprobación con usuarios], [Pendiente],
+      [RNF-02], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años], [Elementos lúdicos implementados (diseño colorido, síntesis de voz); su efecto en el interés requiere validación con niños], [Parcial],
       [RNF-03], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales], [Verificación de aridad y de categoría de valor, validación de conexiones en tres niveles y análisis de programas incompletos sin interrumpir la sesión], [Satisfecho],
       [RNF-04], [La retroalimentación debe ser presentada de forma visual y auditiva], [Retroalimentación visual completa (resaltados, walkers, resultados); la auditiva se limita a la síntesis de voz de los resultados, restan las señales sonoras de reconocimiento, advertencia y error], [Parcial],
     )
@@ -1114,7 +1123,7 @@ De la validación se desprenden tres condiciones para la adopción del ambiente 
 
 A partir de la experiencia de construcción se recomienda documentar cuantitativamente el desempeño del sistema, estableciendo mediciones reproducibles de latencia y velocidad de procesamiento, error de calibración y precisión de la detección de piezas mediante métricas como mAP50, mAP50-95 y la matriz de confusión, con las que puedan compararse los modelos evaluados (YOLO11n, YOLO11s y YOLO26n). Estas mediciones convertirían en evidencia verificable varias de las mejoras hoy descritas de forma cualitativa.
 
-En cuanto a la detección de piezas, se recomienda reentrenar el modelo con el lote completo de piezas previsto por el lenguaje —incluidas las incorporadas en las últimas evoluciones, como tapas, paletas, cubos y dado— y versionar tanto el conjunto de datos como su configuración, a fin de garantizar la reproducibilidad del entrenamiento. Esta recomendación se ve reforzada por los fallos de detección observados durante el juicio de expertos, que, según el experto en IHC, podrían resultar frustrantes para docentes y niños durante una actividad.
+En cuanto a la detección de piezas, se recomienda reentrenar el modelo con el lote completo de piezas previsto por el lenguaje —incluidas las incorporadas en las últimas evoluciones, como tapas, paletas y cubos— y versionar tanto el conjunto de datos como su configuración, a fin de garantizar la reproducibilidad del entrenamiento. Esta recomendación se ve reforzada por los fallos de detección observados durante el juicio de expertos, que, según el experto en IHC, podrían resultar frustrantes para docentes y niños durante una actividad.
 
 Para preservar la trazabilidad arquitectónica, se recomienda mantener sincronizada la especificación viva del lenguaje con el informe y documentar, mediante una decisión de arquitectura formal, el reemplazo del servidor anterior por el servidor de relevo actual, dado que las decisiones de arquitectura existentes aún describen componentes ya superados. Asimismo, conviene documentar los requisitos de hardware y las dificultades de compatibilidad observadas con el sensor de profundidad, por su impacto en la estabilidad del sistema.
 
