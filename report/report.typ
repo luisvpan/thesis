@@ -611,7 +611,7 @@ Respecto a la dependencia de pantallas, Scratch, ScratchJr y AlgoBlock muestran 
 
 En cuanto a la edad, Scratch es una herramienta ampliamente usada para fomentar el pensamiento computacional, como muestran #cite(<perezmarin2020>, form: "prose") en educación primaria; sin embargo, está diseñado para niños desde los 8 años y supone conocimientos básicos de lectura y escritura, pues sus bloques contienen palabras. ScratchJr, dirigido a niños de 5 a 7 años, reduce esa exigencia #cite(<bers2018>), y TORTIS se diseñó para niños preescolares que aún no leen #cite(<morgado2006>). Los niños de 6 a 9 años se encuentran en la transición hacia la etapa de operaciones concretas #cite(<piaget1969>), por lo que las piezas del ambiente deben diseñarse de modo que puedan ser reconocidas visualmente, sin depender de texto escrito, y representar conceptos concretos y familiares.
 
-Todos los referentes de programación comparados se basan en el paradigma imperativo: el niño construye una secuencia de comandos cuyo efecto observa al ejecutarla. La experiencia de TORTIS muestra el riesgo de este enfoque en edades tempranas: con las cajas de botones, los niños tendían a confundir el programa con el dibujo resultante, y con las cartas del tragafichas les costaba comprender que cada carta representaba un comando, pues ejecutar cada una exigía buscarla, insertarla y presionar un botón (Perlman, 1976, citado en #cite(<morgado2006>, form: "author"), #cite(<morgado2006>, form: "year")). Para el ambiente propuesto, esto indica que no basta con que cada pieza física corresponda a una instrucción: la relación entre la pieza y su efecto debe hacerse visible de forma inmediata. Por ello se optó por el paradigma de flujo de datos, en el que la ejecución la determina la disponibilidad de los datos y no una secuencia de instrucciones #cite(<wadge1985>). Esta diferencia sustenta una hipótesis de diseño de este trabajo. #cite(<duboulay1986>, form: "prose") identifica la comprensión de la "máquina nocional" —el modelo de lo que ocurre dentro de la computadora al ejecutar un programa, incluido el flujo de control— como una de las principales dificultades de quienes aprenden a programar; se presume que esta dificultad es mayor para un niño en la transición hacia las operaciones concretas #cite(<piaget1969>), y que observar cómo los datos fluyen y se transforman a través de una red de nodos dispuesta físicamente sobre la superficie le resulta menos abstracto que seguir un puntero de ejecución que recorre instrucciones en orden. La red de datos y operaciones que constituye un programa dataflow se corresponde de forma natural con la disposición espacial de bloques conectados, haciendo visible la estructura computacional de manera coherente con la experiencia concreta del niño. Adicionalmente, la ausencia de estado mutable y de efectos laterales propia del paradigma dataflow puro #cite(<wadge1985>) simplifica el modelo mental necesario para razonar sobre el programa: cada bloque produce siempre el mismo resultado con los mismos datos de entrada, sin sorpresas derivadas de órdenes de ejecución o modificaciones ocultas de variables. Lucid, el lenguaje de programación dataflow purista desarrollado por #cite(<wadge1985>, form: "prose"), sirvió como referente para definir el modelo de ejecución del lenguaje propuesto en este trabajo, particularmente en lo relativo a la evaluación dirigida por demanda y a la representación de los programas como redes de filtros funcionales sobre flujos de datos.
+Todos los referentes de programación comparados se basan en el paradigma imperativo: el niño construye una secuencia de comandos cuyo efecto observa al ejecutarla. La experiencia de TORTIS muestra el riesgo de este enfoque en edades tempranas: con las cajas de botones, los niños tendían a confundir el programa con el dibujo resultante, y con las cartas del tragafichas les costaba comprender que cada carta representaba un comando, pues ejecutar cada una exigía buscarla, insertarla y presionar un botón (Perlman, 1976, citado en #cite(<morgado2006>, form: "author"), #cite(<morgado2006>, form: "year")). Para el ambiente propuesto, esto indica que no basta con que cada pieza física corresponda a una instrucción: la relación entre la pieza y su efecto debe hacerse visible de forma inmediata. Por ello se optó por el paradigma de flujo de datos, en el que la ejecución la determina la disponibilidad de los datos y no una secuencia de instrucciones #cite(<wadge1985>). Esta diferencia sustenta una hipótesis de diseño de este trabajo. #cite(<duboulay1986>, form: "prose") identifica la comprensión de la "máquina nocional" —el modelo de lo que ocurre dentro de la computadora al ejecutar un programa, incluido el flujo de control— como una de las principales dificultades de quienes aprenden a programar; se presume que esta dificultad es mayor para un niño en la transición hacia las operaciones concretas #cite(<piaget1969>), y que observar cómo los datos fluyen y se transforman a través de una red de nodos dispuesta físicamente sobre la superficie le resulta menos abstracto que seguir un puntero de ejecución que recorre instrucciones en orden. La red de datos y operaciones que constituye un programa dataflow se corresponde de forma natural con la disposición espacial de bloques conectados, haciendo visible la estructura computacional de manera coherente con la experiencia concreta del niño. Adicionalmente, la ausencia de estado mutable y de efectos laterales propia del paradigma dataflow puro #cite(<wadge1985>) simplifica el modelo mental necesario para razonar sobre el programa: cada bloque produce siempre el mismo resultado con los mismos datos de entrada, sin sorpresas derivadas de órdenes de ejecución o modificaciones ocultas de variables. Lucid, el lenguaje de programación dataflow purista desarrollado por #cite(<wadge1985>, form: "prose"), sirvió como referente para definir el modelo de ejecución del lenguaje propuesto en este trabajo, particularmente en lo relativo a la evaluación dirigida por demanda y a la representación de los programas como redes de filtros funcionales, con la diferencia de que los valores de ERAE son finitos y no historias infinitas de valores.
 
 En cuanto a la retroalimentación, TORTIS indicaba con luces la carta en ejecución, un rasgo que comparte con AlgoBlock #cite(<morgado2006>); el sistema de Rojas y Youssef la ofrece de forma auditiva, al estar dirigido a niños con discapacidad visual @rojas2024[pp. 47-48]; y Magicboard la proyecta sobre la mesa. El ambiente propuesto debe combinar ambos canales: una retroalimentación visual proyectada, que muestre las conexiones, el estado de ejecución y los resultados, y una retroalimentación auditiva.
 
@@ -713,7 +713,7 @@ La salida del programa se muestra en la interfaz proyectada sobre la superficie 
 
 El lenguaje ERAE es un lenguaje de flujo de datos (dataflow), donde los programas se representan como grafos de nodos que producen valores, los transforman y declaran salidas. En el ambiente, ese grafo tiene una parte tangible (piezas, disposición, regiones) y una parte digital (conexiones inferidas del trazado, proyección, estado de reconocimiento, mensajes y retroalimentación sonora), en línea con los requerimientos de datos, flujos y operaciones combinados en una sola construcción compartida entre el niño y el sistema.
 
-No se persigue la Turing-completitud como objetivo pedagógico; se busca un lenguaje suficientemente expresivo para un subconjunto de problemas acordes al currículo citado, y simple de interpretar por niños de 6 a 9 años. La evaluación del programa puede describirse de forma abstracta como bajo demanda, en la línea de lenguajes de flujo de datos clásicos como Lucid (los nodos se evalúan cuando sus resultados son requeridos por otros nodos o por la salida). El diseño visual del lenguaje, con la disposición de datos, operaciones y flujos sobre la superficie, se muestra en la @fourth-prototype-visual-design-figure.
+No se persigue la Turing-completitud como objetivo pedagógico; se busca un lenguaje suficientemente expresivo para un subconjunto de problemas acordes al currículo citado, y simple de interpretar por niños de 6 a 9 años. La evaluación del programa es dirigida por demanda: parte de las salidas y evalúa solo los nodos de los que estas dependen. ERAE toma de Lucid #cite(<wadge1985>) esta estrategia, la ausencia de estado mutable y la organización de los programas como redes de filtros funcionales; a diferencia de Lucid, cuyos filtros operan sobre historias infinitas de valores, los valores de ERAE son finitos. El diseño visual del lenguaje, con la disposición de datos, operaciones y flujos sobre la superficie, se muestra en la @fourth-prototype-visual-design-figure.
 
 #figure(
   image("images/fourth-prototype-visual-design.jpeg"),
@@ -722,31 +722,31 @@ No se persigue la Turing-completitud como objetivo pedagógico; se busca un leng
   ],
 ) <fourth-prototype-visual-design-figure>
 
-La especificación detallada de tipos, operadores y estructura sintáctica del lenguaje se presenta en la siguiente sección.
+El dominio de valores, las operaciones y la estructura sintáctica del lenguaje se presentan en la siguiente sección.
 
 === Especificación del lenguaje de programación tangible ERAE
 
-ERAE es, ante todo, un lenguaje visual y tangible: los programas se construyen disponiendo cartas físicas sobre la superficie de trabajo y trazando conexiones digitales entre ellas. La especificación que sigue describe ese lenguaje visual —sus piezas, su estructura y sus garantías—; la representación textual interna sobre la que opera el intérprete se menciona al final y su gramática formal se consigna en apéndice.
+ERAE es, ante todo, un lenguaje visual y tangible: los programas se construyen disponiendo cartas físicas sobre la superficie de trabajo y trazando conexiones digitales entre ellas. La especificación que sigue describe ese lenguaje visual —sus piezas, su estructura y sus garantías—; la representación textual interna sobre la que opera el intérprete se menciona al final. La especificación completa del lenguaje textual, en su versión 1.0.0, incluida su gramática formal, se consigna en el #link(<appendix-a>)[Apéndice A].
 
 ==== Filosofía de diseño
 
-Los principios rectores, en línea con prácticas de lenguajes educativos como el enfoque de tipos fijos de Scratch, son:
+Los principios rectores del lenguaje son:
 
-- *Tipos integrados:* conjunto de tipos cerrado, sin extensión por parte del usuario, para reducir la carga cognitiva.
-- *Operaciones seguras:* comprobación estática, previa a la ejecución, de la compatibilidad de datos entre operadores.
-- *Prevención de errores:* verificación estricta de tipos y de la aridad de cada operación (número correcto de entradas), en apoyo al manejo de errores en la disposición tangible y digital antes de ejecutar.
-- *Alineación curricular:* tipos y operaciones elegidos para mapearse a clasificación, comparación y manipulación de colecciones propios de primaria, en coherencia con el currículo de matemáticas de referencia.
+- *Dominio cerrado y uniforme:* tres formas de valor —bolsa, criterio y booleano—, sin tipos definidos por el usuario. Los contenidos curriculares se describen mediante la identidad de cada objeto y no mediante tipos nuevos, lo que reduce la carga cognitiva y permite incorporar contenidos sin modificar la gramática.
+- *Prevención de errores:* verificación estática, antes de evaluar, de la aridad de cada operación y de la categoría de valor de sus argumentos, complementada con comprobaciones durante la evaluación, como que un argumento que debe ser un número lo sea o que el divisor no sea cero.
+- *Tolerancia a programas incompletos:* un nodo a medio construir vale `nulo` y no invalida el resto del programa, de modo que el niño recibe resultados parciales mientras construye.
+- *Alineación curricular:* operaciones que corresponden a la clasificación, la comparación, la ordenación y la aritmética propias de la educación primaria, en coherencia con el currículo de matemáticas de referencia.
 
 ==== Piezas tangibles
 
 La unidad léxica del lenguaje visual es la carta: una pieza física tipo naipe que porta una imagen reconocible por el subsistema de visión y por el niño. El mazo se organiza en cuatro grupos. Los tres primeros siguen la progresión concreto-pictórico-abstracto, derivada de los modos de representación enactivo, icónico y simbólico de #cite(<bruner1966>, form: "prose") y coherente con la transición de la etapa preoperacional a la de operaciones concretas descrita en el marco teórico:
 
 - *Cartas concretas:* representan objetos cotidianos manipulables: alimentos (manzana, hamburguesa, pera, uvas), cubos de tipo Montessori, tapas y paletas de colores. Con ellas se trabajan las operaciones de suma, resta, filtrado y ordenación sobre colecciones de objetos familiares.
-- *Cartas pictóricas:* representan figuras geométricas (círculo, cuadrado, triángulo) en tres tamaños y varios colores, junto con cartas de criterio que denotan propiedades (tamaño, color o forma) y parametrizan las operaciones de filtrado, ordenación y comparación.
+- *Cartas pictóricas:* representan figuras geométricas (círculo, cuadrado, triángulo) en tres tamaños y varios colores, junto con cartas de criterio que denotan propiedades (tamaño, color o forma) y parametrizan el filtrado.
 - *Cartas abstractas:* representan los dígitos del 0 al 9 y habilitan el repertorio aritmético completo, incluyendo la multiplicación y la división, reservadas a este nivel.
 - *Cartas estructurales, comunes a los tres niveles:* la carta de resultado, que designa la salida del programa, y las cartas de apertura y cierre de colección, que agrupan varias cartas de datos en un solo conjunto.
 
-Cada operación está representada por su propia carta (suma, resta, multiplicación, división, ordenación ascendente y descendente, filtrado y comparación), de modo que el repertorio disponible se controla entregando a los niños el subconjunto del mazo acorde a la actividad y a su nivel. El diseño tipo carta de las piezas se muestra en la @sixth-prototype-pieces-design-figure.
+Las cartas de operación representan la suma, la resta, la multiplicación, la división, el filtrado, la comparación de igualdad y las operaciones de acceso y conteo (primera, última y contar). La ordenación se representa con cuatro cartas que incorporan su propio criterio: de menor a mayor y de mayor a menor según la cantidad, y de pequeño a grande y de grande a pequeño según el tamaño. Las operaciones de umbral del lenguaje, menor que y mayor que, no tienen, por ahora, carta en el mazo. El repertorio disponible se controla entregando a los niños el subconjunto del mazo acorde a la actividad y a su nivel. El diseño tipo carta de las piezas se muestra en la @sixth-prototype-pieces-design-figure.
 
 #figure(
   image("images/sixth-prototype-pieces-design.jpeg"),
@@ -760,54 +760,44 @@ Cada operación está representada por su propia carta (suma, resta, multiplicac
 Un programa se organiza como un grafo de flujo de datos construido sobre la superficie. A nivel conceptual, los nodos se clasifican en:
 
 - *Nodos de fuente:* aportan datos iniciales al grafo; se forman con cartas de datos (concretas, pictóricas o abstractas), individualmente o agrupadas mediante las cartas de colección.
-- *Nodos de transformación:* aplican operaciones a las entradas que reciben por las conexiones del flujo de datos; se forman con una carta de operación y, cuando corresponde, cartas de criterio que la parametrizan.
+- *Nodos de transformación:* aplican operaciones a las entradas que reciben por las conexiones del flujo de datos; se forman con una carta de operación, y los criterios que la parametrizan llegan como entradas desde sus propias cartas.
 - *Nodos de salida:* designan los valores que deben mostrarse o entregarse al entorno de visualización; se forman con la carta de resultado.
 
-Las aristas del grafo son las conexiones digitales trazadas por los niños sobre la superficie, que el sistema reconoce y proyecta. La composición de cartas físicas y conexiones digitales constituye el programa completo.
+Las aristas del grafo son conexiones digitales que los niños establecen sobre la superficie tocando, uno tras otro, los puertos de las dos cartas que desean enlazar; el sistema solo admite las conexiones compatibles con el tipo de cada puerto y las proyecta. Parte de la estructura, además, se infiere de la disposición física: qué cartas quedan dentro de un grupo y qué cifras contiguas forman un número de varias cifras. La composición de cartas físicas, su disposición y las conexiones digitales constituye el programa completo.
 
-==== Prevención de errores sintácticos y azúcar sintáctico
+==== Prevención de errores y traducción de la sintaxis visual a la textual
 
-El diseño tangible elimina por construcción la mayor parte de los errores sintácticos posibles en un lenguaje textual. Cada carta es un símbolo léxico completo y válido: no existen errores de escritura, identificadores mal formados ni delimitadores faltantes, porque el niño nunca escribe texto. La estructura de declaraciones del lenguaje subyacente (nombres de nodos, asignaciones y terminadores) la genera automáticamente el sistema a partir de la disposición de las cartas y las conexiones reconocidas, actuando como azúcar sintáctico sobre el lenguaje textual interno: las cartas de criterio se traducen a literales de criterio, las cartas de apertura y cierre de colección a literales de grupo, y la carta de resultado a una declaración de salida. Los únicos errores que el niño puede cometer son semánticos —conectar tipos incompatibles, dejar entradas sin conectar, formar ciclos o entregar a una operación un número incorrecto de entradas— y todos son detectados por el intérprete antes o durante la evaluación, comunicándose mediante la retroalimentación visual y auditiva del ambiente descrita previamente.
+El niño no produce texto, por lo que no puede cometer los errores léxicos ni sintácticos propios de un lenguaje textual: cada carta es un símbolo completo y válido, y no existen identificadores mal formados ni delimitadores faltantes. La representación textual interna la genera automáticamente el sistema a partir de la disposición de las cartas y de las conexiones reconocidas: las cartas de datos se traducen a declaraciones de fuente (`source`), las cartas de criterio a literales de criterio, las cartas de apertura y cierre de colección a literales de grupo, las cartas de operación a declaraciones de transformación (`transform`) y la carta de resultado a una declaración de salida (`sink`).
 
-==== Tipos de datos
+Persisten, sin embargo, tres clases de errores. Los errores de disposición pertenecen a la sintaxis visual, como una carta de apertura de colección sin su cierre. Los errores de reconocimiento son propios de las interfaces tangibles: el subsistema de visión puede no detectar una carta, detectar una que no está o confundir dos cartas parecidas, por ejemplo un 6 con un 9 si la carta está girada. Los errores semánticos los detecta el intérprete: una operación desconocida, un número incorrecto de argumentos, un argumento de una categoría de valor que la operación no admite, como una bolsa donde se espera un criterio, un ciclo, un argumento que debía ser un número y no lo es, o una división por cero. Dejar una carta sin conectar, en cambio, no es un error: un nodo incompleto vale `nulo` y no impide evaluar el resto del programa. El sistema comunica estos errores mediante la retroalimentación visual y auditiva del ambiente descrita previamente.
 
-Tipos numéricos y escalares primitivos:
+==== Dominio de valores
 
-- *Naturales:* enteros mayores o iguales que cero.
-- *Enteros:* positivos y negativos.
-- *Decimales:* números con parte fraccionaria para medidas.
-- *Fracciones:* representación explícita de cocientes (por ejemplo $1/2$, $3/4$).
-- *Texto:* cadenas para etiquetas y valores simbólicos.
-- *Booleanos:* verdadero o falso.
+Todo valor de ERAE pertenece a una de tres formas. La bolsa es la forma central y transporta los datos: una secuencia finita y ordenada de entradas, cada una formada por una identidad y una cantidad racional. La identidad de un objeto se compone de su categoría (concreta, pictórica o abstracta, siguiendo la progresión concreto-pictórico-abstracto), su tipo, su subtipo y un conjunto de atributos libres en forma de pares clave-valor, como el color o el tamaño. El criterio describe cómo seleccionar u ordenar objetos, y puede ser de filtro o de orden. El booleano informa el resultado de una comparación de igualdad; ninguna carta lo declara como dato de entrada.
 
-Tipos curriculares:
+Esta organización tiene tres consecuencias. En primer lugar, los números no forman un tipo aparte: un número es un objeto abstracto de tipo numérico cuya cantidad es su valor, y como las cantidades son racionales exactas, los naturales, los enteros, los decimales y las fracciones son simplemente cantidades de una misma clase; que 3, 1/3 y −1 sean valores del mismo tipo es una decisión deliberada para un lenguaje orientado a la aritmética y a las fracciones. En segundo lugar, los contenidos curriculares, como alimentos, formas o animales, no son tipos del lenguaje, sino valores de tipo, subtipo y atributos, de modo que pueden incorporarse nuevos contenidos sin modificar la gramática. En tercer lugar, una bolsa admite objetos de identidades distintas y conserva por separado los repetidos, en el orden en que se colocaron, de modo que cada carta que el niño pone sobre la mesa corresponde a una entrada de la bolsa hasta que una operación decida combinarlas.
 
-- *Formas:* atributos de tipo geométrico (círculo, triángulo, cuadrado), tamaño y color.
-- *Coches:* atributo de color.
-- *Comida:* atributos de sabor (dulce, salado, agrio, amargo) y color.
-- *Animales:* tipo de animal y color.
-- *Personas:* grupo etario y género.
-
-Los valores concretos permitidos para cada atributo (por ejemplo, paleta de colores o conjunto de tipos de forma) están fijados en la especificación formal del lenguaje para mantener coherencia entre tangibles, reconocimiento y ejecución. En la especificación vigente, cada fuente de datos declara una categoría (abstracta, pictórica o concreta), un tipo y un subtipo, una cantidad opcional expresada como número racional, y pares clave-valor libres para atributos adicionales (como color, tamaño o sabor), lo que permite incorporar nuevos tipos curriculares sin modificar la gramática del lenguaje.
-
-Tipos compuestos:
-
-- *Conjuntos:* colecciones homogéneas de elementos de un mismo tipo.
-- *Flujos:* secuencias de valores en el tiempo, en correspondencia con la naturaleza dataflow del lenguaje y con patrones de iteración o señales discretas.
+Formalmente, cada bolsa denota un vector del espacio vectorial libre sobre los racionales generado por las identidades, y dos bolsas son iguales si denotan el mismo vector, con independencia del orden y de la agrupación de sus entradas. La definición completa del dominio se presenta en el #link(<appendix-a>)[Apéndice A].
 
 ==== Catálogo de operaciones
 
-Las operaciones se agrupan en familias. La lista siguiente resume las categorías definidas en la especificación vigente del lenguaje (versión 4.2.0); cada operador tiene firmas de tipo y aridad que el intérprete verifica antes de la ejecución.
+El lenguaje reconoce doce operaciones, agrupadas en familias:
 
-- *Operaciones aritméticas:* suma (`sum`), resta (`substract`), multiplicación (`multiply`) y división (`divide`).
-- *Operaciones de comparación e igualdad:* menor que (`less_than`), mayor que (`greater_than`) y comparación general de igualdad (`compare`), aplicadas según los tipos involucrados.
-- *Filtrado:* filtro (`filter`) que extrae, de un conjunto de datos, los elementos que cumplen los criterios indicados (por ejemplo, por color, tamaño o tipo).
-- *Ordenación:* orden ascendente (`order_asc`) y descendente (`order_desc`).
-- *Agregación y selección:* primero (`first`), último (`last`) y conteo (`count`), que operan sobre colecciones para seleccionar elementos o resumirlas.
+- *Aritméticas:* la suma (`sum`), que admite cualquier número de entradas, y la resta (`substract`) suman y restan cantidades por identidad; la multiplicación (`multiply`) y la división (`divide`) escalan una bolsa por un número.
+- *Comparación:* menor que (`less_than`) y mayor que (`greater_than`) no devuelven un booleano, sino que son filtros por umbral: conservan las identidades cuya cantidad total es menor o mayor que un número dado. La igualdad (`compare`) sí devuelve un booleano, verdadero cuando ambas bolsas contienen las mismas cantidades de cada identidad, sin importar el orden ni cómo estén agrupadas.
+- *Ordenación:* `order` reordena una bolsa según uno o más criterios de orden; cada criterio indica una propiedad y una dirección, ascendente o descendente, o bien una secuencia explícita de valores, como pequeño, mediano y grande.
+- *Filtrado:* `filter` conserva las entradas que satisfacen alguno de los criterios de filtro.
+- *Acceso y agregación:* primera (`first`) y última (`last`) devuelven la primera y la última entrada según el orden vigente, y contar (`count`) devuelve un número igual a la suma de las cantidades.
+
+Que las operaciones de umbral filtren en lugar de responder verdadero o falso tiene una implicación pedagógica: la pregunta "¿cuáles tienen menos de cinco?" se responde con una colección que el niño puede ver y contar, y no con un valor de verdad abstracto.
+
+Las operaciones comparten, además, una regla de agrupación. Como una bolsa conserva por separado los objetos repetidos, cada operación indica si los agrupa por identidad antes de actuar. La aritmética que suma y resta agrupa todo. Las operaciones que escalan, filtran por umbral u ordenan agrupan los objetos concretos y pictóricos, pero no los abstractos: cada número se trata por separado, porque un número suele ser una unidad que el niño colocó para ordenarla o compararla con otras, y agruparlos convertiría las cartas 7, 2 y 5 en un único 14, sin nada que ordenar. Las operaciones de acceso no agrupan, de modo que "la primera" señala una carta que el niño puso sobre la mesa y no una pila fabricada por una operación.
+
+Cada operación tiene una firma que fija su aridad y la categoría de valor de cada argumento. El intérprete verifica ambas antes de evaluar y comprueba durante la evaluación lo que depende de los valores: que los argumentos que deben ser números lo sean y que el divisor no sea cero.
 
 ==== Representación textual interna
 
-El lenguaje visual se traduce a una representación textual interna sobre la que opera el intérprete, cuya sintaxis concreta (palabras clave, literales y reglas de formación) se especifica formalmente mediante una gramática en notación EBNF de la W3C, presentada en el #link(<appendix-a>)[Apéndice A]. La gramática admite modificadores opcionales en sus reglas de declaración, lo que permite analizar sintácticamente programas incompletos sin interrumpir la sesión: capacidad necesaria para la retroalimentación inmediata mientras el niño aún está construyendo el programa.
+El lenguaje visual se traduce a una representación textual interna sobre la que opera el intérprete, cuya sintaxis concreta (palabras clave, literales y reglas de formación) se especifica formalmente mediante una gramática en notación EBNF de la W3C, que forma parte de la especificación del lenguaje presentada en el #link(<appendix-a>)[Apéndice A]. Un programa textual es una secuencia de declaraciones de fuente (`source`), transformación (`transform`) y salida (`sink`). La gramática admite modificadores opcionales en sus reglas de declaración, lo que permite analizar sintácticamente programas incompletos sin interrumpir la sesión: capacidad necesaria para la retroalimentación inmediata mientras el niño aún está construyendo el programa.
 
 // ==== Ejemplo ilustrativo
 
@@ -826,6 +816,8 @@ El lenguaje visual se traduce a una representación textual interna sobre la que
 
 Se adopta una separación entre núcleo sin estado y adaptadores delgados. El intérprete no conoce los detalles de comunicación con el resto del sistema, ya que recibe datos de programa, devuelve resultados o diagnósticos, y no mantiene sesión de usuario. Esta comunicación se implementa en capas periféricas que serializan y deserializan solicitudes y respuestas.
 
+La evaluación incremental, que permite ofrecer resultados mientras el programa se construye, se implementa mediante memorización con invalidación: el intérprete conserva en caché los valores de los nodos entre evaluaciones sucesivas y, al recibir una nueva versión del programa, compara ambos grafos e invalida solo los nodos que cambiaron y los que dependen de ellos. Se trata de una técnica de implementación, no de una propiedad heredada de Lucid, aunque es justamente la ausencia de estado mutable del lenguaje, que sí es una propiedad de Lucid, lo que la hace posible, pues el valor de un nodo depende únicamente de su sentencia y de sus entradas.
+
 // ==== Modos de evaluación
 
 // Modo por lotes (batch): pensado para ejecutar un programa completo cuando la escena ya está estable o cuando el subsistema de visión entrega un grafo cerrado. Entrada: programa completo y válido (por ejemplo en JSON). Proceso: compilar, validar y ejecutar. Salida: resultados finales y traza de ejecución. Caso de uso típico: la visión detecta que el niño terminó de montar el programa, envía la representación y se proyecta el resultado final.
@@ -843,7 +835,6 @@ Se adopta una separación entre núcleo sin estado y adaptadores delgados. El in
 
 // Una actividad agrupa: el enunciado del problema, la explicación de los conceptos involucrados, las condiciones durante el desarrollo, el inicio de la tarea y el resultado esperado. Los niños resuelven la actividad construyendo un programa con el lenguaje tangible y los elementos provistos por el ambiente. El sistema permite a los docentes crear, editar y organizar actividades alineadas al currículo de matemáticas de 1.er a 3.er grado (MPPE, 2023) y orientadas al desarrollo del pensamiento computacional en la franja de edad objetivo.
 
-// La gramática EBNF completa se consigna en el Apéndice A (<appendix-a>), tomada de la especificación viva del lenguaje (GRAMMAR_SPEC.md, v4.2.0). Cualquier divergencia futura entre implementación y especificación debe resolverse actualizando primero la especificación y luego el texto del diseño, para conservar trazabilidad académica.
 
 == Construir un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Base al Diseño Realizado
 
@@ -909,7 +900,7 @@ Los resultados obtenidos mostraron que el modelo de detección de objetos basado
 
 Dado que se usaría un paradigma de programación dataflow, se decidió que se seguiría con la definición y elaboración de un lenguaje de programación visual basado en este paradigma, con el objetivo de crear una interfaz gráfica atractiva y funcional para los usuarios finales, que permitiera la creación de programas mediante la manipulación de bloques visuales que representaran operaciones y datos.
 
-Se llevó a cabo una investigación sobre los lenguajes de programación dataflow, tomando como referente a Lucid /* ver si se cambia la inspiración directa en Lucid */ #cite(<wadge1985>), por ser un lenguaje de programación dataflow purista, y se definieron los elementos básicos del lenguaje de programación visual, incluyendo los tipos de bloques, las operaciones disponibles, y la forma en que los bloques se conectan para formar programas. Este diseño puede verse en la @fourth-prototype-visual-design-figure. Las operaciones disponibles se basarían en el currículum de matemáticas de educación básica, con el objetivo de fomentar el desarrollo del pensamiento computacional a través de conceptos matemáticos, y se incluirían operaciones como suma, resta, multiplicación, división, entre otras. En pro de una correcta división de las responsabilidades del sistema, se separó el lenguaje de programación visual en dos partes: un apartado de detección de piezas, que se encargaría de detectar las piezas físicas colocadas por los usuarios y traducirlas a una representación interna del programa; y un apartado de ejecución, que se encargaría de ejecutar el programa representado internamente y enviar los resultados a la interfaz gráfica. Esta separación permitiría una mayor flexibilidad y mantenibilidad del sistema, facilitando la incorporación de nuevas piezas y operaciones en el futuro.
+Se llevó a cabo una investigación sobre los lenguajes de programación dataflow, tomando como referente a Lucid #cite(<wadge1985>), por ser un lenguaje de programación dataflow purista, y se definieron los elementos básicos del lenguaje de programación visual, incluyendo los tipos de bloques, las operaciones disponibles, y la forma en que los bloques se conectan para formar programas. Este diseño puede verse en la @fourth-prototype-visual-design-figure. Las operaciones disponibles se basarían en el currículum de matemáticas de educación básica, con el objetivo de fomentar el desarrollo del pensamiento computacional a través de conceptos matemáticos, y se incluirían operaciones como suma, resta, multiplicación, división, entre otras. En pro de una correcta división de las responsabilidades del sistema, se separó el lenguaje de programación visual en dos partes: un apartado de detección de piezas, que se encargaría de detectar las piezas físicas colocadas por los usuarios y traducirlas a una representación interna del programa; y un apartado de ejecución, que se encargaría de ejecutar el programa representado internamente y enviar los resultados a la interfaz gráfica. Esta separación permitiría una mayor flexibilidad y mantenibilidad del sistema, facilitando la incorporación de nuevas piezas y operaciones en el futuro.
 
 Durante el desarrollo de este prototipo, el enfoque estuvo en la implementación del apartado de ejecución del lenguaje de programación dataflow, para lo cual se definieron 3 representaciones de los programas formados por los bloques visuales: una de intercambio, basada en JSON; una textual, para entrada y depuración; y un formato en memoria, para uso interno por el entorno de ejecución; y se implementó un intérprete para ejecutar estos programas (denominado inicialmente compilador y _runtime_, terminología que fue revisada en iteraciones posteriores al consolidarse la evaluación directa de los programas). Se decidió usar TypeScript como lenguaje de programación, debido a su flexibilidad, facilidad para el desarrollo rápido, y su capacidad para manejar estructuras de datos complejas mediante su tipado; Bun como motor de ejecución, pues permite la ejecución directa de programas escritos en TypeScript sin un paso previo de transpilación, y provee ventajas de rendimiento contra sus competidores Node y Deno; y la librería Chevrotain, que provee un kit de herramientas para la construcción de _parsers_; facilitando la implementación del entorno. Además, se implementó un servidor HTTP y uno de WebSockets, para lo cual se utilizó la librería Elysia, que permiten la comunicación con la interfaz gráfica y el apartado de visión por computador. // Este prototipo puede verse en la @fourth-prototype-figure.
 
@@ -1019,7 +1010,7 @@ Con el fin de verificar que el sistema construido responde a lo especificado, se
       [RF-05], [El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas], [Evaluación incremental, resaltado de orígenes, zonas y conexiones, y walkers sobre las conexiones], [Satisfecho],
       [RNF-01], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado], [Modos de juego y sandbox e interfaz basada en cartas; su usabilidad efectiva requiere comprobación con usuarios], [Pendiente],
       [RNF-02], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años], [Elementos lúdicos implementados (diseño colorido, dado, síntesis de voz); su efecto en el interés requiere validación con niños], [Parcial],
-      [RNF-03], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales], [Verificación de tipos y aridad, validación de conexiones en tres niveles y análisis de programas incompletos sin interrumpir la sesión], [Satisfecho],
+      [RNF-03], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales], [Verificación de aridad y de categoría de valor, validación de conexiones en tres niveles y análisis de programas incompletos sin interrumpir la sesión], [Satisfecho],
       [RNF-04], [La retroalimentación debe ser presentada de forma visual y auditiva], [Retroalimentación visual completa (resaltados, walkers, resultados); la auditiva se limita a la síntesis de voz de los resultados, restan las señales sonoras de reconocimiento, advertencia y error], [Parcial],
     )
   ],
@@ -1100,13 +1091,13 @@ La comparación muestra, además, que todos los referentes de programación se b
 
 El diseño tradujo la caracterización resultante del análisis en una arquitectura concreta y en la especificación del lenguaje ERAE. Se concluye que la progresión concreto-pictórico-abstracto adoptada para el mazo de cartas operacionaliza los modos de representación enactivo, icónico y simbólico de #cite(<bruner1966>, form: "prose") y resulta coherente con la transición hacia la etapa de operaciones concretas; es decir, el marco teórico no permaneció como fundamento abstracto, sino que se materializó en una decisión de diseño verificable —la organización del repertorio físico de piezas— que solo pudo concretarse al elaborar el diseño.
 
-En el plano del lenguaje, el diseño de flujo de datos, con declaraciones de fuente, transformación y salida, evaluación bajo demanda e incremental, y verificación estática de tipos y aridad, permite que los errores sintácticos queden eliminados por construcción y que la única fuente de error sea de naturaleza semántica, comunicada mediante mensajes orientados a los niños. Esta característica responde directamente a los requerimientos derivados del análisis: guiar la construcción del programa y prevenir los errores antes de la ejecución. La separación entre un núcleo de interpretación sin estado y adaptadores delgados, junto con una representación textual interna cuya gramática formal tolera programas incompletos (#link(<appendix-a>)[Apéndice A]), hizo realizable el diseño y habilitó la retroalimentación inmediata durante la construcción en vivo. El diseño mantuvo, además, su trazabilidad con el análisis al alinear el repertorio de datos y operaciones con los énfasis del currículo de educación primaria #cite(<mppe2023>).
+En el plano del lenguaje, el diseño de flujo de datos, con declaraciones de fuente, transformación y salida, evaluación dirigida por demanda y un dominio de valores reducido a tres formas —bolsa, criterio y booleano—, evita que el niño cometa errores de escritura, pues no produce texto; los errores que persisten, de disposición, de reconocimiento y semánticos, se detectan mediante la verificación estática de aridad y de categoría de valor y mediante comprobaciones durante la evaluación, y se comunican con mensajes orientados a los niños. Esta característica responde directamente a los requerimientos derivados del análisis: guiar la construcción del programa y prevenir los errores antes de la ejecución. La separación entre un núcleo de interpretación sin estado y adaptadores delgados, junto con una representación textual interna cuya gramática formal tolera programas incompletos (#link(<appendix-a>)[Apéndice A]), hizo realizable el diseño y habilitó la retroalimentación inmediata durante la construcción en vivo. El diseño mantuvo, además, su trazabilidad con el análisis al alinear el repertorio de datos y operaciones con los énfasis del currículo de educación primaria #cite(<mppe2023>).
 
 == Construir un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Base al Diseño Realizado
 
 La construcción del ambiente, llevada a cabo mediante un enfoque evolutivo basado en prototipos #cite(<pressman2010>), produjo un sistema integrado que articula el subsistema de visión por computador, el lenguaje ERAE con su intérprete y la interfaz de usuario. Se concluye que la metodología por prototipos fue determinante para un proyecto de naturaleza experimental con requerimientos inicialmente poco definidos: el resultado de cada prototipo definió el requerimiento del siguiente —la resolución insuficiente del Kinect v1 motivó el cambio al Kinect v2; la fragilidad de la detección por contornos condujo a la detección por aprendizaje profundo; la latencia entre procesos llevó a consolidar el intérprete como librería embebida; y la imposibilidad de representar las conexiones entre las piezas, evidenciada en el sexto prototipo, impulsó el sistema de puertos tipados, reglas estructurales y _walkers_ del séptimo—. Esta cadena de decisiones, que solo pudo establecerse al construir y evaluar sucesivamente el sistema, confirma la pertinencia del enfoque adoptado.
 
-Entre los logros técnicos se cuentan el reconocimiento de las piezas mediante modelos de detección de objetos, más robusto que la detección por contornos de los primeros prototipos, un intérprete del lenguaje ERAE que funciona como librería embebida con evaluación incremental y verificación de tipos y aridad, la calibración mediante homografía, la detección de toques con un detector híbrido y la integración entre la visión y el intérprete a través de un servidor de relevo y de la interfaz, que traduce el grafo visual de piezas y conexiones en un programa ejecutable. Con el séptimo prototipo se alcanzó, por primera vez, una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada constituyen un programa evaluable de manera incremental, con lo que el objetivo de construcción se considera cumplido en tanto el artefacto existe y opera.
+Entre los logros técnicos se cuentan el reconocimiento de las piezas mediante modelos de detección de objetos, más robusto que la detección por contornos de los primeros prototipos, un intérprete del lenguaje ERAE que funciona como librería embebida con evaluación incremental y verificación de aridad y de categoría de valor, la calibración mediante homografía, la detección de toques con un detector híbrido y la integración entre la visión y el intérprete a través de un servidor de relevo y de la interfaz, que traduce el grafo visual de piezas y conexiones en un programa ejecutable. Con el séptimo prototipo se alcanzó, por primera vez, una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada constituyen un programa evaluable de manera incremental, con lo que el objetivo de construcción se considera cumplido en tanto el artefacto existe y opera.
 
 No obstante, se concluye también que varias de las mejoras introducidas durante la construcción —en particular las relativas a la precisión de la calibración y al rendimiento de la detección— no fueron cuantificadas formalmente, y durante la validación se observaron fallos en la detección de cartas. Esta distinción preserva la coherencia entre lo efectivamente construido y aquello que solo podrá afirmarse tras una medición formal del desempeño del ambiente.
 
@@ -1145,49 +1136,1161 @@ Finalmente, dado que la usabilidad del ambiente se valoró únicamente desde la 
 
 #pagebreak(weak: true)
 
-= Apéndice A. Gramática del Lenguaje ERAE <appendix-a>
+= Apéndice A. Especificación del Lenguaje ERAE <appendix-a>
 
-A continuación se presenta la gramática formal del lenguaje ERAE en notación EBNF de la W3C, correspondiente a la versión 4.2.0 de la especificación del lenguaje. Los modificadores opcionales (`?`) en las reglas de declaración permiten el análisis sintáctico de programas incompletos, capacidad sobre la que se apoya la retroalimentación inmediata durante la construcción en vivo.
+A continuación se reproduce la especificación del lenguaje ERAE en su versión 1.0.0, del 26 de septiembre de 2026, tal como consta en el archivo `specs/LANGUAGE_SPEC.md` del repositorio del entorno de ejecución. Comprende el dominio semántico, el modelo de evaluación, las operaciones, los errores y la gramática formal del lenguaje en notación EBNF de la W3C (sección 5.1).
 
 #[
-  #set text(size: 10pt)
-  #set par(first-line-indent: 0cm, justify: false)
-  ```ebnf
-  program             ::= statement*
-  statement           ::= source_decl | transform_decl | sink_decl
+#set heading(outlined: false)
+#show raw.where(block: true): set text(size: 9pt)
+#set par(justify: false)
 
-  source_decl         ::= "source" identifier "=" (object_literal | group)? ";"
-  transform_decl      ::= "transform" identifier "=" (operation "(" argument_list? ")")? ";"
-  sink_decl           ::= "sink" identifier "=" identifier? ";"
+== 1. Dominio semántico
+Esta sección define #strong[qué es un valor].
 
-  argument_list       ::= identifier ("," identifier)*
+=== 1.1 Panorama
+Al evaluarse, un programa produce #strong[valores]. Todo valor pertenece
+a una de tres formas:
 
-  operation           ::= "sum" | "substract" | "multiply" | "divide"
-                        | "less_than" | "greater_than"
-                        | "order_asc" | "order_desc" | "filter"
-                        | "first" | "last" | "count" | "compare"
++ #strong[Bolsa] (#emph[bag]) — una colección de objetos CPA con
+  cantidades. Es la forma central del lenguaje: los datos.
++ #strong[Criterio] (#emph[criterion]) — un selector u ordenador,
+  consumido por las operaciones de filtrado y ordenamiento.
++ #strong[Booleano] (#emph[boolean]) — el resultado de una comparación.
 
-  group               ::= "[" (object_literal ("," object_literal)*)? "]"
+Solo la bolsa transporta datos numéricos y de currículo; el criterio y
+el booleano actúan como auxiliares para alterar el comportamiento o
+informar el resultado de ciertas operaciones.
 
-  object_literal      ::= data_literal | criteria_literal
+=== 1.2 La bolsa
+La bolsa es la forma central del lenguaje: los datos. Se construye a
+partir de objetos CPA; en lo que sigue se definen su identidad, su
+representación, su denotación y las reglas que la gobiernan.
 
-  data_literal        ::= "{" '"sourceType" : "data"' "," '"category"' ":" category_type ","
-                          '"type"' ":" string_literal "," '"subtype"' ":" string_literal
-                          ("," '"quantity"' ":" rational_literal)? ("," kv_pair)* "}"
-  criteria_literal    ::= "{" '"sourceType" : "criteria"' "," '"properties"' ":" array_literal
-                          ("," kv_pair)* "}"
+==== 1.2.1 Identidad CPA
+Toda unidad de dato del lenguaje es un #strong[objeto CPA], determinado
+por su #strong[identidad]: la tupla
 
-  category_type       ::= '"abstracto"' | '"pictorico"' | '"concreto"'
+```
+Identidad = (categoría, tipo, subtipo, atributos)
+```
 
-  kv_pair             ::= string_literal ":" kv_value
-  kv_value            ::= string_literal | rational_literal | array_literal
+donde cada parte cumple un papel distinto:
 
-  array_literal       ::= "[" (string_literal ("," string_literal)*)? "]"
-  rational_literal    ::= "-"? digit+ ("." digit+)?
-  string_literal      ::= '"' [a-zA-Z0-9_-]* '"'
-  identifier          ::= [a-zA-Z] [a-zA-Z0-9_-]*
-  digit               ::= [0-9]
-  ```
+- #strong[`categoría`] — el nivel de representación CPA del objeto:
+  `concreto`, `pictórico` o `abstracto` (exactamente tres valores
+  posibles). Distingue, por ejemplo, una manzana (concreto) de un dibujo
+  de una manzana (pictórico) o de una cantidad de manzanas (abstracto).
+- #strong[`tipo`] — la familia o clase general del objeto (p. ej.
+  `"comida"`, `"forma"`, `"animal"`, `"numero"`).
+- #strong[`subtipo`] — la variante específica dentro del tipo (p. ej.
+  `"manzana"` dentro de `"comida"`, `"círculo"` dentro de `"forma"`,
+  `"racional"` dentro de `"numero"`).
+- #strong[`atributos`] — un conjunto de pares clave–valor adicionales
+  que refinan la identidad más allá del subtipo (p. ej. `color: "rojo"`,
+  `tamaño: "grande"`).
+
+Dos objetos son de la #strong[misma identidad] si y solo si coinciden en
+las cuatro partes: categoría, tipo, subtipo y todos sus atributos.
+
+==== 1.2.2 Representación
+Una #strong[bolsa] es una #strong[secuencia finita y ordenada de
+entradas]. Cada #strong[entrada] es un par
+
+```
+Entrada = (Identidad, cantidad)      con  cantidad ∈ ℚ
+```
+
+Es decir, una entrada asocia a una identidad una #strong[cantidad
+racional], de modo que puede ser natural, fraccionaria, negativa o 0. La
+bolsa es, en su forma concreta, una lista de tales entradas.
+
+Tres propiedades definen el comportamiento de la bolsa:
+
+#strong[(a) Se permiten repetidos; no se agrega por sí sola.] Una misma
+identidad puede aparecer en varias entradas distintas, y la bolsa las
+conserva separadas. Por ejemplo, la siguiente es una bolsa válida y
+#emph[no] se colapsa por sí sola:
+
+```
+{ manzana↦2, pera↦3, manzana↦4, número↦5, pera↦1 }
+```
+
+Aquí hay dos entradas de identidad \"manzana\" (con cantidades 2 y 4) y
+dos de \"pera\" (3 y 1), y permanecen distintas. #strong[Solo las
+operaciones agregan] identidades iguales; la bolsa por sí misma es, en
+este sentido, una \"bolsa de bolsas\". Esta decisión preserva la
+correspondencia uno-a-uno entre cada objeto tangible colocado por el
+niño y cada entrada de la bolsa, hasta que una operación decida
+combinarlas explícitamente.
+
+#strong[(b) El orden se conserva.] Las entradas están ordenadas, y el
+orden por defecto es el de #strong[declaración] (orden de primera
+aparición, de izquierda a derecha). No hay ninguna regla de ordenamiento
+implícita que el usuario deba recordar.
+
+#strong[(c) Las cantidades 0 se conservan.] Una entrada de cantidad 0,
+por ejemplo el resultado de `3 manzanas − 3 manzanas`, es legal y
+#strong[no se descarta] de la representación: así el consumidor puede
+enunciar el resultado por identidad («quedan #strong[0 manzanas]»), lo
+que es didácticamente valioso. Denotacionalmente, en cambio, una
+cantidad 0 no aporta nada y la igualdad la ignora.
+
+Un #strong[objeto individual] (una sola tarjeta) es, simplemente, una
+bolsa de una entrada. La #strong[bolsa vacía] (sin entradas) es un valor
+de primera clase y se denomina `nulo`.
+
+==== 1.2.3 Denotación: el vector en `ℚ^{(Id)}`
+La bolsa es una #strong[representación] de un #strong[vector] en
+`ℚ^{(Id)}`. Se pasa de uno al otro #strong[agregando las cantidades de
+las entradas de igual identidad] (colapsando los repetidos).
+Formalmente, la denotación es una función `δ` que lleva cada bolsa a una
+#strong[función de soporte finito] de identidades en ℚ, y esa función
+#emph[es] el vector:
+
+```
+bolsa  = [ (i₁,c₁), (i₁,c₂), (i₂,c₃), …, (iₙ,cₙ) ]     (lista de entradas; una identidad puede repetirse)
+
+vector = δ(bolsa) : Identidad → ℚ,   δ(bolsa)(i) = Σₖ cₖ · [iₖ = i]     (k de 1 a n;  [iₖ = i] vale 1 si la entrada k tiene identidad i, y 0 si no)
+```
+
+Por ejemplo, la bolsa `{ manzana↦2, pera↦3, manzana↦4 }` (tres entradas)
+denota el vector `{ manzana↦6, pera↦4 }` (dos componentes).
+
+Solo un número finito de identidades tiene valor distinto de cero (el
+#emph[soporte]). En particular, una identidad cuya suma de cantidades es
+0 queda #strong[fuera del soporte]: las entradas de cantidad 0 no
+alteran la denotación.
+
+El conjunto de todas estas funciones es el #strong[espacio vectorial
+libre sobre ℚ] generado por las identidades, denotado `ℚ^{(Id)}`; sus
+elementos son las #strong[combinaciones lineales formales] de
+identidades con coeficientes racionales. En esta lectura, #strong[los
+objetos CPA son vectores], las identidades son la base, y la cantidad de
+cada entrada es un coeficiente.
+
+Este es el punto de diseño central del lenguaje: al permitir
+coeficientes en ℚ (y no solo en ℕ), se #strong[fusionan en una sola
+noción] el \"¿cuántos?\" (contar objetos, ℕ) y el \"¿cuánto?\" (medir,
+fracciones y negativos, ℚ). Para un lenguaje cuyo propósito es enseñar
+aritmética y fracciones, que \"3\", \"1/3\" y \"−1\" sean el mismo tipo
+de ciudadano es deliberado.
+
+La #strong[forma reducida] de una bolsa es la que tiene exactamente una
+entrada por identidad de su soporte, con cantidad igual al coeficiente:
+es la única bolsa que #strong[coincide] con su propio vector. La
+representación general no está necesariamente reducida; las operaciones
+son las que reducen (o no).
+
+==== 1.2.4 Igualdad denotacional
+Dos bolsas son #strong[iguales] si y solo si tienen la #strong[misma
+denotación], es decir, el mismo vector:
+
+```
+bolsa₁ ≈ bolsa₂   ⟺   δ(bolsa₁) = δ(bolsa₂)
+```
+
+En consecuencia, la igualdad #strong[ignora el orden], #strong[ignora la
+agrupación] e #strong[ignora las cantidades 0]. Por ejemplo, todas estas
+bolsas son iguales entre sí:
+
+```
+{ manzana↦2, manzana↦4 }   ≈   { manzana↦6 }   ≈   { manzana↦1, manzana↦1, ... (seis veces) }
+{ manzana↦1, pera↦1 }       ≈   { pera↦1, manzana↦1 }
+{ manzana↦0 }               ≈   nulo   ≈   { manzana↦0, pera↦0 }
+```
+
+Esta es la invariante que mantiene coherente el modelo de espacio
+vectorial: el orden, la falta de agregación y las cantidades 0 son
+#strong[detalles de representación], no del valor.
+
+==== 1.2.5 `nulo` y la regla `noop` global
+`nulo` es la #strong[bolsa vacía]: la que no tiene entradas. Su
+denotación es el #strong[vector cero]. Es el valor que produce un nodo
+incompleto o ausente (una sentencia a medio escribir mientras el niño
+construye el programa en vivo).
+
+De la definición se sigue una #strong[única regla global] de
+propagación, sin excepciones por operación:
+
+#quote(block: true)[
+#strong[Toda operación ignora sus argumentos `nulo`] (los trata como
+ausentes).
+]
+
+Una operación cuyas entradas efectivas son todas `nulo` devuelve el
+elemento neutro correspondiente (p. ej., una suma vacía denota
+`nulo`/cero). Pedagógicamente, esto garantiza que un nodo a medio
+construir #strong[no invalida] el resto del programa aguas abajo.
+
+==== 1.2.6 Números: cantidad, escalares y aritmética exacta
+Un #strong[número] es un objeto CPA de categoría `abstracto` y tipo
+`numero`; su valor numérico es la #strong[cantidad] de su entrada. Así,
+el número `1/3` es la bolsa `{ (abstracto, numero, racional)↦1/3 }`.
+
+Toda la aritmética es #strong[exacta sobre ℚ].
+
+Los números cumplen un #strong[doble papel], que se mantiene de forma
+deliberada:
+
+- Como cualquier otra entrada, un número vive dentro de una bolsa y se
+  suma con otras cantidades: es un vector en el eje de los números.
+- En #strong[ciertas operaciones], un número puede actuar como
+  #strong[escalar], escalando la cantidad de cada entrada de la bolsa
+  (escalar × vector).
+
+Esto se apoya en la estructura de espacio vectorial: como #strong[el
+producto vector × vector no está definido] (solo escalar × vector), en
+esas operaciones #strong[no se combinan dos identidades no numéricas
+entre sí] (“¿qué es manzana²?”); un escalar afecta a cada objeto por
+separado, pero el producto de dos objetos carece de sentido.
+
+==== 1.2.7 Orden
+Como se señaló previamente, la bolsa conserva el orden al momento de su
+declaración, y este puede ser alterado. La regla de uso del orden es
+simple:
+
+#quote(block: true)[
+#strong[Todas las operaciones conservan el orden], pero solo las
+#strong[operaciones de orden] lo #strong[usan o alteran]. Para cualquier
+otra operación, el orden es información que se arrastra pero no se
+interpreta.
+]
+
+Las #strong[operaciones de acceso posicional] leen entradas según el
+orden vigente en ese momento; por eso siempre están bien definidas: la
+bolsa siempre tiene un orden. Por ejemplo, tomar el primero de
+`{ manzana↦2, pera↦3, manzana↦4 }` da `{ manzana↦2 }`.
+
+Como la igualdad ignora el orden, reordenar una bolsa produce un valor
+#strong[igual] al original: el orden solo es observable a través de las
+operaciones que lo usan (las de orden y las de acceso posicional), nunca
+a través de las demás.
+
+=== 1.3 Criterios
+Un #strong[criterio] es un auxiliar que describe #emph[cómo seleccionar
+u ordenar] objetos. Cada criterio #strong[declara su subtipo] —de filtro
+o de orden—, y ese subtipo determina cómo se interpretan sus valores y
+qué operación lo consume:
+
+- #strong[Criterio de filtro] — un predicado: una conjunción de
+  restricciones `propiedad = valor` (#strong[Y] entre sus propiedades),
+  cada una con un #strong[único] valor. Sus propiedades son de
+  #strong[identidad] (categoría, tipo, subtipo o atributos); #strong[no]
+  opera sobre la cantidad. Un objeto lo satisface si cumple
+  #strong[todas] sus restricciones. Lo consume la operación de filtrado.
+- #strong[Criterio de orden] — una clave de ordenamiento sobre una
+  #strong[propiedad], que puede ser de identidad #strong[o la cantidad],
+  en una de dos formas: la propiedad con una #strong[dirección]
+  (`asc`/`desc`) para el orden natural (numérico para la cantidad,
+  alfabético para textos); o la propiedad con una #strong[secuencia de
+  valores] que fija el orden explícitamente (p. ej.
+  `pequeño → mediano → grande`), que puede incluso no ser ascendente ni
+  descendente. Lo consume la operación de orden.
+
+=== 1.4 Booleano
+El #strong[booleano] (`verdadero` / `falso`) es la tercera forma de
+valor, con una diferencia respecto a la bolsa y el criterio: #strong[no
+es declarable por el usuario]. No puede escribirse como un dato de
+entrada; solo lo #strong[producen las operaciones de comparación]. Dada
+esta restricción, puede decirse que no es un ciudadano de primera clase
+del lenguaje.
+
+Su papel es #strong[informar el resultado de una comparación]; ninguna
+operación lo consume como entrada, de modo que es un valor terminal (de
+salida).
+
+=== 1.5 Presentación vs. semántica
+El #strong[modo de visualización] es una decisión del
+#strong[consumidor] de los valores (la interfaz), y afecta #strong[solo
+cómo se representan] los resultados, no qué se computa ni la identidad
+de los valores. El docente puede alternar entre modos libremente: un
+objeto conserva su #strong[identidad semántica] intacta y solo cambia su
+apariencia.
+
+Esto #strong[no] significa que la semántica sea \"agnóstica de CPA\": la
+categoría de un objeto sí forma parte de su identidad y participa en el
+cómputo (p. ej., el papel de escalar de los números abstractos). La
+separación es entre #emph[identidad semántica] (fija) y
+#emph[representación visual] (elegida por el consumidor).
+
+
+== 2. Modelo de evaluación
+Esta sección define #strong[qué significa evaluar un programa]: cómo se
+obtiene, a partir del texto de un programa, el valor de cada una de sus
+salidas.
+
+=== 2.1 El programa como grafo
+Un programa es una secuencia de #strong[sentencias]. Cada sentencia
+declara un #strong[nodo] con un nombre único, de una de tres clases:
+
+- #strong[`source`] — un nodo de entrada: aporta datos (uno o varios
+  objetos) o un criterio.
+- #strong[`transform`] — un nodo de proceso: aplica una operación a
+  otros nodos.
+- #strong[`sink`] — un nodo de salida: expone el valor de otro nodo como
+  resultado del programa.
+
+Un nodo #strong[depende] de los nodos que menciona por su nombre: un
+`transform` depende de los nodos que recibe como argumentos, y un
+`sink`, del nodo que expone. En consecuencia, solo `transform` y `sink`
+tienen dependencias; un `source` es entrada pura. Estas dependencias
+forman un #strong[grafo dirigido]: cada nodo apunta a aquellos de los
+que depende.
+
+Los `sink` son las #strong[salidas] del programa. Evaluar un programa
+consiste en calcular el valor de cada `sink`.
+
+=== 2.2 Bien-formación
+Un programa está #strong[bien formado] si cumple tres condiciones,
+verificables antes de evaluar:
+
++ #strong[Nombres únicos.] No hay dos nodos con el mismo identificador.
++ #strong[Referencias resueltas.] Todo nombre que un nodo menciona
+  corresponde a un nodo existente.
++ #strong[Aciclicidad.] El grafo no tiene ciclos: ningún nodo depende,
+  directa o indirectamente, de sí mismo.
+
+Cada condición incumplida produce un error. La aciclicidad es la que
+garantiza que la evaluación #strong[termina] y que el valor de cada nodo
+está bien definido.
+
+=== 2.3 El proceso de evaluación
+La evaluación es #strong[dirigida por demanda]: parte de los `sink` y
+\"tira\" hacia atrás de las dependencias, evaluando primero las entradas
+de cada nodo.
+
+A continuación se describe el proceso de evaluación de un programa.
+
+#quote(block: true)[
+#strong[Nota.] Siguiendo la convención de especificaciones como
+ECMAScript, cada procedimiento se describe como una #strong[operación
+abstracta] con nombre y una lista de #strong[pasos numerados].
+]
+
+==== 2.3.1 Evaluar el programa
+#strong[EvaluarPrograma(programa) → (valores, errores)]
+
++ Sean `valores` un mapa vacío y `errores` una lista vacía.
++ Para cada `sink` `s` del programa:
+  + Intentar `v ← EvaluarNodo(s)`.
+  + Si tiene éxito, asociar `s ↦ v` en `valores`.
+  + Si la evaluación produce un error, agregarlo a `errores` y continuar
+    con el siguiente `sink`.
++ Devolver `(valores, errores)`.
+
+Cada `sink` se evalúa de forma #strong[aislada]: un error en uno no
+impide obtener el valor de los demás. Un mismo programa puede producir,
+a la vez, valores y errores.
+
+==== 2.3.2 Evaluar un nodo
+#strong[EvaluarNodo(id) → valor]
+
++ Si `id` ya tiene un valor calculado, devolverlo. (Cada nodo se evalúa
+  #strong[una sola vez]; su valor se reutiliza.)
++ Sea `nodo` el nodo con identificador `id`.
++ Para cada dependencia `d` de `nodo`, sea `Vd ← EvaluarNodo(d)`. (Las
+  entradas se resuelven antes que el nodo.)
++ Sea `v ← EvaluarSentencia(nodo, { d ↦ Vd })`.
++ Registrar `v` como el valor de `id` y devolverlo.
+
+Como el grafo es acíclico, este procedimiento siempre termina: la cadena
+de dependencias no puede volver sobre un nodo ya en curso.
+
+==== 2.3.3 Evaluar una sentencia
+#strong[EvaluarSentencia(nodo, entradas) → valor], según la clase del
+nodo:
+
+- #strong[`source`:] aporta su valor directamente, no lo calcula a
+  partir de otros nodos.
+  + Si está incompleto (sin valor), devolver `nulo`.
+  + Si declara criterios, devolver el #strong[criterio] (o la
+    #strong[bolsa de criterios]) que declare.
+  + Si declara datos, devolver la #strong[bolsa] que los reúne: una
+    entrada por cada objeto CPA que declare.
+- #strong[`transform`:]
+  + Si está incompleto (sin operación), devolver `nulo`.
+  + Tomar de `entradas` los valores de sus argumentos y aplicar la
+    operación a esa lista; el resultado es el valor del nodo.
+- #strong[`sink`:]
+  + Si está incompleto (sin fuente), devolver `nulo`.
+  + Devolver el valor de su fuente, tomado de `entradas`.
+
+=== 2.4 Determinismo y orden de evaluación
+El valor de un nodo depende #strong[únicamente] de su sentencia y de los
+valores de sus dependencias: no hay estado mutable ni efectos
+secundarios. En consecuencia, el resultado de evaluar un programa es
+#strong[determinista] y #strong[no depende del orden] en que se evalúen
+los nodos. Cualquier estrategia que respete las dependencias (evaluar un
+nodo solo después que sus entradas) produce los mismos valores; esto
+habilita, por ejemplo, evaluar en paralelo las dependencias
+independientes de un nodo, o reutilizar valores ya calculados entre
+evaluaciones sucesivas del mismo programa.
+
+Además, solo los nodos de los que depende algún `sink` participan en el
+resultado. Dicho de otra manera, si hay `source`s o `transform`s que
+ningún `sink` alcanza, no entran en el proceso de evaluación del
+programa y, por tanto, no se evalúan.
+
+=== 2.5 Programas parciales
+Mientras el usuario construye un programa, es normal que haya nodos
+#strong[incompletos] (una sentencia a medio escribir). El modelo los
+admite sin detenerse: un nodo incompleto evalúa a `nulo` y, como toda
+operación ignora sus argumentos `nulo`, el resto del programa se sigue
+evaluando. Un nodo a medio construir no invalida a los demás;
+simplemente aún no aporta nada.
+
+
+== 3. Operaciones
+Esta sección define las #strong[operaciones]: los cómputos que un
+`transform` puede aplicar. Cada operación se describe con una
+#strong[ficha] de la misma forma:
+
+- #strong[Firma] — nombre, aridad y tipos de entrada → tipo de salida.
+- #strong[Resumen] — qué hace, en una línea.
+- #strong[Pasos] — el cómputo como operación abstracta, en pasos
+  numerados.
+- #strong[Errores] — las condiciones propias de la operación que
+  producen error.
+- #strong[Ejemplos].
+
+Convenciones comunes a todas las operaciones (no se repiten en cada
+ficha):
+
+- #strong[Ignoran `nulo`]: un argumento `nulo` se trata como ausente.
+- #strong[Conservan el orden] de las entradas; solo la operación de
+  orden lo altera.
+- #strong[Agrupación (bolsa vs vector).] Como una bolsa admite entradas
+  repetidas de la misma identidad, cada operación indica si
+  #strong[agrupa] (colapsa los repetidos por identidad antes de actuar)
+  o trabaja #strong[entrada por entrada]. Las cantidades 0 se conservan
+  siempre en el resultado. Cuando agrupar o no da el mismo vector,
+  #strong[se agrupa]: la elección es indistinta para el vector, pero no
+  para lo que venga después, porque las operaciones de acceso (§3.5)
+  leen la representación. Una operación que #strong[fabrica] cantidades
+  y no agrupara inventaría agrupaciones que nadie colocó —seis medias
+  manzanas donde hay tres—, y `first` las leería como si fueran reales.
+  Así, la agrupación que sobrevive en una bolsa es siempre la de las
+  #strong[fuentes]: la disposición física sobre la mesa.
+- #strong[Las entradas abstractas no se agrupan, salvo al sumar.] Las
+  operaciones que agrupan para #strong[escalar, ordenar o seleccionar]
+  (`multiply`, `divide`, `less_than`, `greater_than` y `order`) dejan
+  fuera de esa agrupación las entradas de categoría `abstracto`: cada
+  una se escala, se ordena o se compara por separado. La razón es que un
+  número es, casi siempre, una unidad que el usuario colocó para
+  ordenarla, compararla o escalarla junto a otras, y colapsar
+  `{ número↦7, número↦2, número↦5 }` en `{ número↦14 }` dejaría sin nada
+  que ordenar justo en el caso más común (o daría `{ número↦28 }` al
+  duplicar, en vez de `{ número↦14, número↦4, número↦10 }`). Las
+  entradas `concreto` y `pictórico` sí se agrupan, porque ahí los
+  repetidos de una misma identidad son el mismo objeto contado varias
+  veces. La #strong[aritmética] (`sum`, `substract`) agrupa todo, sin
+  excepción: para eso está.
+- La #strong[Firma] indica cuántos argumentos admite cada operación;
+  pasar un número de argumentos que no corresponde es un #strong[error
+  de aridad].
+- La #strong[Firma] indica el tipo de cada argumento; pasar un argumento
+  de otro tipo (una bolsa donde se espera un criterio, o al revés) es un
+  #strong[error de tipo].
+
+=== 3.1 Aritmética
+==== 3.1.1 `sum` — suma
+#strong[Firma:] `sum(bolsa, …) → bolsa` — variádica (una o más
+entradas).
+
+#strong[Resumen.] Reúne todas sus entradas y las #strong[agrega por
+identidad], sumando las cantidades. Es la suma de vectores.
+
+#strong[Pasos] (`sum(args) → valor`):
+
++ Reunir en una sola bolsa las entradas de todos los argumentos,
+  descartando los `nulo`.
++ Agrupar las entradas por identidad y sumar sus cantidades.
++ Devolver la bolsa resultante: una entrada por identidad con la suma de
+  sus cantidades. Una identidad cuya suma sea 0 se conserva como entrada
+  de cantidad 0.
+
+#strong[Errores.] Ninguno propio; si no hay entradas efectivas, el
+resultado es `nulo` (suma vacía \= vector cero).
+
+#strong[Ejemplos:]
+
+```
+sum({ manzana↦2 }, { manzana↦3 })            = { manzana↦5 }
+sum({ manzana↦2, pera↦1 }, { manzana↦4 })    = { manzana↦6, pera↦1 }
+sum({ manzana↦2 }, { manzana↦-2 })           = { manzana↦0 }
+sum({ manzana↦0 }, { pera↦3 })               = { manzana↦0, pera↦3 }
+sum({ número↦2 }, { número↦3 })               = { número↦5 }
+sum({ manzana↦2 }, nulo)                      = { manzana↦2 }
+```
+
+==== 3.1.2 `substract` — resta
+#strong[Firma:] `substract(bolsa, bolsa) → bolsa` — binaria (exactamente
+dos entradas).
+
+#strong[Resumen.] Resta, por identidad, las cantidades de la segunda
+bolsa a las de la primera. Es la resta de vectores.
+
+#strong[Pasos] (`substract(a, b) → valor`):
+
++ Agrupar por identidad las cantidades de `a` y, por separado, las de
+  `b`.
++ Para cada identidad presente en `a` o en `b`, calcular: (cantidad en
+  `a`) − (cantidad en `b`).
++ Devolver la bolsa con una entrada por identidad. Las identidades
+  presentes solo en `b` quedan con cantidad negativa; las que resulten 0
+  se conservan.
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+substract({ manzana↦5 }, { manzana↦2 })          = { manzana↦3 }
+substract({ manzana↦2 }, { manzana↦5 })          = { manzana↦-3 }
+substract({ manzana↦3, pera↦2 }, { manzana↦1 })  = { manzana↦2, pera↦2 }
+substract({ manzana↦2 }, { manzana↦2 })          = { manzana↦0 }
+substract({ manzana↦1 }, { pera↦2 })             = { manzana↦1, pera↦-2 }
+```
+
+==== 3.1.3 `multiply` — multiplicación
+#strong[Firma:] `multiply(bolsa, número) → bolsa` — binaria. El primer
+argumento es la bolsa a escalar; el segundo, un #strong[número] que
+actúa como #strong[escalar].
+
+#strong[Resumen.] Escala la bolsa: multiplica por el escalar la cantidad
+de cada identidad (escalar × vector).
+
+#strong[Pasos] (`multiply(a, k) → valor`):
+
++ Sea `s` el valor del número `k` (el escalar).
++ #strong[Agrupar `a` por identidad] (sumar los repetidos), salvo las
+  entradas #strong[abstractas], que se escalan una por una.
++ Multiplicar por `s` la cantidad de cada entrada resultante.
++ Devolver la bolsa resultante.
+
+#strong[Nota.] La #strong[posición] desambigua el papel del número: el
+segundo argumento siempre se interpreta como escalar, no como un objeto
+CPA. #strong[Agrupa por identidad] antes de escalar: el escalado
+distribuye, así que el vector es el mismo de una forma u otra, pero
+escalar entrada por entrada dejaría en el resultado una agrupación que
+la operación se inventó y que `first` y `last` leerían como real (§3,
+convenciones).
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+multiply({ manzana↦2 }, { número↦3 })            = { manzana↦6 }
+multiply({ manzana↦2, pera↦5 }, { número↦10 })   = { manzana↦20, pera↦50 }
+multiply({ manzana↦2, manzana↦3 }, { número↦4 }) = { manzana↦20 }
+multiply({ número↦2 }, { número↦3 })             = { número↦6 }
+multiply({ número↦7, número↦2 }, { número↦2 })   = { número↦14, número↦4 }
+multiply({ manzana↦2 }, { número↦1/2 })          = { manzana↦1 }
+```
+
+==== 3.1.4 `divide` — división
+#strong[Firma:] `divide(bolsa, número) → bolsa` — binaria. El primer
+argumento es la bolsa; el segundo, un #strong[número] que actúa como
+#strong[divisor].
+
+#strong[Resumen.] Divide la bolsa: divide entre el divisor la cantidad
+de cada identidad (escalar⁻¹ × vector).
+
+#strong[Pasos] (`divide(a, k) → valor`):
+
++ Sea `d` el valor del número `k` (el divisor).
++ Si `d = 0`, es un error (división por cero).
++ #strong[Agrupar `a` por identidad] (sumar los repetidos), salvo las
+  entradas #strong[abstractas], que se dividen una por una.
++ Dividir por `d` la cantidad de cada entrada resultante.
++ Devolver la bolsa resultante.
+
+#strong[Nota.] Como `multiply`, #strong[agrupa por identidad] antes de
+dividir. Es lo que hace que seis cartas de manzana entre 2 sean
+`{ manzana↦3 }` y no seis medias manzanas: la operación no fabrica pilas
+que nadie colocó sobre la mesa.
+
+#strong[Errores.] División por cero: si el divisor es 0.
+
+#strong[Ejemplos:]
+
+```
+divide({ manzana↦6 }, { número↦2 })              = { manzana↦3 }
+divide({ manzana↦6, pera↦4 }, { número↦2 })      = { manzana↦3, pera↦2 }
+divide({ manzana↦1, manzana↦1 }, { número↦2 })   = { manzana↦1 }
+divide({ manzana↦1 }, { número↦3 })              = { manzana↦1/3 }
+```
+
+=== 3.2 Comparación
+==== 3.2.1 `less_than` — menor que
+#strong[Firma:] `less_than(bolsa, número) → bolsa` — binaria. El segundo
+argumento es el #strong[umbral] (un número).
+
+#strong[Resumen.] Conserva las identidades cuya cantidad #strong[total]
+es #strong[menor] que el umbral.
+
+#strong[Pasos] (`less_than(a, k) → valor`):
+
++ Sea `u` el valor del número `k` (el umbral).
++ #strong[Agrupar `a` por identidad] (sumar los repetidos), de modo que
+  cada identidad tenga una cantidad total. Las entradas
+  #strong[abstractas] no se agrupan: cada una conserva su cantidad.
++ Conservar las entradas cuya cantidad total sea menor que `u`;
+  descartar las demás.
++ Devolver la bolsa con las entradas conservadas.
+
+#strong[Nota.] #strong[Agrupa por identidad] antes de comparar, para que
+el resultado dependa solo del vector: dos bolsas que denotan lo mismo
+(`{ manzana↦2, manzana↦3 }` y `{ manzana↦5 }`) se comparan igual. Lo
+abstracto es la excepción, de modo que
+`less_than({ número↦7, número↦2, número↦5 }, { número↦4 })` da
+`{ número↦2 }` y no `nulo`.
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+less_than({ manzana↦2, pera↦5 }, { número↦5 })   = { manzana↦2 }
+less_than({ manzana↦2, manzana↦3 }, { número↦4 }) = nulo
+less_than({ pera↦5 }, { número↦2 })              = nulo
+```
+
+==== 3.2.2 `greater_than` — mayor que
+#strong[Firma:] `greater_than(bolsa, número) → bolsa` — binaria. El
+segundo argumento es el #strong[umbral] (un número).
+
+#strong[Resumen.] Conserva las identidades cuya cantidad #strong[total]
+es #strong[mayor] que el umbral.
+
+#strong[Pasos] (`greater_than(a, k) → valor`):
+
++ Sea `u` el valor del número `k` (el umbral).
++ #strong[Agrupar `a` por identidad] (sumar los repetidos), salvo las
+  entradas #strong[abstractas], que no se agrupan.
++ Conservar las entradas cuya cantidad total sea mayor que `u`;
+  descartar las demás.
++ Devolver la bolsa con las entradas conservadas.
+
+#strong[Nota.] Como `less_than`, #strong[agrupa por identidad] antes de
+comparar (resultado bien definido sobre el vector), con la misma
+excepción para lo abstracto.
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+greater_than({ manzana↦2, pera↦5 }, { número↦3 })    = { pera↦5 }
+greater_than({ manzana↦2, manzana↦3 }, { número↦4 }) = { manzana↦5 }
+greater_than({ manzana↦2 }, { número↦5 })            = nulo
+```
+
+==== 3.2.3 `compare` — igualdad
+#strong[Firma:] `compare(bolsa, bolsa) → booleano` — binaria.
+
+#strong[Resumen.] Devuelve `verdadero` si ambas bolsas #strong[denotan
+el mismo vector]; `falso` en caso contrario.
+
+#strong[Pasos] (`compare(a, b) → valor`):
+
++ Comparar las denotaciones (los vectores) de `a` y `b`.
++ Devolver el booleano `verdadero` si son iguales, `falso` si no.
+
+#strong[Nota.] Es la igualdad denotacional del dominio: ignora el orden,
+la agrupación y las cantidades 0. Por eso `{ manzana↦1, manzana↦2 }` y
+`{ manzana↦3 }` se comparan como iguales.
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+compare({ manzana↦3 }, { manzana↦1, manzana↦2 })       = verdadero
+compare({ manzana↦2, pera↦1 }, { pera↦1, manzana↦2 })  = verdadero
+compare({ manzana↦0 }, nulo)                           = verdadero
+compare({ manzana↦2 }, { manzana↦3 })                  = falso
+```
+
+=== 3.3 Orden
+==== 3.3.1 `order` — ordenar
+#strong[Firma:] `order(bolsa, criterio, …) → bolsa` — el primer
+argumento es la bolsa; los siguientes, uno o más #strong[criterios de
+orden].
+
+#strong[Resumen.] Devuelve la bolsa con sus entradas reordenadas según
+los criterios. Cada criterio lleva consigo su propio orden.
+
+#strong[Pasos] (`order(a, criterios…) → valor`):
+
++ Descartar los criterios incompletos. Si no queda ninguno, devolver `a`
+  sin cambios.
++ #strong[Agrupar `a` por identidad] (colapsar los repetidos), salvo las
+  entradas #strong[abstractas], que se ordenan una por una.
++ Ordenar las entradas aplicando los criterios: el #strong[primero]
+  manda y los siguientes desempatan, en orden.
++ Devolver la bolsa reordenada.
+
+#strong[Nota.] #strong[Agrupa por identidad] antes de ordenar: los
+repetidos de una misma identidad se combinan, y luego se ordenan las
+identidades distintas. Lo abstracto queda fuera de esa agrupación,
+porque si no, ordenar `{ número↦7, número↦2, número↦5 }` devolvería
+`{ número↦14 }` y no habría nada que ordenar. Un criterio de orden puede
+usar la #strong[cantidad] como propiedad (a diferencia del criterio de
+filtro).
+
+#strong[Formas de un criterio de orden:]
+
+- #strong[Por orden natural] — una #strong[propiedad] (la cantidad, o un
+  texto: categoría, tipo, subtipo o atributo) más una #strong[dirección]
+  `asc` o `desc`. `order` conoce el orden natural: numérico para la
+  cantidad, alfabético para los textos.
+- #strong[Por secuencia] — una #strong[propiedad] más una
+  #strong[secuencia de valores] que fija el orden explícitamente (las
+  entradas cuyo valor no aparezca van al final). La secuencia #emph[es]
+  el orden, así que no lleva `asc`/`desc`; puede incluso no ser
+  ascendente ni descendente (p. ej. `mediano → pequeño → grande`).
+
+El orden es #strong[estable]: ante un empate, se conserva el orden
+previo de las entradas.
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+order({ manzana↦3, pera↦1, uva↦2 }, criterio(cantidad, asc))
+    = { pera↦1, uva↦2, manzana↦3 }
+
+order({ manzana↦3, pera↦1, uva↦2 }, criterio(cantidad, desc))
+    = { manzana↦3, uva↦2, pera↦1 }
+
+order({ número↦7, número↦2, número↦5 }, criterio(cantidad, asc))
+    = { número↦2, número↦5, número↦7 }     (lo abstracto no se agrupa)
+
+order({ estrella(grande)↦1, estrella(pequeña)↦1, estrella(mediana)↦1 },
+      criterio(tamaño = [pequeña, mediana, grande]))
+    = { estrella(pequeña)↦1, estrella(mediana)↦1, estrella(grande)↦1 }
+```
+
+=== 3.4 Filtrado
+==== 3.4.1 `filter` — filtrar
+#strong[Firma:] `filter(bolsa, criterio, …) → bolsa` — el primer
+argumento es la bolsa; los siguientes, uno o más #strong[criterios de
+filtro].
+
+#strong[Resumen.] Conserva las entradas de la bolsa que satisfacen
+#strong[alguno] de los criterios; descarta las demás.
+
+#strong[Pasos] (`filter(a, criterios…) → valor`):
+
++ Descartar los criterios incompletos (los que no fijan valores para sus
+  propiedades). Si no queda ninguno, devolver `a` sin cambios.
++ Conservar cada entrada de `a` que #strong[satisfaga al menos uno] de
+  los criterios; descartar las demás.
++ Devolver la bolsa con las entradas conservadas.
+
+#strong[Cuándo una entrada satisface un criterio.] Cada criterio es una
+conjunción de restricciones `propiedad = valor`. La entrada lo satisface
+si #strong[cumple todas] sus restricciones (#strong[Y] entre
+propiedades): para cada una, el valor de esa propiedad en la entrada es
+igual al valor pedido. Entre criterios distintos hay #strong[O]: a la
+entrada le basta con satisfacer uno. Así, el conjunto de criterios es
+una disyunción de conjunciones (forma normal disyuntiva), que expresa
+cualquier predicado.
+
+#strong[Nota.] El criterio de filtro prueba la #strong[identidad]
+(categoría, tipo, subtipo o atributos), #strong[no] la cantidad. Por eso
+`filter` trabaja #strong[entrada por entrada] y conserva los repetidos:
+los de una misma identidad pasan o se descartan todos juntos, y agrupar
+daría el mismo vector.
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+filter({ manzana↦2, pera↦3, uva↦1 }, criterio(tipo = manzana))
+    = { manzana↦2 }
+
+filter({ manzana↦2, pera↦3, uva↦1 }, criterio(tipo = manzana), criterio(tipo = uva))
+    = { manzana↦2, uva↦1 }
+
+filter({ estrella(roja)↦2, estrella(azul)↦1, círculo(roja)↦3 },
+       criterio(tipo = estrella, color = roja), criterio(tipo = estrella, color = azul))
+    = { estrella(roja)↦2, estrella(azul)↦1 }
+```
+
+=== 3.5 Acceso
+Las operaciones de acceso leen el #strong[orden actual] de la bolsa; por
+eso suelen combinarse con una operación de orden previa. Trabajan
+#strong[entrada por entrada] (no agrupan): sobre una bolsa con repetidos
+de una misma identidad, seleccionan una entrada individual, no su total.
+Esos repetidos vienen siempre de las #strong[fuentes] —la disposición
+física sobre la mesa—, porque las operaciones que fabrican cantidades
+entregan la forma agrupada (§3, convenciones); así, señalar \"la
+primera\" señala una carta que el usuario puso, no una pila inventada
+por una operación.
+
+==== 3.5.1 `first` — primera
+#strong[Firma:] `first(bolsa) → bolsa` — unaria.
+
+#strong[Resumen.] Devuelve la primera entrada de la bolsa, según su
+orden actual.
+
+#strong[Pasos] (`first(a) → valor`):
+
++ Si `a` no tiene entradas, devolver `nulo`.
++ Devolver una bolsa con la primera entrada de `a` (la de la posición
+  inicial).
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+first({ manzana↦2, pera↦3, uva↦1 })   = { manzana↦2 }
+first({ manzana↦2, manzana↦3 })       = { manzana↦2 }   (la primera pila, no el total)
+first(nulo)                           = nulo
+```
+
+==== 3.5.2 `last` — última
+#strong[Firma:] `last(bolsa) → bolsa` — unaria.
+
+#strong[Resumen.] Devuelve la última entrada de la bolsa, según su orden
+actual.
+
+#strong[Pasos] (`last(a) → valor`):
+
++ Si `a` no tiene entradas, devolver `nulo`.
++ Devolver una bolsa con la última entrada de `a` (la de la posición
+  final).
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+last({ manzana↦2, pera↦3, uva↦1 })    = { uva↦1 }
+last({ manzana↦2, manzana↦3 })        = { manzana↦3 }   (la última pila, no el total)
+last(nulo)                            = nulo
+```
+
+=== 3.6 Agregación
+==== 3.6.1 `count` — contar
+#strong[Firma:] `count(bolsa) → número` — unaria. El resultado es un
+número (una bolsa con una única entrada numérica).
+
+#strong[Resumen.] Cuenta cuántos objetos hay en total: suma las
+cantidades de todas las entradas de la bolsa.
+
+#strong[Pasos] (`count(a) → valor`):
+
++ Sumar las cantidades de todas las entradas de `a`.
++ Devolver el número igual a esa suma.
+
+#strong[Nota.] Totaliza sin importar la identidad: no agrupa ni
+distingue por tipo, solo suma cantidades. Sobre una bolsa vacía da 0.
+Como el resultado es un número, puede alimentar a operaciones que
+esperan uno (por ejemplo, como escalar en `multiply` o como umbral en
+`less_than`).
+
+#strong[Errores.] Ninguno propio.
+
+#strong[Ejemplos:]
+
+```
+count({ manzana↦2, pera↦3 })          = { número↦5 }
+count({ manzana↦2, manzana↦4 })       = { número↦6 }
+count({ manzana↦1/2, manzana↦1/2 })   = { número↦1 }
+count(nulo)                           = { número↦0 }
+```
+
+
+== 4. Errores
+Un #strong[error] es una condición que impide producir un valor. Cada
+error informa su #strong[naturaleza] (qué salió mal) y el #strong[nodo
+donde ocurrió] (el que se estaba procesando). Cuando la causa está en
+otro nodo —típicamente una de sus dependencias— informa además
+#strong[qué nodo la causó] (coincide con el anterior si la falla es
+local). E informa las #strong[salidas] (los `sink`) en cuyo camino está
+ese nodo, que son exactamente las que se quedan sin valor: para un error
+de ejecución es la salida que se estaba calculando; para uno estático,
+todas las que alcanzan al nodo. Así todo error queda situado: qué pasó,
+dónde, por causa de qué y a qué salidas afecta.
+
+Los errores se distinguen por el momento en que se detectan: los
+#strong[errores de sintaxis], al leer el texto del programa; los
+#strong[errores estáticos], sobre la estructura ya construida, antes de
+evaluar; y los #strong[errores de ejecución], al evaluar un nodo. Los
+dos últimos están #strong[aislados por salida]: una salida cuyo camino
+está limpio produce su valor aunque otra falle.
+
+=== 4.1 Errores de sintaxis
+Se detectan al analizar el texto del programa contra la gramática (al
+final del documento). La gramática define qué es un programa
+sintácticamente bien formado; cualquier texto que no se ajuste a ella
+produce un error de sintaxis, que el analizador reporta con su posición.
+No se enumeran uno por uno: la gramática es su especificación. Dos
+comportamientos sí merecen mención explícita:
+
+- Los #strong[nodos incompletos se toleran]: una sentencia a medio
+  escribir (un `source` sin valor, un `transform` sin operación, un
+  `sink` sin fuente) se analiza como un nodo placeholder que evalúa a
+  `nulo`, en vez de detener el análisis.
+- Los #strong[grupos son solo de datos]: agrupar entre corchetes reúne
+  objetos de datos; los criterios no se agrupan (cada criterio va en su
+  propio `source`). Un grupo que incluya un criterio no se ajusta a la
+  gramática.
+
+=== 4.2 Errores estáticos
+Se detectan sobre la estructura del programa ya construida, sin evaluar,
+y solo sobre los nodos que #strong[alcanzan alguna salida]: los nodos
+que ningún `sink` alcanza no participan en la evaluación, de modo que
+tampoco se validan, y una sentencia todavía sin conectar no invalida
+nada.
+
+Un error estático #strong[apaga las salidas en cuyo camino está el nodo
+culpable], y solo esas: no llega a evaluarse ninguno de sus nodos,
+mientras que las demás salidas se calculan con normalidad. Es el mismo
+aislamiento que ya tienen los errores de ejecución, y responde a lo
+mismo que §2.5: un programa a medio construir sigue dando lo que sí sabe
+dar.
+
++ #strong[Nombre duplicado] — dos nodos declaran el mismo nombre. Los
+  nombres deben ser únicos entre los nodos que alcanzan alguna salida.
++ #strong[Referencia sin resolver] — un nodo menciona un nombre que
+  ningún nodo declara.
++ #strong[Ciclo] — las dependencias entre nodos forman un ciclo. El
+  grafo de dependencias debe ser acíclico.
++ #strong[Operación desconocida] — un `transform` nombra una operación
+  que no pertenece al conjunto reconocido.
++ #strong[Error de aridad] — una operación recibe un número de
+  argumentos que su firma no admite. El número de argumentos de un
+  `transform` está fijo en la estructura, así que se conoce sin evaluar.
++ #strong[Categoría de valor equivocada] — una operación recibe un
+  argumento de una categoría que no admite: una bolsa donde espera un
+  criterio o al revés, o un booleano donde no corresponde. La categoría
+  de salida de cada nodo está fijada por su operación, de modo que este
+  desajuste también se conoce sin evaluar. Distinguir si una bolsa es
+  además un número depende del valor y se comprueba al evaluar.
++ #strong[Criterio inadecuado] — una operación recibe un criterio del
+  #strong[subtipo] equivocado (un criterio de orden donde se espera uno
+  de filtro, o al revés), o un criterio de filtro con una propiedad de
+  #strong[valor múltiple] o sobre la #strong[cantidad]. El subtipo va
+  declarado en el criterio, así que se detecta sin evaluar.
++ #strong[Objeto inválido] — un `source` declara un objeto con un
+  componente de identidad CPA en blanco (categoría, tipo o subtipo
+  vacío): es sintácticamente válido, pero no denota una identidad real.
+  No es un caso de `nulo`: el único caso parcial que da `nulo` es un
+  nodo sin cablear (un `source` sin valor, un `transform` sin operación
+  o un `sink` sin fuente).
+
+=== 4.3 Errores de ejecución
+Surgen al evaluar un nodo, porque dependen de los valores calculados.
+Están #strong[aislados por salida], igual que los estáticos: un error al
+evaluar un nodo afecta solo a las salidas que dependen de él; las demás
+producen su valor con normalidad.
+
++ #strong[Número esperado] — una operación que necesita un número (el
+  escalar de `multiply` y `divide`, el umbral de `less_than` y
+  `greater_than`) recibe una bolsa que, al calcularse, no resulta ser un
+  número. Que un argumento sea una bolsa se conoce sin evaluar, pero que
+  esa bolsa sea un número solo se sabe con su valor.
++ #strong[División por cero] — `divide` recibe el divisor 0.
+
+
+== 5. Gramática
+Esta sección fija la #strong[sintaxis concreta]: la forma textual de un
+programa. La estructura abstracta —programa, sentencia, nodo, las tres
+clases `source`/`transform`/`sink`— ya se describió en el modelo de
+evaluación; aquí se da su forma escrita.
+
+#strong[Notación:] forma extendida de Backus-Naur (EBNF) del W3C.
+
+=== 5.1 Gramática completa
+```ebnf
+program             ::= statement*
+statement           ::= source_decl | transform_decl | sink_decl
+
+source_decl         ::= "source" identifier "=" (object_literal | group)? ";"
+transform_decl      ::= "transform" identifier "=" (operation "(" argument_list? ")")? ";"
+sink_decl           ::= "sink" identifier "=" identifier? ";"
+
+argument_list       ::= identifier ("," identifier)*
+
+operation           ::= identifier
+
+group               ::= "[" (data_literal ("," data_literal)*)? "]"
+
+object_literal      ::= data_literal | criteria_literal
+
+data_literal        ::= "{" '"sourceType"' ":" '"data"' "," '"category"' ":" category_type "," '"type"' ":" string_literal "," '"subtype"' ":" string_literal "," '"quantity"' ":" rational_literal ("," kv_pair)* "}"
+criteria_literal    ::= "{" '"sourceType"' ":" criteria_kind "," '"properties"' ":" array_literal ("," kv_pair)* "}"
+criteria_kind       ::= '"filter"' | '"order"'
+
+category_type       ::= '"abstracto"' | '"pictorico"' | '"concreto"'
+
+kv_pair             ::= string_literal ":" kv_value
+kv_value            ::= string_literal | rational_literal | array_literal
+
+array_literal       ::= "[" (string_literal ("," string_literal)*)? "]"
+rational_literal    ::= "-"? digit+ ( "/" digit+ | "." digit+ )?
+string_literal      ::= '"' [a-zA-Z0-9_-]* '"'
+identifier          ::= [a-zA-Z][a-zA-Z0-9_-]*
+digit               ::= [0-9]
+```
+
+Notas sobre la gramática:
+
+- #strong[Literal racional.] `rational_literal` admite un entero (`3`),
+  una fracción (`1/3`) o un decimal (`2.5`), con signo opcional; todo se
+  interpreta como un racional exacto (un decimal es su valor exacto, no
+  una aproximación). Es lo que ocupa la `quantity` de un objeto.
+- #strong[Operación.] `operation` es un identificador; el conjunto de
+  operaciones reconocidas se lista abajo. Un identificador de operación
+  fuera de ese conjunto es un error estático (operación desconocida).
+- #strong[Grupos solo de datos.] Un `group` reúne objetos de datos; los
+  criterios no se agrupan (cada criterio va en su propio `source`).
+- #strong[Subtipo de criterio.] Un `criteria_literal` declara su subtipo
+  en `sourceType` (`"filter"` u `"order"`). La gramática no restringe la
+  forma de sus valores (pueden ser únicos o un arreglo), pero cada
+  subtipo admite solo ciertas formas —filtro: un valor único por
+  propiedad, sobre identidad; orden: dirección `asc`/`desc` o una
+  secuencia—. Usar la forma equivocada, o pasar un criterio del subtipo
+  equivocado a una operación, es un error estático (criterio
+  inadecuado).
+- #strong[Nodos incompletos.] Las tres declaraciones tienen su valor
+  #strong[opcional] (`?`): un `source` sin valor, un `transform` sin
+  operación o un `sink` sin fuente son sintácticamente válidos y evalúan
+  a `nulo`.
+
+=== 5.2 Palabras clave y valores reservados
+#strong[Palabras clave de sentencia:] `source`, `transform`, `sink`.
+
+#strong[Operaciones reconocidas:] `sum`, `substract`, `multiply`,
+`divide`, `less_than`, `greater_than`, `compare`, `order`, `filter`,
+`first`, `last`, `count`.
+
+#strong[Valores de categoría] (los únicos admitidos por
+`category_type`): `"abstracto"`, `"pictorico"`, `"concreto"`.
+
+=== 5.3 Ejemplos
+Aritmética racional exacta (dos números comparten identidad y se suman):
+
+```erae
+source half = {
+  "sourceType": "data",
+  "category": "abstracto",
+  "type": "numero",
+  "subtype": "racional",
+  "quantity": 1/2
+};
+
+source third = {
+  "sourceType": "data",
+  "category": "abstracto",
+  "type": "numero",
+  "subtype": "racional",
+  "quantity": 1/3
+};
+
+transform total = sum(half, third);   // = 5/6, exacto
+sink output = total;
+```
+
+Taxonomía dinámica y atributos como parte de la identidad:
+
+```erae
+source sedan = {
+  "sourceType": "data",
+  "category": "concreto",
+  "type": "vehicle",
+  "subtype": "car",
+  "quantity": 2,
+  "doors": "4"
+};
+
+source coupe = {
+  "sourceType": "data",
+  "category": "concreto",
+  "type": "vehicle",
+  "subtype": "car",
+  "quantity": 1,
+  "doors": "2"
+};
+
+// sedan y coupe comparten categoría, tipo y subtipo, pero difieren en "doors",
+// que forma parte de la identidad → sum NO los agrupa; quedan como dos entradas.
+transform vehicles = sum(sedan, coupe);
+sink output = vehicles;
+```
+
+Nodos incompletos (se toleran y evalúan a `nulo`):
+
+```erae
+// Operación incompleta: se tolera como placeholder
+transform incomplete_calc = ;
+
+sink active_output = incomplete_calc;   // su valor es `nulo`
+```
+
+Escalado (un número actúa como escalar):
+
+```erae
+source large_star = {
+  "sourceType": "data",
+  "category": "pictorico",
+  "type": "shape",
+  "subtype": "star",
+  "quantity": 2.5,
+  "size": "large"
+};
+
+source scale_factor = {
+  "sourceType": "data",
+  "category": "abstracto",
+  "type": "numero",
+  "subtype": "racional",
+  "quantity": 3
+};
+
+// multiply(bolsa, número) → estrella con cantidad 7.5
+transform scaled_stars = multiply(large_star, scale_factor);
+sink final_render = scaled_stars;
+```
+
+Criterios (cada uno declara su subtipo; se pasan como `source`
+separados):
+
+```erae
+source fruits = [
+  { "sourceType": "data", "category": "concreto", "type": "food", "subtype": "apple", "quantity": 3 },
+  { "sourceType": "data", "category": "concreto", "type": "food", "subtype": "pear", "quantity": 1 }
+];
+
+// Criterio de filtro: valor único, sobre una propiedad de identidad
+source only_apples = {
+  "sourceType": "filter",
+  "properties": ["subtype"],
+  "subtype": "apple"
+};
+
+// Criterio de orden: dirección sobre la cantidad
+source by_qty = {
+  "sourceType": "order",
+  "properties": ["quantity"],
+  "quantity": "asc"
+};
+
+transform apples = filter(fruits, only_apples);
+transform sorted = order(fruits, by_qty);
+sink out_apples = apples;
+sink out_sorted = sorted;
+```
+
 ]
 
 #pagebreak(weak: true)

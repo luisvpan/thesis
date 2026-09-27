@@ -1,8 +1,8 @@
 # Especificación del Lenguaje Dataflow
 
-**Versión:** 0.5.0 (borrador)
-**Fecha:** 2026-09-24
-**Estado:** Documento vivo — se actualiza a medida que la implementación revela casos borde o mejores diseños.
+**Versión:** 1.0.0
+**Fecha:** 2026-09-26
+**Estado:** Estable. Las revisiones posteriores podrán aclarar o ampliar la especificación sin cambiar el significado de los programas válidos; un cambio incompatible requerirá una nueva versión mayor.
 
 ---
 
