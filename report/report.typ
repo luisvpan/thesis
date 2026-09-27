@@ -994,7 +994,15 @@ La segunda evolución comprendió dos mejoras. En la calibración, se generaliz�
 La tercera evolución consistió en una extensión del lenguaje, reflejada en la especificación formal presentada en el #link(<appendix-a>)[Apéndice A]. Se incorporaron cartas de grupos, que agrupan varios objetos en una sola colección; cartas de manipulación de grupos —primero (`first`), último (`last`) y contar (`count`)—; y la operación de comparación (`compare`). Asimismo, las operaciones de filtrado y ordenamiento, ya presentes en versiones anteriores del lenguaje, se reforzaron con un sistema de criterios que permite filtrar y ordenar las colecciones según propiedades como el color, el tamaño o la forma de los objetos.
 //TODO: precisar, de ser necesario, que las operaciones de filtrado (`filter`) y ordenamiento (`order_asc`/`order_desc`) ya existían en el lenguaje desde prototipos anteriores; lo introducido en esta evolución es el sistema de criterios (gramática v4.0.0) y las operaciones `first`/`last`/`count`/`compare` (gramática v4.1.0).
 
-// ==== Evolución 4 -> Dado, cambios del intérprete a array-first tras bambalinas sin afectar experiencia del usuario, zonas de persistencia de detección.
+==== Evolución 4
+
+La cuarta evolución reconstruyó el lenguaje sobre una especificación formal. La especificación, que hasta entonces se limitaba a la gramática, pasó a definir también la semántica, y el modelo de datos basado en objetos CPA con cantidades se formalizó como un modelo de bolsas: colecciones que conservan cada objeto colocado sobre la mesa y que denotan un vector de cantidades racionales. El intérprete se reescribió para ajustarse a esa especificación, que desde entonces es la referencia del comportamiento del lenguaje y que, en su versión 1.0.0, se presenta en el #link(<appendix-a>)[Apéndice A].
+
+Con esta reconstrucción se fijaron también dos reglas. Un error estático afecta solo a las salidas en cuyo camino se encuentra la carta culpable, de modo que un programa a medio construir sigue mostrando los resultados que sí puede calcular. Y las operaciones que ordenan, comparan con un umbral o escalan dejan de agrupar los números, lo que permite, por ejemplo, ordenar varias cartas de dígitos en lugar de sumarlas.
+
+==== Evolución 5
+
+La quinta evolución, posterior a la valoración del experto en medios didácticos, se centró en la retroalimentación, uno de los aspectos que este señaló como mejorables. Los mensajes de error pasaron a mostrarse en la carta de salida afectada, a nombrar la carta que causa el error y a indicar qué hacer para corregirlo, mientras el lienzo señala esa carta y su ubicación. Las cantidades fraccionarias comenzaron a dibujarse como objetos incompletos, por ejemplo media manzana, y los resultados se redactan con concordancia gramatical, de modo que tanto el texto como la lectura en voz alta dicen "3 manzanas rojas" y no "3 manzanas rojo". La síntesis de voz, además, pasó a ejecutarse localmente en el navegador. La retroalimentación sonora, sin embargo, sigue siendo parcial, pues aún faltan las señales de reconocimiento, advertencia y error.
 
 == Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
 
@@ -1048,7 +1056,7 @@ El experto en IHC expresó su preocupación por la cantidad de contenido program
       table.header([*Experto*], [*Observación*], [*Respuesta de los autores*]),
       [Medios didácticos], [Valoró positivamente la paleta de colores y la sencillez para comprender el ambiente], [Fortaleza; se conserva],
       [Medios didácticos], [Consideró el ambiente aplicable en el aula como recurso del docente para el proceso de enseñanza-aprendizaje, con énfasis en la evaluación], [Fortaleza; coincide con el uso mediado por el docente],
-      [Medios didácticos], [Recomendó mejorar la retroalimentación al usuario], [Reforzar la retroalimentación sonora y la presentación de los errores],
+      [Medios didácticos], [Recomendó mejorar la retroalimentación al usuario], [Reforzar la retroalimentación sonora y la presentación de los errores; la presentación de los errores se mejoró en la quinta evolución, y la retroalimentación sonora sigue en curso],
       [Medios didácticos], [Sugirió incorporar música relajante], [Sugerencia registrada para versiones futuras],
       [IHC], [Expresó preocupación por la cantidad de contenido programático si el ambiente fuera usado directamente por niños], [Se aclaró que el ambiente se concibe para uso colaborativo, con el docente como conductor o guía],
       [IHC], [Advirtió que el docente, como guía, debe conocer a fondo el ambiente], [Diseñar guías de actividades modelo y explicitar las restricciones del sistema],
