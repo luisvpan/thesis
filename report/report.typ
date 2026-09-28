@@ -679,7 +679,7 @@ El ambiente se concibe como una interfaz de usuario tangible de tipo _tabletop_ 
 
 El ambiente material comprende un conjunto de objetos tangibles y de cartas, descritos en la especificación del lenguaje; un computador; un proyector, que proyecta la interfaz sobre la mesa; un sensor Kinect v2, que capta imágenes de color, de profundidad e infrarrojas de la superficie; y la propia mesa, donde conviven los objetos físicos y la proyección. La @final-environment-figure muestra el ambiente en uso, con un programa construido sobre la mesa.
 
-A nivel lógico, el sistema se organiza en tres subsistemas: el subsistema de visión por computador, que reconoce los objetos tangibles y los toques sobre la superficie; la interfaz, que representa lo reconocido como un grafo sobre un lienzo proyectado y traduce ese grafo a la representación textual del lenguaje; y el intérprete del lenguaje ERAE, que evalúa el programa. El ciclo es continuo: cada vez que cambia la disposición sobre la mesa, la interfaz actualiza el grafo, el intérprete reevalúa solo lo que cambió y la proyección muestra los resultados, de modo que la retroalimentación acompaña al niño durante toda la construcción.
+A nivel lógico, el sistema se organiza en tres subsistemas: el subsistema de visión por computador, que reconoce los objetos tangibles y los toques sobre la superficie; la interfaz, que representa lo reconocido como un grafo sobre un lienzo proyectado y traduce ese grafo a la representación textual del lenguaje; y el intérprete del lenguaje ERAE, que evalúa el programa. El ciclo es continuo: cada vez que cambia la disposición sobre la mesa, la interfaz actualiza el grafo, el intérprete reevalúa solo lo que cambió y la proyección muestra los resultados, de modo que la retroalimentación acompaña al niño durante toda la construcción. La @c4-paisaje-figure sitúa ese ciclo en el conjunto del ambiente: quiénes intervienen, qué elementos físicos lo componen y cómo se encadenan los tres subsistemas dentro del computador.
 
 #figure(
   image("images/final-environment.jpeg", width: 70%),
@@ -687,6 +687,13 @@ A nivel lógico, el sistema se organiza en tres subsistemas: el subsistema de vi
     Ambiente en uso: un programa construido sobre la mesa, con objetos tangibles, cartas, conexiones establecidas mediante toques y el resultado proyectado.
   ],
 ) <final-environment-figure>
+
+#figure(
+  image("images/c4-paisaje.svg", width: 100%),
+  caption: [
+    Paisaje del ambiente: actores, elementos físicos y los tres subsistemas lógicos, con el ciclo continuo que va de la disposición de las piezas a la proyección del resultado.
+  ],
+) <c4-paisaje-figure>
 
 === Interacción y percepción
 
@@ -2335,15 +2342,59 @@ Este manual está dirigido a quien instale, mantenga o extienda el ambiente de p
 === 3.1 Subsistemas y flujo de datos
 
 // TODO: los tres subsistemas (visión por computador, interfaz y entorno de ejecución del lenguaje) y el flujo de datos entre ellos: sensor → subsistema de visión → servidor de relevo (FastAPI, WebSocket) → interfaz (grafo visual) → intérprete ERAE embebido → proyección.
-// TODO: figura con el diagrama de flujo de datos.
+
+La arquitectura se documenta siguiendo el modelo C4 #cite(<brown2018>), que describe un sistema en niveles sucesivos de detalle. El primero delimita el sistema frente a quienes lo usan y al hardware con el que interactúa, como muestra la @c4-contexto-figure.
+
+#figure(
+  image("images/c4-contexto.svg", width: 100%),
+  caption: [
+    Diagrama de contexto: el ambiente ERAE, las personas que lo usan y el hardware con el que intercambia datos. El ambiente no consume servicios de red ni emplea base de datos.
+  ],
+) <c4-contexto-figure>
+
+El segundo nivel abre ese límite y muestra las piezas ejecutables que lo componen y el flujo de datos entre ellas, recogido en la @c4-contenedores-figure.
+
+#figure(
+  image("images/c4-contenedores.svg", width: 100%),
+  caption: [
+    Diagrama de contenedores: el subsistema de visión, el servidor de relevo, la interfaz y el intérprete ERAE embebido en ella, con los archivos locales que los alimentan.
+  ],
+) <c4-contenedores-figure>
 
 === 3.2 Estructura e interrelación de los módulos
 
 // TODO: módulos del subsistema de visión (`hardware`, `calibration`, `detection`, `transform`, `bridge`) y paquetes del entorno de ejecución (`interpreter`, `frontend`); qué hace cada uno y cómo se comunican.
 
+El tercer nivel del modelo C4 detalla los módulos internos de cada contenedor. La @c4-componentes-vision-figure corresponde al subsistema de visión y la @c4-componentes-interfaz-figure a la interfaz junto con el intérprete.
+
+#figure(
+  image("images/c4-componentes-vision.svg", width: 100%),
+  caption: [
+    Componentes del subsistema de visión: los paquetes `hardware`, `calibration`, `transform`, `detection` y `bridge`, y el `CalibrationResult` que enlaza la calibración con la detección.
+  ],
+) <c4-componentes-vision-figure>
+
+#figure(
+  image("images/c4-componentes-interfaz.svg", width: 100%),
+  caption: [
+    Componentes de la interfaz y del intérprete ERAE: de los proveedores de visión y de toque al grafo, y de este a la cadena de evaluación del intérprete.
+  ],
+) <c4-componentes-interfaz-figure>
+
 === 3.3 Diagramas de modelado
 
-// TODO: diagrama de casos de uso (docente y niños), diagrama de clases de los módulos principales y, de ser útil, diagrama de secuencia del ciclo detección → evaluación → proyección.
+// TODO: diagrama de casos de uso (docente y niños) y diagrama de clases de los módulos principales.
+
+El ciclo que recorre el sistema cada vez que cambia la disposición sobre la mesa se recoge en la @c4-secuencia-figure.
+
+#page(flipped: true)[
+  #figure(
+    image("images/c4-secuencia-ciclo.svg", width: 100%),
+    caption: [
+      Ciclo detección → evaluación → proyección. Las piezas viajan por HTTP y los toques por WebSocket; ambas vías convergen en el grafo de la interfaz, que reevalúa el programa y proyecta el resultado.
+    ],
+  ) <c4-secuencia-figure>
+]
 
 == 4. Datos
 

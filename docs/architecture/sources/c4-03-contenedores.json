@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Ambiente ERAE — Diagrama de contenedores (C4 nivel 2)",
+    "output": ".archify/architecture-contenedores-20260928-152007/contenedores.html",
+    "locale": "es",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "backend": { "label": "Proceso o biblioteca" },
+        "frontend": { "label": "Interfaz proyectada" },
+        "database": { "label": "Archivos locales" },
+        "external": { "label": "Hardware" }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/luisvpan/thesis",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "a04b8fcebecc19aa947476ff0792b97742b3e98b"
+    }
+  },
+  "components": [
+    {
+      "id": "kinect",
+      "type": "external",
+      "label": "Sensor Kinect v2",
+      "sublabel": "Kinect for Windows SDK 2.0",
+      "pos": [40, 24],
+      "size": [260, 68],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/hardware/pykinect2_manager.py", "line": 60, "end_line": 63, "label": "Color, profundidad e infrarrojo" }
+      ]
+    },
+    {
+      "id": "cvsystem",
+      "type": "backend",
+      "label": "Subsistema de visión",
+      "sublabel": "Python 3.12 + uv · OpenCV",
+      "tag": "cv_system.main",
+      "pos": [40, 172],
+      "size": [260, 100],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 339, "end_line": 352, "label": "Carga del detector de cartas" },
+        { "path": "code/cv-system/src/cv_system/detection/card_detector.py", "line": 60, "end_line": 71, "label": "YOLO sobre .pt u ONNX con DirectML" }
+      ]
+    },
+    {
+      "id": "models",
+      "type": "database",
+      "label": "Modelo de detección",
+      "sublabel": "code/models/*.pt",
+      "pos": [420, 190],
+      "size": [260, 64],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 339, "end_line": 348, "label": "YOLO_MODEL_PATH o yolo_11s_cards.pt" }
+      ]
+    },
+    {
+      "id": "relay",
+      "type": "backend",
+      "label": "Servidor de relevo",
+      "sublabel": "FastAPI · 127.0.0.1:8765",
+      "tag": "bridge.ide_relay_server",
+      "pos": [40, 352],
+      "size": [260, 100],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/bridge/ide_relay_server.py", "line": 107, "end_line": 184, "label": "Endpoints HTTP y WebSocket" },
+        { "path": "code/cv-system/src/cv_system/launch_stack.py", "line": 33, "end_line": 46, "label": "Arranca antes que la visión" }
+      ]
+    },
+    {
+      "id": "config",
+      "type": "database",
+      "label": "Configuración de sesión",
+      "sublabel": "config/session.json",
+      "pos": [420, 370],
+      "size": [260, 64],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/bridge/ide_relay_server.py", "line": 29, "end_line": 53, "label": "Lectura de la resolución RGB" }
+      ]
+    },
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "label": "Interfaz",
+      "sublabel": "React 19 · @xyflow/react · Vite",
+      "tag": "navegador a pantalla completa",
+      "pos": [40, 532],
+      "size": [260, 100],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/package.json", "line": 13, "end_line": 26, "label": "Dependencias de la interfaz" },
+        { "path": "code/dataflow-execution-environment/packages/frontend/vite.config.ts", "line": 23, "end_line": 37, "label": "Proxy de /api y /ws al relevo" }
+      ]
+    },
+    {
+      "id": "interprete",
+      "type": "backend",
+      "label": "Intérprete ERAE",
+      "sublabel": "@dataflow/interpreter",
+      "tag": "biblioteca embebida",
+      "pos": [420, 532],
+      "size": [260, 100],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/package.json", "line": 14, "label": "Dependencia de workspace, no un servicio" },
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/interpreter.ts", "line": 44, "end_line": 71, "label": "Cadena de evaluación" }
+      ]
+    },
+    {
+      "id": "proyector",
+      "type": "external",
+      "label": "Proyector",
+      "sublabel": "Proyección cenital sobre la mesa",
+      "pos": [40, 712],
+      "size": [260, 68],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/calibration/marker_projector.py", "line": 205, "end_line": 208, "label": "Ventana OpenCV a pantalla completa" }
+      ]
+    }
+  ],
+  "connections": [
+    { "id": "kinect-cvsystem", "from": "kinect", "to": "cvsystem", "label": "imágenes", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "models-cvsystem", "from": "models", "to": "cvsystem", "label": "pesos YOLO", "fromSide": "left", "toSide": "right" },
+    { "id": "cvsystem-relay", "from": "cvsystem", "to": "relay", "label": "cartas y toques", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "config-relay", "from": "config", "to": "relay", "label": "resolución RGB", "fromSide": "left", "toSide": "right" },
+    { "id": "relay-frontend", "from": "relay", "to": "frontend", "label": "WebSocket", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "frontend-interprete", "from": "frontend", "to": "interprete", "label": "programa ERAE", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "interprete-frontend", "from": "interprete", "to": "frontend", "label": "resultados", "fromSide": "left", "toSide": "right" },
+    { "id": "frontend-proyector", "from": "frontend", "to": "proyector", "label": "proyección", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Interfaz del relevo",
+      "items": [
+        "GET /api/v1/health · GET /api/v1/vision/projector-resolution",
+        "POST /api/v1/vision/ingest · POST /api/v1/vision/cards",
+        "WS /ws/vision · WS /ws/touch · WS /live",
+        "code/cv-system/src/cv_system/bridge/ide_relay_server.py:107-184"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Cartas y toques",
+      "items": [
+        "Las cartas viajan por HTTP: POST a /api/v1/vision/cards, con un intervalo mínimo de 0,15 s",
+        "Los toques viajan por WebSocket: el subsistema de visión se conecta a /live y el relevo los difunde por /ws/touch",
+        "main.py:354-369 · bridge/vision_ingest.py:41-56 · ide_relay_server.py:183-215"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Puesta en marcha",
+      "items": [
+        "cv-stack lanza el relevo, espera a /api/v1/health y solo entonces arranca el subsistema de visión",
+        "La interfaz se sirve aparte con bun run dev; Vite hace proxy de /api y /ws hacia 127.0.0.1:8765",
+        "launch_stack.py:26-50 · vite.config.ts:23-37"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Sin base de datos",
+      "items": [
+        "La única persistencia son archivos locales: config/session.json, .env y los pesos de code/models/",
+        "No hay servidor de aplicación para el lenguaje: el intérprete se ejecuta dentro de la interfaz"
+      ]
+    }
+  ]
+}

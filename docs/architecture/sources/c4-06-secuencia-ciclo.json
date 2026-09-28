@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Ciclo detección → evaluación → proyección",
+    "output": ".archify/sequence-ciclo-20260928-152007/ciclo.html",
+    "locale": "es",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      990,
+      630
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "camino principal"
+        },
+        "return": {
+          "label": "respuesta"
+        },
+        "default": {
+          "label": "mensaje"
+        },
+        "dashed": {
+          "label": "envío asíncrono"
+        }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/luisvpan/thesis",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "a04b8fcebecc19aa947476ff0792b97742b3e98b"
+    }
+  },
+  "participants": [
+    {
+      "id": "nino",
+      "type": "external",
+      "label": "Niño",
+      "sublabel": "sobre la mesa",
+      "icon": "person",
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 695,
+          "end_line": 699,
+          "label": "Colocación de piezas y toques"
+        }
+      ]
+    },
+    {
+      "id": "vision",
+      "type": "backend",
+      "label": "Visión",
+      "sublabel": "cv_system.main",
+      "sources": [
+        {
+          "path": "code/cv-system/src/cv_system/main.py",
+          "line": 434,
+          "end_line": 473,
+          "label": "Adquisición y detección"
+        }
+      ]
+    },
+    {
+      "id": "relay",
+      "type": "backend",
+      "label": "Relevo",
+      "sublabel": "FastAPI :8765",
+      "sources": [
+        {
+          "path": "code/cv-system/src/cv_system/bridge/ide_relay_server.py",
+          "line": 140,
+          "end_line": 181,
+          "label": "Ingesta y difusión"
+        }
+      ]
+    },
+    {
+      "id": "interfaz",
+      "type": "frontend",
+      "label": "Interfaz",
+      "sublabel": "React + xyflow",
+      "sources": [
+        {
+          "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/node/useFlowGraphEffects.ts",
+          "line": 37,
+          "label": "Reacciona a cada cambio"
+        },
+        {
+          "path": "code/dataflow-execution-environment/packages/frontend/src/services/executeProgram.ts",
+          "line": 719,
+          "end_line": 736,
+          "label": "Traduce y evalúa"
+        }
+      ]
+    },
+    {
+      "id": "interprete",
+      "type": "backend",
+      "label": "Intérprete",
+      "sublabel": "@dataflow/interpreter",
+      "sources": [
+        {
+          "path": "code/dataflow-execution-environment/packages/interpreter/src/interpreter.ts",
+          "line": 41,
+          "end_line": 79,
+          "label": "Cadena completa de execute"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 190,
+      "to": 286,
+      "label": "Reconocimiento de piezas"
+    },
+    {
+      "from": 296,
+      "to": 392,
+      "label": "Conexión por toque"
+    },
+    {
+      "from": 402,
+      "to": 470,
+      "label": "Evaluación"
+    },
+    {
+      "from": 480,
+      "to": 526,
+      "label": "Proyección"
+    }
+  ],
+  "messages": [
+    {
+      "id": "coloca",
+      "from": "nino",
+      "to": "vision",
+      "y": 200,
+      "label": "coloca una carta",
+      "variant": "emphasis"
+    },
+    {
+      "id": "post-cartas",
+      "from": "vision",
+      "to": "relay",
+      "y": 234,
+      "label": "POST /api/v1/vision/cards",
+      "variant": "emphasis",
+      "note": "intervalo mínimo de 0,15 s"
+    },
+    {
+      "id": "ws-vision",
+      "from": "relay",
+      "to": "interfaz",
+      "y": 268,
+      "label": "difunde por /ws/vision",
+      "variant": "default"
+    },
+    {
+      "id": "toca",
+      "from": "nino",
+      "to": "vision",
+      "y": 306,
+      "label": "toca dos puertos",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ws-live",
+      "from": "vision",
+      "to": "relay",
+      "y": 340,
+      "label": "TouchEvent por /live",
+      "variant": "default",
+      "note": "ya en coordenadas del proyector"
+    },
+    {
+      "id": "ws-touch",
+      "from": "relay",
+      "to": "interfaz",
+      "y": 374,
+      "label": "difunde por /ws/touch",
+      "variant": "default",
+      "note": "connectionRules valida los puertos"
+    },
+    {
+      "id": "evalua",
+      "from": "interfaz",
+      "to": "interprete",
+      "y": 412,
+      "label": "flowToProgram → execute",
+      "variant": "emphasis",
+      "note": "se reevalúa solo lo que cambió"
+    },
+    {
+      "id": "resultados",
+      "from": "interprete",
+      "to": "interfaz",
+      "y": 446,
+      "label": "resultados y errores",
+      "variant": "return"
+    },
+    {
+      "id": "proyecta",
+      "from": "interfaz",
+      "to": "nino",
+      "y": 490,
+      "label": "grafo, walkers y resultado",
+      "variant": "return",
+      "note": "el proyector lo lleva a la mesa"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "vision",
+      "from": 195,
+      "to": 346,
+      "type": "backend"
+    },
+    {
+      "participant": "relay",
+      "from": 229,
+      "to": 380,
+      "type": "backend"
+    },
+    {
+      "participant": "interfaz",
+      "from": 263,
+      "to": 496,
+      "type": "frontend"
+    },
+    {
+      "participant": "interprete",
+      "from": 407,
+      "to": 452,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Dos vías hacia el mismo grafo",
+      "items": [
+        "Las cartas viajan por HTTP y los toques por WebSocket, pero ambas terminan en NodeContext",
+        "Las piezas aportan los nodos; los toques, las conexiones entre sus puertos"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "El ciclo no tiene botón de ejecutar",
+      "items": [
+        "useFlowGraphEffects dispara la evaluación en cuanto cambian los nodos o las conexiones",
+        "Por eso la retroalimentación acompaña al niño durante toda la construcción, no al final"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Todo ocurre en un solo computador",
+      "items": [
+        "El intérprete es una biblioteca dentro del navegador: el mensaje a Intérprete es una llamada en proceso, no de red",
+        "Las únicas fronteras de red son las del relevo, y son locales (127.0.0.1:8765)"
+      ]
+    }
+  ]
+}

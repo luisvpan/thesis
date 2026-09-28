@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Ambiente ERAE — Diagrama de contexto (C4 nivel 1)",
+    "output": ".archify/architecture-contexto-20260928-152007/contexto.html",
+    "locale": "es",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "backend": {
+          "label": "Sistema en estudio"
+        },
+        "external": {
+          "label": "Personas y hardware"
+        }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/luisvpan/thesis",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "a04b8fcebecc19aa947476ff0792b97742b3e98b"
+    }
+  },
+  "components": [
+    {
+      "id": "ninos",
+      "type": "external",
+      "label": "Niños de 6 a 9 años",
+      "sublabel": "Construyen el programa",
+      "icon": "person",
+      "pos": [
+        40,
+        24
+      ],
+      "size": [
+        180,
+        68
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 671,
+          "label": "Destinatarios del ambiente"
+        }
+      ]
+    },
+    {
+      "id": "docente",
+      "type": "external",
+      "label": "Docente",
+      "sublabel": "Conduce la actividad",
+      "icon": "person",
+      "pos": [
+        300,
+        24
+      ],
+      "size": [
+        180,
+        68
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 671,
+          "label": "El docente como conductor o guía"
+        }
+      ]
+    },
+    {
+      "id": "erae",
+      "type": "backend",
+      "label": "Ambiente ERAE",
+      "sublabel": "Visión, interfaz e intérprete",
+      "tag": "sistema en estudio",
+      "pos": [
+        110,
+        200
+      ],
+      "size": [
+        360,
+        110
+      ],
+      "sources": [
+        {
+          "path": "code/cv-system/src/cv_system/launch_stack.py",
+          "line": 33,
+          "end_line": 50,
+          "label": "Arranque del conjunto"
+        },
+        {
+          "path": "code/dataflow-execution-environment/package.json",
+          "line": 4,
+          "end_line": 6,
+          "label": "Paquetes del entorno"
+        }
+      ]
+    },
+    {
+      "id": "kinect",
+      "type": "external",
+      "label": "Sensor Kinect v2",
+      "sublabel": "Kinect for Windows SDK 2.0",
+      "pos": [
+        30,
+        400
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "code/cv-system/src/cv_system/hardware/pykinect2_manager.py",
+          "line": 60,
+          "end_line": 63,
+          "label": "Color, profundidad e infrarrojo"
+        }
+      ]
+    },
+    {
+      "id": "proyector",
+      "type": "external",
+      "label": "Proyector",
+      "sublabel": "Ventana a pantalla completa",
+      "pos": [
+        340,
+        400
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "code/cv-system/src/cv_system/calibration/marker_projector.py",
+          "line": 205,
+          "end_line": 208,
+          "label": "Ventana OpenCV a pantalla completa"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "ninos-erae",
+      "from": "ninos",
+      "to": "erae",
+      "label": "construyen programas",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "docente-erae",
+      "from": "docente",
+      "to": "erae",
+      "label": "conduce",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "erae-ninos",
+      "from": "erae",
+      "to": "ninos",
+      "label": "grafo y resultados",
+      "fromSide": "left",
+      "toSide": "bottom"
+    },
+    {
+      "id": "kinect-erae",
+      "from": "kinect",
+      "to": "erae",
+      "label": "imágenes de la mesa",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "erae-proyector",
+      "from": "erae",
+      "to": "proyector",
+      "label": "interfaz proyectada",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Alcance",
+      "items": [
+        "Dentro del sistema quedan los tres subsistemas: visión por computador, interfaz e intérprete ERAE",
+        "Su reparto en contenedores se muestra en el diagrama de contenedores"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Sin dependencias externas",
+      "items": [
+        "El ambiente no consume servicios de red ni sistemas de terceros",
+        "No emplea base de datos: la única persistencia son archivos locales",
+        "code/cv-system/config/session.json, .env y code/models/"
+      ]
+    }
+  ]
+}

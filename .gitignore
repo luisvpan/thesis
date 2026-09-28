@@ -28,3 +28,6 @@ vendor/
 coverage/
 .cache/
 tmp/
+
+# Archify: carpeta de trabajo; las fuentes viven en docs/architecture/sources/
+.archify/

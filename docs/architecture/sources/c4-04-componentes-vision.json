@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Subsistema de visión — Componentes (C4 nivel 3)",
+    "output": ".archify/architecture-componentes-vision-20260928-152007/componentes-vision.html",
+    "locale": "es",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "backend": { "label": "Paquete de cv_system" },
+        "database": { "label": "Dato de la sesión" },
+        "external": { "label": "Fuera del subsistema" }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/luisvpan/thesis",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "a04b8fcebecc19aa947476ff0792b97742b3e98b"
+    }
+  },
+  "components": [
+    {
+      "id": "kinect",
+      "type": "external",
+      "label": "Sensor Kinect v2",
+      "sublabel": "Kinect for Windows SDK 2.0",
+      "pos": [480, 32],
+      "size": [260, 60],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/hardware/pykinect2_manager.py", "line": 60, "end_line": 63, "label": "Color, profundidad e infrarrojo" }
+      ]
+    },
+    {
+      "id": "hardware",
+      "type": "backend",
+      "label": "hardware",
+      "sublabel": "PyKinect2HardwareManager",
+      "tag": "fork local de PyKinect2",
+      "pos": [70, 20],
+      "size": [260, 84],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/hardware/pykinect2_manager.py", "line": 27, "end_line": 67, "label": "Apertura del sensor" },
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 434, "label": "Frames de cada iteración" }
+      ]
+    },
+    {
+      "id": "calibration",
+      "type": "backend",
+      "label": "calibration",
+      "sublabel": "Calibrator · marcadores · dmax",
+      "pos": [70, 164],
+      "size": [260, 84],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/calibration/calibrator.py", "line": 99, "label": "Proceso de calibración" },
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 211, "end_line": 213, "label": "Se ejecuta al inicio de la sesión" }
+      ]
+    },
+    {
+      "id": "calibresult",
+      "type": "database",
+      "label": "CalibrationResult",
+      "sublabel": "Matriz H + dmax_map",
+      "tag": "se guarda y se relee del disco",
+      "pos": [70, 308],
+      "size": [260, 64],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 200, "end_line": 226, "label": "Se carga del disco o se genera" },
+        { "path": "code/cv-system/src/cv_system/calibration/calibrator.py", "line": 274, "end_line": 289, "label": "Generación del dmax_map" }
+      ]
+    },
+    {
+      "id": "transform",
+      "type": "backend",
+      "label": "transform",
+      "sublabel": "camera_to_projector",
+      "pos": [480, 310],
+      "size": [260, 60],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 231, "end_line": 246, "label": "Se construye con CalibrationResult" },
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 453, "label": "Rectificado una vez por iteración" }
+      ]
+    },
+    {
+      "id": "detection",
+      "type": "backend",
+      "label": "detection",
+      "sublabel": "Cartas (YOLO) y toques",
+      "tag": "dos ejecutores en paralelo",
+      "pos": [70, 452],
+      "size": [260, 96],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 466, "end_line": 473, "label": "Toques y cartas en paralelo" },
+        { "path": "code/cv-system/src/cv_system/detection/card_detector.py", "line": 60, "end_line": 71, "label": "YOLO sobre .pt u ONNX" }
+      ]
+    },
+    {
+      "id": "bridge",
+      "type": "backend",
+      "label": "bridge",
+      "sublabel": "vision_ingest · WebSocketBridge",
+      "pos": [70, 608],
+      "size": [260, 84],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 495, "label": "Envío del lote de cartas" },
+        { "path": "code/cv-system/src/cv_system/main.py", "line": 533, "end_line": 534, "label": "Envío de los toques" }
+      ]
+    },
+    {
+      "id": "relay",
+      "type": "external",
+      "label": "Servidor de relevo",
+      "sublabel": "FastAPI · 127.0.0.1:8765",
+      "pos": [70, 752],
+      "size": [260, 60],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/bridge/ide_relay_server.py", "line": 107, "end_line": 184, "label": "Endpoints HTTP y WebSocket" }
+      ]
+    }
+  ],
+  "connections": [
+    { "id": "kinect-hardware", "from": "kinect", "to": "hardware", "label": "imágenes", "variant": "emphasis", "fromSide": "left", "toSide": "right" },
+    { "id": "hardware-calibration", "from": "hardware", "to": "calibration", "label": "frames", "fromSide": "bottom", "toSide": "top" },
+    { "id": "calibration-calibresult", "from": "calibration", "to": "calibresult", "label": "homografía + dmax", "fromSide": "bottom", "toSide": "top" },
+    { "id": "calibresult-transform", "from": "calibresult", "to": "transform", "label": "matriz H", "fromSide": "right", "toSide": "left" },
+    { "id": "calibresult-detection", "from": "calibresult", "to": "detection", "label": "dmax_map", "fromSide": "bottom", "toSide": "top" },
+    { "id": "hardware-detection", "from": "hardware", "to": "detection", "label": "frames del bucle", "variant": "emphasis", "fromSide": "left", "toSide": "left", "via": [[22, 62], [22, 500]] },
+    { "id": "transform-detection", "from": "transform", "to": "detection", "label": "vista cenital", "fromSide": "bottom", "toSide": "right", "via": [[610, 500]] },
+    { "id": "detection-bridge", "from": "detection", "to": "bridge", "label": "cartas y toques", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "bridge-relay", "from": "bridge", "to": "relay", "label": "HTTP y WebSocket", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Calibración",
+      "items": [
+        "marker_projector dibuja los marcadores y marker_detector los localiza en la imagen de color",
+        "De ahí salen la homografía y el dmax_map, que quedan en CalibrationResult",
+        "El resultado se guarda en disco y se reutiliza mientras el sensor, el proyector y la mesa no se muevan"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Detectores intercambiables",
+      "items": [
+        "Cartas: CARD_DETECTORS asocia los métodos simple, e2e, rfdetr y dml a su clase detectora",
+        "Toques: CV_TOUCH_DETECTOR_TYPE elige entre mediapipe, espol, depth_only, direct, farout, hybrid y sus variantes _dml",
+        "detection/__init__.py:27-46 · main.py:62-78"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Salida del subsistema",
+      "items": [
+        "Las cartas se envían por HTTP con post_card_batch_async, con un intervalo mínimo de 0,15 s",
+        "Los toques se envían por WebSocket como TouchEvent, que valida el rango 0–1920 × 0–1080 y la marca de tiempo ISO 8601",
+        "bridge/vision_ingest.py:41-56 · bridge/touch_event.py:48-65"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Configuración",
+      "items": [
+        "config.py carga session.json (CONFIG_PATH) y main.py lee las variables de entorno con load_dotenv",
+        "config.detection fija los umbrales de los detectores y config.camera la resolución del mapeo",
+        "main.py:19 · main.py:138 · main.py:196"
+      ]
+    }
+  ]
+}

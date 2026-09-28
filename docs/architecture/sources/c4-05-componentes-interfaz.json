@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Interfaz e intérprete ERAE — Componentes (C4 nivel 3)",
+    "output": ".archify/architecture-componentes-interfaz-20260928-152007/componentes-interfaz.html",
+    "locale": "es",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": { "label": "Módulo de la interfaz" },
+        "backend": { "label": "Fase del intérprete" },
+        "external": { "label": "Fuera de la interfaz" }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/luisvpan/thesis",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "a04b8fcebecc19aa947476ff0792b97742b3e98b"
+    }
+  },
+  "components": [
+    {
+      "id": "relay",
+      "type": "external",
+      "label": "Servidor de relevo",
+      "sublabel": "FastAPI · 127.0.0.1:8765",
+      "pos": [40, 20],
+      "size": [260, 60],
+      "sources": [
+        { "path": "code/cv-system/src/cv_system/bridge/ide_relay_server.py", "line": 153, "end_line": 181, "label": "Difusión por /ws/vision y /ws/touch" }
+      ]
+    },
+    {
+      "id": "vision",
+      "type": "frontend",
+      "label": "VisionProvider",
+      "sublabel": "/ws/vision",
+      "pos": [40, 148],
+      "size": [125, 76],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/VisionContext.tsx", "line": 53, "end_line": 59, "label": "URL del WebSocket de visión" },
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/VisionContext.tsx", "line": 82, "end_line": 125, "label": "Recepción de las cartas" }
+      ]
+    },
+    {
+      "id": "touch",
+      "type": "frontend",
+      "label": "TouchProvider",
+      "sublabel": "/ws/touch",
+      "pos": [175, 148],
+      "size": [125, 76],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/TouchContext.tsx", "line": 27, "end_line": 33, "label": "URL del WebSocket de toques" },
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/TouchContext.tsx", "line": 141, "end_line": 230, "label": "Recepción de los toques" }
+      ]
+    },
+    {
+      "id": "nodectx",
+      "type": "frontend",
+      "label": "NodeContext",
+      "sublabel": "Nodos, puertos y conexiones",
+      "tag": "reglas de compatibilidad",
+      "pos": [40, 292],
+      "size": [260, 84],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/node/mergeVisionFrameIntoNodes.ts", "line": 24, "label": "Funde el fotograma de visión" },
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/node/usePortSelection.ts", "line": 11, "label": "Conexión por selección de puertos" },
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/contexts/node/useFlowGraphEffects.ts", "line": 37, "label": "Reacciona a cada cambio del grafo" }
+      ]
+    },
+    {
+      "id": "flow2prog",
+      "type": "frontend",
+      "label": "flowToProgram",
+      "sublabel": "Grafo visual → programa ERAE",
+      "pos": [40, 436],
+      "size": [260, 64],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/utils/flowToProgram.ts", "line": 212, "label": "Traducción del grafo al programa" }
+      ]
+    },
+    {
+      "id": "executor",
+      "type": "frontend",
+      "label": "ProgramExecutor",
+      "sublabel": "services/executeProgram.ts",
+      "pos": [40, 550],
+      "size": [260, 96],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/services/executeProgram.ts", "line": 705, "label": "Una sola instancia del intérprete" },
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/services/executeProgram.ts", "line": 719, "end_line": 736, "label": "Traduce y evalúa el programa" }
+      ]
+    },
+    {
+      "id": "canvas",
+      "type": "frontend",
+      "label": "Lienzo proyectado",
+      "sublabel": "ReactFlow · walkers · voz Piper",
+      "pos": [40, 706],
+      "size": [260, 84],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/pages/dataflow/DataflowPage.tsx", "line": 194, "end_line": 214, "label": "Lienzo ReactFlow" },
+        { "path": "code/dataflow-execution-environment/packages/frontend/src/utils/speakSpanish.ts", "line": 1, "end_line": 4, "label": "Voz neuronal Piper en el navegador" }
+      ]
+    },
+    {
+      "id": "parse",
+      "type": "backend",
+      "label": "parseToAst",
+      "sublabel": "Lexer y parser",
+      "pos": [470, 420],
+      "size": [260, 64],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/serializer.ts", "line": 35, "end_line": 36, "label": "Tokenización y análisis sintáctico" },
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/interpreter.ts", "line": 44, "label": "Primera fase de execute" }
+      ]
+    },
+    {
+      "id": "graph",
+      "type": "backend",
+      "label": "buildGraph",
+      "sublabel": "Grafo de dependencias",
+      "pos": [470, 520],
+      "size": [260, 64],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/runtime/graph.ts", "line": 35, "label": "Construcción del grafo" },
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/interpreter.ts", "line": 49, "label": "Se construye antes de analizar" }
+      ]
+    },
+    {
+      "id": "analyze",
+      "type": "backend",
+      "label": "analyze",
+      "sublabel": "Verificación estática",
+      "pos": [470, 620],
+      "size": [260, 64],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/analyzer/static-analysis.ts", "line": 28, "label": "Errores estáticos por salida" },
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/interpreter.ts", "line": 53, "end_line": 56, "label": "Solo apaga las salidas afectadas" }
+      ]
+    },
+    {
+      "id": "evaluator",
+      "type": "backend",
+      "label": "LazyEvaluator",
+      "sublabel": "Dirigida por demanda",
+      "tag": "caché invalidada por diffGraphs",
+      "pos": [470, 720],
+      "size": [260, 76],
+      "sources": [
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/runtime/evaluator.ts", "line": 32, "label": "Evaluación perezosa con caché" },
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/runtime/differ.ts", "line": 15, "label": "Diferencia entre grafos" },
+        { "path": "code/dataflow-execution-environment/packages/interpreter/src/interpreter.ts", "line": 58, "end_line": 71, "label": "Invalida y evalúa las salidas libres" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Interfaz · packages/frontend",
+      "wraps": ["vision", "touch", "nodectx", "flow2prog", "executor", "canvas"]
+    },
+    {
+      "kind": "region",
+      "label": "Intérprete · @dataflow/interpreter",
+      "wraps": ["parse", "analyze", "graph", "evaluator"]
+    }
+  ],
+  "connections": [
+    { "id": "relay-vision", "from": "relay", "to": "vision", "label": "cartas", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "relay-touch", "from": "relay", "to": "touch", "label": "toques", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "vision-nodectx", "from": "vision", "to": "nodectx", "label": "nodos", "fromSide": "bottom", "toSide": "top" },
+    { "id": "touch-nodectx", "from": "touch", "to": "nodectx", "label": "conexiones", "fromSide": "bottom", "toSide": "top" },
+    { "id": "nodectx-flow2prog", "from": "nodectx", "to": "flow2prog", "label": "grafo actualizado", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "flow2prog-executor", "from": "flow2prog", "to": "executor", "label": "programa", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "executor-parse", "from": "executor", "to": "parse", "label": "texto ERAE", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "parse-graph", "from": "parse", "to": "graph", "label": "AST", "fromSide": "bottom", "toSide": "top" },
+    { "id": "graph-analyze", "from": "graph", "to": "analyze", "label": "grafo", "fromSide": "bottom", "toSide": "top" },
+    { "id": "analyze-evaluator", "from": "analyze", "to": "evaluator", "label": "salidas bloqueadas", "fromSide": "bottom", "toSide": "top" },
+    { "id": "evaluator-executor", "from": "evaluator", "to": "executor", "label": "resultados y errores", "fromSide": "left", "toSide": "right" },
+    { "id": "executor-canvas", "from": "executor", "to": "canvas", "label": "salidas y marcas", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "De la mesa al grafo",
+      "items": [
+        "mergeVisionFrameIntoNodes coloca cada carta reconocida en el lienzo, y stabilizeVisionNodes evita que salte entre fotogramas",
+        "usePortSelection y connectionRules crean la conexión solo si los puertos son compatibles y el de entrada está libre",
+        "applyNumberTouchMerge une las cartas de dígitos contiguas en un número de varias cifras"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "El intérprete es una biblioteca",
+      "items": [
+        "@dataflow/interpreter entra como dependencia de workspace: se ejecuta dentro del navegador, no en un servidor",
+        "ProgramExecutor conserva una sola instancia de Interpreter, de modo que su caché sobrevive entre evaluaciones",
+        "packages/frontend/package.json:14 · services/executeProgram.ts:705"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Reevaluación incremental",
+      "items": [
+        "El orden real de execute es parseToAst → buildGraph → analyze → diffGraphs → LazyEvaluator (interpreter.ts:44-71)",
+        "diffGraphs compara el grafo nuevo con el anterior e invalida solo los nodos que cambiaron",
+        "LazyEvaluator parte de las salidas y tira hacia atrás de las dependencias; cada nodo se evalúa una sola vez",
+        "Un error estático apaga únicamente las salidas en cuyo camino está el nodo culpable"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Retroalimentación",
+      "items": [
+        "mergeProgramOutputsFromResults lleva los resultados a las cartas y applyErrorMarks señala las piezas con error",
+        "Los walkers animan el dato que circula por cada conexión",
+        "La salida se lee en voz alta con Piper (es_ES-davefx-medium), no con las voces del sistema"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Ambiente ERAE — Paisaje del sistema",
+    "output": ".archify/architecture-paisaje-20260928-152007/paisaje.html",
+    "locale": "es",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "external": {
+          "label": "Personas y hardware"
+        },
+        "backend": {
+          "label": "Subsistema lógico"
+        },
+        "frontend": {
+          "label": "Interfaz proyectada"
+        }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/luisvpan/thesis",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "a04b8fcebecc19aa947476ff0792b97742b3e98b"
+    }
+  },
+  "components": [
+    {
+      "id": "ninos",
+      "type": "external",
+      "label": "Niños de 6 a 9 años",
+      "sublabel": "Construyen el programa",
+      "icon": "person",
+      "pos": [
+        50,
+        24
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 671,
+          "label": "Destinatarios del ambiente"
+        }
+      ]
+    },
+    {
+      "id": "docente",
+      "type": "external",
+      "label": "Docente",
+      "sublabel": "Conduce o guía",
+      "icon": "person",
+      "pos": [
+        330,
+        24
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 671,
+          "label": "El docente como conductor o guía"
+        }
+      ]
+    },
+    {
+      "id": "mesa",
+      "type": "external",
+      "label": "Mesa de trabajo",
+      "sublabel": "Piezas tangibles + proyección",
+      "tag": "tabletop",
+      "pos": [
+        130,
+        190
+      ],
+      "size": [
+        380,
+        80
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 678,
+          "label": "Interfaz tangible de tipo tabletop"
+        },
+        {
+          "path": "report/report.typ",
+          "line": 680,
+          "label": "Ambiente material"
+        }
+      ]
+    },
+    {
+      "id": "kinect",
+      "type": "external",
+      "label": "Sensor Kinect v2",
+      "sublabel": "Color, profundidad, IR",
+      "pos": [
+        50,
+        370
+      ],
+      "size": [
+        180,
+        68
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 680,
+          "label": "Sensor del ambiente material"
+        }
+      ]
+    },
+    {
+      "id": "proyector",
+      "type": "external",
+      "label": "Proyector",
+      "sublabel": "Proyección cenital",
+      "pos": [
+        410,
+        370
+      ],
+      "size": [
+        180,
+        68
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 680,
+          "label": "Proyecta la interfaz sobre la mesa"
+        }
+      ]
+    },
+    {
+      "id": "vision",
+      "type": "backend",
+      "label": "Subsistema de visión",
+      "sublabel": "Reconoce piezas y toques",
+      "pos": [
+        40,
+        540
+      ],
+      "size": [
+        200,
+        80
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 682,
+          "label": "Primero de los tres subsistemas"
+        }
+      ]
+    },
+    {
+      "id": "interfaz",
+      "type": "frontend",
+      "label": "Interfaz",
+      "sublabel": "Grafo sobre el lienzo",
+      "pos": [
+        400,
+        540
+      ],
+      "size": [
+        200,
+        80
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 682,
+          "label": "Segundo de los tres subsistemas"
+        }
+      ]
+    },
+    {
+      "id": "interprete",
+      "type": "backend",
+      "label": "Intérprete ERAE",
+      "sublabel": "Evalúa el programa",
+      "pos": [
+        400,
+        720
+      ],
+      "size": [
+        200,
+        80
+      ],
+      "sources": [
+        {
+          "path": "report/report.typ",
+          "line": 682,
+          "label": "Tercero de los tres subsistemas"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Computador del ambiente",
+      "wraps": [
+        "vision",
+        "interfaz",
+        "interprete"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "ninos-mesa",
+      "from": "ninos",
+      "to": "mesa",
+      "label": "colocan piezas",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "docente-mesa",
+      "from": "docente",
+      "to": "mesa",
+      "label": "guía",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "mesa-kinect",
+      "from": "mesa",
+      "to": "kinect",
+      "label": "escena física",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "kinect-vision",
+      "from": "kinect",
+      "to": "vision",
+      "label": "imágenes",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "vision-interfaz",
+      "from": "vision",
+      "to": "interfaz",
+      "label": "piezas y toques",
+      "variant": "emphasis"
+    },
+    {
+      "id": "interfaz-interprete",
+      "from": "interfaz",
+      "to": "interprete",
+      "label": "programa ERAE",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "interprete-interfaz",
+      "from": "interprete",
+      "to": "interfaz",
+      "label": "resultados",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          690,
+          760
+        ],
+        [
+          690,
+          580
+        ]
+      ]
+    },
+    {
+      "id": "interfaz-proyector",
+      "from": "interfaz",
+      "to": "proyector",
+      "label": "lienzo",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "proyector-mesa",
+      "from": "proyector",
+      "to": "mesa",
+      "label": "proyección",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Acoplamiento perceptual",
+      "items": [
+        "El espacio donde se actúa y aquel donde se recibe la retroalimentación coinciden sobre la mesa",
+        "report/report.typ:678"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Ciclo continuo",
+      "items": [
+        "Cada cambio en la disposición actualiza el grafo, reevalúa solo lo que cambió y reproyecta",
+        "report/report.typ:682"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Piezas tangibles",
+      "items": [
+        "Objetos concretos y cartas de datos, de criterio y de operación",
+        "Las conexiones se establecen tocando los puertos, sin cables ni piezas adicionales",
+        "report/report.typ:695-699"
+      ]
+    }
+  ]
+}
