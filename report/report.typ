@@ -372,7 +372,7 @@ El presente trabajo tiene como objetivo desarrollar un ambiente de programación
 
 En primer lugar, se revisan los conceptos relacionados con el pensamiento computacional y su desarrollo en edades tempranas. A continuación, se analiza la aplicación de la programación tangible en entornos de realidad aumentada espacial, con el fin de caracterizar el ambiente a desarrollar.
 
-Posteriormente, se diseña y construye el ambiente, lo que comprende dos aspectos: el hardware, que funciona como interfaz de interacción humano-computador, y el software, encargado de procesar la información recibida a través del hardware. El ambiente construido se valida mediante una matriz de trazabilidad entre requerimientos y funcionalidades y mediante el juicio de expertos en interacción humano-computador y en medios didácticos. La validación del ambiente con niños no forma parte del presente trabajo, que se centra en el desarrollo de la herramienta; por la organización que requiere, se plantea como recomendación.
+Posteriormente, se diseña y construye el ambiente, lo que comprende dos aspectos: el hardware, que funciona como interfaz de interacción humano-computador, y el software, encargado de procesar la información recibida a través del hardware. El ambiente construido se valida mediante una matriz de trazabilidad entre requerimientos y funcionalidades y mediante el juicio de expertos en interacción humano-computador y en medios didácticos. La validación del ambiente con niños no forma parte del presente trabajo, que se centra en el desarrollo de la herramienta.
 
 Finalmente, se elabora la documentación del ambiente, que comprende el manual del sistema y el manual de usuario.
 
