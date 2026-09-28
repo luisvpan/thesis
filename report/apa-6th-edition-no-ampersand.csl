@@ -1015,6 +1015,12 @@
     <choose>
       <if variable="issued">
         <group delimiter="/">
+          <!-- ERAE: Typst (Hayagriva) no mapea original-date; el año de la edición original se guarda en `note` como número (p. ej., Bruner, 1966/1968); una nota no numérica se ignora. -->
+          <choose>
+            <if is-numeric="note">
+              <text variable="note"/>
+            </if>
+          </choose>
           <choose>
             <if is-uncertain-date="original-date">
               <group prefix="[" suffix="]" delimiter=" ">
@@ -1408,7 +1414,14 @@
             </if>
             <else>
               <choose>
-                <if variable="original-date">
+                <if is-numeric="note">
+                  <!-- ERAE: año de la edición original guardado en `note` (véase issued-citation). -->
+                  <group delimiter=" ">
+                    <text value="Trabajo original publicado en"/>
+                    <text variable="note"/>
+                  </group>
+                </if>
+                <else-if variable="original-date">
                   <group delimiter=" ">
                     <text macro="original-published"/>
                     <choose>
@@ -1423,7 +1436,7 @@
                       </else>
                     </choose>
                   </group>
-                </if>
+                </else-if>
               </choose>
             </else>
           </choose>
