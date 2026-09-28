@@ -372,7 +372,7 @@ El presente trabajo tiene como objetivo desarrollar un ambiente de programación
 
 En primer lugar, se revisan los conceptos relacionados con el pensamiento computacional y su desarrollo en edades tempranas. A continuación, se analiza la aplicación de la programación tangible en entornos de realidad aumentada espacial, con el fin de caracterizar el ambiente a desarrollar.
 
-Posteriormente, se diseña y construye el ambiente, lo que comprende dos aspectos: el hardware, que funciona como interfaz de interacción humano-computador, y el software, encargado de procesar la información recibida a través del hardware. El ambiente construido se valida mediante una matriz de trazabilidad entre requerimientos y funcionalidades y mediante el juicio de expertos en interacción humano-computador y en medios didácticos.
+Posteriormente, se diseña y construye el ambiente, lo que comprende dos aspectos: el hardware, que funciona como interfaz de interacción humano-computador, y el software, encargado de procesar la información recibida a través del hardware. El ambiente construido se valida mediante una matriz de trazabilidad entre requerimientos y funcionalidades y mediante el juicio de expertos en interacción humano-computador y en medios didácticos. La validación del ambiente con niños no forma parte del presente trabajo, que se centra en el desarrollo de la herramienta; por la organización que requiere, se plantea como recomendación.
 
 Finalmente, se elabora la documentación del ambiente, que comprende el manual del sistema y el manual de usuario.
 
@@ -380,33 +380,37 @@ Finalmente, se elabora la documentación del ambiente, que comprende el manual d
 
 === Dificultades Asociadas a Nuevas Tecnologías
 
-Surgieron inconvenientes durante el desarrollo y construcción del entorno debido a la falta de experiencia en realidad aumentada espacial.
+El equipo no contaba con experiencia previa en realidad aumentada espacial, lo que obligó a iterar sobre la calibración entre la cámara y el proyector y sobre la detección de toques a lo largo de varios prototipos, como se describe en el Capítulo IV.
 
 === Problemas Asociados a los Componentes Utilizados
 
-Si bien se logró obtener la mayoría de los componentes necesarios para el desarrollo del entorno, algunos de ellos presentaron dificultades para su integración dentro del sistema.
+Las librerías para integrar el Kinect v2 con Python son limitadas: PyKinect2 fallaba con las versiones recientes de Python y libfreenect2 no detectaba el sensor, por lo que se compiló manualmente un controlador de OpenNI2 y, más adelante, se adaptó una bifurcación de PyKinect2. Además, problemas de compatibilidad del estándar USB y de rendimiento obligaron a volver temporalmente al Kinect v1 en el sexto prototipo.
 
 == Justificación
 
-Este trabajo de investigación apoya al desarrollo del pensamiento computacional, el aprendizaje colaborativo y la socialización entre los niños, fomentando la futura activación de estas competencias en su crecimiento personal, académico y profesional, y convirtiéndose en una herramienta útil y una gran alternativa para educadores conscientes en que los niños deben aprender sobre el mundo virtual sin sacrificar el mundo físico, con el añadido de combinar ambos mundos en una experiencia única.
+Este trabajo propone un ambiente en el que niños de 6 a 9 años, guiados por el docente, ejercitan el pensamiento computacional manipulando objetos físicos, con retroalimentación proyectada sobre la misma superficie y sin exposición sostenida a pantallas. Responde así a la necesidad descrita en el planteamiento: fomentar esta competencia desde edades tempranas cuando los docentes deben restringir el uso de herramientas basadas en pantallas.
 
-=== Aporte Principal
+=== Aportes
 
-El uso del ambiente de programación tangible permite que los niños aprendan de forma lúdica, creando experiencias significativas para el aprendizaje del pensamiento computacional a través de la manipulación de objetos físicos, reflejada en la visión por computador. Además, promueve el aprendizaje colaborativo, ayudándoles a desarrollar el pensamiento computacional.
+En el plano teórico, el trabajo lleva la progresión concreto-pictórico-abstracto de #cite(<bruner1966>, form: "prose") a un lenguaje de programación tangible de flujo de datos, en el que una misma operación puede aplicarse a objetos concretos, a cartas pictóricas y a cartas abstractas.
+
+En el plano metodológico, aplica el enfoque basado en prototipos a un proyecto de realidad aumentada espacial con incertidumbre técnica y de requerimientos, y documenta su evolución a lo largo de siete prototipos y cinco evoluciones.
+
+En el plano tecnológico, aporta el lenguaje ERAE con su especificación formal en la versión 1.0.0, un intérprete con evaluación incremental integrado en la interfaz y un subsistema de visión reutilizable, con calibración por homografía y detección de piezas y de toques.
 
 === Innovación
 
-Se presenta una propuesta que permite a los niños acceder a un ambiente de aprendizaje interactivo para aprender a programar con componentes tanto físicos como digitales. Este enfoque equilibra el uso de pantallas y las técnicas tradicionales de aprendizaje mediante la utilización de elementos físicos y digitales.
+La novedad del ambiente está en reunir, sobre una misma superficie, la programación tangible con objetos concretos y cartas pictóricas y abstractas, un lenguaje de flujo de datos y la retroalimentación proyectada, combinación que no presenta ninguno de los referentes comparados en el Capítulo IV.
 
 === Beneficiarios
 
 ==== Niños entre 6 y 9 años de edad
 
-Fomenta el desarrollo del pensamiento computacional en los niños desde edades tempranas, lo cual puede influir positivamente en su rendimiento académico y en su habilidad para resolver problemas lógicos.
+Se espera que el ambiente fomente el desarrollo del pensamiento computacional en los niños desde edades tempranas y, con ello, su habilidad para resolver problemas lógicos.
 
 ==== Profesores de primeros grados de educación básica
 
-Cuentan con una herramienta útil que facilita el proceso de enseñanza-aprendizaje a niños mediante una experiencia interactiva.
+Cuentan con un recurso para conducir actividades de pensamiento computacional en el aula, en las que actúan como conductores o guías de los niños.
 
 === Impacto en los Objetivos de Desarrollo Sostenible
 
@@ -524,7 +528,7 @@ Los sensores de profundidad, por su parte, permiten convertir superficies ordina
 
 El presente trabajo se clasifica como investigación proyectiva. #cite(<hurtado2010>, form: "prose") define este holotipo como aquel que culmina en la elaboración de una propuesta, plan, programa, procedimiento o artefacto, que esté orientado a resolver una necesidad o problema de carácter práctico en un ámbito determinado del conocimiento; siendo un enfoque frecuente en el campo de la tecnología, donde el objetivo es responder al cómo hacer las cosas mediante aplicaciones concretas. Para alcanzar ese resultado, la investigación proyectiva no parte directamente de una idea hacia su implementación, sino que recorre estadios previos, analíticos, comparativos, explicativos y predictivos; que fundamentan y justifican las decisiones de diseño.
 
-Este enfoque resulta pertinente para el presente trabajo porque su contribución principal no es describir el uso de la programación tangible o la realidad aumentada espacial, sino diseñar y construir un ambiente que los integre de forma coherente, sustentado en el diagnóstico y el análisis realizados.
+Este enfoque resulta pertinente para el presente trabajo porque su contribución principal no es describir el uso de la programación tangible o la realidad aumentada espacial, sino diseñar y construir un ambiente que los integre de forma coherente, sustentado en el diagnóstico y el análisis realizados. En este trabajo, los estadios analítico y comparativo corresponden al análisis de referentes del primer objetivo, del que se derivan las características del ambiente; el diseño y la construcción constituyen la propuesta propiamente dicha, y la validación con expertos aporta una primera valoración de ella.
 
 Dentro de las modalidades de Trabajo de Grado de la Escuela de Ingeniería Informática de la UCAB Guayana, el presente trabajo corresponde a la modalidad Experimental.
 
@@ -553,7 +557,7 @@ La entrevista semiestructurada es aquella en la que, según #cite(<arias2012>, f
 La entrevista no estructurada es aquella en la que, según #cite(<arias2012>, form: "prose"), no se dispone de una guía de preguntas elaboradas previamente, aunque la conversación se orienta por objetivos preestablecidos que definen el tema de la entrevista. Esta técnica se aplicó durante la validación, con los expertos consultados tras la demostración del ambiente, con el fin de recoger libremente sus valoraciones sobre este. El instrumento empleado fue un registro de notas en un teléfono móvil, en el que se anotaron los aportes de los expertos durante la conversación.
 
 == Metodología de Desarrollo Utilizada
-Al analizar las características del trabajo de investigación, se consideró el enfoque a adoptar. Dado que no se previó un contacto constante con el cliente y que los requisitos aún no estaban bien definidos, se decidió optar por un enfoque basado en prototipos, con el fin de definir los requerimientos finales a través de los prototipos realizados y sus validaciones.
+Al analizar las características del trabajo de investigación, se consideró el enfoque a adoptar. Dado que los interesados no estarían disponibles de forma permanente, lo que descartaba los enfoques ágiles, pero sí podían acordarse reuniones de revisión, se consideraron los modelos incremental y de prototipos. Se optó por el enfoque basado en prototipos por la incertidumbre tanto técnica como de requerimientos, con el fin de definir los requerimientos finales a través de los prototipos realizados y de su revisión. Cada prototipo se revisó en reuniones con el tutor, de las que provino la retroalimentación que orientó el siguiente.
 Según #cite(<pressman2010>, form: "prose"), el enfoque basado en prototipos está enmarcado dentro de los modelos de proceso evolutivos, que "son iterativos. Se caracterizan por la manera en la que permiten desarrollar versiones cada vez más completas del software.". Particularmente para el enfoque basado en prototipos, el proceso se divide en 4 fases, como se observa en la @prototyping-figure: comunicación, plan rápido - modelado - diseño rápido, construcción del prototipo y despliegue - entrega y retroalimentación. Se definen a continuación:
 
 #figure(
@@ -692,7 +696,7 @@ El niño construye un programa colocando piezas tangibles sobre la mesa: objetos
 
 ==== Conexiones mediante toques
 
-Las conexiones no se materializan con cables ni con piezas adicionales. Para conectar dos piezas, el niño toca sobre la superficie, uno después del otro, los puertos que desea enlazar; el subsistema de visión detecta los toques y la interfaz crea la conexión si es compatible. Cada puerto admite una clase de dato —números, objetos, criterios o grupos—, y una conexión incompatible se rechaza con una señal visual sobre el puerto. Reglas estructurales completan esta verificación: por ejemplo, una ordenación solo admite un grupo como entrada.
+Las conexiones no se materializan con cables ni con piezas adicionales. Para conectar dos piezas, el niño toca sobre la superficie, uno después del otro, los puertos que desea enlazar; el subsistema de visión detecta los toques y la interfaz crea la conexión si es compatible. Cada puerto admite una clase de dato —números, objetos, criterios o grupos—, y una conexión incompatible se rechaza con una señal visual sobre el puerto. Reglas estructurales completan esta verificación: por ejemplo, una ordenación solo admite un grupo como entrada. Tampoco se admite una conexión hacia un puerto de entrada que ya está ocupado.
 
 ==== Grupos y números de varias cifras
 
@@ -841,7 +845,7 @@ Para la construcción, se decidió continuar el uso de Python para todo, haciend
   ],
 ) <first-prototype-figure>
 
-Como resultado de este prototipo, se vio que no se podía partir directamente del código legado por Barrios, pues se necesitaban de librerías más potentes para tener una interfaz gráfica más atractiva, algoritmos más robustos para la detección de piezas más complejas (números, imágenes), y una arquitectura de software más flexible para permitir la creación de nuevas zonas y la asociación entre estas. Además, surgió la inquietud de que las resoluciones de las cámaras del sensor Kinect v1 no fueran suficientes para detectar piezas más complejas, lo que llevó a la decisión de cambiar al sensor Kinect v2, lo que permitiría una detección más precisa y robusta.
+Como resultado de este prototipo, en su revisión con el tutor se vio que no se podía partir directamente del código legado por Barrios, pues se necesitaban de librerías más potentes para tener una interfaz gráfica más atractiva, algoritmos más robustos para la detección de piezas más complejas (números, imágenes), y una arquitectura de software más flexible para permitir la creación de nuevas zonas y la asociación entre estas. Además, surgió la inquietud de que las resoluciones de las cámaras del sensor Kinect v1 no fueran suficientes para detectar piezas más complejas, lo que llevó a la decisión de cambiar al sensor Kinect v2, lo que permitiría una detección más precisa y robusta.
 
 === Prototipo 2
 
@@ -858,7 +862,7 @@ Las librerías disponibles para integrar el Kinect v2 con Python son limitadas. 
   ],
 ) <second-prototype-figure>
 
-Este prototipo, si bien permitió validar la viabilidad del cambio al Kinect v2, también mostró que el código legado por Barrios era difícil de mantener. También se vio que la transformación Window-to-Viewport que se usa en los algoritmos es muy sensible a la configuración física del entorno (paralelismo entre la proyección sobre la superficie y el ángulo de la cámara), resultando en que la detección de toques no fuese tan precisa como se esperaba.
+Este prototipo, revisado con el tutor, si bien permitió validar la viabilidad del cambio al Kinect v2, también mostró que el código legado por Barrios era difícil de mantener. También se vio que la transformación Window-to-Viewport que se usa en los algoritmos es muy sensible a la configuración física del entorno (paralelismo entre la proyección sobre la superficie y el ángulo de la cámara), resultando en que la detección de toques no fuese tan precisa como se esperaba.
 
 === Prototipo 3
 
@@ -868,7 +872,7 @@ Para esto, se decidió usar un modelo de detección de objetos basado en aprendi
 
 Se entrenó al modelo con el conjunto de datos personalizado de imágenes de una versión previa de las piezas que se usarían en el entorno, que incluían animales y números, que pueden verse en la @third-prototype-dataset-figure; y se evaluó su desempeño en términos de precisión y velocidad de detección. // Este prototipo puede verse en la @third-prototype-figure.
 
-Los resultados obtenidos mostraron que el modelo de detección de objetos basado en aprendizaje profundo era capaz de detectar las piezas con una precisión aceptable, aunque se identificaron áreas de mejora, principalmente la confusión entre clases (por ejemplo, entre el 9 y el 6). Además, se observó que la velocidad de detección era adecuada para su uso en tiempo real con el Kinect v2, lo que validó la viabilidad de esta aproximación para la detección de piezas en el entorno.
+Los resultados obtenidos, revisados con el tutor, mostraron que el modelo de detección de objetos basado en aprendizaje profundo era capaz de detectar las piezas con una precisión aceptable, aunque se identificaron áreas de mejora, principalmente la confusión entre clases (por ejemplo, entre el 9 y el 6). Además, se observó que la velocidad de detección era adecuada para su uso en tiempo real con el Kinect v2, lo que validó la viabilidad de esta aproximación para la detección de piezas en el entorno.
 
 #figure(
   image("images/third-prototype-dataset.jpeg"),
@@ -908,7 +912,7 @@ Durante el desarrollo de este prototipo, el enfoque estuvo en la implementación
 //   ],
 // )
 
-Con el prototipo del entorno listo, se vio que la aproximación de separación de responsabilidades entre el lenguaje y la visión por computador era viable y facilitaba el análisis y desarrollo del mismo, aunque surgió la preocupación de que la latencia introducida por la comunicación entre ambos apartados pudiera afectar la experiencia del usuario.
+Con el prototipo del entorno listo, en su revisión con el tutor se vio que la aproximación de separación de responsabilidades entre el lenguaje y la visión por computador era viable y facilitaba el análisis y desarrollo del mismo, aunque surgió la preocupación de que la latencia introducida por la comunicación entre ambos apartados pudiera afectar la experiencia del usuario.
 
 === Prototipo 5
 
@@ -933,11 +937,11 @@ Se implementaron características como la visualización del programa en tiempo 
 //   ],
 // ) <fifth-prototype-figure>
 
-Al finalizar el desarrollo de la interfaz gráfica del modo sandbox, se vio que facilitaba la creación de programas mediante la manipulación de bloques digitales, y se planteó continuar con la integración de la detección de bloques físicos y el reconocimiento de estos por parte del entorno de ejecución del lenguaje de programación dataflow.
+Al finalizar el desarrollo de la interfaz gráfica del modo sandbox, en su revisión con el tutor se vio que facilitaba la creación de programas mediante la manipulación de bloques digitales, y se planteó continuar con la integración de la detección de bloques físicos y el reconocimiento de estos por parte del entorno de ejecución del lenguaje de programación dataflow.
 
 === Prototipo 6
 
-Continuando con el prototipo 5, se decidió integrarle la detección de piezas físicas mediante el Kinect v1, por dificultades temporales con el Kinect v2/* especificar que estas dificultades estaban relacionadas con problemas de compatibilidad de estándar USB y rendimiento */; y el uso de un nuevo modelo de detección de objetos basado en aprendizaje profundo, pues se cambió el diseño de las piezas físicas a usar, requiriendo de un reentrenamiento del modelo. Además, se planteó comenzar la integración con el entorno de ejecución del lenguaje de programación dataflow, optando por la integración mediante WebSockets para la comunicación.
+Continuando con el prototipo 5, se decidió integrarle la detección de piezas físicas mediante el Kinect v1, por dificultades temporales con el Kinect v2, relacionadas con la compatibilidad del estándar USB y con el rendimiento; y el uso de un nuevo modelo de detección de objetos basado en aprendizaje profundo, pues se cambió el diseño de las piezas físicas a usar, requiriendo de un reentrenamiento del modelo. Además, se planteó comenzar la integración con el entorno de ejecución del lenguaje de programación dataflow, optando por la integración mediante WebSockets para la comunicación.
 
 Se llevó a cabo un rediseño de las piezas físicas a usar, buscando cubrir los datos y operaciones que se definieron para el lenguaje, un diseño sencillo de entender y usar para los niños, pero no tan complejo en aras de facilitar la detección por parte del modelo, resultando en un diseño tipo carta. Estas nuevas piezas pueden verse en la @sixth-prototype-pieces-design-figure. Además, también se hicieron modificaciones en la interfaz gráfica del modo sandbox, entre ellas usar colores oscuros, para facilitar la visualización de la proyección del entorno virtual sobre la superficie física.
 
@@ -957,7 +961,7 @@ Al entrenar el nuevo modelo de detección de objetos, se comenzó con el modelo 
   ],
 ) <sixth-prototype-figure>
 
-Con este prototipo terminado, se vio que la integración de la detección de piezas físicas mediante el nuevo modelo de detección de objetos era viable y, según lo observado, mejoraba la detección, aunque surgieron preocupaciones respecto al proceso de entrenamiento del modelo, tomando en cuenta que no se usó el lote completo de cartas que soporta el lenguaje, pero sí más que el número de piezas que se usaron en prototipos previos. La integración con el entorno de ejecución del lenguaje de programación dataflow mediante WebSockets también se mostró viable, pero la falta de un mecanismo para representar las conexiones entre las piezas reconocidas a nivel tangible, de modo que se pudieran enviar al entorno de ejecución; limitaba las pruebas que se podían hacer con esta integración.
+Con este prototipo terminado, en su revisión con el tutor se vio que la integración de la detección de piezas físicas mediante el nuevo modelo de detección de objetos era viable y, según lo observado, mejoraba la detección, aunque surgieron preocupaciones respecto al proceso de entrenamiento del modelo, tomando en cuenta que no se usó el lote completo de cartas que soporta el lenguaje, pero sí más que el número de piezas que se usaron en prototipos previos. La integración con el entorno de ejecución del lenguaje de programación dataflow mediante WebSockets también se mostró viable, pero la falta de un mecanismo para representar las conexiones entre las piezas reconocidas a nivel tangible, de modo que se pudieran enviar al entorno de ejecución; limitaba las pruebas que se podían hacer con esta integración.
 
 === Prototipo 7
 
@@ -977,17 +981,17 @@ La integración de la detección de piezas con el intérprete se articuló a tra
 
 //TODO: agregar figura del séptimo prototipo (integración inicial). Pendiente de imagen, siguiendo el patrón de @sixth-prototype-figure.
 
-Con este prototipo se obtuvo, por primera vez, una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada conformaban un programa ejecutable de manera incremental, de modo que las mejoras posteriores se pudieron implementar sobre esta base, en forma de evoluciones, motivadas en un principio por las limitaciones observadas en la fluidez de la detección.
+Con este prototipo, revisado con el tutor, se obtuvo por primera vez una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada conformaban un programa ejecutable de manera incremental, de modo que las mejoras posteriores se pudieron implementar sobre esta base, en forma de evoluciones, motivadas en un principio por las limitaciones observadas en la fluidez de la detección.
 
 ==== Evolución 1
 
-La primera evolución se centró en la detección de toques. Hasta entonces se había explorado la detección basada únicamente en la imagen de profundidad, en la línea de #cite(<wilson2010>, form: "prose"). Se incorporó entonces un detector híbrido que combina el algoritmo DIRECT #cite(<xiao2016>), que decide si existe un toque a partir de la imagen de profundidad y de la imagen infrarroja del sensor, mediante relleno por inundación, zonas e histéresis, con el modelo de detección de manos Hand Landmarker de MediaPipe #cite(<lugaresi2019>), que aporta la posición precisa de la punta del dedo índice cuando DIRECT detecta un contacto. Esta combinación separa la decisión de si existe un toque de la estimación de dónde ocurre, aprovechando la robustez del sensor de profundidad y la precisión de la estimación visual de la mano. En esta evolución también se creó una bifurcación (_fork_) de PyKinect2, modificada para hacerla compatible con Python 3.8 o superior, y se probó como alternativa a OpenNI2 para acceder al sensor mediante el Kinect for Windows SDK 2.0. En las pruebas se percibió que el ambiente funcionaba de forma más fluida, por lo que se mantuvo PyKinect2 como forma de acceso al sensor.
+La primera evolución se centró en la detección de toques. Hasta entonces se había explorado la detección basada únicamente en la imagen de profundidad, en la línea de #cite(<wilson2010>, form: "prose"). Se incorporó entonces un detector híbrido que combina el algoritmo DIRECT #cite(<xiao2016>), que decide si existe un toque a partir de la imagen de profundidad y de la imagen infrarroja del sensor, mediante relleno por inundación, zonas e histéresis, con el modelo de detección de manos Hand Landmarker de MediaPipe #cite(<lugaresi2019>), que aporta la posición precisa de la punta del dedo índice cuando DIRECT detecta un contacto. Esta combinación separa la decisión de si existe un toque de la estimación de dónde ocurre, aprovechando la robustez del sensor de profundidad y la precisión de la estimación visual de la mano. En esta evolución se regresó, además, de forma definitiva al Kinect v2, el sensor que emplea la versión final del ambiente. Se creó también una bifurcación (_fork_) de PyKinect2, modificada para hacerla compatible con Python 3.8 o superior, y se probó como alternativa a OpenNI2 para acceder al sensor mediante el Kinect for Windows SDK 2.0. En las pruebas se percibió que el ambiente funcionaba de forma más fluida, por lo que se mantuvo PyKinect2 como forma de acceso al sensor.
 //TODO: el esqueleto anotaba que la detección se hizo "más eficiente" y mencionaba un "<segundo vídeo>" asociado a la primera valoración positiva del tutor. La mejora de eficiencia no está cuantificada en el repositorio (no hay _benchmarks_ ni mediciones de latencia versionadas) y no existe rastro del material audiovisual ni del _feedback_ del tutor; añadir y respaldar a mano.
 
 ==== Evolución 2
 
-La segunda evolución comprendió dos mejoras. En la calibración, se generalizó la homografía de cuatro puntos a una de nueve, dispuestos en una rejilla de tres por tres y resuelta por mínimos cuadrados mediante `cv2.findHomography` #cite(<hartley2003>), con el fin de mejorar la precisión del mapeo entre la cámara y la superficie proyectada. Las coordenadas de la cámara de color se llevan al espacio de la imagen de profundidad mediante el mapeo de coordenadas del Kinect for Windows SDK 2.0, que constituye una fuente adicional de error de la calibración. En cuanto a las piezas físicas, se amplió el repertorio del mazo más allá de las cartas, incorporando tapas, paletas y cubos como piezas tangibles adicionales reconocibles por el subsistema de visión, enriqueciendo la experiencia del usuario al interactuar con el enfoque concreto-pictórico-abstracto de forma más directa, con representaciones más fieles a lo propuesto por #cite(<bruner1966>, form: "prose").
-//TODO: el cambio a nueve puntos está respaldado por la configuración del código (rejilla 3×3 por defecto en `config.py`), pero la mejora de precisión no está medida cuantitativamente. Asimismo, la incorporación de tapas, paletas y cubos consta en la interfaz y el catálogo de piezas, pero el reentrenamiento del modelo YOLO para esas piezas no está respaldado por el historial (el conjunto de clases versionado en `data.yaml` no las incluye); confirmar y documentar el reentrenamiento a mano.
+La segunda evolución comprendió dos mejoras. En la calibración, se generalizó la homografía de cuatro puntos a una de nueve, dispuestos en una rejilla de tres por tres y resuelta por mínimos cuadrados mediante `cv2.findHomography` #cite(<hartley2003>), con el fin de mejorar la precisión del mapeo entre la cámara y la superficie proyectada. Las coordenadas de la cámara de color se llevan al espacio de la imagen de profundidad mediante el mapeo de coordenadas del Kinect for Windows SDK 2.0, que constituye una fuente adicional de error de la calibración. En cuanto a las piezas físicas, se amplió el repertorio del mazo más allá de las cartas, incorporando tapas, paletas y cubos como piezas tangibles adicionales reconocibles por el subsistema de visión, enriqueciendo la experiencia del usuario al interactuar con el enfoque concreto-pictórico-abstracto de forma más directa, con representaciones más fieles a lo propuesto por #cite(<bruner1966>, form: "prose"). Para reconocerlas, el modelo de detección se reentrenó con estas piezas.
+//TODO: el cambio a nueve puntos está respaldado por la configuración del código (rejilla 3×3 por defecto en `config.py`), pero la mejora de precisión no está medida cuantitativamente.
 
 ==== Evolución 3
 
@@ -1027,12 +1031,12 @@ Con el fin de verificar que el sistema construido responde a lo especificado, se
       [RF-05], [El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas], [Evaluación incremental, resaltado de piezas y conexiones, _walkers_ sobre las conexiones y resultados intermedios bajo demanda], [Satisfecho],
       [RNF-01], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado], [Interfaz basada en piezas tangibles y uso guiado por el docente; su usabilidad efectiva requiere comprobación con usuarios], [Pendiente],
       [RNF-02], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años], [Elementos lúdicos implementados (diseño colorido, síntesis de voz); su efecto en el interés requiere validación con niños], [Parcial],
-      [RNF-03], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales], [Verificación de aridad y de categoría de valor, validación de conexiones en tres niveles y análisis de programas incompletos sin interrumpir la sesión], [Satisfecho],
-      [RNF-04], [La retroalimentación debe ser presentada de forma visual y auditiva], [Retroalimentación visual completa (resaltados, walkers, resultados); la auditiva se limita a la síntesis de voz de los resultados, restan las señales sonoras de reconocimiento, advertencia y error], [Parcial],
+      [RNF-03], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales], [Verificación de aridad y de categoría de valor, validación de conexiones (puerto de entrada ocupado, reglas estructurales y compatibilidad de la clase de dato) y análisis de programas incompletos sin interrumpir la sesión], [Satisfecho],
+      [RNF-04], [La retroalimentación debe ser presentada de forma visual y auditiva], [Retroalimentación visual completa (resaltados, walkers, resultados); la auditiva se limita a la síntesis de voz de los resultados], [Parcial],
     )
   ],
   caption: [
-    Matriz de trazabilidad entre los requerimientos definidos en el análisis y las funcionalidades construidas, con la evidencia en el código y el estado de cobertura de cada requerimiento.
+    Matriz de trazabilidad entre los requerimientos definidos en el análisis y las funcionalidades construidas, con el estado de cobertura de cada requerimiento.
   ],
 ) <requirements-to-functionalities-matrix>
 
@@ -1112,7 +1116,7 @@ El diseño tradujo la caracterización resultante del análisis en una arquitect
 
 En el plano del lenguaje, el diseño de flujo de datos, con declaraciones de fuente, transformación y salida, evaluación dirigida por demanda y un dominio de valores reducido a tres formas —bolsa, criterio y booleano—, evita que el niño cometa errores de escritura, pues no produce texto; los errores que persisten, de disposición, de reconocimiento y semánticos, se detectan mediante la verificación estática de aridad y de categoría de valor y mediante comprobaciones durante la evaluación, y se comunican con mensajes orientados a los niños. Esta característica responde directamente a los requerimientos derivados del análisis: guiar la construcción del programa y prevenir los errores antes de la ejecución. La separación entre un núcleo de interpretación sin estado y adaptadores delgados, junto con una representación textual interna cuya gramática formal tolera programas incompletos (#link(<appendix-a>)[Apéndice A]), hizo realizable el diseño y habilitó la retroalimentación inmediata durante la construcción en vivo. El diseño mantuvo, además, su trazabilidad con el análisis al alinear el repertorio de datos y operaciones con los énfasis del currículo de educación primaria #cite(<mppe2023>).
 
-La construcción del ambiente, llevada a cabo mediante un enfoque evolutivo basado en prototipos #cite(<pressman2010>), produjo un sistema integrado que articula el subsistema de visión por computador, el lenguaje ERAE con su intérprete y la interfaz de usuario. Se concluye que la metodología por prototipos fue determinante para un proyecto de naturaleza experimental con requerimientos inicialmente poco definidos: el resultado de cada prototipo definió el requerimiento del siguiente —la resolución insuficiente del Kinect v1 motivó el cambio al Kinect v2; la fragilidad de la detección por contornos condujo a la detección por aprendizaje profundo; la latencia entre procesos llevó a consolidar el intérprete como librería embebida; y la imposibilidad de representar las conexiones entre las piezas, evidenciada en el sexto prototipo, impulsó el sistema de puertos tipados, reglas estructurales y _walkers_ del séptimo—. Esta cadena de decisiones, que solo pudo establecerse al construir y evaluar sucesivamente el sistema, confirma la pertinencia del enfoque adoptado.
+La construcción del ambiente, llevada a cabo mediante un enfoque evolutivo basado en prototipos #cite(<pressman2010>), produjo un sistema integrado que articula el subsistema de visión por computador, el lenguaje ERAE con su intérprete y la interfaz de usuario. Se concluye que la metodología por prototipos fue determinante para un proyecto de naturaleza experimental con requerimientos inicialmente poco definidos: el resultado de cada prototipo definió el requerimiento del siguiente —la preocupación por la resolución del Kinect v1 motivó el paso al Kinect v2, al que se regresó de forma definitiva en la primera evolución del séptimo prototipo; la fragilidad observada en la detección por contornos condujo a la detección por aprendizaje profundo; la latencia entre procesos llevó a consolidar el intérprete como librería embebida; y la imposibilidad de representar las conexiones entre las piezas, evidenciada en el sexto prototipo, impulsó el sistema de puertos tipados, reglas estructurales y _walkers_ del séptimo—. Esta cadena de decisiones, que solo pudo establecerse al construir y evaluar sucesivamente el sistema, confirma la pertinencia del enfoque adoptado.
 
 Entre los logros técnicos se cuentan el reconocimiento de las piezas mediante modelos de detección de objetos, más robusto que la detección por contornos de los primeros prototipos, un intérprete del lenguaje ERAE que funciona como librería embebida con evaluación incremental y verificación de aridad y de categoría de valor, la calibración mediante homografía, la detección de toques con un detector híbrido y la integración entre la visión y el intérprete a través de un servidor de relevo y de la interfaz, que traduce el grafo visual de piezas y conexiones en un programa ejecutable. Con el séptimo prototipo se alcanzó, por primera vez, una experiencia integrada de extremo a extremo en la que las piezas físicas, sus conexiones y la salida proyectada constituyen un programa evaluable de manera incremental, con lo que el objetivo de construcción se considera cumplido en tanto el artefacto existe y opera.
 
@@ -2434,6 +2438,7 @@ Este manual está dirigido al docente que conduce las actividades con el ambient
 
 // TODO: tabla por clase de pieza (objetos concretos, cartas pictóricas, cartas abstractas, cartas de operación, cartas de criterio, cartas de grupo y carta de salida): pieza, qué representa y qué hace.
 // TODO: figura del mazo final.
+// Clases que reconoce el modelo de detección (yolo_11s_ultra.pt), para armar la tabla: tapas (cap_blue, cap_white), cubos (cube_blue, cube_red, cube_yellow), paletas (stick_cyan, stick_orange, stick_red, stick_wooden); alimentos (apple, burger, grapes, pear; orange puede ser la fruta o el color, verificar); figuras (lg/md/sm × circle, square, triangle); dígitos (zero a nine); operaciones (add, subtract, multiply, division, filter, compare, count, first, last); criterios (color, size, figure, blue, green, purple, red, yellow, small, medium, large, ascending, descending, smallest_to_largest, largest_to_smallest); grupo (open, close); salida (sink). Verificar contra el mazo impreso antes de publicar.
 
 == 6. Uso de la interfaz
 
