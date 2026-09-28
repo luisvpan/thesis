@@ -64,6 +64,23 @@
 }
 #show figure.caption: it => align(start + top, it)
 
+// Tablas y figuras según la Guía de Normas APA de la Escuela:
+// - Tablas: título arriba, «Tabla N» en una línea y el título en cursiva en la siguiente;
+//   sin líneas verticales, con líneas horizontales solo en el encabezado, entre grupos y al cierre.
+// - Figuras: título abajo, con «Figura N.» en cursiva.
+#show figure.where(kind: table): set figure.caption(position: top)
+#show figure.caption.where(kind: table): it => align(start, block[#it.supplement #context it.counter.display(it.numbering) \ #emph(it.body)])
+#show figure.caption.where(kind: image): it => align(start, [#emph[#it.supplement #context it.counter.display(it.numbering)#it.separator] #it.body])
+#set table(stroke: (x, y) => if y == 1 { (top: 0.8pt, bottom: 0.5pt) } else { none })
+
+// Fila invisible al inicio del encabezado: en las páginas en que la tabla continúa, muestra «Tabla N Continuación».
+#let continuacion(columnas) = table.cell(colspan: columnas, inset: 0pt, align: left, context {
+  let tabla = query(selector(figure.where(kind: table)).before(here())).last()
+  if here().page() > tabla.location().page() {
+    block(inset: (bottom: 6pt))[Tabla #numbering(tabla.numbering, ..tabla.counter.at(tabla.location())) Continuación]
+  }
+})
+
 #let image-width = 80%
 #show figure.where(kind: image): set image(width: image-width)
 
@@ -591,20 +608,21 @@ Para caracterizar el ambiente a desarrollar se contrastaron, mediante revisión 
 #show figure: set block(breakable: true)
 #figure(
   [
-    #set text(size: 8pt)
+    #set text(size: 10pt)
     #set par(justify: false)
     #table(
       columns: (0.9fr, 1.3fr, 1.1fr, 0.9fr, 1.1fr, 1fr),
       align: left + top,
       inset: 4pt,
-      table.header([*Referente*], [*Interfaz y pantalla*], [*Colaboración*], [*Edad y lectoescritura*], [*Paradigma y conceptos*], [*Retroalimentación*]),
+      table.header(continuacion(6), [*Referente*], [*Interfaz y pantalla*], [*Colaboración*], [*Edad y lectoescritura*], [*Paradigma y conceptos*], [*Retroalimentación*]),
       [*TORTIS* \ #cite(<morgado2006>)], [Cajas de botones y cartas en un tragafichas que controlan una tortuga robótica; un monitor mostraba los comandos de las cajas], [No documentada como objetivo de diseño], [3 a 5 años; no requiere lectura], [Imperativo; secuencia, repetición y procedimientos], [Movimiento y dibujo de la tortuga; luces que indican la carta en ejecución],
       [*AlgoBlock* \ #cite(<suzuki1993>)], [Bloques físicos conectados; el programa controla un submarino en pantalla], [Principio de diseño: acceso simultáneo, monitoreo mutuo y pase del turno mediante gestos], [Primaria y secundaria; observado con tres niñas de 12 años], [Imperativo, inspirado en Logo; secuencia, condicionales y bucles], [Submarino en pantalla; luces en los bloques],
       [*Scratch y ScratchJr* \ #cite(<maloney2010>) #cite(<bers2018>)], [Bloques en pantalla: computadora (Scratch) o tableta, con íconos (ScratchJr)], [Comunidad en línea para compartir y remezclar proyectos; construcción frente a la pantalla], [Scratch: desde 8 años, supone lectoescritura; ScratchJr: 5 a 7 años], [Imperativo por bloques; secuencia, bucles, condicionales y eventos], [Inmediata, en pantalla],
       [*Magicboard* \ #cite(<barrios2024>)], [Mesa con proyector y sensor Kinect que detecta gestos y objetos físicos; sin monitor], [Juegos sociales basados en el aprendizaje colaborativo], [Educación preescolar], [No es un entorno de programación], [Proyectada sobre la mesa],
       [*Rojas y Youssef* \ #cite(<rojas2024>)], [Fichas táctiles encajables, con braille, reconocidas por una cámara], [No documentada en los requerimientos], [Niños con discapacidad visual], [Imperativo; ciclos, condicionales y variables], [Auditiva],
-      table.cell(colspan: 6)[*Síntesis para el ambiente propuesto*],
+      table.hline(stroke: 0.4pt), table.cell(colspan: 6)[*Síntesis para el ambiente propuesto*],
       [*Ambiente propuesto*], [Superficie tangible con retroalimentación proyectada, sin monitor], [Acceso simultáneo sobre una superficie compartida], [6 a 9 años; piezas que pueden ser reconocidas sin texto escrito], [Flujo de datos], [Visual proyectada y auditiva],
+      table.hline(stroke: 0.8pt),
     )
   ],
   caption: [
@@ -642,23 +660,24 @@ A partir de las características definidas, y con el propósito de guiar el dise
 
 #figure(
   [
-    #set text(size: 9pt)
+    #set text(size: 10pt)
     #table(
       columns: (auto, 1fr, 1.7fr),
       align: (center + horizon, left + horizon, left + horizon),
       inset: 5pt,
-      table.header([*Código*], [*Característica asociada*], [*Requerimiento*]),
-      table.cell(colspan: 3)[*Requerimientos funcionales*],
+      table.header(continuacion(3), [*Código*], [*Característica asociada*], [*Requerimiento*]),
+      table.hline(stroke: 0.4pt), table.cell(colspan: 3)[*Requerimientos funcionales*],
       [RF-01], [Interfaz tangible (tabletop TUI); diseño para colaboración], [El sistema debe permitir a los niños construir programas utilizando elementos tangibles y conexiones digitales que representen datos, flujos y operaciones],
       [RF-02], [Interfaz tangible (tabletop TUI)], [El sistema debe capturar la disposición de los elementos tangibles y conexiones digitales, y procesar la información para reconocer los elementos y sus conexiones],
       [RF-03], [Lenguaje basado en dataflow], [El sistema debe interpretar los programas representados por los elementos tangibles y conexiones digitales, traduciéndolos a una representación ejecutable],
       [RF-04], [Retroalimentación visual aumentada; reducción del tiempo en pantalla], [El sistema debe ejecutar los programas y mostrar la salida en una interfaz gráfica proyectada sobre una superficie plana],
       [RF-05], [Retroalimentación visual aumentada; compatibilidad con el desarrollo cognitivo (6 a 9 años)], [El sistema debe proveer retroalimentación para guiar a los niños durante la construcción de programas],
-      table.cell(colspan: 3)[*Requerimientos no funcionales*],
+      table.hline(stroke: 0.4pt), table.cell(colspan: 3)[*Requerimientos no funcionales*],
       [RNF-01], [Compatibilidad con el desarrollo cognitivo (6 a 9 años)], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado],
       [RNF-02], [Compatibilidad con el desarrollo cognitivo (6 a 9 años)], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años],
       [RNF-03], [Retroalimentación visual aumentada], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales],
       [RNF-04], [Retroalimentación visual aumentada], [La retroalimentación debe ser presentada de forma visual y auditiva],
+      table.hline(stroke: 0.8pt),
     )
   ],
   caption: [
@@ -1072,12 +1091,12 @@ Con el fin de verificar que el sistema construido responde a lo especificado, se
 
 #figure(
   [
-    #set text(size: 9pt)
+    #set text(size: 10pt)
     #table(
       columns: (auto, 1fr, 1.3fr, auto),
       align: (center + horizon, left + horizon, left + horizon, center + horizon),
       inset: 4pt,
-      table.header([*Cód. Req.*], [*Requerimiento*], [*Funcionalidad que lo satisface*], [*Estado*]),
+      table.header(continuacion(4), [*Cód. Req.*], [*Requerimiento*], [*Funcionalidad que lo satisface*], [*Estado*]),
       [RF-01], [El sistema debe permitir a los niños construir programas utilizando elementos tangibles y conexiones digitales que representen datos, flujos y operaciones], [Detección de las piezas físicas con modelos YOLO y representación y validación de sus conexiones mediante puertos tipados y reglas estructurales en el IDE], [Satisfecho],
       [RF-02], [El sistema debe capturar la disposición de los elementos tangibles y conexiones digitales, y procesar la información para reconocer los elementos y sus conexiones], [Captura con cámara de color y profundidad; reconocimiento de cartas y de toques, calibración por homografía y relevo de los datos a la interfaz], [Satisfecho],
       [RF-03], [El sistema debe interpretar los programas representados por los elementos tangibles y conexiones digitales, traduciéndolos a una representación ejecutable], [Traducción del grafo visual a un programa e interpretación con el intérprete ERAE embebido], [Satisfecho],
@@ -1087,6 +1106,7 @@ Con el fin de verificar que el sistema construido responde a lo especificado, se
       [RNF-02], [El sistema debe contener elementos persuasivos que capten el interés de niños de 6 a 9 años], [Elementos lúdicos implementados (diseño colorido, síntesis de voz); su efecto en el interés requiere validación con niños], [Parcial],
       [RNF-03], [El sistema debe ser capaz de manejar errores en la disposición de los elementos tangibles y digitales], [Verificación de aridad y de categoría de valor, validación de conexiones (puerto de entrada ocupado, reglas estructurales y compatibilidad de la clase de dato) y análisis de programas incompletos sin interrumpir la sesión], [Satisfecho],
       [RNF-04], [La retroalimentación debe ser presentada de forma visual y auditiva], [Retroalimentación visual completa (resaltados, walkers, resultados); la auditiva se limita a la síntesis de voz de los resultados], [Parcial],
+      table.hline(stroke: 0.8pt),
     )
   ],
   caption: [
@@ -1106,12 +1126,12 @@ El experto en IHC expresó su preocupación por la cantidad de contenido program
 
 #figure(
   [
-    #set text(size: 9pt)
+    #set text(size: 10pt)
     #table(
       columns: (auto, 1.2fr, 1fr),
       align: (left + horizon, left + horizon, left + horizon),
       inset: 4pt,
-      table.header([*Experto*], [*Observación*], [*Respuesta de los autores*]),
+      table.header(continuacion(3), [*Experto*], [*Observación*], [*Respuesta de los autores*]),
       [Medios didácticos], [Valoró positivamente la paleta de colores y la sencillez para comprender el ambiente], [Fortaleza; se conserva],
       [Medios didácticos], [Consideró el ambiente aplicable en el aula como recurso del docente para el proceso de enseñanza-aprendizaje, con énfasis en la evaluación], [Fortaleza; coincide con el uso mediado por el docente],
       [Medios didácticos], [Recomendó mejorar la retroalimentación al usuario], [Reforzar la retroalimentación sonora y la presentación de los errores; la presentación de los errores se mejoró en la quinta evolución, y la retroalimentación sonora sigue en curso],
@@ -1119,6 +1139,7 @@ El experto en IHC expresó su preocupación por la cantidad de contenido program
       [IHC], [Expresó preocupación por la cantidad de contenido programático si el ambiente fuera usado directamente por niños], [Se aclaró que el ambiente se concibe para uso colaborativo, con el docente como conductor o guía],
       [IHC], [Advirtió que el docente, como guía, debe conocer a fondo el ambiente], [Diseñar guías de actividades modelo y explicitar las restricciones del sistema],
       [IHC], [Observó fallos en la detección de cartas durante la demostración], [Mejorar la detección de las cartas],
+      table.hline(stroke: 0.8pt),
     )
   ],
   caption: [
@@ -1131,13 +1152,14 @@ Las observaciones de ambos expertos coinciden en que el ambiente alcanza su prop
 
 #figure(
   [
-    #set text(size: 9pt)
+    #set text(size: 10pt)
     #table(
       columns: (auto, 1fr, auto, 1.3fr, auto),
       align: (center + horizon, left + horizon, center + horizon, left + horizon, center + horizon),
       inset: 4pt,
-      table.header([*Cód. Req.*], [*Requerimiento*], [*Estado anterior*], [*Evidencia de la evaluación por expertos*], [*Estado actual*]),
+      table.header(continuacion(5), [*Cód. Req.*], [*Requerimiento*], [*Estado anterior*], [*Evidencia de la evaluación por expertos*], [*Estado actual*]),
       [RNF-01], [El sistema debe ser usable por niños de 6 a 9 años y profesores de primaria de 1#super[er] a 3#super[er] grado], [Pendiente], [Valoración favorable de la claridad visual y la sencillez del ambiente por parte del experto en medios didácticos, como potencial docente de 1#super[er] a 3#super[er] grado; resta la comprobación con niños], [Parcial],
+      table.hline(stroke: 0.8pt),
     )
   ],
   caption: [
