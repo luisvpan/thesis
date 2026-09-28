@@ -1087,16 +1087,20 @@ Las observaciones de ambos expertos coinciden en que el ambiente alcanza su prop
   ],
 ) <requirements-after-experts-matrix>
 
-// == Realizar la Documentación Formal del Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
+== Realizar la Documentación Formal del Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
 
-//* Mencionar apéndices de manual de sistema, manual de usuario y guía de ejercicios modelo
+La documentación formal del ambiente se organizó en dos manuales, cada uno dirigido a un destinatario distinto: el manual del sistema, para quien instale, mantenga o extienda el ambiente, y el manual de usuario, para el docente que conduce las actividades con los niños.
+
+El manual del sistema, que se presenta en el #link(<appendix-b>)[Apéndice B], describe las herramientas utilizadas y su justificación; la arquitectura del ambiente, con sus tres subsistemas, la estructura de sus módulos y los diagramas de modelado; el diccionario de los datos que intercambian los subsistemas; los requisitos de hardware y de software; la instalación, la puesta en marcha y la configuración del subsistema de visión, del servidor de relevo y de la interfaz; los pasos para extender el ambiente con nuevas piezas; y las pruebas realizadas, organizadas por tipo.
+
+El manual de usuario, que se presenta en el #link(<appendix-c>)[Apéndice C], está dirigido al docente, en coherencia con su papel de conductor o guía de la actividad. Describe el montaje y el encendido del ambiente, la calibración, el catálogo de piezas y el uso de la interfaz, con un ejemplo de uso de principio a fin, e incluye una sección dedicada a los niños, que indica al docente qué se espera que hagan durante la actividad: colocar las piezas, conectarlas mediante toques, formar grupos e interpretar los resultados y las señales de error. Cierra con las restricciones del sistema y con los posibles errores, sus causas y su solución, atendiendo así a una de las condiciones de adopción derivadas de la validación: que el docente conozca de antemano el alcance del ambiente antes de conducir una actividad con los niños.
 
 #pagebreak(weak: true)
 
 // Capítulo V
 = Capítulo V. Conclusiones y Recomendaciones
 //TOOD: Revisar, ya así por encima puedo ver que las recomendaciones están en un mal formato
-== Analizar el Uso de Programación Tangible en Entornos de Realidad Aumentada Espacial, a fin de Caracterizar el Ambiente a Desarrollar
+== Conclusiones
 
 El análisis del uso de la programación tangible en entornos de realidad aumentada espacial permitió caracterizar el ambiente a desarrollar y muestra que esta combinación constituye una vía pedagógica y técnicamente viable para fomentar el pensamiento computacional en niños entre 6 y 9 años con un uso moderado de pantallas. La comparación de los principales referentes —TORTIS, AlgoBlock, Scratch y ScratchJr, Magicboard y el sistema de Rojas y Youssef— según su interfaz, su soporte a la colaboración, la edad a la que se dirigen, su paradigma de programación y su retroalimentación revela que ninguno de los entornos de programación comparados reúne a la vez la manipulación tangible, la colaboración simultánea, la retroalimentación sin monitor y piezas que pueden ser reconocidas sin depender de texto escrito, como conviene a este rango de edad, y que el único referente que combina una mesa con proyección y la colaboración, Magicboard, no es un entorno de programación. Esa brecha define el espacio que ocupa el ambiente propuesto.
 
@@ -1104,13 +1108,9 @@ De esa comparación se derivan las características del ambiente: una interfaz t
 
 La comparación muestra, además, que todos los referentes de programación se basan en el paradigma imperativo y que, desde TORTIS, relacionar cada pieza con su efecto ha sido una dificultad para los niños pequeños #cite(<morgado2006>). Por ello se eligió el paradigma de flujo de datos, en la línea de Lucid #cite(<wadge1985>): su modelo de ejecución se corresponde con la disposición espacial de las piezas y, como hipótesis de diseño, se presume que evita la abstracción de un hilo de ejecución secuencial, difícil de asir en esta etapa cognitiva. Finalmente, el antecedente Magicboard #cite(<barrios2024>) confirma, en el contexto venezolano, la viabilidad de la realidad aumentada espacial con sensor de profundidad y proyector como base para el ambiente.
 
-== Diseñar un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Función del Análisis Realizado
-
 El diseño tradujo la caracterización resultante del análisis en una arquitectura concreta y en la especificación del lenguaje ERAE. Se concluye que la progresión concreto-pictórico-abstracto adoptada para el mazo de cartas operacionaliza los modos de representación enactivo, icónico y simbólico de #cite(<bruner1966>, form: "prose") y resulta coherente con la transición hacia la etapa de operaciones concretas; es decir, el marco teórico no permaneció como fundamento abstracto, sino que se materializó en una decisión de diseño verificable —la organización del repertorio físico de piezas— que solo pudo concretarse al elaborar el diseño.
 
 En el plano del lenguaje, el diseño de flujo de datos, con declaraciones de fuente, transformación y salida, evaluación dirigida por demanda y un dominio de valores reducido a tres formas —bolsa, criterio y booleano—, evita que el niño cometa errores de escritura, pues no produce texto; los errores que persisten, de disposición, de reconocimiento y semánticos, se detectan mediante la verificación estática de aridad y de categoría de valor y mediante comprobaciones durante la evaluación, y se comunican con mensajes orientados a los niños. Esta característica responde directamente a los requerimientos derivados del análisis: guiar la construcción del programa y prevenir los errores antes de la ejecución. La separación entre un núcleo de interpretación sin estado y adaptadores delgados, junto con una representación textual interna cuya gramática formal tolera programas incompletos (#link(<appendix-a>)[Apéndice A]), hizo realizable el diseño y habilitó la retroalimentación inmediata durante la construcción en vivo. El diseño mantuvo, además, su trazabilidad con el análisis al alinear el repertorio de datos y operaciones con los énfasis del currículo de educación primaria #cite(<mppe2023>).
-
-== Construir un Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años, en Base al Diseño Realizado
 
 La construcción del ambiente, llevada a cabo mediante un enfoque evolutivo basado en prototipos #cite(<pressman2010>), produjo un sistema integrado que articula el subsistema de visión por computador, el lenguaje ERAE con su intérprete y la interfaz de usuario. Se concluye que la metodología por prototipos fue determinante para un proyecto de naturaleza experimental con requerimientos inicialmente poco definidos: el resultado de cada prototipo definió el requerimiento del siguiente —la resolución insuficiente del Kinect v1 motivó el cambio al Kinect v2; la fragilidad de la detección por contornos condujo a la detección por aprendizaje profundo; la latencia entre procesos llevó a consolidar el intérprete como librería embebida; y la imposibilidad de representar las conexiones entre las piezas, evidenciada en el sexto prototipo, impulsó el sistema de puertos tipados, reglas estructurales y _walkers_ del séptimo—. Esta cadena de decisiones, que solo pudo establecerse al construir y evaluar sucesivamente el sistema, confirma la pertinencia del enfoque adoptado.
 
@@ -1118,14 +1118,13 @@ Entre los logros técnicos se cuentan el reconocimiento de las piezas mediante m
 
 No obstante, se concluye también que varias de las mejoras introducidas durante la construcción —en particular las relativas a la precisión de la calibración y al rendimiento de la detección— no fueron cuantificadas formalmente, y durante la validación se observaron fallos en la detección de cartas. Esta distinción preserva la coherencia entre lo efectivamente construido y aquello que solo podrá afirmarse tras una medición formal del desempeño del ambiente.
 
-== Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
-
 La validación permite concluir que el ambiente es viable como recurso educativo usado por docentes y niños en conjunto, con el docente como conductor o guía de la actividad, y no como una herramienta que los niños utilicen de forma autónoma. La matriz de trazabilidad muestra que el ambiente satisface sus cinco requerimientos funcionales y el manejo de errores de disposición, mientras que la retroalimentación auditiva y los elementos persuasivos se cubren de forma parcial. El juicio de expertos confirma esta lectura desde fuera del equipo de desarrollo: el experto en medios didácticos valora la claridad visual y la sencillez del ambiente y lo considera aplicable en el aula como recurso del docente para el proceso de enseñanza-aprendizaje, en especial para la evaluación; el experto en IHC, por su parte, advierte que la cantidad de contenido programático exige que el docente conozca a fondo el ambiente para poder guiar a los niños.
 
-De la validación se desprenden tres condiciones para la adopción del ambiente en el aula: una retroalimentación más completa, en particular la sonora y la presentación de los errores; una detección de cartas lo bastante fiable como para no frustrar a docentes ni a niños; y material de apoyo para el docente, en forma de actividades modelo y de una descripción explícita de las restricciones del sistema. La usabilidad del ambiente cuenta con una valoración favorable desde la perspectiva del docente, aportada por el experto en medios didácticos como potencial profesor de 1#super[er] a 3#super[er] grado; en cambio, al no haberse realizado pruebas con niños, la usabilidad y la comprensión del ambiente por parte de los niños de 6 a 9 años, así como su efecto sobre el desarrollo del pensamiento computacional, quedan por comprobar empíricamente.
+De la validación se desprenden tres condiciones para la adopción del ambiente en el aula: una retroalimentación más completa, en particular la sonora y la presentación de los errores; una detección de cartas lo bastante fiable como para no frustrar a docentes ni a niños; y material de apoyo para el docente, que el manual de usuario cubre en parte, con la descripción del uso y de las restricciones del sistema, y que podría completarse con actividades modelo. La usabilidad del ambiente cuenta con una valoración favorable desde la perspectiva del docente, aportada por el experto en medios didácticos como potencial profesor de 1#super[er] a 3#super[er] grado; en cambio, al no haberse realizado pruebas con niños, la usabilidad y la comprensión del ambiente por parte de los niños de 6 a 9 años, así como su efecto sobre el desarrollo del pensamiento computacional, quedan por comprobar empíricamente.
 
-// Realizar la documentación formal del ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años construido.
-//TODO: pendientes la conclusión del objetivo general y la del objetivo 5 (documentar); deben anteceder a la sección de Recomendaciones cuando se redacten.
+La documentación del ambiente se concretó en un manual del sistema y un manual de usuario. Se concluye que separar la documentación según su destinatario responde a los dos papeles que el ambiente requiere: el de quien lo instala y lo mantiene, que necesita conocer su arquitectura y su configuración, y el del docente, que necesita saber cómo conducir la actividad y qué esperar de los niños. El manual de usuario atiende, además, una de las condiciones de adopción que se desprenden de la validación, al describir de forma explícita el uso y las restricciones del ambiente.
+
+En conjunto, se cumple el objetivo general de desarrollar un ambiente de programación tangible con realidad aumentada espacial orientado a niños entre 6 y 9 años, y se responde a la interrogante planteada: un ambiente así puede desarrollarse combinando piezas físicas que siguen la progresión concreto-pictórico-abstracto, una superficie compartida sobre la que se proyecta la interfaz y el resultado, un subsistema de visión por computador que reconoce las piezas y los toques, y un lenguaje de flujo de datos cuyo programa se corresponde con la disposición espacial de las piezas y se evalúa mientras se construye. El ambiente reúne las condiciones que el marco teórico asocia al desarrollo del pensamiento computacional y al aprendizaje colaborativo, es decir, acceso simultáneo de varios niños, un programa visible y persistente sobre la mesa y retroalimentación sin una pantalla individual; y su uso se concibe con el docente como conductor o guía. Su efecto sobre el desarrollo del pensamiento computacional y sobre la colaboración, sin embargo, no se midió en este trabajo, por lo que constituye una hipótesis que debe confirmarse con niños.
 
 == Recomendaciones
 
@@ -1133,15 +1132,15 @@ A partir de la experiencia de construcción se recomienda documentar cuantitativ
 
 En cuanto a la detección de piezas, se recomienda reentrenar el modelo con el lote completo de piezas previsto por el lenguaje —incluidas las incorporadas en las últimas evoluciones, como tapas, paletas y cubos— y versionar tanto el conjunto de datos como su configuración, a fin de garantizar la reproducibilidad del entrenamiento. Esta recomendación se ve reforzada por los fallos de detección observados durante el juicio de expertos, que, según el experto en IHC, podrían resultar frustrantes para docentes y niños durante una actividad.
 
-Para preservar la trazabilidad arquitectónica, se recomienda mantener sincronizada la especificación viva del lenguaje con el informe y documentar, mediante una decisión de arquitectura formal, el reemplazo del servidor anterior por el servidor de relevo actual, dado que las decisiones de arquitectura existentes aún describen componentes ya superados. Asimismo, conviene documentar los requisitos de hardware y las dificultades de compatibilidad observadas con el sensor de profundidad, por su impacto en la estabilidad del sistema.
+Para preservar la trazabilidad arquitectónica, se recomienda mantener sincronizada la especificación del lenguaje con el informe ante futuras versiones y documentar, mediante una decisión de arquitectura formal, el reemplazo del servidor anterior por el servidor de relevo actual, dado que las decisiones de arquitectura existentes aún describen componentes ya superados. Asimismo, conviene documentar las dificultades de compatibilidad observadas con el sensor de profundidad, por su impacto en la estabilidad del sistema.
 
-Dado que el ambiente está concebido para ser usado por docentes y niños en conjunto, con el docente como conductor o guía, se recomienda que su desarrollo y su adopción se orienten a apoyar ese rol. En concreto, se recomienda elaborar una guía de actividades modelo, alineada con el currículo y con los principios de la programación tangible colaborativa #cite(<suzuki1993>), que los docentes puedan tomar como inspiración para diseñar sus propias actividades, e incluir en el manual de usuario una descripción explícita de las restricciones del sistema, de modo que el docente conozca de antemano el alcance del ambiente antes de conducir una actividad con los niños.
+Dado que el ambiente está concebido para ser usado por docentes y niños en conjunto, con el docente como conductor o guía, se recomienda que su desarrollo y su adopción se orienten a apoyar ese rol. En concreto, se recomienda elaborar una guía de actividades modelo, alineada con el currículo y con los principios de la programación tangible colaborativa #cite(<suzuki1993>), que los docentes puedan tomar como inspiración para diseñar sus propias actividades, como complemento del manual de usuario.
 
 En cuanto a la retroalimentación, se recomienda completar las señales sonoras de reconocimiento, advertencia y error y mejorar la presentación de los errores, tal como sugirió el experto en medios didácticos, y valorar la incorporación de música relajante durante el uso del ambiente.
 
 En cuanto al alcance del lenguaje, el ambiente se centra en clasificar, filtrar, ordenar, contar, comparar y operar con las cantidades de colecciones de objetos, y no aborda estructuras de control como la repetición y la decisión condicional, propias del paradigma imperativo y ajenas al modelo de flujo de datos adoptado. Se recomienda estudiar su incorporación, ya sea mediante construcciones equivalentes dentro del paradigma de flujo de datos o mediante un modo complementario, a fin de ampliar los conceptos de pensamiento computacional que el ambiente permite ejercitar.
 
-Finalmente, dado que la usabilidad del ambiente se valoró únicamente desde la perspectiva del docente, se recomienda realizar pruebas de usabilidad y de comprensión con niños de 6 a 9 años, en actividades conducidas por el docente. Las pruebas de usabilidad permitirían observar si los niños logran usar el ambiente —éxito en las tareas, errores, necesidad de ayuda y satisfacción—, y las de comprensión, si entienden lo que construyen y los conceptos de pensamiento computacional involucrados, de modo que los beneficios pedagógicos que la teoría anticipa —el desarrollo del pensamiento computacional y el aprendizaje colaborativo— puedan confirmarse empíricamente.
+Finalmente, se recomienda ampliar la validación del ambiente, que en este trabajo se limitó al juicio de expertos y valoró la usabilidad únicamente desde la perspectiva del docente. Como primer paso, se recomienda realizar pruebas de usabilidad y de comprensión con niños de 6 a 9 años, en actividades conducidas por el docente: las de usabilidad permitirían observar si los niños logran usar el ambiente —éxito en las tareas, errores, necesidad de ayuda y satisfacción—, y las de comprensión, si entienden lo que construyen y los conceptos de pensamiento computacional involucrados. Posteriormente, un estudio con más participantes y sostenido en el tiempo permitiría comprobar si los beneficios que la teoría anticipa —el desarrollo del pensamiento computacional y el aprendizaje colaborativo— se producen efectivamente con el uso del ambiente.
 
 #pagebreak(weak: true)
 
@@ -2308,6 +2307,183 @@ sink out_apples = apples;
 sink out_sorted = sorted;
 ```
 
+]
+
+#pagebreak(weak: true)
+
+= Apéndice B. Manual del Sistema <appendix-b>
+
+Este manual está dirigido a quien instale, mantenga o extienda el ambiente de programación tangible con realidad aumentada espacial. Describe las herramientas empleadas, su arquitectura y sus datos, sus requisitos, su instalación, su puesta en marcha y su configuración, así como la forma de extenderlo y las pruebas realizadas. El lenguaje ERAE se describe en el #link(<appendix-a>)[Apéndice A].
+
+#[
+#set heading(outlined: false)
+
+== 1. Descripción general
+
+// TODO: propósito del ambiente y sus componentes físicos y lógicos, en pocas líneas; remitir al Capítulo IV para el diseño.
+
+== 2. Herramientas utilizadas
+
+// TODO: tabla herramienta / versión / uso / justificación. Python, uv, Ultralytics (YOLO), OpenCV, MediaPipe, ONNX Runtime con DirectML, FastAPI, PyKinect2 (bifurcación propia) y Kinect for Windows SDK 2.0; Bun, TypeScript, React 19, @xyflow/react 12, Vite. Las justificaciones pueden apoyarse en los ADR del repositorio.
+
+== 3. Arquitectura
+
+=== 3.1 Subsistemas y flujo de datos
+
+// TODO: los tres subsistemas (visión por computador, interfaz y entorno de ejecución del lenguaje) y el flujo de datos entre ellos: sensor → subsistema de visión → servidor de relevo (FastAPI, WebSocket) → interfaz (grafo visual) → intérprete ERAE embebido → proyección.
+// TODO: figura con el diagrama de flujo de datos.
+
+=== 3.2 Estructura e interrelación de los módulos
+
+// TODO: módulos del subsistema de visión (`hardware`, `calibration`, `detection`, `transform`, `bridge`) y paquetes del entorno de ejecución (`interpreter`, `frontend`); qué hace cada uno y cómo se comunican.
+
+=== 3.3 Diagramas de modelado
+
+// TODO: diagrama de casos de uso (docente y niños), diagrama de clases de los módulos principales y, de ser útil, diagrama de secuencia del ciclo detección → evaluación → proyección.
+
+== 4. Datos
+
+=== 4.1 Persistencia
+
+// TODO: indicar que el ambiente no emplea base de datos (la guía pide diseño lógico y físico de la base de datos); precisar qué se guarda en archivos, como la calibración y la configuración.
+
+=== 4.2 Diccionario de datos
+
+// TODO: estructuras intercambiadas entre subsistemas: mensajes del servidor de relevo (detecciones de piezas y toques), nodos y conexiones del grafo visual y su traducción a la representación textual (remitir al Apéndice A para el lenguaje).
+
+== 5. Requisitos
+
+=== 5.1 Hardware
+
+// TODO: tabla de hardware. Datos disponibles:
+// - Computador: Windows 11 Home; AMD Ryzen 5 9600X; AMD Radeon RX 9600 XT de 16 GB; 32 GB de RAM DDR5 a 6000 MHz (2 × 16 GB); SSD NVMe M.2 de 1 TB. No requiere CUDA (la inferencia usa ONNX Runtime con DirectML).
+// - Sensor: Kinect v2 (color, profundidad e infrarrojo). Indicar el adaptador para Windows si aplica.
+// - Proyector: proveído por la universidad. TODO: modelo exacto.
+// - Superficie de trabajo. TODO: dimensiones.
+
+=== 5.2 Software
+
+// TODO: Windows 11; Kinect for Windows SDK 2.0 (controlador del sensor, empleado por PyKinect2); Python 3.12 o superior con uv; Bun; navegador.
+
+== 6. Instalación
+
+=== 6.1 Subsistema de visión por computador
+
+// TODO: clonar el repositorio; `uv sync` en `code/cv-system`; bifurcación local de PyKinect2 (`code/pykinect2`), instalada como dependencia editable; ubicación del modelo de detección (`code/models`).
+
+=== 6.2 Entorno de ejecución e interfaz
+
+// TODO: `bun install` en `code/dataflow-execution-environment`; paquetes `interpreter` y `frontend`.
+
+== 7. Puesta en marcha
+
+// TODO: orden de arranque: `cv-stack` (inicia el servidor de relevo y, cuando responde, el subsistema de visión); `bun run dev` para la interfaz; abrir la interfaz en el navegador y enviarla al proyector a pantalla completa. Variables de entorno relevantes (IDE_RELAY_HOST, IDE_RELAY_PORT, etc.).
+
+== 8. Configuración
+
+=== 8.1 Subsistema de visión
+
+// TODO: parámetros principales de `config.py` y del archivo `.env`: umbrales de detección, selección del detector de toques, etc.
+
+=== 8.2 Modelo de detección
+
+// TODO: modelo en uso (`yolo_11s_ultra.pt`), clases que reconoce (remitir al catálogo de piezas del Apéndice C) y cómo reemplazarlo.
+
+=== 8.3 Calibración
+
+// TODO: calibración por homografía con rejilla de nueve puntos; cuándo repetirla (al mover el sensor, el proyector o la mesa).
+// TODO: figura del proceso de calibración.
+
+== 9. Extensión del ambiente
+
+// TODO: cómo añadir una carta nueva: capturar y etiquetar imágenes, reentrenar el modelo, actualizar `data.yaml`, registrarla en el catálogo de la interfaz (`yoloDeckCatalog.ts`) y, si introduce una operación, extender el lenguaje según el Apéndice A.
+
+== 10. Pruebas realizadas
+
+// TODO: organizadas por tipo, como pide la guía: unitarias (intérprete, interfaz y subsistema de visión: `bun run test`, `pytest`), de integración (visión ↔ relevo ↔ interfaz), funcionales (matriz de verificación de requerimientos, Capítulo IV) y de aceptación (juicio de expertos, Capítulo IV).
+]
+
+#pagebreak(weak: true)
+
+= Apéndice C. Manual de Usuario <appendix-c>
+
+Este manual está dirigido al docente que conduce las actividades con el ambiente de programación tangible con realidad aumentada espacial. Describe cómo montarlo, calibrarlo y usarlo, qué piezas lo componen y qué se espera que hagan los niños durante una actividad. La instalación del software se describe en el manual del sistema (#link(<appendix-b>)[Apéndice B]).
+
+#[
+#set heading(outlined: false)
+
+== 1. Descripción del ambiente
+
+// TODO: qué es el ambiente y para qué sirve, en lenguaje no técnico; el docente como conductor o guía.
+
+== 2. Componentes
+
+// TODO: mesa, proyector, sensor Kinect v2, computador y piezas; qué hace cada uno.
+
+== 3. Montaje y encendido
+
+// TODO: disposición del proyector y del sensor sobre la mesa. TODO: alturas y distancias sensor-mesa y proyector-mesa; tamaño de la superficie.
+// TODO: orden de encendido y cómo abrir la interfaz (remitir al Apéndice B para la instalación).
+
+== 4. Calibración
+
+// TODO: pasos de la calibración desde el punto de vista del docente y cómo saber que quedó bien.
+// TODO: figura de la calibración.
+
+== 5. Catálogo de piezas
+
+// TODO: tabla por clase de pieza (objetos concretos, cartas pictóricas, cartas abstractas, cartas de operación, cartas de criterio, cartas de grupo y carta de salida): pieza, qué representa y qué hace.
+// TODO: figura del mazo final.
+
+== 6. Uso de la interfaz
+
+// TODO: figura de la interfaz con sus elementos señalados.
+
+=== 6.1 Colocar las piezas
+
+// TODO: cómo se colocan las piezas y cómo indica la interfaz que fueron reconocidas.
+
+=== 6.2 Conectar las piezas
+
+// TODO: conexión mediante toques sobre los puertos; qué ocurre si la conexión no es válida.
+
+=== 6.3 Formar grupos y números de varias cifras
+
+// TODO: cartas de apertura y cierre de grupo; dígitos contiguos.
+
+=== 6.4 Ver los resultados
+
+// TODO: _walkers_, opción "Mostrar resultados", carta de salida y síntesis de voz.
+
+=== 6.5 Cambiar el modo de visualización
+
+// TODO: modos concreto, pictórico y abstracto; cambian la apariencia y no el significado.
+
+=== 6.6 Interpretar las señales de error
+
+// TODO: insignia de error en la pieza, puerto que se agita, resultados nulos de programas incompletos.
+
+== 7. Ejemplo de uso
+
+// TODO: recorrido real de principio a fin con un programa sencillo (por ejemplo, filtrar las manzanas de un grupo de frutas y contarlas): piezas que se colocan, conexiones, resultado proyectado y lectura por voz, con capturas en cada paso.
+
+== 8. El docente y los niños durante la actividad
+
+=== 8.1 El papel del docente
+
+// TODO: el docente como constructor principal (plantea el problema, dispone las piezas y pide la colaboración de los niños) o como guía (los niños construyen y el docente orienta).
+
+=== 8.2 Lo que hacen los niños
+
+// TODO: dirigido al docente: qué se espera que haga el niño (elegir y colocar piezas, conectarlas con toques, formar grupos, observar el resultado y corregir), cómo pueden participar varios niños a la vez y qué señales conviene explicarles.
+
+== 9. Restricciones del sistema
+
+// TODO: operaciones sin carta en el mazo (menor que, mayor que), ausencia de repetición y condicionales, condiciones de iluminación y de disposición que afectan la detección, entre otras.
+
+== 10. Posibles errores y su solución
+
+// TODO: tabla error / causa probable / solución (la guía pide los posibles errores, sus causas y la forma de solventarlos): pieza no reconocida, toque no detectado, proyección desalineada, sensor no detectado, etc.
 ]
 
 #pagebreak(weak: true)
