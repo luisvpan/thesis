@@ -1,0 +1,13 @@
+# Artefactos de Archify: se derivan de sources/*.json y del código, y se
+# reconstruyen con `archify finalize`. Ver README.md.
+#
+# Lo que sí se versiona: sources/*.json (las fuentes editables), tools/ y los
+# SVG en report/images/, que son los que compone el informe.
+
+*.html
+
+# Recibos que finalize deja junto al artefacto
+*.finalize.json
+*.finalize-summary.json
+*.browser-check.json
+*.visual-check.json

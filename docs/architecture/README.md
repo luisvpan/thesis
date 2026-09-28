@@ -1,12 +1,19 @@
 # Diagramas de arquitectura (modelo C4)
 
 Seis diagramas del ambiente ERAE, siguiendo el [modelo C4](https://c4model.com/) y generados con la
-herramienta Archify a partir del código en la revisión `a04b8fc`. Cada uno existe en dos formas:
+herramienta Archify a partir del código en la revisión `a04b8fc`.
 
-- **HTML explorable** (`c4-0N-*.html`): página autocontenida con temas claro y oscuro, búsqueda de
-  nodos, trazado de rutas y enlaces a la evidencia en el repositorio. Se abre en cualquier navegador.
-- **SVG** (`../../report/images/c4-*.svg`): la misma imagen, con los estilos CSS ya resueltos para que
-  Typst la componga en el informe.
+**Qué se versiona y qué no.** La fuente de verdad de cada diagrama es su JSON en `sources/`; de ahí
+salen dos productos:
+
+- **SVG** (`../../report/images/c4-*.svg`), *versionado*: es lo que compone el informe, con los
+  estilos CSS ya resueltos para Typst.
+- **HTML explorable** (`c4-0N-*.html`), *ignorado por git*: página autocontenida con temas claro y
+  oscuro, búsqueda de nodos, trazado de rutas y enlaces a la evidencia en el repositorio. Es un
+  artefacto de `archify finalize`, así que no aparece tras un clon: hay que generarlo (ver más
+  abajo). Se abre con doble clic, sin servidor.
+
+El `.gitignore` de esta carpeta recoge esa distinción.
 
 | Diagrama | Nivel C4 | Dónde aparece en el informe |
 |---|---|---|
@@ -20,10 +27,12 @@ herramienta Archify a partir del código en la revisión `a04b8fc`. Cada uno exi
 Las tarjetas laterales (notas con la evidencia detallada) solo aparecen en el HTML; el SVG del
 informe contiene únicamente el dibujo.
 
-## Cómo regenerar un diagrama
+## Cómo generar o regenerar un diagrama
 
-Las fuentes editables están en `sources/`. Cada archivo es el candidato de Archify **sin** el bloque
-`meta.translations`, que se inyecta al construir.
+Requiere el paquete de Archify instalado (por defecto en `~/.claude/skills/archify`). Las fuentes
+editables están en `sources/`; cada archivo es el candidato de Archify **sin** el bloque
+`meta.translations`, que lleva las cadenas de la interfaz del visor en español y se inyecta al
+construir.
 
 ```bash
 # desde la raíz del repositorio
