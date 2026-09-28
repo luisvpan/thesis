@@ -679,6 +679,22 @@ El ambiente se concibe como una interfaz de usuario tangible de tipo _tabletop_ 
 
 El ambiente material comprende un conjunto de objetos tangibles y de cartas, descritos en la especificación del lenguaje; un computador; un proyector, que proyecta la interfaz sobre la mesa; un sensor Kinect v2, que capta imágenes de color, de profundidad e infrarrojas de la superficie; y la propia mesa, donde conviven los objetos físicos y la proyección. La @final-environment-figure muestra el ambiente en uso, con un programa construido sobre la mesa.
 
+La mesa, cuyo plano se muestra en la @table-plan-figure, tiene un tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, sobre el que se delimita un área de proyección de 70 × 110 cm. El tablero se apoya en cuatro patas, cilindros de metal de 65 cm de largo y 5 cm de diámetro (@table-leg-figure), fijadas mediante soportes circulares de 10 cm de diámetro. Las patas se disponen de forma simétrica: el tope de cada soporte queda a 12 cm del borde superior o inferior del tablero, y su centro, a 12 cm del borde lateral.
+
+#figure(
+  image("images/table-plan.png", width: 85%),
+  caption: [
+    Plano de la mesa, vista superior: dimensiones del tablero, área de proyección y ubicación de las patas.
+  ],
+) <table-plan-figure>
+
+#figure(
+  image("images/table-leg.png", width: 40%),
+  caption: [
+    Detalle de una pata de la mesa: cilindro de metal de 65 cm de largo y 5 cm de diámetro.
+  ],
+) <table-leg-figure>
+
 A nivel lógico, el sistema se organiza en tres subsistemas: el subsistema de visión por computador, que reconoce los objetos tangibles y los toques sobre la superficie; la interfaz, que representa lo reconocido como un grafo sobre un lienzo proyectado y traduce ese grafo a la representación textual del lenguaje; y el intérprete del lenguaje ERAE, que evalúa el programa. El ciclo es continuo: cada vez que cambia la disposición sobre la mesa, la interfaz actualiza el grafo, el intérprete reevalúa solo lo que cambió y la proyección muestra los resultados, de modo que la retroalimentación acompaña al niño durante toda la construcción. La @c4-paisaje-figure sitúa ese ciclo en el conjunto del ambiente: quiénes intervienen, qué elementos físicos lo componen y cómo se encadenan los tres subsistemas dentro del computador.
 
 #figure(
@@ -750,6 +766,24 @@ Las piezas tangibles del lenguaje son de dos clases: las que representan datos y
 - *Cartas pictóricas:* representan objetos como alimentos y figuras geométricas, algunos con varios tamaños y colores.
 - *Cartas abstractas:* representan los dígitos del 0 al 9; colocadas una junto a otra, forman números de varias cifras.
 
+La @cpa-figure muestra un programa en cada uno de los tres niveles: una resta entre dos grupos de cubos, un filtrado de alimentos según el color y una suma y una resta entre números.
+
+#figure(
+  grid(
+    columns: 1,
+    row-gutter: 0.6em,
+    image("images/cpa-concrete.jpg", width: 80%),
+    [(a) Concreto: resta entre dos grupos de cubos.],
+    image("images/cpa-pictorial.jpg", width: 80%),
+    [(b) Pictórico: filtrado de un grupo de alimentos según el color.],
+    image("images/cpa-abstract.jpg", width: 80%),
+    [(c) Abstracto: suma y resta entre números.],
+  ),
+  caption: [
+    Programas construidos en los tres niveles de la progresión concreto-pictórico-abstracto.
+  ],
+) <cpa-figure>
+
 
 Las piezas que no representan datos son cartas, comunes a los tres niveles: las cartas de operación, las cartas de criterio, que denotan propiedades (tamaño, color o forma) y parametrizan el filtrado, las cartas de apertura y cierre de grupo y la carta de salida. Todas las operaciones se representan con cartas. Las cartas de operación representan la suma, la resta, la multiplicación, la división, el filtrado, la comparación de igualdad y las operaciones de acceso y conteo (primera, última y contar). La ordenación se representa con cuatro cartas que incorporan su propio criterio: de menor a mayor y de mayor a menor según la cantidad, y de pequeño a grande y de grande a pequeño según el tamaño. Las operaciones de umbral del lenguaje, menor que y mayor que, no tienen, por ahora, carta en el mazo. El repertorio disponible puede controlarse entregando a los niños el subconjunto del mazo acorde a la actividad que se quiera llevar a cabo. El diseño tipo carta de las piezas se muestra en la @sixth-prototype-pieces-design-figure.
 // TODO: agregar una figura con el mazo final (objetos concretos y cartas pictóricas, abstractas, de operación, de criterio, de grupo y de salida) cuando se disponga de la fotografía.
@@ -769,6 +803,15 @@ Las aristas del grafo son conexiones digitales que los niños establecen sobre l
 El niño no produce texto, por lo que no puede cometer los errores léxicos ni sintácticos propios de un lenguaje textual: cada carta es un símbolo completo y válido, y no existen identificadores mal formados ni delimitadores faltantes. La representación textual interna la genera automáticamente el sistema a partir de la disposición de las cartas y de las conexiones reconocidas: las cartas de datos se traducen a declaraciones de fuente (`source`), las cartas de criterio a literales de criterio, las cartas de apertura y cierre de colección a literales de grupo, las cartas de operación a declaraciones de transformación (`transform`) y la carta de resultado a una declaración de salida (`sink`).
 
 Persisten, sin embargo, tres clases de errores. Los errores de disposición pertenecen a la sintaxis visual, como una carta de apertura de colección sin su cierre. Los errores de reconocimiento son propios de las interfaces tangibles: el subsistema de visión puede no detectar una carta, detectar una que no está o confundir dos cartas parecidas, por ejemplo un 6 con un 9 si la carta está girada. Los errores semánticos los detecta el intérprete: una operación desconocida, un número incorrecto de argumentos, un argumento de una categoría de valor que la operación no admite, como una bolsa donde se espera un criterio, un ciclo, un argumento que debía ser un número y no lo es, o una división por cero. Dejar una carta sin conectar, en cambio, no es un error: un nodo incompleto vale `nulo` y no impide evaluar el resto del programa. El sistema comunica estos errores mediante la retroalimentación visual y auditiva del ambiente descrita previamente.
+
+Los errores, además, son locales: un error afecta solo a las salidas que dependen de la carta que lo causa, y el resto del programa sigue evaluándose y mostrando sus resultados. Así, un programa a medio construir avanza hasta donde es posible. En la @soft-failure-figure, la suma muestra su resultado, mientras que la resta, a la que le falta una carta, señala el error en su salida.
+
+#figure(
+  image("images/soft-failure.jpg", width: 80%),
+  caption: [
+    Error local: la suma conserva su resultado mientras la resta, incompleta, señala el error en su salida.
+  ],
+) <soft-failure-figure>
 
 ==== Dominio de valores
 
@@ -2414,7 +2457,7 @@ El ciclo que recorre el sistema cada vez que cambia la disposición sobre la mes
 // - Computador: Windows 11 Home; AMD Ryzen 5 9600X; AMD Radeon RX 9600 XT de 16 GB; 32 GB de RAM DDR5 a 6000 MHz (2 × 16 GB); SSD NVMe M.2 de 1 TB. No requiere CUDA (la inferencia usa ONNX Runtime con DirectML).
 // - Sensor: Kinect v2 (color, profundidad e infrarrojo). Indicar el adaptador para Windows si aplica.
 // - Proyector: proveído por la universidad. TODO: modelo exacto.
-// - Superficie de trabajo. TODO: dimensiones.
+// - Superficie de trabajo: tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, con un área de proyección de 70 × 110 cm; cuatro patas de metal de 65 cm de largo y 5 cm de diámetro (ver la @table-plan-figure).
 
 === 5.2 Software
 
@@ -2477,7 +2520,7 @@ Este manual está dirigido al docente que conduce las actividades con el ambient
 
 == 3. Montaje y encendido
 
-// TODO: disposición del proyector y del sensor sobre la mesa. TODO: alturas y distancias sensor-mesa y proyector-mesa; tamaño de la superficie.
+// TODO: disposición del proyector y del sensor sobre la mesa. TODO: alturas y distancias sensor-mesa y proyector-mesa. Dimensiones de la mesa: ver la @table-plan-figure.
 // TODO: orden de encendido y cómo abrir la interfaz (remitir al Apéndice B para la instalación).
 
 == 4. Calibración
