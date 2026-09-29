@@ -712,21 +712,20 @@ El ambiente se concibe como una interfaz de usuario tangible de tipo _tabletop_ 
 
 El ambiente material comprende un conjunto de objetos tangibles y de cartas, descritos en la especificación del lenguaje; un computador; un proyector, que proyecta la interfaz sobre la mesa; un sensor Kinect v2, que capta imágenes de color, de profundidad e infrarrojas de la superficie; y la propia mesa, donde conviven los objetos físicos y la proyección. La @final-environment-figure muestra el ambiente en uso, con un programa construido sobre la mesa.
 
-La mesa, cuyo plano se muestra en la @table-plan-figure, tiene un tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, sobre el que se delimita un área de proyección de 70 × 110 cm. El tablero se apoya en cuatro patas, cilindros de metal de 65 cm de largo y 5 cm de diámetro (@table-leg-figure), fijadas mediante soportes circulares de 10 cm de diámetro. Las patas se disponen de forma simétrica: el tope de cada soporte queda a 12 cm del borde superior o inferior del tablero, y su centro, a 12 cm del borde lateral.
+La mesa tiene un tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, sobre el que se delimita un área de proyección de 70 × 110 cm. El tablero se apoya en cuatro patas, cilindros de metal de 65 cm de largo y 5 cm de diámetro, fijadas mediante soportes circulares de 10 cm de diámetro. Las patas se disponen de forma simétrica: el tope de cada soporte queda a 12 cm del borde superior o inferior del tablero, y su centro, a 12 cm del borde lateral. Sobre la mesa, el proyector y el Kinect se ubican en posición cenital, como se muestra en la @table-setup-figure.
 
 #figure(
-  image("images/table-plan.png", width: 85%),
+  grid(
+    columns: (1166fr, 620fr),
+    column-gutter: 1em,
+    align: horizon,
+    image("images/table-setup.svg", width: 100%),
+    image("images/table-photo.jpg", width: 100%),
+  ),
   caption: [
-    Plano de la mesa, vista superior: dimensiones del tablero, área de proyección y ubicación de las patas.
+    Disposición del ambiente: esquema de la mesa, vista superior, con el proyector y el Kinect en posición cenital sobre el área de proyección (izquierda) y fotografía del ambiente montado (derecha).
   ],
-) <table-plan-figure>
-
-#figure(
-  image("images/table-leg.png", width: 40%),
-  caption: [
-    Detalle de una pata de la mesa: cilindro de metal de 65 cm de largo y 5 cm de diámetro.
-  ],
-) <table-leg-figure>
+) <table-setup-figure>
 
 A nivel lógico, el sistema se organiza en tres subsistemas: el subsistema de visión por computador, que reconoce los objetos tangibles y los toques sobre la superficie; la interfaz, que representa lo reconocido como un grafo sobre un lienzo proyectado y traduce ese grafo a la representación textual del lenguaje; y el intérprete del lenguaje ERAE, que evalúa el programa. El ciclo es continuo: cada vez que cambia la disposición sobre la mesa, la interfaz actualiza el grafo, el intérprete reevalúa solo lo que cambió y la proyección muestra los resultados, de modo que la retroalimentación acompaña al niño durante toda la construcción. La @c4-paisaje-figure sitúa ese ciclo en el conjunto del ambiente: quiénes intervienen, qué elementos físicos lo componen y cómo se encadenan los tres subsistemas dentro del computador.
 
@@ -2493,7 +2492,7 @@ El ciclo que recorre el sistema cada vez que cambia la disposición sobre la mes
 // - Computador: Windows 11 Home; AMD Ryzen 5 9600X; AMD Radeon RX 9600 XT de 16 GB; 32 GB de RAM DDR5 a 6000 MHz (2 × 16 GB); SSD NVMe M.2 de 1 TB. No requiere CUDA (la inferencia usa ONNX Runtime con DirectML).
 // - Sensor: Kinect v2 (color, profundidad e infrarrojo). Indicar el adaptador para Windows si aplica.
 // - Proyector: proveído por la universidad. TODO: modelo exacto.
-// - Superficie de trabajo: tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, con un área de proyección de 70 × 110 cm; cuatro patas de metal de 65 cm de largo y 5 cm de diámetro (ver la @table-plan-figure).
+// - Superficie de trabajo: tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, con un área de proyección de 70 × 110 cm; cuatro patas de metal de 65 cm de largo y 5 cm de diámetro (ver la @table-setup-figure).
 
 === 5.2 Software
 
@@ -2556,7 +2555,7 @@ Este manual está dirigido al docente que conduce las actividades con el ambient
 
 == 3. Montaje y encendido
 
-// TODO: disposición del proyector y del sensor sobre la mesa. TODO: alturas y distancias sensor-mesa y proyector-mesa. Dimensiones de la mesa: ver la @table-plan-figure.
+// TODO: disposición del proyector y del sensor sobre la mesa. TODO: alturas y distancias sensor-mesa y proyector-mesa. Disposición: ver la @table-setup-figure.
 // TODO: orden de encendido y cómo abrir la interfaz (remitir al Apéndice B para la instalación).
 
 == 4. Calibración
