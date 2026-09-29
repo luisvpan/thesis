@@ -228,6 +228,7 @@
 #pagebreak(weak: true)
 
 #set page(
+  numbering: "i", // Para que el índice muestre en romanos las páginas preliminares (p. ej., el Resumen).
   footer: context {
     set align(center)
 
@@ -260,8 +261,10 @@
 
   for (list, title, target) in indexables {
     if list.len() > 0 [
+      // El índice de contenido no se lista a sí mismo, pero sí los índices de tablas y de figuras.
+      #heading(outlined: target != heading, title)
       #outline(
-        title: title,
+        title: none,
         target: target,
       )
     ]
@@ -288,7 +291,7 @@
   [Fecha:], [Abril, 2026],
 )
 
-#align(center)[*Resumen*]
+= Resumen
 
 #[
   #set par(first-line-indent: 0cm)
@@ -320,7 +323,8 @@ _Palabras clave:_ programación tangible, realidad aumentada espacial, pensamien
       counter(page).display()
     }
   },
-  footer: auto,
+  numbering: "1",
+  footer: none, // El número va en el encabezado; `numbering` solo fija el formato del índice.
 )
 
 // Introducción
