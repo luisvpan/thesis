@@ -1,0 +1,145 @@
+/* Deck-wide styles. Light background, dark text, body >= 20px at the 980px canvas (CLAUDE.md, rules 6-7). */
+
+:root {
+  --ink: #111827;
+  --ink-soft: #374151;
+  --line: #9ca3af;
+  --accent: #1d4ed8;     /* UCAB-ish blue, used for borders and labels, never as the only cue */
+  --accent-bg: #eff6ff;
+  --ok: #166534;
+  --warn: #92400e;
+  --ods: #c5192d;        /* UN SDG 4 red */
+}
+
+.slidev-layout {
+  color: var(--ink);
+  background: #ffffff;
+  font-size: 21px;
+  line-height: 1.4;
+}
+
+/* Room for the eyebrow above the title. */
+.slidev-layout.default,
+.slidev-layout.two-cols,
+.slidev-layout.two-cols-header {
+  padding-top: 3rem;
+}
+
+.slidev-layout h1 {
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 700;
+  margin-bottom: 0.9rem;
+}
+.slidev-layout h1 + p {
+  opacity: 1;
+}
+.slidev-layout h2 {
+  font-size: 26px;
+  font-weight: 600;
+}
+.slidev-layout li {
+  margin: 0.25rem 0;
+}
+
+.slidev-layout table {
+  font-size: 19px;
+  width: 100%;
+}
+.slidev-layout th {
+  font-weight: 700;
+  border-bottom: 2px solid var(--ink-soft);
+}
+.slidev-layout td,
+.slidev-layout th {
+  padding: 0.3rem 0.5rem;
+}
+
+/* Compact tables for backup slides (exempt from density rules). */
+.dense table,
+table.dense {
+  font-size: 15px;
+}
+.dense td,
+.dense th {
+  padding: 0.2rem 0.35rem;
+}
+.dense {
+  font-size: 16px;
+}
+
+/* Generic boxes for HTML/CSS diagrams. */
+.box {
+  border: 2px solid var(--accent);
+  background: var(--accent-bg);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+}
+.box.plain {
+  border-color: var(--line);
+  background: #f9fafb;
+}
+.box h3 {
+  font-size: 21px;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+}
+.box p {
+  margin: 0;
+}
+
+.arrow {
+  font-size: 30px;
+  color: var(--ink-soft);
+  align-self: center;
+  text-align: center;
+}
+
+.cite {
+  font-size: 17px;
+  color: var(--ink-soft);
+}
+
+.caption {
+  font-size: 18px;
+  color: var(--ink-soft);
+  text-align: center;
+  margin-top: 0.3rem;
+}
+
+/* Status symbols always pair a glyph with a word or legend (rule 8). */
+.yes { color: var(--ok); font-weight: 700; }
+.no { color: #991b1b; font-weight: 700; }
+.part { color: var(--warn); font-weight: 700; }
+
+.ods-tag {
+  display: inline-block;
+  border: 2px solid var(--ods);
+  color: var(--ods);
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 0.05rem 0.5rem;
+  font-size: 18px;
+}
+
+.ods-badge {
+  background: var(--ods);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+img.fit {
+  max-height: 340px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+iframe.c4 {
+  width: 100%;
+  height: 380px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
