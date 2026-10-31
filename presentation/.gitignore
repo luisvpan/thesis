@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+dist
+*.local
+.vite-inspect
+.remote-assets
+components.d.ts
+
+# generated Archify viewers for backup slides (see CLAUDE.md)
+public/c4/
