@@ -45,6 +45,13 @@ train:
   close_mosaic: 10
   mixup: 0.0
 
+runtime:
+  # Workarounds for a given machine/driver; they do not change the model, only
+  # which kernels compute it.
+  # PyTorch ROCm 7.2.1 on Windows (AMD Radeon): MIOpen's BatchNorm crashes during
+  # training (ROCm/TheRock#9206). true = PyTorch's native BatchNorm. Slower.
+  native_batchnorm: false
+
 export:
   format: onnx
   dynamic: false

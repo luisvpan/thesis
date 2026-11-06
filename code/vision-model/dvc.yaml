@@ -19,6 +19,7 @@ stages:
       - src/vision_model/train.py
     params:
       - train
+      - runtime
     outs:
       - dvclive/artifacts        # best.pt, DVC-cached (not in git)
       - dvclive/plots/images     # Ultralytics PNGs, DVC-cached

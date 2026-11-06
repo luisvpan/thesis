@@ -136,8 +136,10 @@ def main() -> None:
             }
         )
 
+    # No "path" key: Ultralytics then resolves train/val/test relative to this file's
+    # folder. An absolute path would break when DVC restores data/prepared from its
+    # cache on another machine or in another clone.
     data_yaml = {
-        "path": str(out_dir.resolve()),
         "train": "train/images",
         "val": "val/images",
         "test": "test/images",

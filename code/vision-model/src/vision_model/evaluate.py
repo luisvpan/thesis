@@ -49,7 +49,7 @@ def main() -> None:
     from ultralytics import YOLO
 
     params = load_params()
-    data_yaml = Path(params["data"]["prepared_dir"]) / "data.yaml"
+    data_yaml = (Path(params["data"]["prepared_dir"]) / "data.yaml").resolve()
     imgsz = params["train"]["imgsz"]
     model = YOLO(str(BEST_WEIGHTS))
 

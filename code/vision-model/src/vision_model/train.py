@@ -35,6 +35,26 @@ def keep_dvclive_out_of_dvc_yaml() -> None:
     ultralytics_dvc.dvclive = types.SimpleNamespace(Live=partial(real.Live, dvcyaml=None))
 
 
+def use_native_batchnorm() -> None:
+    """Run every BatchNorm layer with PyTorch's own kernels instead of MIOpen/cuDNN.
+
+    Workaround for PyTorch ROCm 7.2.1 on Windows, where MIOpen's BatchNorm kernels
+    fail (missing STL headers at JIT compile, then an access violation in
+    BatchNormBackward). Convolutions keep using MIOpen; only BatchNorm changes,
+    and its backward follows the forward's choice. See ROCm/TheRock#9206.
+    """
+    import torch
+    from torch.nn.modules.batchnorm import _BatchNorm
+
+    original_forward = _BatchNorm.forward
+
+    def forward(self, x):
+        with torch.backends.cudnn.flags(enabled=False):
+            return original_forward(self, x)
+
+    _BatchNorm.forward = forward
+
+
 def main() -> None:
     from ultralytics import YOLO, settings
 
@@ -42,9 +62,12 @@ def main() -> None:
     keep_dvclive_out_of_dvc_yaml()
 
     params = load_params()
+    if params.get("runtime", {}).get("native_batchnorm", False):
+        use_native_batchnorm()
+        print("runtime.native_batchnorm: BatchNorm uses PyTorch kernels (MIOpen/cuDNN off)")
     train_cfg = dict(params["train"])
     checkpoint = train_cfg.pop("model")
-    data_yaml = Path(params["data"]["prepared_dir"]) / "data.yaml"
+    data_yaml = (Path(params["data"]["prepared_dir"]) / "data.yaml").resolve()
 
     model = YOLO(checkpoint)
     model.train(
