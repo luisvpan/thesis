@@ -31,10 +31,32 @@ this pipeline exists to prevent:
 
 ```bash
 cd code/vision-model
-uv sync                      # add --extra analysis for FiftyOne / Grad-CAM
+uv sync --extra <rocm|cpu>   # PyTorch build, see below; add --extra analysis for FiftyOne / Grad-CAM
 ```
 
 DVC is already initialized (`dvc init --subdir`; the git repo root is the thesis repo).
+
+### Choosing the PyTorch build
+
+GPU vendor cannot be detected by uv's platform markers, so each machine picks its
+PyTorch build with an extra (they are mutually exclusive, see `pyproject.toml`):
+
+```bash
+uv sync --extra rocm   # Windows 11 + AMD Radeon RX 9000/7000 (training PC, RX 9060 XT)
+uv sync --extra cpu    # anywhere, CPU only
+```
+
+`rocm` installs AMD's official ROCm 7.2.1 build of PyTorch for Windows (Python 3.12
+only; AMD Adrenalin driver 26.2.2 or newer). ROCm exposes the GPU through
+PyTorch's CUDA API, so `train.device: "0"` is correct. Check it with:
+
+```bash
+uv run --no-sync python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+A plain `uv sync` or `uv run` (without the extra) would put the PyPI build back.
+That is why the DVC stages call `uv run --no-sync --no-sync`: sync once with the right
+extra, then `dvc repro` / `dvc exp run` keep it.
 
 ### Remote storage (Cloudflare R2)
 
@@ -67,7 +89,7 @@ on the bucket.
 3. Track it: `dvc add data/raw && git add data/raw.dvc .gitignore`.
 4. List the sessions and choose val/test:
    ```bash
-   uv run vm-sessions
+   uv run --no-sync vm-sessions
    ```
    Put whole sessions in `split.val_sessions` / `split.test_sessions` in
    `params.yaml` (quoted: YAML reads `20260508_1502` as an integer). A good test
@@ -124,7 +146,7 @@ Video level (`vm-live-metrics`, from `predict --record-video` logs):
 - **spurious_per_frame**: detections of classes that are not on the table.
 
 ```bash
-uv run vm-live-metrics ../cv-system/images/annotated/videos/<session>.jsonl \
+uv run --no-sync vm-live-metrics ../cv-system/images/annotated/videos/<session>.jsonl \
   --expected '{"one": 2, "add": 1, "cap_blue": 3}'
 ```
 
@@ -151,8 +173,8 @@ gh release create vision-$(jq -r .name models/export/model_card.json) models/exp
 Use the cv-system:
 
 ```bash
-uv run predict --save                 # pre-labeled images, only when the scene changes
-uv run predict --record-video         # raw session video + per-frame detections
+uv run --no-sync predict --save                 # pre-labeled images, only when the scene changes
+uv run --no-sync predict --record-video         # raw session video + per-frame detections
 ```
 
 Pre-labels are the model's guesses. Review them before training, and look

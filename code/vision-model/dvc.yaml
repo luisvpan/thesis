@@ -1,6 +1,6 @@
 stages:
   prepare:
-    cmd: uv run vm-prepare
+    cmd: uv run --no-sync vm-prepare
     deps:
       - data/raw
       - src/vision_model/prepare.py
@@ -13,7 +13,7 @@ stages:
       - data/prepared
 
   train:
-    cmd: uv run vm-train
+    cmd: uv run --no-sync vm-train
     deps:
       - data/prepared
       - src/vision_model/train.py
@@ -36,7 +36,7 @@ stages:
           y: predicted
 
   evaluate:
-    cmd: uv run vm-evaluate
+    cmd: uv run --no-sync vm-evaluate
     deps:
       - dvclive/artifacts
       - data/prepared
@@ -57,7 +57,7 @@ stages:
           cache: false
 
   export:
-    cmd: uv run vm-export
+    cmd: uv run --no-sync vm-export
     deps:
       - dvclive/artifacts
       - reports/metrics.json

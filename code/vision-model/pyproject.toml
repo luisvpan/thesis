@@ -3,7 +3,8 @@ name = "vision-model"
 version = "0.1.0"
 description = "Training, evaluation and release pipeline for ERAE's tangible-object detector"
 readme = "README.md"
-requires-python = ">=3.12"
+# 3.12 only: AMD publishes the Windows ROCm wheels of PyTorch for cp312 only.
+requires-python = ">=3.12,<3.13"
 dependencies = [
   "ultralytics>=8.3.0",
   "dvc[s3]>=3.50.0",
@@ -19,6 +20,20 @@ dependencies = [
 # Error analysis and attention maps (not needed to train)
 analysis = ["fiftyone>=1.0.0", "grad-cam>=1.5.0"]
 
+# PyTorch build, chosen per machine (markers cannot detect the GPU vendor):
+#   uv sync --extra cpu    any machine, CPU only (official CPU wheels)
+#   uv sync --extra rocm   Windows 11 + AMD Radeon RX 9000/7000 (e.g. RX 9060 XT)
+# Without either extra, ultralytics pulls the default PyPI build.
+cpu = ["torch>=2.9.1", "torchvision>=0.24.1"]
+rocm = [
+  "torch==2.9.1+rocm7.2.1 ; sys_platform == 'win32'",
+  "torchvision==0.24.1+rocm7.2.1 ; sys_platform == 'win32'",
+  "rocm[libraries]==7.2.1 ; sys_platform == 'win32'",
+  "rocm-sdk-core==7.2.1 ; sys_platform == 'win32'",
+  "rocm-sdk-devel==7.2.1 ; sys_platform == 'win32'",
+  "rocm-sdk-libraries-custom==7.2.1 ; sys_platform == 'win32'",
+]
+
 [project.scripts]
 vm-sessions = "vision_model.sessions:main"
 vm-prepare = "vision_model.prepare:main"
@@ -33,6 +48,36 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = ["pytest>=9.0.2", "ruff>=0.15.7"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "rocm" }]]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "rocm-windows", extra = "rocm", marker = "sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "rocm-windows", extra = "rocm", marker = "sys_platform == 'win32'" },
+]
+rocm = { index = "rocm-windows", extra = "rocm", marker = "sys_platform == 'win32'" }
+rocm-sdk-core = { index = "rocm-windows", extra = "rocm", marker = "sys_platform == 'win32'" }
+rocm-sdk-devel = { index = "rocm-windows", extra = "rocm", marker = "sys_platform == 'win32'" }
+rocm-sdk-libraries-custom = { index = "rocm-windows", extra = "rocm", marker = "sys_platform == 'win32'" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+# AMD's official ROCm 7.2.1 build of PyTorch for Windows (a flat file listing, not a PEP 503 index). Supported GPUs and driver (Adrenalin 26.2.2+):
+# https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/compatibility/compatibilityrad/windows/windows_compatibility.html
+[[tool.uv.index]]
+name = "rocm-windows"
+url = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/"
+format = "flat"
+explicit = true
 
 [tool.ruff]
 line-length = 100

@@ -6,12 +6,12 @@ Read `README.md` for the why; this file is the operating manual.
 ## Build & Run
 
 ```bash
-uv sync                        # deps (add --extra analysis for FiftyOne/Grad-CAM)
-uv run vm-sessions             # list capture sessions in data/raw
+uv sync --extra <rocm|cpu>     # deps + PyTorch build for this machine (see README)
+uv run --no-sync vm-sessions             # list capture sessions in data/raw
 dvc repro                      # full pipeline: prepare -> train -> evaluate -> export
 dvc exp run -S <key>=<value>   # one experiment = one changed param
 dvc exp show                   # compare experiments
-uv run vm-live-metrics <session>.jsonl --expected '{"one": 2}'
+uv run --no-sync vm-live-metrics <session>.jsonl --expected '{"one": 2}'
 ```
 
 ## Validation
@@ -19,7 +19,7 @@ uv run vm-live-metrics <session>.jsonl --expected '{"one": 2}'
 Run after every change:
 
 ```bash
-uv run ruff check src/ tests/ && uv run ruff format src/ tests/ --check && uv run pytest
+uv run --no-sync ruff check src/ tests/ && uv run --no-sync ruff format src/ tests/ --check && uv run --no-sync pytest
 ```
 
 Tests cover the pure logic (session parsing, split assignment, class remapping,
@@ -83,8 +83,6 @@ tests/
 - Python ≥ 3.12, uv, ruff (line length 100), pytest.
 - Import `ultralytics` inside `main()` functions so tests and `vm-sessions`
   stay fast and GPU-free.
-
-## Pending work
-
-See "Pending work" in `README.md`. The most urgent: letterbox in the cv-system
-ONNX path, and the cv-system reading `model_card.json`.
+- DVC stage commands use `uv run --no-sync --no-sync`: each machine syncs once with its
+  PyTorch extra (`uv sync --extra rocm|cpu`), and an implicit sync without it
+  would replace that build. Keep `--no-sync` in new stages.
