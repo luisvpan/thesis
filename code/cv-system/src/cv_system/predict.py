@@ -9,6 +9,16 @@ Uso:
     predict --save --interval 0      # Solo captura manual con ESPACIO
     predict --save --count 50        # Guarda 50 y sale
     predict --save --readable        # También genera labels con nombres
+    predict --save --min-change 0    # Captura automática sin exigir cambio de escena
+    predict --record-video           # Graba el bird view crudo + detecciones por frame
+
+Cada ejecución es una sesión (YYYYMMDD_HHMMSS). El ID de sesión va en el nombre de
+cada archivo para poder separar train/val/test por sesión y no por imagen.
+
+Las etiquetas guardadas son PRE-ETIQUETAS del modelo: hay que revisarlas en la
+herramienta de etiquetado, sobre todo los objetos que el modelo NO detectó (una caja
+faltante le enseña al modelo que ese objeto es fondo). Los tracks "lost" (retenidos por
+ByteTrack sin detección real) no se guardan como etiquetas.
 
 Controles:
     ESPACIO  Capturar imagen y labels (con --save)
@@ -24,48 +34,123 @@ Estructura de salida (con --save):
             predict_000000.txt       # class_name cx cy w h (legible)
         debug/
             predict_000000.jpg       # full_annotated con labels y confianza
+        videos/                      # solo con --record-video
+            <sesión>.mp4             # bird view crudo (sin anotaciones)
+            <sesión>.jsonl           # una línea por frame: tiempo + detecciones
+        sessions/
+            <sesión>.json            # manifiesto: modelo, argumentos, conteos
+
+    (los nombres reales son predict_<sesión>_<índice>, p. ej. predict_20261105_153000_000042)
 """
+
+import argparse
+import json
 import os
 import sys
 import time
 import traceback
-import argparse
+from datetime import datetime
 from pathlib import Path
 
 import cv2
 import numpy as np
 from dotenv import load_dotenv
 
-from cv_system.config import load_config
-from cv_system.hardware import HardwareError, HardwareManager, PyKinect2HardwareManager
 from cv_system.calibration.result import CalibrationResult
+from cv_system.config import load_config
+from cv_system.detection import (
+    CardDetection,
+    CardDetector,
+    E2ECardDetector,
+    RFDETRCardDetector,
+)
+from cv_system.hardware import HardwareError, HardwareManager, PyKinect2HardwareManager
 from cv_system.transform.rgb_image_transformer import RgbImageTransformer
-from cv_system.detection import CardDetector, CardDetection, E2ECardDetector, RFDETRCardDetector
 
 PREDICT_OUTPUT_DIR = os.getenv("PREDICT_OUTPUT_DIR", "images/annotated")
 
 
-def get_next_index(output_dir: Path) -> int:
-    """Encuentra el siguiente índice disponible para no sobreescribir archivos."""
-    images_dir = output_dir / "images"
-    if not images_dir.exists():
-        return 0
+def new_session_id() -> str:
+    """ID de sesión legible y ordenable: YYYYMMDD_HHMMSS."""
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    existing = list(images_dir.glob("predict_*.jpg"))
-    if not existing:
-        return 0
 
-    # Extraer índices de archivos existentes
-    indices = []
-    for f in existing:
-        try:
-            # predict_000042.jpg -> 42
-            idx = int(f.stem.split("_")[1])
-            indices.append(idx)
-        except (IndexError, ValueError):
-            continue
+def scene_signature(frame: np.ndarray) -> np.ndarray:
+    """Huella barata de la escena: gris a baja resolución, para detectar cambios."""
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    return cv2.resize(gray, (160, 90), interpolation=cv2.INTER_AREA).astype(np.float32)
 
-    return max(indices) + 1 if indices else 0
+
+def scene_changed(
+    previous: np.ndarray | None, current: np.ndarray, threshold: float
+) -> bool:
+    """True si la diferencia media absoluta (0-255) supera el umbral. threshold<=0 la desactiva."""
+    if previous is None or threshold <= 0:
+        return True
+    return float(np.mean(np.abs(current - previous))) >= threshold
+
+
+def detection_to_dict(d: CardDetection) -> dict:
+    """Detección serializable para el registro por frame."""
+    return {
+        "class_id": d.class_id,
+        "label": d.label,
+        "confidence": round(d.confidence, 4),
+        "bbox_xyxy": [round(d.x1, 1), round(d.y1, 1), round(d.x2, 1), round(d.y2, 1)],
+        "track_id": d.track_id,
+        "status": d.status,
+    }
+
+
+class SessionRecorder:
+    """Graba el bird view crudo (mp4) y las detecciones de cada frame (jsonl).
+
+    El video sirve para reproducir sesiones reales offline con cualquier modelo;
+    el jsonl permite medir el comportamiento del modelo en vivo (continuidad,
+    cambios de ID) sin volver a correr nada.
+    """
+
+    def __init__(self, videos_dir: Path, session_id: str, fps: float) -> None:
+        self.video_path = videos_dir / f"{session_id}.mp4"
+        self.log_path = videos_dir / f"{session_id}.jsonl"
+        self._fps = fps
+        self._writer: cv2.VideoWriter | None = None
+        # Vive toda la sesión; se cierra en close()
+        self._log = open(self.log_path, "w", encoding="utf-8")  # noqa: SIM115
+        self._t0 = time.monotonic()
+        self.frames = 0
+
+    def write(self, frame: np.ndarray, detections: list[CardDetection]) -> None:
+        if self._writer is None:
+            h, w = frame.shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            self._writer = cv2.VideoWriter(
+                str(self.video_path), fourcc, self._fps, (w, h)
+            )
+            if not self._writer.isOpened():
+                raise RuntimeError(
+                    f"No se pudo abrir el VideoWriter: {self.video_path}"
+                )
+        self._writer.write(frame)
+        record = {
+            "frame": self.frames,
+            "t": round(time.monotonic() - self._t0, 4),
+            "detections": [detection_to_dict(d) for d in detections],
+        }
+        self._log.write(json.dumps(record) + "\n")
+        self.frames += 1
+
+    def close(self) -> None:
+        if self._writer is not None:
+            self._writer.release()
+        self._log.close()
+
+
+def write_session_manifest(path: Path, manifest: dict) -> None:
+    """Escribe el manifiesto de la sesión (se reescribe al terminar con los conteos)."""
+    path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def detection_to_yolo_line(d: CardDetection, img_w: int, img_h: int) -> str:
@@ -86,7 +171,9 @@ def detection_to_readable_line(d: CardDetection, img_w: int, img_h: int) -> str:
     return f"{d.label} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}"
 
 
-def create_hardware_manager(hardware: str) -> HardwareManager | PyKinect2HardwareManager:
+def create_hardware_manager(
+    hardware: str,
+) -> HardwareManager | PyKinect2HardwareManager:
     """Crea el gestor de hardware (pykinect2 por defecto)."""
     manager_type = hardware.lower()
     if manager_type == "pykinect2":
@@ -102,7 +189,9 @@ def create_hardware_manager(hardware: str) -> HardwareManager | PyKinect2Hardwar
 def acquire_bird_view(hw, transformer, camera_config) -> np.ndarray:
     """Captura RGB y aplica homografía en CPU (evita crashes de OpenCL/UMat)."""
     rgb_frame = hw.get_rgb_frame()
-    rgb_np = rgb_frame.get() if isinstance(rgb_frame, cv2.UMat) else np.asarray(rgb_frame)
+    rgb_np = (
+        rgb_frame.get() if isinstance(rgb_frame, cv2.UMat) else np.asarray(rgb_frame)
+    )
     if rgb_np is None or rgb_np.size == 0:
         raise RuntimeError("Frame RGB vacío del Kinect")
 
@@ -124,15 +213,21 @@ def pause_before_exit() -> None:
 
 def save_prediction_sample(
     output_dir: Path,
+    session_id: str,
     index: int,
     bird_np,
     full_annotated,
     detections: list[CardDetection],
     readable: bool,
 ) -> str:
-    """Guarda imagen, labels YOLO y debug. Devuelve el nombre base del archivo."""
-    filename = f"predict_{index:06d}"
+    """Guarda imagen, labels YOLO y debug. Devuelve el nombre base del archivo.
+
+    Solo las detecciones "active" se guardan como etiquetas: un track "lost" es la
+    memoria del tracker en una posición vieja, no algo que el detector vio.
+    """
+    filename = f"predict_{session_id}_{index:06d}"
     img_h, img_w = bird_np.shape[:2]
+    detections = [d for d in detections if d.status == "active"]
 
     cv2.imwrite(str(output_dir / "images" / f"{filename}.jpg"), bird_np)
 
@@ -162,25 +257,53 @@ def main():
         "--count", type=int, default=0, help="Número de imágenes (0=infinito)"
     )
     parser.add_argument(
-        "--interval", type=float, default=0.5, help="Segundos entre capturas (si --save)"
+        "--interval",
+        type=float,
+        default=0.5,
+        help="Segundos entre capturas (si --save)",
     )
     parser.add_argument(
         "--output", type=str, default=PREDICT_OUTPUT_DIR, help="Carpeta de salida"
     )
-    parser.add_argument(
-        "--model", type=str, default=None, help="Ruta al modelo YOLO"
-    )
+    parser.add_argument("--model", type=str, default=None, help="Ruta al modelo YOLO")
     parser.add_argument(
         "--conf", type=float, default=0.5, help="Threshold de confianza"
     )
     parser.add_argument(
-        "--readable", action="store_true", help="Generar labels legibles (con nombres de clase)"
+        "--readable",
+        action="store_true",
+        help="Generar labels legibles (con nombres de clase)",
     )
     parser.add_argument(
-        "--e2e", action="store_true", help="Usar E2ECardDetector para modelos con NMS integrado"
+        "--min-change",
+        type=float,
+        default=4.0,
+        help=(
+            "Diferencia media mínima (0-255) respecto a la última imagen guardada para "
+            "que la captura automática guarde otra. 0 = guardar siempre. "
+            "La captura manual (ESPACIO) ignora este filtro."
+        ),
     )
     parser.add_argument(
-        "--rfdetr", action="store_true", help="Usar RFDETRCardDetector para modelos RF-DETR"
+        "--record-video",
+        action="store_true",
+        help="Grabar el bird view crudo (mp4) y las detecciones por frame (jsonl)",
+    )
+    parser.add_argument(
+        "--video-fps",
+        type=float,
+        default=30.0,
+        help="FPS nominal del mp4 (el tiempo real de cada frame va en el jsonl)",
+    )
+    parser.add_argument(
+        "--e2e",
+        action="store_true",
+        help="Usar E2ECardDetector para modelos con NMS integrado",
+    )
+    parser.add_argument(
+        "--rfdetr",
+        action="store_true",
+        help="Usar RFDETRCardDetector para modelos RF-DETR",
     )
     parser.add_argument(
         "--hardware",
@@ -195,13 +318,18 @@ def main():
     cv2.ocl.setUseOpenCL(False)
 
     # Crear subdirectorios si guardamos
-    output_dir = Path(args.output) if args.save else None
+    session_id = new_session_id()
+    output_dir = Path(args.output) if (args.save or args.record_video) else None
     if output_dir:
+        (output_dir / "sessions").mkdir(parents=True, exist_ok=True)
+    if args.save:
         (output_dir / "images").mkdir(parents=True, exist_ok=True)
         (output_dir / "labels").mkdir(parents=True, exist_ok=True)
         (output_dir / "debug").mkdir(parents=True, exist_ok=True)
         if args.readable:
             (output_dir / "labels_readable").mkdir(parents=True, exist_ok=True)
+    if args.record_video:
+        (output_dir / "videos").mkdir(parents=True, exist_ok=True)
 
     # Cargar configuración y calibración
     config_path = Path(os.getenv("CONFIG_PATH", "config/session.json"))
@@ -212,6 +340,7 @@ def main():
     calibration = CalibrationResult.load(calibration_path)
 
     hw = None
+    recorder: SessionRecorder | None = None
     saved = 0
 
     try:
@@ -263,11 +392,34 @@ def main():
         sys.exit(1)
 
     try:
-        # Encontrar siguiente índice disponible para no sobreescribir
-        start_index = get_next_index(output_dir) if output_dir else 0
-        current_index = start_index
+        # Cada sesión numera desde 0: el ID de sesión ya hace único el nombre
+        current_index = 0
         saved = 0
         last_save = 0.0
+        last_saved_signature: np.ndarray | None = None
+
+        manifest = {
+            "session_id": session_id,
+            "started_at": datetime.now().isoformat(timespec="seconds"),
+            "model_path": str(model_path),
+            "detector": DetectorClass.__name__,
+            "hardware": args.hardware,
+            "conf_threshold": args.conf,
+            "save": args.save,
+            "interval_s": args.interval,
+            "min_change": args.min_change,
+            "record_video": args.record_video,
+        }
+        manifest_path = (
+            output_dir / "sessions" / f"{session_id}.json" if output_dir else None
+        )
+        if manifest_path:
+            write_session_manifest(manifest_path, manifest)
+        if args.record_video:
+            recorder = SessionRecorder(
+                output_dir / "videos", session_id, args.video_fps
+            )
+            print(f"Grabando video de la sesión: {recorder.video_path}", flush=True)
 
         print("Ejecutando predicciones en vivo...", flush=True)
         print("Presiona 'q' para salir", flush=True)
@@ -276,11 +428,7 @@ def main():
             if args.interval > 0:
                 print(f"Captura automática cada {args.interval}s", flush=True)
             print("Presiona ESPACIO para capturar manualmente", flush=True)
-            if start_index > 0:
-                print(
-                    f"Continuando desde índice {start_index} (archivos existentes detectados)",
-                    flush=True,
-                )
+            print(f"Sesión: {session_id}", flush=True)
 
         cv2.namedWindow("Predictions", cv2.WINDOW_NORMAL)
 
@@ -289,6 +437,9 @@ def main():
 
             # Detectar (UMat solo para la API del detector; datos en CPU)
             full_annotated, detections = detector.detect(cv2.UMat(bird_np))
+
+            if recorder is not None:
+                recorder.write(bird_np, detections)
 
             # Mostrar info de detecciones
             if detections:
@@ -302,15 +453,22 @@ def main():
                 break
 
             manual_capture = key == ord(" ")
-            auto_capture = (
+            auto_capture = False
+            signature = None
+            if (
                 args.save
                 and args.interval > 0
                 and (time.time() - last_save >= args.interval)
-            )
+            ):
+                signature = scene_signature(bird_np)
+                auto_capture = scene_changed(
+                    last_saved_signature, signature, args.min_change
+                )
 
             if args.save and (manual_capture or auto_capture):
                 filename = save_prediction_sample(
                     output_dir,
+                    session_id,
                     current_index,
                     bird_np,
                     full_annotated,
@@ -320,6 +478,9 @@ def main():
                 current_index += 1
                 saved += 1
                 last_save = time.time()
+                last_saved_signature = (
+                    signature if signature is not None else scene_signature(bird_np)
+                )
                 trigger = "ESPACIO" if manual_capture else "intervalo"
                 print(f"[{saved}] Guardado ({trigger}): {filename}")
 
@@ -334,6 +495,22 @@ def main():
         pause_before_exit()
         sys.exit(1)
     finally:
+        if recorder is not None:
+            recorder.close()
+            print(
+                f"Video guardado: {recorder.video_path} ({recorder.frames} frames)",
+                flush=True,
+            )
+        if output_dir is not None:
+            manifest_path = output_dir / "sessions" / f"{session_id}.json"
+            if manifest_path.exists():
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                manifest["ended_at"] = datetime.now().isoformat(timespec="seconds")
+                manifest["images_saved"] = saved
+                manifest["video_frames"] = (
+                    recorder.frames if recorder is not None else 0
+                )
+                write_session_manifest(manifest_path, manifest)
         if hw is not None:
             try:
                 hw.shutdown()
