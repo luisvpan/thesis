@@ -9,6 +9,9 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PARAMS_PATH = PROJECT_ROOT / "params.yaml"
+# Absolute on purpose: a relative `project=` is resolved by Ultralytics against its
+# global runs_dir setting, which put runs in the thesis repo root.
+RUNS_DIR = PROJECT_ROOT / "runs"
 
 
 def load_params(path: Path = PARAMS_PATH) -> dict[str, Any]:

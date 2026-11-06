@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-from vision_model.params import load_params
+from vision_model.params import RUNS_DIR, load_params
 from vision_model.train import BEST_WEIGHTS
 
 REPORTS = Path("reports")
@@ -58,7 +58,7 @@ def main() -> None:
         split="val",
         imgsz=imgsz,
         plots=False,
-        project="runs",
+        project=str(RUNS_DIR),
         name="val",
         exist_ok=True,
     )
@@ -71,7 +71,7 @@ def main() -> None:
             split="test",
             imgsz=imgsz,
             plots=True,
-            project="runs",
+            project=str(RUNS_DIR),
             name="test",
             exist_ok=True,
         )

@@ -11,7 +11,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from vision_model.params import load_params
+from vision_model.params import RUNS_DIR, load_params
 
 BEST_WEIGHTS = Path("dvclive/artifacts/best.pt")
 
@@ -29,7 +29,7 @@ def main() -> None:
     model = YOLO(checkpoint)
     model.train(
         data=str(data_yaml),
-        project="runs",
+        project=str(RUNS_DIR),
         name="train",
         exist_ok=True,
         plots=True,
