@@ -1,0 +1,4 @@
+[core]
+    remote = thesis
+['remote "thesis"']
+    url = gdrive://160idjBJl1YzsbCsAXIt8OqkKCh4UoTSe/dvcstore

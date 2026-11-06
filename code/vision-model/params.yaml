@@ -1,0 +1,51 @@
+# Single source of experiment configuration. DVC tracks every key used below,
+# so changing a value and running `dvc exp run` is a new, reproducible experiment.
+# Rule: one change per experiment, compared against the baseline.
+
+data:
+  raw_dir: data/raw            # Roboflow export, COCO JSON format, exported WITHOUT resize
+  prepared_dir: data/prepared
+  session_gap_minutes: 30      # a gap larger than this starts a new capture session
+  drop_classes: []             # classes to remove (e.g. typos Roboflow keeps with 0 objects)
+
+split:
+  # Whole sessions per split. Run `uv run vm-sessions` to list them.
+  # Always QUOTE session ids: YAML reads 20260508_1502 as the integer 202605081502.
+  # Freeze test once chosen: changing it invalidates every comparison.
+  # PROVISIONAL (2026-11): existing sessions are topical (each covers a few
+  # classes) and several classes exist in only one session, which must then stay
+  # in train. No honest test set can be built from them: test stays EMPTY until a
+  # dedicated all-class capture exists. Val evaluates only part of the classes.
+  val_sessions:
+    - "20260423_1552"
+    - "rf_20260611"
+  test_sessions: []
+  untimed_to: train            # images with no session (predict_NNNNNN before Nov 2026)
+
+train:
+  # Baseline = Ultralytics defaults except flips (they turn digits and arrows
+  # into other symbols without changing the label).
+  model: yolo11s.pt
+  imgsz: 1280                  # symbols are small in the 1920x1080 bird view
+  epochs: 150
+  patience: 30
+  batch: 8
+  seed: 42
+  deterministic: true
+  device: "0"                  # "0" = first CUDA GPU, "cpu" otherwise
+  workers: 4
+  cos_lr: false
+  fliplr: 0.0
+  flipud: 0.0
+  degrees: 0.0
+  hsv_h: 0.015                 # keep low: several classes differ only by color
+  hsv_s: 0.7
+  hsv_v: 0.4
+  mosaic: 1.0
+  close_mosaic: 10
+  mixup: 0.0
+
+export:
+  format: onnx
+  dynamic: false
+  simplify: true

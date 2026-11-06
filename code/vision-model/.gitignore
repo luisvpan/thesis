@@ -1,0 +1,13 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Ultralytics working directory and downloaded base checkpoints (yolo11s.pt, ...).
+# Everything worth keeping is copied to dvclive/, reports/ or models/export/.
+runs/
+/*.pt
+
+# DVC appends its own entries for tracked outputs (data/raw, data/prepared, ...)
