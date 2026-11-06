@@ -32,13 +32,27 @@ this pipeline exists to prevent:
 ```bash
 cd code/vision-model
 uv sync                      # add --extra analysis for FiftyOne / Grad-CAM
-dvc init --subdir            # once: the git repo root is the thesis repo
-dvc remote add -d storage <remote-url>   # e.g. a Google Drive folder, see below
 ```
 
-Google Drive as a DVC remote needs your own Google Cloud OAuth client (or a
-service account); the shared default client is blocked by Google. See
-<https://doc.dvc.org/user-guide/data-management/remote-storage/google-drive>.
+DVC is already initialized (`dvc init --subdir`; the git repo root is the thesis repo).
+
+### Remote storage (Cloudflare R2)
+
+Data, weights and images live in a Cloudflare R2 bucket, used through DVC's S3
+support (`dvc[s3]`). R2's free tier (10 GB-month, free egress) covers this project.
+The bucket URL is shared config; credentials are per machine and never committed:
+
+```bash
+dvc remote add -d r2 s3://<bucket>/dvcstore
+dvc remote modify r2 endpointurl https://<account-id>.r2.cloudflarestorage.com
+dvc remote modify --local r2 access_key_id '<key>'          # -> .dvc/config.local
+dvc remote modify --local r2 secret_access_key '<secret>'   # (git-ignored)
+dvc push                     # upload what dvc.lock / *.dvc reference
+dvc pull                     # download it on another machine
+```
+
+Create the key in Cloudflare: R2 → Manage API tokens → token with Object Read & Write
+on the bucket.
 
 ## Getting the data in
 

@@ -1,4 +1,5 @@
 [core]
-    remote = thesis
-['remote "thesis"']
-    url = gdrive://160idjBJl1YzsbCsAXIt8OqkKCh4UoTSe/dvcstore
+    remote = r2-thesis
+['remote "r2-thesis"']
+    url = s3://thesis/dvcstore
+    endpointurl = https://e6e2dda8dbe0fb8dad465f3c707122aa.r2.cloudflarestorage.com

@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "ultralytics>=8.3.0",
-  "dvc>=3.50.0",
+  "dvc[s3]>=3.50.0",
   "dvclive>=3.45.0",
   "pyyaml>=6.0",
   "numpy>=2.0.0",
