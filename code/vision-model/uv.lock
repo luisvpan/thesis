@@ -391,6 +391,22 @@ wheels = [
 ]
 
 [[package]]
+name = "cbor2"
+version = "6.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/2f/bf52daccd1027ffdfad3f04ae1730383e5b406abb8a9a98963584dd39563/cbor2-6.2.1.tar.gz", hash = "sha256:086c1588bd407a46739da704b5ee7d15225dc998d9582a0519fc6c9a114b25f7", size = 102760, upload-time = "2026-11-07T00:27:29.111Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/19/0706d0331d02b57b89012b84836165662c40befba22494b1c98fb06481fc/cbor2-6.2.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:41810f070b8e3ee87392e89a00e276840947da9b30a98c72f0c03e07935b654a", size = 415161, upload-time = "2026-11-07T00:26:18.594Z" },
+    { url = "https://files.pythonhosted.org/packages/df/47/1b3ec198f0938340b0d2152414efd0d89b741f65dd4e257a3e9f5fa4cfdb/cbor2-6.2.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:830c54f5d6581bce628e0c9970f22f1b94069d123ba3c051192e9f3fd5154400", size = 460079, upload-time = "2026-11-07T00:26:19.895Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/ee/52232e48413d136c229e5a1be94839724e011a00ba287c5c133e1962c6da/cbor2-6.2.1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:6a66bf0322d40534b3e8ff838cdaed345a6a707cabc447c8e4266d2b4f69d572", size = 470878, upload-time = "2026-11-07T00:26:21.31Z" },
+    { url = "https://files.pythonhosted.org/packages/da/c3/c68005844c90e4f41bd7ad8c83c293d6fa0457cd126461089fd8ca0d855a/cbor2-6.2.1-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:c1eb32463e716f29f12ade34b9573817ec9fef9f8c5f01e0fccf5894b30b1296", size = 526932, upload-time = "2026-11-07T00:26:22.797Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/1c/15068c104bf0d3dee3fa0e940a24b0d1b26b28ba6f2a2f26e2df3f350878/cbor2-6.2.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:438d082ba745cd87e2fecacf88e74b1cb8fc20d79f2c791a51cabf6c90abcbc9", size = 539291, upload-time = "2026-11-07T00:26:24.229Z" },
+    { url = "https://files.pythonhosted.org/packages/64/82/b4eae2c633eb3f75a6820d886589a2c524e06bb7d5c6441cdf21bd016039/cbor2-6.2.1-cp312-cp312-win32.whl", hash = "sha256:e12f481ce60cae61b85c2111a075544acec66327422b8f543b9fc9cee136be52", size = 287990, upload-time = "2026-11-07T00:26:25.583Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/18/f88692ffa59742d5ab0c4450426cf81e143a4dfcd7bc9ff3ef229c7151cf/cbor2-6.2.1-cp312-cp312-win_amd64.whl", hash = "sha256:5800aa7e6f67b86fbd0a074b44e8042d513cb5a831ce1b3e5fe7c19523ae4bd4", size = 312214, upload-time = "2026-11-07T00:26:26.923Z" },
+    { url = "https://files.pythonhosted.org/packages/61/60/1027be6be4180311e7c69aef55e4f6ad127177822d0aeaf46f42f9d75970/cbor2-6.2.1-cp312-cp312-win_arm64.whl", hash = "sha256:c23dfc9a7e369fddec7b49ea42a22fd972feb7644d647e8e43797488a2c5c2a1", size = 301904, upload-time = "2026-11-07T00:26:28.241Z" },
+]
+
+[[package]]
 name = "celery"
 version = "5.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -646,7 +662,7 @@ name = "cuda-bindings"
 version = "13.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cuda-pathfinder", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "cuda-pathfinder", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/a6/13d14600381bdbfe55dfc35564e4bf4a208f169ee9f6cbeb356564268aff/cuda_bindings-13.5.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:40eadfad6ae1554f8c1aa456620a85a49a275fc902f2c6dd93ee8c488b2c5e9f", size = 7354398, upload-time = "2026-11-05T12:06:03.542Z" },
@@ -673,40 +689,40 @@ wheels = [
 
 [package.optional-dependencies]
 cublas = [
-    { name = "nvidia-cublas", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cublas", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 cudart = [
-    { name = "nvidia-cuda-runtime", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cuda-runtime", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 cufft = [
-    { name = "nvidia-cufft", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cufft", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 cufile = [
-    { name = "nvidia-cufile", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cufile", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 cupti = [
-    { name = "nvidia-cuda-cupti", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cuda-cupti", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 cusolver = [
-    { name = "nvidia-cublas", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-cusolver", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-cusparse", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cublas", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cusolver", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cusparse", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 cusparse = [
-    { name = "nvidia-cusparse", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cusparse", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 nvjitlink = [
-    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 nvrtc = [
-    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 nvtx = [
-    { name = "nvidia-nvtx", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvtx", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (platform_machine == 'aarch64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (platform_machine == 'x86_64' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (sys_platform != 'linux' and extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 
 [[package]]
@@ -1253,13 +1269,13 @@ dependencies = [
     { name = "pillow" },
     { name = "scikit-learn" },
     { name = "scipy" },
-    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
     { name = "torch", version = "2.15.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
     { name = "torch", version = "2.15.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "torchvision", version = "0.24.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "torchvision", version = "0.24.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
     { name = "torchvision", version = "0.29.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "torchvision", version = "0.29.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "torchvision", version = "0.29.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
     { name = "torchvision", version = "0.29.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
     { name = "tqdm" },
     { name = "ttach" },
@@ -1285,6 +1301,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/4e/5e/aa0d4e701b50db0bab71b125dd19ddb0f98c638d008d6f7e3d8ce9cbc92e/graphql_core-3.2.13.tar.gz", hash = "sha256:bb81dd266d4ab7b591bd976f1b23639d97776cb9ac1a896b4a93c271e11ed618", size = 577471, upload-time = "2026-09-27T12:22:57.136Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1f/b4/b52a324b0b297ddc49b8ea31a51d39fae63132f694a267b9381d94e2e0af/graphql_core-3.2.13-py3-none-any.whl", hash = "sha256:b0eb04f2c31556b2310a77c8fb53c74e8b56570f8fea594d89c6ef7827dbb497", size = 268191, upload-time = "2026-09-27T12:22:55.661Z" },
+]
+
+[[package]]
+name = "grpclib"
+version = "0.4.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h2" },
+    { name = "multidict" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5b/28/5a2c299ec82a876a252c5919aa895a6f1d1d35c96417c5ce4a4660dc3a80/grpclib-0.4.9.tar.gz", hash = "sha256:cc589c330fa81004c6400a52a566407574498cb5b055fa927013361e21466c46", size = 84798, upload-time = "2025-12-14T22:23:14.349Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5c/90/b0cbbd9efcc82816c58f31a34963071aa19fb792a212a5d9caf8e0fc3097/grpclib-0.4.9-py3-none-any.whl", hash = "sha256:7762ec1c8ed94dfad597475152dd35cbd11aecaaca2f243e29702435ca24cf0e", size = 77063, upload-time = "2025-12-14T22:23:13.224Z" },
 ]
 
 [[package]]
@@ -1692,6 +1721,30 @@ wheels = [
 ]
 
 [[package]]
+name = "modal"
+version = "1.6.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "cbor2" },
+    { name = "certifi" },
+    { name = "click" },
+    { name = "grpclib" },
+    { name = "protobuf" },
+    { name = "rich" },
+    { name = "synchronicity" },
+    { name = "toml" },
+    { name = "types-certifi" },
+    { name = "types-toml" },
+    { name = "typing-extensions" },
+    { name = "watchfiles" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/d5/17154c55985e3f7971bc8babc5afcbad2cb2e70f656f49090ef414f4f98d/modal-1.6.3.tar.gz", hash = "sha256:f6c1c59172274357e260a6f3d24254dddb472a6d4202cabce87452c127a1779c", size = 998061, upload-time = "2026-10-27T19:25:48.27Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/1a/cb66a3d467dfa70cabc0310cb8e3af9d03b50b51eba84232b9e855cff95c/modal-1.6.3-py3-none-any.whl", hash = "sha256:31e8952c8908740f3fbc666191fec78ff5fadecb7a48a29d40aed90b39531ffe", size = 1127862, upload-time = "2026-10-27T19:25:44.76Z" },
+]
+
+[[package]]
 name = "mongoengine"
 version = "0.29.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1804,7 +1857,7 @@ name = "nvidia-cublas"
 version = "13.4.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cuda-nvrtc", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cuda-nvrtc", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/a0/5cd9d4b08a8320f7ca150ee0d66c97e98092922e338336cb4b62da7500c3/nvidia_cublas-13.4.1.3-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:4eb1472bf92b741e7cf24da7978dde251b58ddec2092d9f6a04f3623eb4e9a15", size = 513048232, upload-time = "2026-07-16T09:45:07.751Z" },
@@ -1858,7 +1911,7 @@ name = "nvidia-cudnn-cu13"
 version = "9.26.0.51"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cublas", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/1c/01e1dd3dec6ffe0baaff7e722b8946d867353d05a01301f128f1730fde0b/nvidia_cudnn_cu13-9.26.0.51-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8e5b4f5eccff721416f70ecf4353172fc4d5cdd8ca869fe6f983a4a5b0147b20", size = 595329497, upload-time = "2026-09-10T16:45:39.945Z" },
@@ -1871,7 +1924,7 @@ name = "nvidia-cufft"
 version = "12.2.0.57"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvjitlink", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/8d/f650e6d527f9d22b5ded906c000eaebb037721c06d4ecd906df62f300979/nvidia_cufft-12.2.0.57-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1ed438568ae1088ba2c25789d10205d4104b8b140b7bd942e39a787947a0fb74", size = 218244742, upload-time = "2026-07-16T09:47:08.76Z" },
@@ -1893,9 +1946,9 @@ name = "nvidia-cusolver"
 version = "12.2.0.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-cusparse", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-nvjitlink", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cublas", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cusparse", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvjitlink", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/df/9e6b603f1d64040ce3e076e9bce1b78e2d588d0aabc9783f351cecd861ab/nvidia_cusolver-12.2.0.11-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8be097fca28de6be0990ab216ee9b804dd51077e1d1d83acf6c9850650bdc64d", size = 250383075, upload-time = "2026-07-16T09:50:16.355Z" },
@@ -1908,7 +1961,7 @@ name = "nvidia-cusparse"
 version = "12.7.10.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvjitlink", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/35/abbd278fb6d039fcfb5175efa10a21007a11878bec59920d84854b47d766/nvidia_cusparse-12.7.10.12-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:597eff2cd83e3ab1d1e3a0dce9c9c879d77cf64ec2659bfdb5af6a5d02e7aaa9", size = 169043093, upload-time = "2026-07-16T09:51:37.058Z" },
@@ -1960,7 +2013,7 @@ name = "nvidia-nvshmem-cu13"
 version = "3.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cuda-cccl", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cuda-cccl", marker = "(sys_platform != 'darwin' and sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/11/1767ef120299972822a43aceffbc81ac813aad2089d817e36e4e12aa4c9c/nvidia_nvshmem_cu13-3.7.2-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:0e748308b9e0a8a8d81859353f3e6c98fbe85a85f652a915a2ba60149a0bd124", size = 135174619, upload-time = "2026-07-17T19:24:15.404Z" },
@@ -2748,13 +2801,13 @@ name = "rocm"
 version = "7.2.1"
 source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }
 dependencies = [
-    { name = "rocm-sdk-core", marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "rocm-sdk-core", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 sdist = { url = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm-7.2.1.tar.gz" }
 
 [package.optional-dependencies]
 libraries = [
-    { name = "rocm-sdk-libraries-custom", marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "rocm-sdk-libraries-custom", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 
 [[package]]
@@ -3094,6 +3147,18 @@ wheels = [
 ]
 
 [[package]]
+name = "synchronicity"
+version = "0.12.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/0d/68d6a97dead45e2704cd431df2ed5f92c9bdea620239d6129b16becc7508/synchronicity-0.12.7.tar.gz", hash = "sha256:6d86ba0fb797cc3cb7637f97cf9472a3ed20e50e85130b44c3292b43e2389b90", size = 63402, upload-time = "2026-10-26T16:56:34.492Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a8/c8/fb85647116e63031344b65f16ebfcc263f30bd46c12266e70bc9a96cdc7d/synchronicity-0.12.7-py3-none-any.whl", hash = "sha256:75f1a4e91a6af24b6576c242d95e9f1bcf061fab90feb8d1d3a6fa54b349a77d", size = 42245, upload-time = "2026-10-26T16:56:32.903Z" },
+]
+
+[[package]]
 name = "tabulate"
 version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3133,6 +3198,15 @@ wheels = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.10.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload-time = "2020-11-01T01:40:22.204Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload-time = "2020-11-01T01:40:20.672Z" },
+]
+
+[[package]]
 name = "tomlkit"
 version = "0.15.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3147,18 +3221,16 @@ version = "2.9.1+rocm7.2.1"
 source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }
 resolution-markers = [
     "sys_platform == 'win32'",
-    "sys_platform != 'darwin' and sys_platform != 'win32'",
-    "sys_platform == 'darwin'",
 ]
 dependencies = [
-    { name = "filelock", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "fsspec", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "jinja2", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "networkx", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "rocm", extra = ["libraries"], marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "setuptools", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "sympy", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "typing-extensions", marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "filelock", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "fsspec", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "jinja2", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "networkx", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "rocm", extra = ["libraries"], marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "setuptools", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "sympy", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "typing-extensions", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torch-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl" },
@@ -3194,20 +3266,20 @@ resolution-markers = [
     "sys_platform == 'darwin'",
 ]
 dependencies = [
-    { name = "cuda-bindings", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "cuda-toolkit", extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "cusolver", "cusparse", "nvjitlink", "nvrtc", "nvtx"], marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "filelock", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "fsspec", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "jinja2", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "networkx", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-cudnn-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-cusparselt-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-nccl-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "nvidia-nvshmem-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "setuptools", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "sympy", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "triton", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "typing-extensions", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "cuda-bindings", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "cuda-toolkit", extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "cusolver", "cusparse", "nvjitlink", "nvrtc", "nvtx"], marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "filelock", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "fsspec", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "jinja2", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "networkx", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cudnn-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-cusparselt-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nccl-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "nvidia-nvshmem-cu13", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "setuptools", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "sympy", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "triton", marker = "(sys_platform == 'linux' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "typing-extensions", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/24/7b9b755e8c4dd2395c6a94bab6a4ed8aded1735ff2538bc63cbba8abeddd/torch-2.15.0-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:593e5fd0c204284890d1c3dff643be34e549e1d24523e13402510f960d4da438", size = 138558517, upload-time = "2026-10-28T15:16:35.918Z" },
@@ -3247,13 +3319,11 @@ version = "0.24.1+rocm7.2.1"
 source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }
 resolution-markers = [
     "sys_platform == 'win32'",
-    "sys_platform != 'darwin' and sys_platform != 'win32'",
-    "sys_platform == 'darwin'",
 ]
 dependencies = [
-    { name = "numpy", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "pillow", marker = "extra == 'extra-12-vision-model-rocm'" },
-    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "numpy", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "pillow", marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
+    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchvision-0.24.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl" },
@@ -3285,9 +3355,9 @@ resolution-markers = [
     "sys_platform == 'darwin'",
 ]
 dependencies = [
-    { name = "numpy", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "pillow", marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
-    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "numpy", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "pillow", marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/ec/ce97c46e5322b588b95be388f2c21878d014ca20838478e7aab59edd128a/torchvision-0.29.2-py3-none-macosx_14_0_arm64.whl", hash = "sha256:d412494ff011f24c884a3cffd33eba1cb45a0299d4e26c1e175113f9d3b3ebc7", size = 1823414, upload-time = "2026-10-28T15:21:31.892Z" },
@@ -3346,6 +3416,24 @@ wheels = [
 ]
 
 [[package]]
+name = "types-certifi"
+version = "2021.10.8.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/68/943c3aeaf14624712a0357c4a67814dba5cea36d194f5c764dad7959a00c/types-certifi-2021.10.8.3.tar.gz", hash = "sha256:72cf7798d165bc0b76e1c10dd1ea3097c7063c42c21d664523b928e88b554a4f", size = 2095, upload-time = "2022-06-09T15:19:05.244Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/63/2463d89481e811f007b0e1cd0a91e52e141b47f9de724d20db7b861dcfec/types_certifi-2021.10.8.3-py3-none-any.whl", hash = "sha256:b2d1e325e69f71f7c78e5943d410e650b4707bb0ef32e4ddf3da37f54176e88a", size = 2136, upload-time = "2022-06-09T15:19:03.127Z" },
+]
+
+[[package]]
+name = "types-toml"
+version = "0.10.8.20260518"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4b/11/6ece999e91f2ccb848ab4420f3f4816e78ac0541f739e6864affdaaa5737/types_toml-0.10.8.20260518.tar.gz", hash = "sha256:80e10facd24fdeda9d5c672187d72be3ac284843788d67f5aae59e3e016db6fe", size = 9419, upload-time = "2026-05-18T06:02:16.719Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/91/25/489751806bf5c95e4007f8e17409199c54d31e49ffbea07c5729b1286c8e/types_toml-0.10.8.20260518-py3-none-any.whl", hash = "sha256:0e564ab05f6fde62a315b3b5a9b6624fda569399795d30a37e64705a70459303", size = 9669, upload-time = "2026-05-18T06:02:15.86Z" },
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3400,13 +3488,13 @@ dependencies = [
     { name = "polars" },
     { name = "psutil" },
     { name = "requests" },
-    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
     { name = "torch", version = "2.15.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
     { name = "torch", version = "2.15.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "torchvision", version = "0.24.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "torchvision", version = "0.24.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
     { name = "torchvision", version = "0.29.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "torchvision", version = "0.29.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "torchvision", version = "0.29.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
     { name = "torchvision", version = "0.29.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
     { name = "ultralytics-platform" },
     { name = "ultralytics-thop" },
@@ -3434,9 +3522,9 @@ version = "2.2.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
-    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "extra == 'extra-12-vision-model-rocm'" },
+    { name = "torch", version = "2.9.1+rocm7.2.1", source = { registry = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/" }, marker = "(sys_platform == 'win32' and extra == 'extra-12-vision-model-rocm') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
     { name = "torch", version = "2.15.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
-    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
+    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'win32' and extra != 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm') or (extra != 'extra-12-vision-model-cpu' and extra != 'extra-12-vision-model-rocm')" },
     { name = "torch", version = "2.15.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-12-vision-model-cpu') or (extra == 'extra-12-vision-model-cpu' and extra == 'extra-12-vision-model-rocm')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/af/36/d7fdbcd8b19a78fc7f8d8c5398af9c7049d3faa1a0a7c08c377f5af2fdfa/ultralytics_thop-2.2.5.tar.gz", hash = "sha256:ad2ed5b829497b541cdf3b1aaa0dc82c468ad5eb77ba8a999f84e31da1b70984", size = 40247, upload-time = "2026-11-04T09:49:45.809Z" }
@@ -3511,6 +3599,7 @@ rocm = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "modal" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -3540,6 +3629,7 @@ provides-extras = ["analysis", "cpu", "rocm"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "modal", specifier = ">=1.0.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "ruff", specifier = ">=0.15.7" },
 ]
@@ -3582,6 +3672,31 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/63/39/fd389784ca8010096c3e9ecc3b721d3be5e6445eab49cba8b8cbe79f7be7/voxel51_eta-0.17.0.tar.gz", hash = "sha256:ef343a5e4b74bec51e7bb2289936a9516f172abf17e999da61e5ad663f0d537a", size = 907887, upload-time = "2026-08-10T15:40:00.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9c/f6/28585d14bc805dfba3e1c1e0a428a51bd516d581b502801d5eea401c6c68/voxel51_eta-0.17.0-py3-none-any.whl", hash = "sha256:f58b2bcef05f5bd37b6ba09b128d70ebb0037468a7c9fedaeb44ddadce7df5e8", size = 936845, upload-time = "2026-08-10T15:39:59.277Z" },
+]
+
+[[package]]
+name = "watchfiles"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b3/68/e6aa0b77d217b31f8f486ec0cdfe5e00e6e38dc0be657e7d85819b9faf0a/watchfiles-1.3.0.tar.gz", hash = "sha256:99aee4a07847c06820765fd7b1b49ceac4f3f711ccb7d104655a33231de1c207", size = 108119, upload-time = "2026-09-21T09:08:55.664Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/fa/c0b840d5d8bafe640925408ce11095948c8945bb61be1e67d0ab629b872a/watchfiles-1.3.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:000b9688fc8133037a8b075c8ebf98f32844ff8964dda61e85c1db547dafc441", size = 399703, upload-time = "2026-09-21T09:08:13.518Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/8a/894799b485fe9473ad10422a0d9668e53fb78e3a2b5cc6061159572844ad/watchfiles-1.3.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:bbc1198edfdc90fda0600f825aa94150f428dfcbf8138746f55998e0e660d64c", size = 397647, upload-time = "2026-09-21T09:08:15.16Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/61/f277cd5ead05f5d37b98b41fbdd0c943ee0c04d49738f62e902cb291cf43/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4af9c464d410e8c44b58ddf1cbec7c3a02c1cb2c6c80df9c74659ba2fbda0ab5", size = 454994, upload-time = "2026-09-21T09:08:16.587Z" },
+    { url = "https://files.pythonhosted.org/packages/46/66/ea4c01382975e53b1ac1b0a0ea1b353416b8127fb6e04f5c1c313119aab6/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:eb94e40b9a0db19636b5e3fed0a9803452ecc7381df13b385272abb779ee83ca", size = 460105, upload-time = "2026-09-21T09:08:17.961Z" },
+    { url = "https://files.pythonhosted.org/packages/31/c3/1a501b597817096c9831c255f6270c124ce0e2faeb74124be24dcc93b86d/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:7398930a2b76b9dc67a4e6b8bfc7baf30946892a86f417a3920c07bdd6febc30", size = 493761, upload-time = "2026-09-21T09:08:19.327Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/16/77352d05e152c7786a016e9f1decdb4507e8aa5bcf3343c72142a0413d14/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:025b108f2d5cc2799cb941f79380df3e8b22bfb589c218e801767fe78d598c95", size = 577500, upload-time = "2026-09-21T09:08:20.723Z" },
+    { url = "https://files.pythonhosted.org/packages/95/fe/81001c55b24466fe9911135e50269fd3a29f43e446627a92adfab54553b6/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:be9ef3cd403d756a304a0a08a112163c63da7ec72c8c9d083c98818291ff8f29", size = 469209, upload-time = "2026-09-21T09:08:22.346Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/cf/e3ad894ed5909a7c44b0707e89bc25d19a3d78b3a7aec846119443b6ae56/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b5768b49e426fd5b550b012c866db347cdf15c398ef98dc557b6e6b72fa74cd1", size = 458353, upload-time = "2026-09-21T09:08:23.7Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/f5/2f106829e6e2bc91ad74614730f6df484202b9a4d20d927dbf2f08d37d44/watchfiles-1.3.0-cp310-abi3-manylinux_2_31_riscv64.whl", hash = "sha256:d36c72fcdc08f143d87316a4c4c3b064e340da2c7383d39803950740ed418935", size = 468707, upload-time = "2026-09-21T09:08:25.167Z" },
+    { url = "https://files.pythonhosted.org/packages/15/37/2741ab776b978669c1f3bba1e573f1a184f727ab8b4d3a6d9c61090800ed/watchfiles-1.3.0-cp310-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:f0c9865240e065a2247f4b5248528ae3d01e0e8ae071462c250c884dc16e3ee3", size = 632510, upload-time = "2026-09-21T09:08:26.532Z" },
+    { url = "https://files.pythonhosted.org/packages/48/64/db4a4684275fe9b696ee5118c194705c1423b3d42181c3f8ee70194d5c73/watchfiles-1.3.0-cp310-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:380f513d26cc2e598266b88d66456e07d67ef4be8f0f435a1154d9c44b43d509", size = 661723, upload-time = "2026-09-21T09:08:28.004Z" },
+    { url = "https://files.pythonhosted.org/packages/52/80/95ddb24f6a2f595c031c24432ab7b8aa7d6d1ada0c6d63a552166e06e8d1/watchfiles-1.3.0-cp310-abi3-win32.whl", hash = "sha256:509d9f74d2bec5c1f4cd868ddcfe0c9601f7ea53066dfcb19d8ede742c4de661", size = 277761, upload-time = "2026-09-21T09:08:29.335Z" },
+    { url = "https://files.pythonhosted.org/packages/48/a1/1c4a1b3c8030cd03206232612be8a6e8799093490c220b0fcb935d02b75a/watchfiles-1.3.0-cp310-abi3-win_amd64.whl", hash = "sha256:1acabde19b67e673274e89a04d613b7fb1f122e2c4b8ec9a581e59c149264b61", size = 290643, upload-time = "2026-09-21T09:08:30.45Z" },
+    { url = "https://files.pythonhosted.org/packages/82/e0/d2db577c632d26d08078c4390dd870b8555c4e558df25d22270f0166c71f/watchfiles-1.3.0-cp310-abi3-win_arm64.whl", hash = "sha256:d978cc1dd7ba44f5590d7de74f7a9c8be7262d9e469c2c0efb8bbfc2574321dc", size = 285510, upload-time = "2026-09-21T09:08:31.561Z" },
 ]
 
 [[package]]

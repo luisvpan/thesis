@@ -126,6 +126,38 @@ plots (`plots/images/`), the confusion matrix (`plots/sklearn/cf.json`) and the
 best weights (`artifacts/best.pt`). Small text files are versioned in git;
 weights and images go to the DVC remote.
 
+### On a cloud GPU (Modal)
+
+`remote/exp.py` runs a DVC experiment on a [Modal](https://modal.com) GPU,
+billed per second only while it runs (the free plan includes USD 30/month).
+Modal clones the **pushed** HEAD from GitHub (the repo is public, so no GitHub
+credentials are involved): commit and push first.
+
+```bash
+uv run --no-sync modal run remote/exp.py --name smoke --set train.epochs=3 --gpu L4
+uv run --no-sync modal run remote/exp.py --name imgsz960 --set "train.imgsz=960,train.batch=16" --gpu L40S
+uv run --no-sync dvc exp show
+```
+
+At the end, without any extra step: the experiment's weights and images are in
+R2 (pushed from Modal), its git part (params, `dvc.lock`, metrics) is imported
+into your local repo from a `git bundle`, and it is pushed to GitHub with your
+own git credentials (`dvc exp push`; pass `--no-push` to keep it local).
+Teammates then get it with `dvc exp pull origin <name>`.
+
+`--set` takes comma-separated `-S` overrides; `--gpu` one of `T4, L4, A10, L40S,
+A100-40GB, A100-80GB, H100`. The container gets 8 CPU cores (data augmentation
+runs on CPU) and keeps uv's download cache in the Modal volume
+`vision-model-cache`, so PyTorch is downloaded only once.
+
+`modal` is in the `dev` group, so any `uv sync` installs it (no extra needed on
+a machine that does not train). One-time setup:
+
+```bash
+uv run --no-sync modal setup        # log in
+uv run --no-sync modal secret create vision-model-r2 AWS_ACCESS_KEY_ID=<r2-key> AWS_SECRET_ACCESS_KEY=<r2-secret>
+```
+
 ## Metrics
 
 Image level (`reports/metrics.json`, `reports/per_class.csv`):

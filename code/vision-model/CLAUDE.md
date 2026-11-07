@@ -40,6 +40,7 @@ src/vision_model/
   evaluate.py            # operating conf on val, metrics on test -> reports/
   export.py              # ONNX + model_card.json -> models/export/
   live_metrics.py        # video metrics from cv-system session logs
+remote/exp.py            # run a DVC experiment on a Modal GPU (`uv run --no-sync modal run remote/exp.py`)
 tests/
 ```
 
