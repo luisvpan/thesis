@@ -33,19 +33,15 @@ import modal
 
 PROJECT_SUBDIR = "code/vision-model"
 GPUS = ("T4", "L4", "A10", "L40S", "A100-40GB", "A100-80GB", "H100")
-CACHE_DIR = "/mnt/vision-model-cache"  # must not exist in the image: Modal mounts volumes only on empty paths
+# Modal mounts a Volume only on a path that is empty in the image. The uv cache
+# variables are therefore set at runtime (in run_experiment), not with Image.env:
+# anything in the image build that honors UV_CACHE_DIR would populate the path.
+CACHE_DIR = "/vol/vision-model-cache"
 
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("git", "libgl1", "libglib2.0-0")  # git for DVC; GL/GLib for OpenCV
     .pip_install("uv")
-    .env(
-        {
-            "UV_CACHE_DIR": f"{CACHE_DIR}/uv",  # persisted: PyTorch is downloaded once
-            "UV_LINK_MODE": "copy",  # cache and project live on different filesystems
-            "UV_PYTHON_PREFERENCE": "only-system",
-        }
-    )
 )
 cache = modal.Volume.from_name("vision-model-cache", create_if_missing=True)
 app = modal.App("vision-model-exp", image=image)
@@ -80,6 +76,11 @@ def experiment_ref(name: str, cwd: str | Path | None = None) -> str:
     secrets=[modal.Secret.from_name("vision-model-r2")],
 )
 def run_experiment(repo_url: str, commit: str, name: str, overrides: list[str]) -> dict:
+    import os
+
+    os.environ["UV_CACHE_DIR"] = f"{CACHE_DIR}/uv"  # on the Volume: PyTorch downloads once
+    os.environ["UV_LINK_MODE"] = "copy"  # cache and project live on different filesystems
+    os.environ["UV_PYTHON_PREFERENCE"] = "only-system"
     root = Path("/work/repo")
     project = root / PROJECT_SUBDIR
 
