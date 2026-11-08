@@ -14,9 +14,8 @@ What happens:
    outputs (weights, images) to R2. The experiment's git part (params,
    dvc.lock, metrics) comes back as a small ``git bundle``.
 3. Locally again: imports that bundle, so the experiment appears in
-   ``dvc exp show`` as if it had run here, and pushes it to GitHub with
-   ``dvc exp push origin <name>`` using your own git credentials (skip with
-   ``--no-push``).
+   ``dvc exp show`` as if it had run here, and pushes its ref to GitHub with
+   ``git push`` using your own git credentials (skip with ``--no-push``).
 
 Modal bills per second only while the function runs. It needs one Modal secret,
 ``vision-model-r2``, with ``AWS_ACCESS_KEY_ID`` / ``AWS_SECRET_ACCESS_KEY`` of
@@ -153,14 +152,12 @@ def main(
     print(f"\nImported experiment '{name}' ({result['ref']}).")
     print("reports/metrics.json:\n" + (result["metrics"] or "(not produced)"))
 
+    # The data is already in R2 (pushed from Modal), so sharing the experiment only
+    # means pushing its git ref. Plain `git push` instead of `dvc exp push`: DVC's
+    # built-in git client does not use the system credential manager (it fails with
+    # "Authentication failed" on Windows), git does.
+    push = ["git", "push", "origin", f"{result['ref']}:{result['ref']}"]
     if no_push:
-        print(
-            f"\nNot pushed. Share it later with: "
-            f"uv run --no-sync dvc exp push --no-cache origin {name}"
-        )
+        print(f"\nNot pushed. Share it later with: {' '.join(push)}")
     else:
-        # --no-cache: the data is already in R2 (pushed from Modal) and not in the local cache.
-        sh(
-            ["uv", "run", "--no-sync", "dvc", "exp", "push", "--no-cache", "origin", name],
-            cwd=project,
-        )
+        sh(push, cwd=project)

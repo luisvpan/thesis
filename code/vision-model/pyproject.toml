@@ -14,6 +14,7 @@ dependencies = [
   "opencv-python>=4.9.0",
   "onnx>=1.16.0",
   "onnxslim>=0.1.40",
+  "onnxruntime>=1.20.0",  # Ultralytics needs it for ONNX export; else it pip-installs it at runtime
 ]
 
 [project.optional-dependencies]
@@ -43,7 +44,7 @@ vm-export = "vision_model.export:main"
 vm-live-metrics = "vision_model.live_metrics:main"
 
 [build-system]
-requires = ["uv_build>=0.11.7,<0.12.0"]
+requires = ["uv_build>=0.11.7,<0.14.0"]
 build-backend = "uv_build"
 
 [dependency-groups]

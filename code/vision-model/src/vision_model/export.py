@@ -61,7 +61,11 @@ def main() -> None:
         shutil.rmtree(EXPORT_DIR)
     EXPORT_DIR.mkdir(parents=True)
 
-    model = YOLO(str(BEST_WEIGHTS))
+    # Export from a copy: Ultralytics writes the exported file next to the weights,
+    # and dvclive/artifacts is the train stage's output, which must stay untouched.
+    weights = EXPORT_DIR / "model.pt"
+    shutil.copy2(BEST_WEIGHTS, weights)
+    model = YOLO(str(weights))
     exported = Path(
         model.export(
             format=export_cfg["format"],
@@ -70,8 +74,8 @@ def main() -> None:
             simplify=export_cfg["simplify"],
         )
     )
-    shutil.copy2(exported, EXPORT_DIR / f"model{exported.suffix}")
-    shutil.copy2(BEST_WEIGHTS, EXPORT_DIR / "model.pt")
+    if exported.name != f"model{exported.suffix}":
+        exported.rename(EXPORT_DIR / f"model{exported.suffix}")
 
     metrics = json.loads((REPORTS / "metrics.json").read_text(encoding="utf-8"))
     card = {

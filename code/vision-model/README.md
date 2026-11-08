@@ -142,7 +142,7 @@ uv run --no-sync dvc exp show
 At the end, without any extra step: the experiment's weights and images are in
 R2 (pushed from Modal), its git part (params, `dvc.lock`, metrics) is imported
 into your local repo from a `git bundle`, and it is pushed to GitHub with your
-own git credentials (`dvc exp push`; pass `--no-push` to keep it local).
+own git credentials (`git push` of the experiment ref; pass `--no-push` to keep it local).
 Teammates then get it with `dvc exp pull origin <name>`.
 
 `--set` takes comma-separated `-S` overrides; `--gpu` one of `T4, L4, A10, L40S,
