@@ -33,7 +33,7 @@ import modal
 
 PROJECT_SUBDIR = "code/vision-model"
 GPUS = ("T4", "L4", "A10", "L40S", "A100-40GB", "A100-80GB", "H100")
-CACHE_DIR = "/cache"
+CACHE_DIR = "/mnt/vision-model-cache"  # must not exist in the image: Modal mounts volumes only on empty paths
 
 image = (
     modal.Image.debian_slim(python_version="3.12")
