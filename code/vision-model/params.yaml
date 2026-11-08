@@ -17,8 +17,8 @@ split:
   # in train. No honest test set can be built from them: test stays EMPTY until a
   # dedicated all-class capture exists. Val evaluates only part of the classes.
   val_sessions:
-    - "20260423_1552"
-    - "rf_20260611"
+  - '20260423_1552'
+  - rf_20260611
   test_sessions: []
   untimed_to: train            # images with no session (predict_NNNNNN before Nov 2026)
 
@@ -27,13 +27,13 @@ train:
   # into other symbols without changing the label).
   model: yolo11s.pt
   imgsz: 1280                  # symbols are small in the 1920x1080 bird view
-  epochs: 150
+  epochs: 3
   patience: 30
   batch: 8
   seed: 42
   deterministic: true
-  device: "0"                  # "0" = first CUDA GPU, "cpu" otherwise
-  workers: 4
+  device: '0'                  # "0" = first CUDA GPU, "cpu" otherwise
+  workers: 8
   cos_lr: false
   fliplr: 0.0
   flipud: 0.0

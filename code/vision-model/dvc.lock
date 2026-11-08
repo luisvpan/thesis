@@ -1,0 +1,164 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: uv run --no-sync vm-prepare
+    deps:
+    - path: data/raw
+      hash: md5
+      md5: 42d918d925a9c551e0bebebe32ec191e.dir
+      size: 35878353
+      nfiles: 418
+    - path: src/vision_model/prepare.py
+      hash: md5
+      md5: f7dc52d49175d3be00bfdc584fa6a38c
+      size: 6726
+    - path: src/vision_model/raw.py
+      hash: md5
+      md5: ccc83bf3440f9b94b550db0b4f3bf891
+      size: 3854
+    - path: src/vision_model/sessions.py
+      hash: md5
+      md5: a71c10711575aeadcd9096bf6ef9abfc
+      size: 4854
+    params:
+      params.yaml:
+        data:
+          raw_dir: data/raw
+          prepared_dir: data/prepared
+          session_gap_minutes: 30
+          drop_classes: []
+        split:
+          val_sessions:
+          - '20260423_1552'
+          - rf_20260611
+          test_sessions: []
+          untimed_to: train
+    outs:
+    - path: data/prepared
+      hash: md5
+      md5: 224633fb7392e7e07e4910f420ab0554.dir
+      size: 35523184
+      nfiles: 832
+  train:
+    cmd: uv run --no-sync vm-train
+    deps:
+    - path: data/prepared
+      hash: md5
+      md5: 2c8351c4e26882aa2b3f758f440a6e9c.dir
+      size: 35694745
+      nfiles: 834
+    - path: src/vision_model/train.py
+      hash: md5
+      md5: 6859461d7fd4194580fd95fa08e07682
+      size: 3260
+    params:
+      params.yaml:
+        runtime:
+          native_batchnorm: false
+        train:
+          model: yolo11s.pt
+          imgsz: 1280
+          epochs: 3
+          patience: 30
+          batch: 8
+          seed: 42
+          deterministic: true
+          device: '0'
+          workers: 8
+          cos_lr: false
+          fliplr: 0.0
+          flipud: 0.0
+          degrees: 0.0
+          hsv_h: 0.015
+          hsv_s: 0.7
+          hsv_v: 0.4
+          mosaic: 1.0
+          close_mosaic: 10
+          mixup: 0.0
+    outs:
+    - path: dvclive/artifacts
+      hash: md5
+      md5: aee352f7afb87f70951c17e5b0ed908c.dir
+      size: 19325594
+      nfiles: 1
+    - path: dvclive/metrics.json
+      hash: md5
+      md5: 5d3d808a444527d322b24ce1fc238eb1
+      size: 634
+    - path: dvclive/plots/images
+      hash: md5
+      md5: 3fb31b2f72dbb21ddc1f4a90e5464125.dir
+      size: 5073421
+      nfiles: 15
+    - path: dvclive/plots/metrics
+      hash: md5
+      md5: ceb9dd7ef4b32f58a8a73335ace69cd7.dir
+      size: 627
+      nfiles: 13
+    - path: dvclive/plots/sklearn/cf.json
+      hash: md5
+      md5: 594217a23df03835ccc83cb7bc6e83b9
+      size: 708587
+  evaluate:
+    cmd: uv run --no-sync vm-evaluate
+    deps:
+    - path: data/prepared
+      hash: md5
+      md5: 2c8351c4e26882aa2b3f758f440a6e9c.dir
+      size: 35694745
+      nfiles: 834
+    - path: dvclive/artifacts
+      hash: md5
+      md5: aee352f7afb87f70951c17e5b0ed908c.dir
+      size: 19325594
+      nfiles: 1
+    - path: src/vision_model/evaluate.py
+      hash: md5
+      md5: 6a63514691a7dfa56767251f30954be2
+      size: 3761
+    params:
+      params.yaml:
+        train.imgsz: 1280
+    outs:
+    - path: reports/confusion_matrix.json
+      hash: md5
+      md5: cdef3fb449c672d044ce63d209d80f6a
+      size: 13544
+    - path: reports/metrics.json
+      hash: md5
+      md5: ff30a63fa9d20ed892b0099e941307d1
+      size: 241
+    - path: reports/per_class.csv
+      hash: md5
+      md5: 026b2a869c6c446da776b070eab725d6
+      size: 1427
+  export:
+    cmd: uv run --no-sync vm-export
+    deps:
+    - path: dvclive/artifacts
+      hash: md5
+      md5: aee352f7afb87f70951c17e5b0ed908c.dir
+      size: 19325594
+      nfiles: 1
+    - path: reports/metrics.json
+      hash: md5
+      md5: ff30a63fa9d20ed892b0099e941307d1
+      size: 241
+    - path: src/vision_model/export.py
+      hash: md5
+      md5: 3640734a1dc33594127baffa23a875a0
+      size: 3555
+    params:
+      params.yaml:
+        export:
+          format: onnx
+          dynamic: false
+          simplify: true
+        train.imgsz: 1280
+        train.model: yolo11s.pt
+    outs:
+    - path: models/export
+      hash: md5
+      md5: 5f57a7e1ef4cf24eb49e65b8af257ad9.dir
+      size: 57873362
+      nfiles: 6
