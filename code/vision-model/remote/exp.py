@@ -33,17 +33,23 @@ import modal
 
 PROJECT_SUBDIR = "code/vision-model"
 GPUS = ("T4", "L4", "A10", "L40S", "A100-40GB", "A100-80GB", "H100")
-# Modal mounts a Volume only on a path that is empty in the image. The uv cache
-# variables are therefore set at runtime (in run_experiment), not with Image.env:
-# anything in the image build that honors UV_CACHE_DIR would populate the path.
-CACHE_DIR = "/vol/vision-model-cache"
+PROJECT_DIR = Path(__file__).resolve().parents[1]  # only read locally, to build the image
+VENV = "/opt/venv"
 
+# The dependencies (PyTorch with CUDA, Ultralytics, DVC...) are installed into the
+# IMAGE from uv.lock, so Modal caches them as an image layer and rebuilds it only
+# when the lock changes. At runtime `uv sync` then only installs the project itself.
+# (A Modal Volume as uv cache does not work: uv cannot persist its files there.)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("git", "libgl1", "libglib2.0-0")  # git for DVC; GL/GLib for OpenCV
     .pip_install("uv")
+    .env({"UV_PROJECT_ENVIRONMENT": VENV, "UV_PYTHON_PREFERENCE": "only-system"})
+    .add_local_file(PROJECT_DIR / "pyproject.toml", "/deps/pyproject.toml", copy=True)
+    .add_local_file(PROJECT_DIR / "uv.lock", "/deps/uv.lock", copy=True)
+    .add_local_file(PROJECT_DIR / ".python-version", "/deps/.python-version", copy=True)
+    .run_commands("cd /deps && uv sync --locked --no-install-project")
 )
-cache = modal.Volume.from_name("vision-model-cache", create_if_missing=True)
 app = modal.App("vision-model-exp", image=image)
 
 
@@ -72,15 +78,9 @@ def experiment_ref(name: str, cwd: str | Path | None = None) -> str:
     cpu=8,  # Ultralytics' mosaic/augmentations run on CPU: too few cores starve the GPU
     memory=32 * 1024,
     timeout=6 * 60 * 60,
-    volumes={CACHE_DIR: cache},
     secrets=[modal.Secret.from_name("vision-model-r2")],
 )
 def run_experiment(repo_url: str, commit: str, name: str, overrides: list[str]) -> dict:
-    import os
-
-    os.environ["UV_CACHE_DIR"] = f"{CACHE_DIR}/uv"  # on the Volume: PyTorch downloads once
-    os.environ["UV_LINK_MODE"] = "copy"  # cache and project live on different filesystems
-    os.environ["UV_PYTHON_PREFERENCE"] = "only-system"
     root = Path("/work/repo")
     project = root / PROJECT_SUBDIR
 
@@ -89,10 +89,7 @@ def run_experiment(repo_url: str, commit: str, name: str, overrides: list[str]) 
     sh(["git", "config", "user.name", "vision-model (Modal)"], cwd=root)
     sh(["git", "config", "user.email", "vision-model@modal.invalid"], cwd=root)
 
-    try:
-        sh(["uv", "sync", "--locked"], cwd=project)
-    finally:
-        cache.commit()  # keep the uv cache (PyTorch) even if something fails later
+    sh(["uv", "sync", "--locked"], cwd=project)  # deps already in the image venv
     sh(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv"])
     sh(["uv", "run", "--no-sync", "dvc", "pull", "data/raw.dvc"], cwd=project)
 

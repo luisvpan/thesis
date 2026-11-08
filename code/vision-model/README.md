@@ -147,8 +147,9 @@ Teammates then get it with `dvc exp pull origin <name>`.
 
 `--set` takes comma-separated `-S` overrides; `--gpu` one of `T4, L4, A10, L40S,
 A100-40GB, A100-80GB, H100`. The container gets 8 CPU cores (data augmentation
-runs on CPU) and keeps uv's download cache in the Modal volume
-`vision-model-cache`, so PyTorch is downloaded only once.
+runs on CPU). Dependencies are installed into the Modal image from `uv.lock`:
+the first run (and the first after `uv.lock` changes) builds that image, which
+takes a few minutes; later runs reuse it.
 
 `modal` is in the `dev` group, so any `uv sync` installs it (no extra needed on
 a machine that does not train). One-time setup:
