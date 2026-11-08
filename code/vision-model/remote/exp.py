@@ -8,7 +8,7 @@ What happens:
 1. Locally: checks that ``code/vision-model`` has no uncommitted changes and that
    HEAD is pushed (the repository is public, so the container clones it without
    credentials).
-2. On Modal: clones the repo at HEAD, ``uv sync --locked`` (on Linux the default
+2. On Modal: clones the repo at HEAD, ``uv sync --frozen`` (on Linux the default
    PyPI PyTorch already ships CUDA), ``dvc pull data/raw.dvc`` from R2,
    ``dvc exp run -n <name> -S ...``, and ``dvc push`` of the experiment's
    outputs (weights, images) to R2. The experiment's git part (params,
@@ -48,7 +48,10 @@ image = (
     .add_local_file(PROJECT_DIR / "pyproject.toml", "/deps/pyproject.toml", copy=True)
     .add_local_file(PROJECT_DIR / "uv.lock", "/deps/uv.lock", copy=True)
     .add_local_file(PROJECT_DIR / ".python-version", "/deps/.python-version", copy=True)
-    .run_commands("cd /deps && uv sync --locked --no-install-project")
+    # --frozen: use uv.lock as-is. A different uv version in the image can consider
+    # the lock "outdated" for cosmetic reasons; freshness is checked locally instead
+    # (`uv lock --check` in main), with the uv that created the lock.
+    .run_commands("cd /deps && uv sync --frozen --no-install-project")
 )
 app = modal.App("vision-model-exp", image=image)
 
@@ -89,7 +92,7 @@ def run_experiment(repo_url: str, commit: str, name: str, overrides: list[str]) 
     sh(["git", "config", "user.name", "vision-model (Modal)"], cwd=root)
     sh(["git", "config", "user.email", "vision-model@modal.invalid"], cwd=root)
 
-    sh(["uv", "sync", "--locked"], cwd=project)  # deps already in the image venv
+    sh(["uv", "sync", "--frozen"], cwd=project)  # deps already in the image venv
     sh(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv"])
     sh(["uv", "run", "--no-sync", "dvc", "pull", "data/raw.dvc"], cwd=project)
 
@@ -123,6 +126,13 @@ def main(
         raise SystemExit(
             "code/vision-model has uncommitted changes. Commit and push them first: "
             "the experiment runs on a fresh clone of the pushed commit."
+        )
+    lock = subprocess.run(
+        ["uv", "lock", "--check"], cwd=project, capture_output=True, text=True, check=False
+    )
+    if lock.returncode != 0:
+        raise SystemExit(
+            "uv.lock does not match pyproject.toml. Run `uv lock`, commit and push.\n" + lock.stderr
         )
     commit = out(["git", "rev-parse", "HEAD"], cwd=project)
     if not out(["git", "branch", "-r", "--contains", commit], cwd=project):
