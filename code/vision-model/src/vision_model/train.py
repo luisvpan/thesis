@@ -9,6 +9,7 @@ end up in ``dvclive/artifacts/best.pt`` (a DVC-tracked output).
 from __future__ import annotations
 
 import shutil
+import time
 import types
 from functools import partial
 from pathlib import Path
@@ -55,6 +56,28 @@ def use_native_batchnorm() -> None:
     _BatchNorm.forward = forward
 
 
+def log_epoch_time(model) -> None:
+    """Log each epoch's training time (seconds) to DVCLive as ``time/train_epoch_s``.
+
+    Ultralytics prints it but DVCLive does not record it, so experiments could not
+    be compared on speed (e.g. GPU type, workers, batch) from `dvc exp show`.
+    """
+    from ultralytics.utils.callbacks import dvc as ultralytics_dvc
+
+    started: dict[str, float] = {}
+
+    def on_start(trainer) -> None:
+        started["t"] = time.perf_counter()
+
+    def on_end(trainer) -> None:
+        live = getattr(ultralytics_dvc, "live", None)  # created by the DVCLive callback
+        if live is not None and "t" in started:
+            live.log_metric("time/train_epoch_s", round(time.perf_counter() - started["t"], 2))
+
+    model.add_callback("on_train_epoch_start", on_start)
+    model.add_callback("on_train_epoch_end", on_end)
+
+
 def main() -> None:
     from ultralytics import YOLO, settings
 
@@ -70,6 +93,7 @@ def main() -> None:
     data_yaml = (Path(params["data"]["prepared_dir"]) / "data.yaml").resolve()
 
     model = YOLO(checkpoint)
+    log_epoch_time(model)
     model.train(
         data=str(data_yaml),
         project=str(RUNS_DIR),
