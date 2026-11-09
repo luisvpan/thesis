@@ -410,6 +410,7 @@ def main():
             "conf_threshold": detector._conf_threshold,  # effective: CLI > model card > 0.25
             "model_card": str(detector._card.source) if detector._card.source else None,
             "input_resize": detector._card.resize,
+            "dml_device_id": os.getenv("DML_DEVICE_ID", "0"),  # ONNX/DirectML adapter
             "save": args.save,
             "interval_s": args.interval,
             "min_change": args.min_change,
