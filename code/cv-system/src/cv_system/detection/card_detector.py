@@ -13,6 +13,7 @@ import supervision as sv
 
 from cv_system.detection.model_card import ModelCard, load_model_card
 from cv_system.detection.preprocess import to_frame_coords, to_model_input
+from cv_system.gpu_config import dml_device_id
 from cv_system.transform import RgbImageTransformer
 
 DEFAULT_CONF_THRESHOLD = 0.25
@@ -106,9 +107,13 @@ class CardDetector:
         available = ort.get_available_providers()
         print(f"  ONNX available providers: {available}")
 
-        # Request DirectML with CPU fallback
+        # Request DirectML with CPU fallback. The adapter index comes from
+        # DML_DEVICE_ID (same variable as the torch-directml path, default 0): with
+        # an integrated GPU plus a dedicated one, the order depends on the machine.
+        device_id = dml_device_id()
+        print(f"  DirectML adapter: DML_DEVICE_ID={device_id}")
         providers = [
-            ("DmlExecutionProvider", {"device_id": 1}),
+            ("DmlExecutionProvider", {"device_id": device_id}),
             "CPUExecutionProvider",
         ]
         self._session: ort.InferenceSession = ort.InferenceSession(
