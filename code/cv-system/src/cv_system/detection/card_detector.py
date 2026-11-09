@@ -63,7 +63,6 @@ class CardDetector:
     ) -> None:
         self._image_transformer = rgb_image_transformer
         self._iou_threshold = iou_threshold
-        self._timer = StageTimer(type(self).__name__)  # CV_PROFILE=1 to print timings
 
         path = Path(model_path)
         if not path.is_file():
@@ -378,6 +377,16 @@ class CardDetector:
             class_id=nms_class_ids.astype(int),
         )
         return self._track_detections(sv_detections)
+
+    @property
+    def _timer(self) -> StageTimer:
+        """Per-stage timings (CV_PROFILE=1). Created lazily: some subclasses, such as
+        DmlCardDetector, do not call CardDetector.__init__."""
+        timer = self.__dict__.get("_stage_timer")
+        if timer is None:
+            timer = StageTimer(type(self).__name__)
+            self.__dict__["_stage_timer"] = timer
+        return timer
 
     def _timer_start(self) -> float:
         """Start of a stage that has early returns (cannot use a with block)."""
