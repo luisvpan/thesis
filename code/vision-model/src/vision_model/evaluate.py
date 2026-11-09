@@ -77,25 +77,40 @@ def main() -> None:
         )
 
     REPORTS.mkdir(exist_ok=True)
+    detail_split = "test" if test is not None else "val"
+    detail = test if test is not None else val
+    names = detail.names
+    box = detail.box
+
+    # Ultralytics only reports classes that have objects in the evaluated split.
+    # Make the gap explicit: a class absent from it was NOT evaluated at all.
+    manifest = json.loads(
+        (Path(params["data"]["prepared_dir"]) / "manifest.json").read_text(encoding="utf-8")
+    )
+    instances = manifest["summary"]["objects_per_class"][detail_split]
+    evaluated = {names[int(c)] for c in box.ap_class_index}
+
     summary = {
         "val": headline(val),
         "test": headline(test) if test is not None else None,
         "operating_conf": f1_optimal_confidence(val),
-        # Per-class and confusion reports come from test; from val only if there is no test.
-        "detail_split": "test" if test is not None else "val",
+        # Split that per_class.csv and confusion_matrix.json come from: test, or val
+        # while there is no test set.
+        "detail_split": detail_split,
+        "classes_evaluated": len(evaluated),
+        "classes_total": len(names),
+        "classes_not_evaluated": sorted(set(names.values()) - evaluated),
     }
     (REPORTS / "metrics.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-
-    detail = test if test is not None else val
-    names = detail.names
-    box = detail.box
     with open(REPORTS / "per_class.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["class", "ap50", "ap50_95", "precision", "recall"])
+        writer.writerow(["class", "instances", "ap50", "ap50_95", "precision", "recall"])
         for i, class_id in enumerate(box.ap_class_index):
+            name = names[int(class_id)]
             writer.writerow(
                 [
-                    names[int(class_id)],
+                    name,
+                    instances.get(name, 0),
                     f"{box.ap50[i]:.4f}",
                     f"{box.ap[i]:.4f}",
                     f"{box.p[i]:.4f}",

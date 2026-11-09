@@ -1,3 +1,7 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+
+# Ultralytics writes labels.cache next to the labels while training. Without this,
+# the train stage modifies its own input (data/prepared) and always looks stale.
+**/labels.cache

@@ -94,7 +94,12 @@ def main() -> None:
             "scale": "1/255",
         },
         "conf_threshold": metrics.get("operating_conf"),
-        "metrics": {"val": metrics["val"], "test": metrics["test"]},
+        "metrics": {
+            "val": metrics["val"],
+            "test": metrics["test"],  # null while there is no test set (see params.yaml)
+            "classes_evaluated": metrics.get("classes_evaluated"),
+            "classes_total": metrics.get("classes_total"),
+        },
     }
     (EXPORT_DIR / "model_card.json").write_text(json.dumps(card, indent=2), encoding="utf-8")
     for report in ("metrics.json", "per_class.csv", "confusion_matrix.json"):

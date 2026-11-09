@@ -44,9 +44,9 @@ stages:
     deps:
     - path: data/prepared
       hash: md5
-      md5: 0a737c41ea8353d1bc8bc0496e05f757.dir
-      size: 35694745
-      nfiles: 834
+      md5: 224633fb7392e7e07e4910f420ab0554.dir
+      size: 35523184
+      nfiles: 832
     - path: src/vision_model/train.py
       hash: md5
       md5: e30551ff0b9f7519f50d4172b66160dd
@@ -83,8 +83,8 @@ stages:
       nfiles: 1
     - path: dvclive/metrics.json
       hash: md5
-      md5: f527b8d8f61e6bedafdf50607bf5c7cb
-      size: 696
+      md5: 4e591a9d080528b7abb1b17ff6893f37
+      size: 728
     - path: dvclive/plots/images
       hash: md5
       md5: 0442b2c78554ef81ad2c69d1c7758e5f.dir
@@ -92,21 +92,21 @@ stages:
       nfiles: 15
     - path: dvclive/plots/metrics
       hash: md5
-      md5: 6035146e22ebcf43fc1c8e3c9b824f70.dir
-      size: 7329
+      md5: 7835c7997e836f71ad55583222a8084c.dir
+      size: 7931
       nfiles: 14
     - path: dvclive/plots/sklearn/cf.json
       hash: md5
-      md5: 49cf11c336943389f9be4708aa2d54fa
-      size: 271683
+      md5: df6cdb67b23fcbd6c3b594ff334d5bce
+      size: 286005
   evaluate:
     cmd: uv run --no-sync vm-evaluate
     deps:
     - path: data/prepared
       hash: md5
-      md5: 0a737c41ea8353d1bc8bc0496e05f757.dir
-      size: 35694745
-      nfiles: 834
+      md5: 224633fb7392e7e07e4910f420ab0554.dir
+      size: 35523184
+      nfiles: 832
     - path: dvclive/artifacts
       hash: md5
       md5: f7a38fc0fa1f60e532cf39ddb0f84010.dir
@@ -114,8 +114,8 @@ stages:
       nfiles: 1
     - path: src/vision_model/evaluate.py
       hash: md5
-      md5: 6a63514691a7dfa56767251f30954be2
-      size: 3761
+      md5: 1c7e17de689fe82cba3730f2d0d46d28
+      size: 4477
     params:
       params.yaml:
         train.imgsz: 1280
@@ -126,12 +126,12 @@ stages:
       size: 13544
     - path: reports/metrics.json
       hash: md5
-      md5: f1354fc19ab67cdfc98ca03e7ab10576
-      size: 237
+      md5: 7efbe23175813d19d29ac38a3a3661cc
+      size: 764
     - path: reports/per_class.csv
       hash: md5
-      md5: 8b4861f2a460f0ffd1ec0b053a01a661
-      size: 1427
+      md5: c6220fa726a4ab6e1806ea0c9de0a35c
+      size: 1520
   export:
     cmd: uv run --no-sync vm-export
     deps:
@@ -142,12 +142,12 @@ stages:
       nfiles: 1
     - path: reports/metrics.json
       hash: md5
-      md5: f1354fc19ab67cdfc98ca03e7ab10576
-      size: 237
+      md5: 7efbe23175813d19d29ac38a3a3661cc
+      size: 764
     - path: src/vision_model/export.py
       hash: md5
-      md5: 3640734a1dc33594127baffa23a875a0
-      size: 3555
+      md5: 4074ab5caa7f4a0ee75a99ad1efe2c77
+      size: 3769
     params:
       params.yaml:
         export:
@@ -159,6 +159,6 @@ stages:
     outs:
     - path: models/export
       hash: md5
-      md5: fe300018af6c0a57e9517abdf6ae7e21.dir
-      size: 57878346
+      md5: 3667941dee5c85c2bd8bb43ed097679e.dir
+      size: 57879113
       nfiles: 6
