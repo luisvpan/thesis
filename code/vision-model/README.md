@@ -216,10 +216,11 @@ model that it is background.
 
 ## Pending work
 
-- [ ] cv-system ONNX path: replace the stretch `cv2.resize` with letterbox and
+- [x] cv-system ONNX path: replace the stretch `cv2.resize` with letterbox and
       un-pad the boxes; make the PyTorch path use the configured conf/tracker.
-- [ ] cv-system reads `model_card.json` (classes, imgsz, preprocessing, conf)
-      instead of hardcoded values.
+- [x] cv-system reads `model_card.json` (imgsz, preprocessing, conf). It looks
+      for `<model stem>.model_card.json`, then `model_card.json`, next to the
+      model; without a card it assumes a legacy (stretch) model.
 - [ ] Replay evaluation: run a *candidate* model over recorded session videos
       through the cv-system detector (same code as production) and report the
       video metrics, so models are compared on real use before deploying.

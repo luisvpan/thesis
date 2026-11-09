@@ -267,7 +267,10 @@ def main():
     )
     parser.add_argument("--model", type=str, default=None, help="Ruta al modelo YOLO")
     parser.add_argument(
-        "--conf", type=float, default=0.5, help="Threshold de confianza"
+        "--conf",
+        type=float,
+        default=None,
+        help="Threshold de confianza (por defecto: el del model_card.json, o 0.25)",
     )
     parser.add_argument(
         "--readable",
@@ -404,7 +407,9 @@ def main():
             "model_path": str(model_path),
             "detector": DetectorClass.__name__,
             "hardware": args.hardware,
-            "conf_threshold": args.conf,
+            "conf_threshold": detector._conf_threshold,  # effective: CLI > model card > 0.25
+            "model_card": str(detector._card.source) if detector._card.source else None,
+            "input_resize": detector._card.resize,
             "save": args.save,
             "interval_s": args.interval,
             "min_change": args.min_change,

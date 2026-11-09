@@ -11,7 +11,11 @@ import cv2
 import numpy as np
 import supervision as sv
 
+from cv_system.detection.model_card import ModelCard, load_model_card
+from cv_system.detection.preprocess import to_frame_coords, to_model_input
 from cv_system.transform import RgbImageTransformer
+
+DEFAULT_CONF_THRESHOLD = 0.25
 
 if TYPE_CHECKING:
     import onnxruntime as ort
@@ -40,22 +44,41 @@ class CardDetector:
     Supports two backends:
     - PyTorch (.pt): Uses ultralytics YOLO directly (CPU or CUDA if available)
     - ONNX (.onnx): Uses ONNX Runtime with DirectML for AMD GPU acceleration
+
+    Both backends apply the same preprocessing (letterbox or stretch, from the
+    model's ``model_card.json``; stretch for legacy models without one), the same
+    confidence threshold and the same ByteTrack tracker, so a model behaves the
+    same whichever file format is loaded.
     """
 
     def __init__(
         self,
         rgb_image_transformer: RgbImageTransformer,
         model_path: str | Path,
-        conf_threshold: float = 0.25,
+        conf_threshold: float | None = None,
         iou_threshold: float = 0.45,
     ) -> None:
         self._image_transformer = rgb_image_transformer
-        self._conf_threshold = conf_threshold
         self._iou_threshold = iou_threshold
 
         path = Path(model_path)
         if not path.is_file():
             raise FileNotFoundError(f"Model not found: {path.resolve()}")
+
+        # Explicit argument > model card > default.
+        self._card: ModelCard = load_model_card(path)
+        if conf_threshold is not None:
+            self._conf_threshold = conf_threshold
+        elif self._card.conf_threshold is not None:
+            self._conf_threshold = self._card.conf_threshold
+        else:
+            self._conf_threshold = DEFAULT_CONF_THRESHOLD
+        source = self._card.source
+        card_info = f"card {source}" if source else "no model card (legacy)"
+        print(
+            f"  Model input: {self._card.resize}, "
+            f"conf={self._conf_threshold:.3f} ({card_info})"
+        )
 
         self._use_onnx = path.suffix.lower() == ".onnx"
 
@@ -70,6 +93,10 @@ class CardDetector:
 
         self._model: YOLO = YOLO(str(path))
         self._names: dict[int, str] = self._model.names
+        ckpt = getattr(self._model, "ckpt", None)
+        train_args = ckpt.get("train_args", {}) if isinstance(ckpt, dict) else {}
+        self._torch_imgsz = int(self._card.imgsz or train_args.get("imgsz") or 640)
+        self._init_byte_tracker()
 
     def _init_onnx(self, path: Path) -> None:
         """Initialize ONNX Runtime with DirectML backend."""
@@ -193,54 +220,54 @@ class CardDetector:
         return annotated, detections
 
     def _detect_pytorch(self, image: cv2.UMat) -> list[CardDetection]:
-        """Run detection with tracking using PyTorch/ultralytics backend."""
-        # ultralytics requires numpy array
-        image_np = image.get()
-        results = self._model.track(image_np, persist=True, verbose=False)
-        detections: list[CardDetection] = []
-
-        for r in results:
-            if r.boxes is None or len(r.boxes) == 0:
-                continue
-            for box in r.boxes:
-                xyxy = box.xyxy[0].cpu().numpy()
-                conf = float(box.conf[0])
-                cls_id = int(box.cls[0])
-                label = self._names.get(cls_id, str(cls_id))
-                track_id = int(box.id[0]) if box.id is not None else -1
-                detections.append(
-                    CardDetection(
-                        class_id=cls_id,
-                        label=label,
-                        confidence=conf,
-                        x1=float(xyxy[0]),
-                        y1=float(xyxy[1]),
-                        x2=float(xyxy[2]),
-                        y2=float(xyxy[3]),
-                        track_id=track_id,
-                    )
-                )
-
-        return detections
+        """Run detection using the PyTorch/ultralytics backend, then our ByteTrack."""
+        image_np = image.get() if isinstance(image, cv2.UMat) else np.asarray(image)
+        size = self._torch_imgsz
+        if self._card.resize == "stretch":
+            # Ultralytics always letterboxes; a pre-stretched square needs no padding,
+            # so the model sees the same stretched input it was trained on.
+            model_input, geometry = to_model_input(image_np, size, "stretch")
+        else:
+            # Ultralytics letterboxes and maps the boxes back itself
+            model_input, geometry = image_np, None
+        results = self._model.predict(
+            model_input,
+            imgsz=size,
+            conf=self._conf_threshold,
+            iou=self._iou_threshold,
+            agnostic_nms=True,  # same as the ONNX path (class-agnostic NMS)
+            verbose=False,
+        )
+        boxes = results[0].boxes
+        if boxes is None or len(boxes) == 0:
+            return self._track_detections(sv.Detections.empty())
+        xyxy = boxes.xyxy.cpu().numpy()
+        if geometry is not None:
+            xyxy = to_frame_coords(xyxy, geometry)
+        sv_detections = sv.Detections(
+            xyxy=xyxy.astype(np.float32),
+            confidence=boxes.conf.cpu().numpy(),
+            class_id=boxes.cls.cpu().numpy().astype(int),
+        )
+        return self._track_detections(sv_detections)
 
     def _detect_onnx(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection using ONNX Runtime with DirectML."""
         # Get target size from model input shape (handle dynamic shapes)
-        _, _, target_h, target_w = self._input_shape
-        # ONNX models may have dynamic shapes (-1 or strings), default to 640
+        _, _, target_h, _ = self._input_shape
+        # ONNX models may have dynamic shapes (-1 or strings): model card, else 640
         if not isinstance(target_h, int) or target_h <= 0:
-            target_h = 640
-        if not isinstance(target_w, int) or target_w <= 0:
-            target_w = 640
+            target_h = self._card.imgsz or 640
 
         # Convert UMat to numpy for ONNX preprocessing
         image_np = image.get() if isinstance(image, cv2.UMat) else image
-        orig_h, orig_w = image_np.shape[:2]
 
-        # Preprocess: BGR->RGB, resize, normalize
-        rgb_image = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-        resized = cv2.resize(rgb_image, (int(target_w), int(target_h)))
-        normalized = resized.astype(np.float32) / 255.0
+        # Preprocess: letterbox or stretch (per model card), BGR->RGB, normalize
+        model_input, geometry = to_model_input(
+            image_np, int(target_h), self._card.resize, self._card.pad_value
+        )
+        rgb_image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
+        normalized = rgb_image.astype(np.float32) / 255.0
         transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
         batched = np.expand_dims(transposed, axis=0)  # Add batch dim
 
@@ -300,16 +327,10 @@ class CardDetector:
         x2 = x_center + w / 2
         y2 = y_center + h / 2
 
-        # Scale boxes back to original image size
-        scale_x = orig_w / target_w
-        scale_y = orig_h / target_h
-        x1 = x1 * scale_x
-        x2 = x2 * scale_x
-        y1 = y1 * scale_y
-        y2 = y2 * scale_y
+        # Back to frame coordinates (undo the letterbox padding or the stretch)
+        boxes_for_nms = to_frame_coords(np.stack([x1, y1, x2, y2], axis=1), geometry)
 
         # Apply NMS
-        boxes_for_nms = np.stack([x1, y1, x2, y2], axis=1).astype(np.float32)
         indices = cv2.dnn.NMSBoxes(
             boxes_for_nms.tolist(),
             confidences.tolist(),
