@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,6 +14,7 @@ import supervision as sv
 
 from cv_system.detection.model_card import ModelCard, load_model_card
 from cv_system.detection.preprocess import to_frame_coords, to_model_input
+from cv_system.detection.profiling import StageTimer
 from cv_system.gpu_config import dml_device_id
 from cv_system.transform import RgbImageTransformer
 
@@ -61,6 +63,7 @@ class CardDetector:
     ) -> None:
         self._image_transformer = rgb_image_transformer
         self._iou_threshold = iou_threshold
+        self._timer = StageTimer(type(self).__name__)  # CV_PROFILE=1 to print timings
 
         path = Path(model_path)
         if not path.is_file():
@@ -174,6 +177,12 @@ class CardDetector:
 
     def _track_detections(self, sv_detections: sv.Detections) -> list[CardDetection]:
         """Associate detections with ByteTrack; include lost (occluded) tracks."""
+        with self._timer.stage("track"):
+            return self._track_detections_untimed(sv_detections)
+
+    def _track_detections_untimed(
+        self, sv_detections: sv.Detections
+    ) -> list[CardDetection]:
         if len(sv_detections) == 0:
             self._tracker.update_with_detections(sv.Detections.empty())
             return self._collect_lost_detections()
@@ -215,18 +224,21 @@ class CardDetector:
             detections = self._detect_pytorch(rgb_bird)
 
         # Draw detections on numpy copy (lost tracks in amber, active in green)
-        annotated = rgb_bird.get().copy()
-        for d in detections:
-            color = (0, 165, 255) if d.status == "lost" else (0, 220, 0)  # BGR
-            self._draw_detection(
-                annotated, d.label, d.confidence, d.x1, d.y1, d.x2, d.y2, color=color
-            )
+        with self._timer.stage("draw"):
+            annotated = rgb_bird.get().copy()
+            for d in detections:
+                color = (0, 165, 255) if d.status == "lost" else (0, 220, 0)  # BGR
+                self._draw_detection(
+                    annotated, d.label, d.confidence, d.x1, d.y1, d.x2, d.y2, color
+                )
 
+        self._timer.frame_done()
         return annotated, detections
 
     def _detect_pytorch(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection using the PyTorch/ultralytics backend, then our ByteTrack."""
-        image_np = image.get() if isinstance(image, cv2.UMat) else np.asarray(image)
+        with self._timer.stage("download"):
+            image_np = image.get() if isinstance(image, cv2.UMat) else np.asarray(image)
         size = self._torch_imgsz
         if self._card.resize == "stretch":
             # Ultralytics always letterboxes; a pre-stretched square needs no padding,
@@ -235,14 +247,15 @@ class CardDetector:
         else:
             # Ultralytics letterboxes and maps the boxes back itself
             model_input, geometry = image_np, None
-        results = self._model.predict(
-            model_input,
-            imgsz=size,
-            conf=self._conf_threshold,
-            iou=self._iou_threshold,
-            agnostic_nms=True,  # same as the ONNX path (class-agnostic NMS)
-            verbose=False,
-        )
+        with self._timer.stage("inference(+ultralytics pre/post)"):
+            results = self._model.predict(
+                model_input,
+                imgsz=size,
+                conf=self._conf_threshold,
+                iou=self._iou_threshold,
+                agnostic_nms=True,  # same as the ONNX path (class-agnostic NMS)
+                verbose=False,
+            )
         boxes = results[0].boxes
         if boxes is None or len(boxes) == 0:
             return self._track_detections(sv.Detections.empty())
@@ -265,19 +278,23 @@ class CardDetector:
             target_h = self._card.imgsz or 640
 
         # Convert UMat to numpy for ONNX preprocessing
-        image_np = image.get() if isinstance(image, cv2.UMat) else image
+        with self._timer.stage("download"):
+            image_np = image.get() if isinstance(image, cv2.UMat) else image
 
         # Preprocess: letterbox or stretch (per model card), BGR->RGB, normalize
-        model_input, geometry = to_model_input(
-            image_np, int(target_h), self._card.resize, self._card.pad_value
-        )
-        rgb_image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
-        normalized = rgb_image.astype(np.float32) / 255.0
-        transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
-        batched = np.expand_dims(transposed, axis=0)  # Add batch dim
+        with self._timer.stage("preprocess"):
+            model_input, geometry = to_model_input(
+                image_np, int(target_h), self._card.resize, self._card.pad_value
+            )
+            rgb_image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
+            normalized = rgb_image.astype(np.float32) / 255.0
+            transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
+            batched = np.expand_dims(transposed, axis=0)  # Add batch dim
 
         # Run inference
-        outputs = self._session.run(self._output_names, {self._input_name: batched})
+        with self._timer.stage("inference"):
+            outputs = self._session.run(self._output_names, {self._input_name: batched})
+        post_start = self._timer_start()
 
         # Parse YOLOv8 output format: [1, 4+num_classes, num_predictions]
         # Transpose to [1, num_predictions, 4+num_classes]
@@ -323,6 +340,7 @@ class CardDetector:
         confidences = confidences[mask]
 
         if len(boxes) == 0:
+            self._timer_stop("postprocess", post_start)
             return self._track_detections(sv.Detections.empty())
 
         # Convert from center format to corner format
@@ -334,14 +352,16 @@ class CardDetector:
 
         # Back to frame coordinates (undo the letterbox padding or the stretch)
         boxes_for_nms = to_frame_coords(np.stack([x1, y1, x2, y2], axis=1), geometry)
+        self._timer_stop("postprocess", post_start)
 
         # Apply NMS
-        indices = cv2.dnn.NMSBoxes(
-            boxes_for_nms.tolist(),
-            confidences.tolist(),
-            self._conf_threshold,
-            self._iou_threshold,
-        )
+        with self._timer.stage("nms"):
+            indices = cv2.dnn.NMSBoxes(
+                boxes_for_nms.tolist(),
+                confidences.tolist(),
+                self._conf_threshold,
+                self._iou_threshold,
+            )
 
         if len(indices) == 0:
             return self._track_detections(sv.Detections.empty())
@@ -358,6 +378,13 @@ class CardDetector:
             class_id=nms_class_ids.astype(int),
         )
         return self._track_detections(sv_detections)
+
+    def _timer_start(self) -> float:
+        """Start of a stage that has early returns (cannot use a with block)."""
+        return time.perf_counter()
+
+    def _timer_stop(self, stage: str, start: float) -> None:
+        self._timer.add(stage, time.perf_counter() - start)
 
     def _collect_lost_detections(self) -> list[CardDetection]:
         """Return CardDetection entries for tracks ByteTrack considers lost (occluded)."""
