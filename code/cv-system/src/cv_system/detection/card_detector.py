@@ -280,15 +280,16 @@ class CardDetector:
         with self._timer.stage("download"):
             image_np = image.get() if isinstance(image, cv2.UMat) else image
 
-        # Preprocess: letterbox or stretch (per model card), BGR->RGB, normalize
+        # Preprocess: letterbox or stretch (per model card), then BGR->RGB, /255 and
+        # HWC->NCHW float32 in a single blobFromImage call (one pass over the pixels
+        # instead of four intermediate copies).
         with self._timer.stage("preprocess"):
             model_input, geometry = to_model_input(
                 image_np, int(target_h), self._card.resize, self._card.pad_value
             )
-            rgb_image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
-            normalized = rgb_image.astype(np.float32) / 255.0
-            transposed = normalized.transpose(2, 0, 1)  # HWC -> CHW
-            batched = np.expand_dims(transposed, axis=0)  # Add batch dim
+            batched = cv2.dnn.blobFromImage(
+                np.ascontiguousarray(model_input), scalefactor=1.0 / 255.0, swapRB=True
+            )
 
         # Run inference
         with self._timer.stage("inference"):

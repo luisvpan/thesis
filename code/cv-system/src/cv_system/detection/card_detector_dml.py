@@ -62,40 +62,49 @@ class DmlCardDetector(CardDetector):
         print(f"  DmlCardDetector: YOLO on {self._device} (ByteTrack)")
 
     def _detect_pytorch(self, image: cv2.UMat) -> list[CardDetection]:
-        image_np = image.get() if isinstance(image, cv2.UMat) else image
+        # "download" also absorbs the pending OpenCL warp: UMat work is queued and only
+        # runs when the result is read.
+        with self._timer.stage("download"):
+            image_np = image.get() if isinstance(image, cv2.UMat) else image
         orig_h, orig_w = image_np.shape[:2]
 
-        im_lb = self._letterbox(image=image_np)
-        im_chw = im_lb.transpose((2, 0, 1))[::-1]
-        im_chw = np.ascontiguousarray(im_chw)
-        tensor = torch.from_numpy(im_chw).to(self._device).float() / 255.0
-        if tensor.ndim == 3:
-            tensor = tensor.unsqueeze(0)
+        with self._timer.stage("preprocess"):
+            im_lb = self._letterbox(image=image_np)
+            im_chw = im_lb.transpose((2, 0, 1))[::-1]
+            im_chw = np.ascontiguousarray(im_chw)
+            tensor = torch.from_numpy(im_chw).to(self._device).float() / 255.0
+            if tensor.ndim == 3:
+                tensor = tensor.unsqueeze(0)
 
-        with dml_safe_no_grad():
-            raw = self._model.model(tensor)
-        if isinstance(raw, (list, tuple)):
-            raw = raw[0]
-        raw = raw.cpu()
+        # DirectML runs asynchronously: the forward pass only finishes when the output
+        # is copied back with .cpu(), so both go in the same stage.
+        with self._timer.stage("inference"):
+            with dml_safe_no_grad():
+                raw = self._model.model(tensor)
+            if isinstance(raw, (list, tuple)):
+                raw = raw[0]
+            raw = raw.cpu()
 
-        detections_list = nms.non_max_suppression(
-            raw,
-            self._conf_threshold,
-            self._iou_threshold,
-        )
+        with self._timer.stage("nms"):
+            detections_list = nms.non_max_suppression(
+                raw,
+                self._conf_threshold,
+                self._iou_threshold,
+            )
         pred = detections_list[0]
         if pred is None or len(pred) == 0:
             return self._track_detections(sv.Detections.empty())
 
-        pred[:, :4] = ops.scale_boxes(tensor.shape[2:], pred[:, :4], (orig_h, orig_w))
+        with self._timer.stage("postprocess"):
+            pred[:, :4] = ops.scale_boxes(tensor.shape[2:], pred[:, :4], (orig_h, orig_w))
 
-        xyxy = pred[:, :4].numpy().astype(np.float32)
-        confidences = pred[:, 4].numpy()
-        class_ids = pred[:, 5].numpy().astype(int)
+            xyxy = pred[:, :4].numpy().astype(np.float32)
+            confidences = pred[:, 4].numpy()
+            class_ids = pred[:, 5].numpy().astype(int)
 
-        sv_detections = sv.Detections(
-            xyxy=xyxy,
-            confidence=confidences,
-            class_id=class_ids,
-        )
+            sv_detections = sv.Detections(
+                xyxy=xyxy,
+                confidence=confidences,
+                class_id=class_ids,
+            )
         return self._track_detections(sv_detections)

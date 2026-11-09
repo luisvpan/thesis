@@ -27,6 +27,7 @@ from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.calibration.result import CalibrationResult
 from cv_system.detection import CARD_DETECTORS, detect_card_method, TouchMethod
+from cv_system.detection.profiling import StageTimer
 from cv_system.detection.touch_detector import TouchDetector
 from cv_system.detection.touch_detector_dml import DmlTouchDetector
 from cv_system.detection.espol_touch_detector import ESPOLTouchDetector
@@ -436,6 +437,11 @@ def main() -> None:
         # Initial frame acquisition
         depth_frame, rgb_frame = acquire_frames()
 
+        # CV_PROFILE=1: where the main thread spends each frame. Touch and card run in
+        # parallel threads, so "touch_wait" is the time until touch finished and
+        # "card_wait" is the extra time card detection needed after that.
+        loop_timer = StageTimer("main loop", scope="measured")
+
         while True:
             try:
                 t0 = time.perf_counter()
@@ -446,18 +452,23 @@ def main() -> None:
                 t1 = time.perf_counter()
 
                 # Update color-to-depth mapping for PyKinect2 (must be done per-frame)
-                if isinstance(resolution_mapper, PyKinect2ResolutionMapper):
-                    resolution_mapper.update_mapping(depth_frame)
+                with loop_timer.stage("mapping"):
+                    if isinstance(resolution_mapper, PyKinect2ResolutionMapper):
+                        resolution_mapper.update_mapping(depth_frame)
 
-                # Fix 1: Do warp ONCE and share with both detectors (UMat stays on GPU)
-                rgb_bird = rgb_image_transformer.camera_to_projector(rgb_frame)
+                # Fix 1: Do warp ONCE and share with both detectors (UMat stays on GPU).
+                # With OpenCL this only queues the warp; it runs when the card thread
+                # reads the UMat (counted there as "download").
+                with loop_timer.stage("warp"):
+                    rgb_bird = rgb_image_transformer.camera_to_projector(rgb_frame)
 
                 t2 = time.perf_counter()
 
                 # Get IR frame for touch correction (PyKinect2 only)
                 ir_frame = None
                 if has_ir_support and enable_touch:
-                    ir_frame = hardware.get_ir_frame()
+                    with loop_timer.stage("ir"):
+                        ir_frame = hardware.get_ir_frame()
 
                 # Submit BOTH detections in parallel (don't wait for touch before card)
                 touch_future = None
@@ -475,7 +486,8 @@ def main() -> None:
 
                 # Now wait for results (they run in parallel)
                 if touch_future is not None:
-                    touches, hands_detected = touch_future.result()
+                    with loop_timer.stage("touch_wait"):
+                        touches, hands_detected = touch_future.result()
                     t_touch = time.perf_counter()
                 else:
                     touches, hands_detected = [], False
@@ -485,19 +497,21 @@ def main() -> None:
                 card_wait_ms = 0.0
                 if card_future is not None:
                     t_card_wait_start = time.perf_counter()
-                    card_view, card_dets = card_future.result()
+                    with loop_timer.stage("card_wait"):
+                        card_view, card_dets = card_future.result()
                     t_card_end = time.perf_counter()
                     card_time_ms = 1000 * (t_card_end - t_card_submit)  # Total card time
                     card_wait_ms = 1000 * (t_card_end - t_card_wait_start)  # Wait after touch done
                     # Always update - ByteTrack handles occlusions from hands
                     last_card_view = card_view
                     last_card_dets = card_dets
-                    post_card_batch_async(
-                        vision_cards_url,
-                        card_dets,
-                        FULL_PROJ_W,
-                        FULL_PROJ_H,
-                    )
+                    with loop_timer.stage("post_cards"):
+                        post_card_batch_async(
+                            vision_cards_url,
+                            card_dets,
+                            FULL_PROJ_W,
+                            FULL_PROJ_H,
+                        )
                 else:
                     card_view = last_card_view if last_card_view is not None else rgb_bird.get()
                     card_dets = last_card_dets
@@ -542,6 +556,7 @@ def main() -> None:
                         logger.debug(f"Frame {frame_count}: Card {d.label} {d.confidence * 100:.1f}%")
 
                 # Debug windows (only if enabled)
+                debug_start = time.perf_counter()
                 if show_debug_windows:
                     # Card detection view (every 2 frames)
                     if frame_count % 2 == 0:
@@ -586,13 +601,16 @@ def main() -> None:
                     if cv2.waitKey(1) & 0xFF == ord("q"):
                         break
 
+                loop_timer.add("debug_windows", time.perf_counter() - debug_start)
                 frame_count += 1
                 elapsed = time.time() - start_time
 
                 # Fix 2: Get next frame (should be ready by now)
                 t5 = time.perf_counter()
-                depth_frame, rgb_frame = next_frame_future.result()
+                with loop_timer.stage("acquire_wait"):
+                    depth_frame, rgb_frame = next_frame_future.result()
                 t6 = time.perf_counter()
+                loop_timer.frame_done()
                 logger.debug(f"[FPS: {frame_count / elapsed:.1f}] submit={1000*(t1-t0):.1f}ms warp={1000*(t2-t1):.1f}ms touch={1000*(t_touch-t2):.1f}ms card={card_time_ms:.1f}ms(wait={card_wait_ms:.1f}ms) acq={1000*(t6-t5):.1f}ms")
 
             except KeyboardInterrupt:

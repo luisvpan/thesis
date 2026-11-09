@@ -20,9 +20,14 @@ def profiling_enabled() -> bool:
 
 class StageTimer:
     def __init__(
-        self, name: str, enabled: bool | None = None, every: int | None = None
+        self,
+        name: str,
+        enabled: bool | None = None,
+        every: int | None = None,
+        scope: str = "detector",
     ):
         self.name = name
+        self.scope = scope  # what the measured stages add up to, for the report
         self.enabled = profiling_enabled() if enabled is None else enabled
         self.every = every or int(os.getenv("CV_PROFILE_EVERY", "60"))
         self._totals: dict[str, float] = defaultdict(float)
@@ -57,9 +62,9 @@ class StageTimer:
         measured = sum(self._totals.values()) * 1000 / self._frames
         parts = [f"{k}={v * 1000 / self._frames:.1f}" for k, v in self._totals.items()]
         report = (
-            f"[profile {self.name}] ms/frame: {' '.join(parts)} | detector={measured:.1f} "
+            f"[profile {self.name}] ms/frame: {' '.join(parts)} | {self.scope}={measured:.1f} "
             f"| loop={wall_ms:.1f} ({1000 / wall_ms:.1f} fps, "
-            f"{wall_ms - measured:.1f} ms outside the detector)"
+            f"{wall_ms - measured:.1f} ms outside the {self.scope})"
         )
         print(report, flush=True)
         self._totals.clear()
