@@ -7,6 +7,12 @@ changed by at least ``--min-change`` (mean absolute difference, 0-255, on a
 model's pre-labels from the same line of the log: only ``active`` detections,
 since ``lost`` ones are tracker memory at an old position.
 
+With ``--select N``, only N of those frames are kept, chosen for labeling:
+first, frames for the class furthest from ``--per-class`` instances (counted
+on the pre-labels), one class at a time, then frames spread over the session. Neighbouring
+frames are near-duplicates, so a few hundred well-chosen frames are worth
+almost as much as all of them, for a fraction of the labeling.
+
 The chosen frame numbers are written to ``<session>.extract.json`` next to the
 recording (versioned with it), so the same frames can be regenerated anywhere.
 
@@ -15,6 +21,7 @@ Usage::
     vm-extract                      # every recording without .extract.json
     vm-extract 20261109_184859      # one session
     vm-extract --interval 3 --force 20261109_184859
+    vm-extract --force --select 400 20261110_131211   # redo, keeping 400 frames
 """
 
 from __future__ import annotations
@@ -22,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -100,12 +108,70 @@ def yolo_lines(detections: list[dict], width: int, height: int) -> list[str]:
     return lines
 
 
+@dataclass(frozen=True)
+class Candidate:
+    """A frame that passed the interval and scene-change filters."""
+
+    frame: int
+    t: float
+    classes: Counter  # class id -> active pre-label boxes
+
+
+def select_frames(candidates: list[Candidate], n: int, per_class: int) -> list[int]:
+    """Choose ``n`` frames: class coverage first, then spread in time.
+
+    1. Coverage, rarest class first: take the class furthest from ``per_class``
+       (fewest instances chosen so far) and add the frame containing it that adds
+       the most missing instances overall. Serving the neediest class each time
+       keeps a frequent-class-rich frame from crowding out a rare class, so every
+       class present in the session gets frames before any gets plenty.
+    2. Fill: repeatedly take the frame farthest in time from those already chosen.
+    """
+    if n >= len(candidates):
+        return [c.frame for c in candidates]
+    have: Counter = Counter()
+    chosen: list[Candidate] = []
+    remaining = list(candidates)
+    exhausted: set[int] = set()  # classes with no remaining frame
+
+    def gain(cand: Candidate) -> int:
+        return sum(min(k, max(0, per_class - have[c])) for c, k in cand.classes.items())
+
+    while len(chosen) < n:
+        needy = sorted(
+            (c for cand in remaining for c in cand.classes if c not in exhausted),
+            key=lambda c: have[c],
+        )
+        needy = [c for c in dict.fromkeys(needy) if have[c] < per_class]
+        if not needy:
+            break
+        target = needy[0]
+        with_target = [i for i, cand in enumerate(remaining) if target in cand.classes]
+        if not with_target:
+            exhausted.add(target)
+            continue
+        best = max(with_target, key=lambda i: (gain(remaining[i]), -i))
+        cand = remaining.pop(best)
+        chosen.append(cand)
+        have.update(cand.classes)
+    while len(chosen) < n and remaining:
+        times = [c.t for c in chosen]
+        best = max(
+            range(len(remaining)),
+            key=lambda i: min((abs(remaining[i].t - t) for t in times), default=0.0),
+        )
+        chosen.append(remaining.pop(best))
+    return sorted(c.frame for c in chosen)
+
+
 def extract_session(
     session: str,
     interval: float,
     min_change: float,
     recordings: Path = RECORDINGS_DIR,
     extracted: Path = EXTRACTED_DIR,
+    select: int = 0,
+    per_class: int = 25,
 ) -> dict:
     import cv2
 
@@ -129,8 +195,7 @@ def extract_session(
     names = class_names(frames)
     (out / "classes.json").write_text(json.dumps(names, indent=2), encoding="utf-8")
 
-    chosen: list[int] = []
-    boxes = 0
+    candidates: list[Candidate] = []
     last_t: float | None = None
     last_signature: np.ndarray | None = None
     total = min(len(frames), video_frames) if video_frames else len(frames)
@@ -156,20 +221,43 @@ def extract_session(
         (out / "labels" / f"{stem}.txt").write_text(
             "\n".join(lines) + ("\n" if lines else ""), encoding="utf-8"
         )
-        chosen.append(entry.frame)
-        boxes += len(lines)
+        classes = Counter(int(line.split()[0]) for line in lines)
+        candidates.append(Candidate(entry.frame, entry.t, classes))
         last_t, last_signature = entry.t, signature
-        if len(chosen) % 50 == 0:
-            print(f"  {len(chosen)} frames (at {entry.t / 60:.1f} min)", flush=True)
+        if len(candidates) % 100 == 0:
+            print(f"  {len(candidates)} frames (at {entry.t / 60:.1f} min)", flush=True)
     cap.release()
+
+    chosen = (
+        select_frames(candidates, select, per_class) if select else [c.frame for c in candidates]
+    )
+    keep = set(chosen)
+    if select:
+        for cand in candidates:
+            if cand.frame not in keep:
+                stem = frame_stem(session, cand.frame)
+                (out / "images" / f"{stem}.jpg").unlink()
+                (out / "labels" / f"{stem}.txt").unlink()
+    kept = [c for c in candidates if c.frame in keep]
+    boxes = sum(sum(c.classes.values()) for c in kept)
+    coverage = Counter()
+    for c in kept:
+        coverage.update(c.classes)
 
     record = {
         "session": session,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "criteria": {"interval_s": interval, "min_change": min_change},
+        "criteria": {
+            "interval_s": interval,
+            "min_change": min_change,
+            "select": select or None,
+            "per_class": per_class if select else None,
+        },
         "video_frames": total,
+        "candidates": len(candidates),
         "frames": chosen,
         "pre_label_boxes": boxes,
+        "pre_label_boxes_per_class": {names.get(c, str(c)): k for c, k in sorted(coverage.items())},
     }
     extract_record_path(session, recordings).write_text(
         json.dumps(record, indent=2), encoding="utf-8"
@@ -191,6 +279,15 @@ def main() -> None:
     parser.add_argument(
         "--force", action="store_true", help="Re-extract sessions that already have .extract.json"
     )
+    parser.add_argument(
+        "--select", type=int, default=0, help="Keep only N frames, chosen for labeling (0 = all)"
+    )
+    parser.add_argument(
+        "--per-class",
+        type=int,
+        default=25,
+        help="With --select: instances per class to reach before spreading in time",
+    )
     args = parser.parse_args()
 
     sessions = args.sessions or recorded_sessions()
@@ -203,11 +300,20 @@ def main() -> None:
             print(f"{session}: already extracted (use --force to redo)")
             continue
         print(f"{session}: extracting...", flush=True)
-        record = extract_session(session, args.interval, args.min_change)
-        print(
-            f"{session}: {len(record['frames'])} frames, {record['pre_label_boxes']} pre-label "
-            f"boxes -> {EXTRACTED_DIR / session}"
+        record = extract_session(
+            session, args.interval, args.min_change, select=args.select, per_class=args.per_class
         )
+        print(
+            f"{session}: {len(record['frames'])} of {record['candidates']} frames, "
+            f"{record['pre_label_boxes']} pre-label boxes -> {EXTRACTED_DIR / session}"
+        )
+        short = [
+            f"{name} ({k})"
+            for name, k in record["pre_label_boxes_per_class"].items()
+            if k < args.per_class
+        ]
+        if args.select and short:
+            print(f"  below {args.per_class} pre-labels: {', '.join(short)}")
     print(
         "\nNext: `dvc add data/recordings` (new .extract.json files), then "
         "`uv run --no-sync vm-upload` to send the frames to Roboflow."
