@@ -46,7 +46,9 @@ Estructura de salida (con --save):
 import argparse
 import json
 import os
+import queue
 import sys
+import threading
 import time
 import traceback
 from datetime import datetime
@@ -108,42 +110,84 @@ class SessionRecorder:
     El video sirve para reproducir sesiones reales offline con cualquier modelo;
     el jsonl permite medir el comportamiento del modelo en vivo (continuidad,
     cambios de ID) sin volver a correr nada.
+
+    La codificación del mp4 corre en un hilo aparte: codificar 1080p en el hilo
+    del loop le quitaba ~40 ms por frame (de ~17 a ~10 fps), y eso cambia lo que
+    se quiere medir (el tracker se comporta distinto a otros fps). La cola es
+    acotada y bloqueante: si el codificador se atrasa, el loop espera en vez de
+    descartar frames, así el frame N del mp4 siempre es la línea N del jsonl.
+    El jsonl se escribe en el hilo del loop, con el tiempo real de cada frame.
     """
+
+    QUEUE_FRAMES = 60  # ~180 MB de 1080p BGR como máximo en memoria
 
     def __init__(self, videos_dir: Path, session_id: str, fps: float) -> None:
         self.video_path = videos_dir / f"{session_id}.mp4"
         self.log_path = videos_dir / f"{session_id}.jsonl"
         self._fps = fps
-        self._writer: cv2.VideoWriter | None = None
+        self._queue: queue.Queue[np.ndarray | None] = queue.Queue(self.QUEUE_FRAMES)
+        self._thread: threading.Thread | None = None
+        self._error: BaseException | None = None
         # Vive toda la sesión; se cierra en close()
         self._log = open(self.log_path, "w", encoding="utf-8")  # noqa: SIM115
         self._t0 = time.monotonic()
+        self._last_t = 0.0
         self.frames = 0
+        self.waits = 0  # veces que el loop esperó al codificador (cola llena)
+
+    def _encode(self, size: tuple[int, int]) -> None:
+        writer = cv2.VideoWriter(
+            str(self.video_path), cv2.VideoWriter_fourcc(*"mp4v"), self._fps, size
+        )
+        try:
+            if not writer.isOpened():
+                raise RuntimeError(f"No se pudo abrir el VideoWriter: {self.video_path}")
+            while (frame := self._queue.get()) is not None:
+                writer.write(frame)
+        except BaseException as e:  # se re-lanza en el hilo del loop
+            self._error = e
+            while self._queue.get() is not None:  # vaciar para no bloquear al loop
+                pass
+        finally:
+            writer.release()
 
     def write(self, frame: np.ndarray, detections: list[CardDetection]) -> None:
-        if self._writer is None:
+        if self._error is not None:
+            raise RuntimeError(f"Falló la grabación del video: {self._error}")
+        if self._thread is None:
             h, w = frame.shape[:2]
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            self._writer = cv2.VideoWriter(
-                str(self.video_path), fourcc, self._fps, (w, h)
+            self._thread = threading.Thread(
+                target=self._encode, args=((w, h),), name="VideoEncoder", daemon=True
             )
-            if not self._writer.isOpened():
-                raise RuntimeError(
-                    f"No se pudo abrir el VideoWriter: {self.video_path}"
-                )
-        self._writer.write(frame)
+            self._thread.start()
+        # El frame no se copia: cada iteración del loop crea un bird_np nuevo y
+        # nadie lo modifica después.
+        try:
+            self._queue.put_nowait(frame)
+        except queue.Full:
+            self.waits += 1
+            self._queue.put(frame)
+        self._last_t = time.monotonic() - self._t0
         record = {
             "frame": self.frames,
-            "t": round(time.monotonic() - self._t0, 4),
+            "t": round(self._last_t, 4),
             "detections": [detection_to_dict(d) for d in detections],
         }
         self._log.write(json.dumps(record) + "\n")
         self.frames += 1
 
+    @property
+    def effective_fps(self) -> float:
+        """Frames por segundo reales del loop (el mp4 dice ``fps`` nominal)."""
+        return self.frames / self._last_t if self._last_t > 0 else 0.0
+
     def close(self) -> None:
-        if self._writer is not None:
-            self._writer.release()
+        if self._thread is not None:
+            self._queue.put(None)
+            self._thread.join()
         self._log.close()
+        if self._error is not None:
+            print(f"ERROR en la grabación del video: {self._error}", flush=True)
 
 
 def write_session_manifest(path: Path, manifest: dict) -> None:
@@ -296,7 +340,10 @@ def main():
         "--video-fps",
         type=float,
         default=30.0,
-        help="FPS nominal del mp4 (el tiempo real de cada frame va en el jsonl)",
+        help=(
+            "FPS nominal del mp4; los fps reales quedan en el manifiesto "
+            "y el tiempo de cada frame en el jsonl"
+        ),
     )
     parser.add_argument(
         "--e2e",
@@ -504,7 +551,9 @@ def main():
         if recorder is not None:
             recorder.close()
             print(
-                f"Video guardado: {recorder.video_path} ({recorder.frames} frames)",
+                f"Video guardado: {recorder.video_path} ({recorder.frames} frames, "
+                f"{recorder.effective_fps:.1f} fps reales; el loop esperó al "
+                f"codificador {recorder.waits} veces)",
                 flush=True,
             )
         if output_dir is not None:
@@ -516,6 +565,11 @@ def main():
                 manifest["video_frames"] = (
                     recorder.frames if recorder is not None else 0
                 )
+                if recorder is not None:
+                    # El mp4 lleva --video-fps (nominal); el tiempo real está en el jsonl
+                    manifest["video_fps_nominal"] = args.video_fps
+                    manifest["effective_fps"] = round(recorder.effective_fps, 2)
+                    manifest["encoder_waits"] = recorder.waits
                 write_session_manifest(manifest_path, manifest)
         if hw is not None:
             try:

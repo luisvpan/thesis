@@ -1,3 +1,5 @@
 /raw
 /prepared
 /recordings
+# vm-extract output: regenerable from data/recordings + <session>.extract.json
+/extracted

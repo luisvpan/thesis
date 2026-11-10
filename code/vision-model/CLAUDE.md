@@ -12,6 +12,8 @@ dvc repro                      # full pipeline: prepare -> train -> evaluate -> 
 dvc exp run -S <key>=<value>   # one experiment = one changed param
 dvc exp show                   # compare experiments
 uv run --no-sync vm-live-metrics <session>.jsonl --expected '{"one": 2}'
+uv run --no-sync vm-extract     # frames from data/recordings (new sessions only)
+uv run --no-sync vm-upload      # data/extracted -> Roboflow
 ```
 
 ## Validation
@@ -40,6 +42,9 @@ src/vision_model/
   evaluate.py            # operating conf on val, metrics on test -> reports/
   export.py              # ONNX + model_card.json -> models/export/
   live_metrics.py        # video metrics from cv-system session logs
+  recordings.py          # data/recordings + data/extracted layout
+  extract.py             # `vm-extract`: frames + pre-labels from recordings
+  upload.py              # `vm-upload`: extracted frames -> Roboflow (session metadata)
 remote/exp.py            # run a DVC experiment on a Modal GPU (`uv run --no-sync modal run remote/exp.py`)
 tests/
 ```

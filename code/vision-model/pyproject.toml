@@ -15,6 +15,7 @@ dependencies = [
   "onnx>=1.16.0",
   "onnxslim>=0.1.40",
   "onnxruntime>=1.20.0",  # Ultralytics needs it for ONNX export; else it pip-installs it at runtime
+  "requests>=2.31.0",     # vm-upload (Roboflow REST API; the roboflow SDK pulls opencv-python-headless)
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,8 @@ vm-train = "vision_model.train:main"
 vm-evaluate = "vision_model.evaluate:main"
 vm-export = "vision_model.export:main"
 vm-live-metrics = "vision_model.live_metrics:main"
+vm-extract = "vision_model.extract:main"
+vm-upload = "vision_model.upload:main"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.14.0"]

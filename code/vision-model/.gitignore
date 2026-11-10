@@ -5,6 +5,9 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Credentials (ROBOFLOW_API_KEY for vm-upload)
+.env
+
 # Ultralytics working directory and downloaded base checkpoints (yolo11s.pt, ...).
 # Everything worth keeping is copied to dvclive/, reports/ or models/export/.
 runs/
