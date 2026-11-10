@@ -3601,6 +3601,7 @@ dependencies = [
     { name = "onnxslim" },
     { name = "opencv-python" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "ultralytics" },
 ]
 
@@ -3643,6 +3644,7 @@ requires-dist = [
     { name = "onnxslim", specifier = ">=0.1.40" },
     { name = "opencv-python", specifier = ">=4.9.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "requests", specifier = ">=2.31.0" },
     { name = "rocm", extras = ["libraries"], marker = "sys_platform == 'win32' and extra == 'rocm'", specifier = "==7.2.1", index = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/", conflict = { package = "vision-model", extra = "rocm" } },
     { name = "rocm-sdk-core", marker = "sys_platform == 'win32' and extra == 'rocm'", specifier = "==7.2.1", index = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/", conflict = { package = "vision-model", extra = "rocm" } },
     { name = "rocm-sdk-devel", marker = "sys_platform == 'win32' and extra == 'rocm'", specifier = "==7.2.1", index = "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/", conflict = { package = "vision-model", extra = "rocm" } },

@@ -203,12 +203,31 @@ gh release create vision-$(jq -r .name models/export/model_card.json) models/exp
 
 ## Capturing new data
 
-Use the cv-system:
+Record a session with the cv-system, then pick frames from the recording:
 
 ```bash
-uv run --no-sync predict --save                 # pre-labeled images, only when the scene changes
-uv run --no-sync predict --record-video         # raw session video + per-frame detections
+# in code/cv-system: raw bird view (mp4) + per-frame detections (jsonl) + manifest (json)
+uv run --no-sync predict --record-video
+
+# copy videos/<session>.mp4, videos/<session>.jsonl and sessions/<session>.json
+# to code/vision-model/data/recordings/, then:
+uv run --no-sync vm-extract            # frames + pre-labels -> data/extracted/<session>/
+dvc add data/recordings && git add data/recordings.dvc && git commit -m "data: recording <session>"
+dvc push -j 1                          # one upload at a time: R2 fails on big videos otherwise
+uv run --no-sync vm-upload             # -> Roboflow, metadata session=<session>
 ```
+
+- `data/recordings/` (DVC) holds the recordings and, per session, the
+  `<session>.extract.json` written by `vm-extract`: which frames were chosen and
+  with which criteria (`--interval` seconds, `--min-change` scene change).
+- `data/extracted/` is git-ignored and not versioned: it is regenerable from
+  the recording and its `.extract.json`, and once uploaded the frames live in
+  Roboflow. Delete it whenever you like.
+- `vm-extract` skips sessions that already have an `.extract.json` (`--force`
+  redoes them). `vm-upload` resumes from `data/extracted/<session>/uploaded.json`.
+- `vm-upload` needs `ROBOFLOW_API_KEY` in the environment or in `.env` (git-ignored).
+  Pre-labels are uploaded with `addToDataset=false`: the images wait in the
+  annotation queue until reviewed (`--add-to-dataset` skips that).
 
 Pre-labels are the model's guesses. Review them before training, and look
 specially for **objects the model missed**: an unlabeled object teaches the
