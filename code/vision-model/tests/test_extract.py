@@ -1,9 +1,18 @@
 import json
+from collections import Counter
 
 import cv2
 import numpy as np
 
-from vision_model.extract import class_names, extract_session, read_log, scene_changed, yolo_lines
+from vision_model.extract import (
+    Candidate,
+    class_names,
+    extract_session,
+    read_log,
+    scene_changed,
+    select_frames,
+    yolo_lines,
+)
 from vision_model.recordings import extract_record_path, frame_stem, recorded_sessions
 
 
@@ -59,3 +68,40 @@ def test_extract_session(tmp_path):
     assert (out / session / "labels" / f"{stem}.txt").read_text().startswith("1 ")
     assert json.loads((out / session / "classes.json").read_text()) == {"1": "two"}
     assert class_names(read_log(rec / f"{session}.jsonl")) == {1: "two"}
+
+
+def test_select_frames_covers_classes_then_spreads_in_time():
+    cands = [Candidate(i, float(i), Counter({0: 1})) for i in range(10)]
+    cands.append(Candidate(10, 10.0, Counter({1: 2})))  # the only frame with class 1
+    chosen = select_frames(cands, n=3, per_class=1)
+    assert 10 in chosen  # coverage first
+    assert 0 in chosen  # first frame covers class 0
+    assert len(chosen) == 3
+    assert chosen[1] == 5  # then the frame farthest from 0 and 10
+
+
+def test_select_frames_keeps_all_when_n_is_large():
+    cands = [Candidate(i, float(i), Counter()) for i in range(4)]
+    assert select_frames(cands, n=10, per_class=5) == [0, 1, 2, 3]
+
+
+def test_extract_session_with_select(tmp_path):
+    rec, out = tmp_path / "rec", tmp_path / "out"
+    rec.mkdir()
+    session = "20261109_184859"
+    _write_recording(rec, session)
+    record = extract_session(
+        session, interval=0, min_change=0, recordings=rec, extracted=out, select=3
+    )
+    assert record["candidates"] == 12
+    assert len(record["frames"]) == 3
+    assert len(list((out / session / "images").glob("*.jpg"))) == 3
+    assert len(list((out / session / "labels").glob("*.txt"))) == 3
+
+
+def test_select_frames_does_not_starve_a_rare_class():
+    # many frames rich in common classes, one frame with a rare class alone
+    rich = [Candidate(i, float(i), Counter({0: 3, 1: 3, 2: 3})) for i in range(20)]
+    rare = Candidate(20, 20.0, Counter({9: 1}))
+    chosen = select_frames([*rich, rare], n=3, per_class=25)
+    assert 20 in chosen
