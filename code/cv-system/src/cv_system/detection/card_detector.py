@@ -15,10 +15,17 @@ import supervision as sv
 from cv_system.detection.model_card import ModelCard, load_model_card
 from cv_system.detection.preprocess import to_frame_coords, to_model_input
 from cv_system.detection.profiling import StageTimer
+from cv_system.flags import debug_enabled
 from cv_system.gpu_config import dml_device_id
 from cv_system.transform import RgbImageTransformer
 
 DEFAULT_CONF_THRESHOLD = 0.25
+
+# How long a track survives without detections (hand over a card, a flicker)
+# before a reappearing object gets a new ID. In seconds, not frames: ByteTrack
+# counts frames, so its frame budget is recomputed from the measured frame rate
+# (see _update_track_memory) and the memory does not change with the fps.
+TRACK_MEMORY_S = 1.5
 
 if TYPE_CHECKING:
     import onnxruntime as ort
@@ -168,7 +175,9 @@ class CardDetector:
         """ByteTrack tuned for card tracking with hand occlusion."""
         self._tracker = sv.ByteTrack(
             track_activation_threshold=0.20,  # Lower = easier to create tracks
-            lost_track_buffer=45,  # ~1.5s at 30fps to re-find lost tracks
+            # Initial budget, assuming 30 fps; replaced by the measured fps once
+            # frames arrive (_update_track_memory).
+            lost_track_buffer=round(TRACK_MEMORY_S * 30),
             minimum_matching_threshold=0.5,  # Lower IoU = tolerate more movement
             frame_rate=30,
         )
@@ -179,9 +188,32 @@ class CardDetector:
         with self._timer.stage("track"):
             return self._track_detections_untimed(sv_detections)
 
+    def _update_track_memory(self) -> None:
+        """Keep ByteTrack's lost-track budget at TRACK_MEMORY_S seconds.
+
+        ByteTrack drops a lost track after ``max_time_lost`` *frames*. With a fixed
+        budget, the memory in seconds would depend on the loop rate (45 frames are
+        1.5 s at 30 fps but 4.5 s at 10 fps). The rate is an exponential moving
+        average of the time between calls, so a single slow frame barely moves it.
+        """
+        now = time.perf_counter()
+        last = self.__dict__.get("_last_track_time")
+        self.__dict__["_last_track_time"] = now
+        if last is None:
+            return
+        dt = now - last
+        if dt <= 0 or dt > 2.0:  # first call after a pause: not a frame interval
+            return
+        fps = 1.0 / dt
+        ema = self.__dict__.get("_fps_ema")
+        ema = fps if ema is None else 0.9 * ema + 0.1 * fps
+        self.__dict__["_fps_ema"] = ema
+        self._tracker.max_time_lost = max(1, round(TRACK_MEMORY_S * ema))
+
     def _track_detections_untimed(
         self, sv_detections: sv.Detections
     ) -> list[CardDetection]:
+        self._update_track_memory()
         if len(sv_detections) == 0:
             self._tracker.update_with_detections(sv.Detections.empty())
             return self._collect_lost_detections()
@@ -216,15 +248,25 @@ class CardDetector:
         Returns:
             Annotated BGR image (numpy) in projector resolution and list of detections.
         """
-        # Run detection
-        if self._use_onnx:
-            detections = self._detect_onnx(rgb_bird)
-        else:
-            detections = self._detect_pytorch(rgb_bird)
+        # One download for the whole call (with OpenCL this also runs the queued
+        # warp). The backends and the drawing reuse the same numpy image.
+        with self._timer.stage("download"):
+            image = rgb_bird.get() if isinstance(rgb_bird, cv2.UMat) else rgb_bird
 
-        # Draw detections on numpy copy (lost tracks in amber, active in green)
+        if self._use_onnx:
+            detections = self._detect_onnx(image)
+        else:
+            detections = self._detect_pytorch(image)
+
+        # Boxes are drawn only when someone looks at them (CV_DEBUG=1, or predict,
+        # which sets draw=True); otherwise the plain frame is returned.
+        if not self.draw:
+            self._timer.frame_done()
+            return image, detections
+
+        # Draw on a copy (lost tracks in amber, active in green)
         with self._timer.stage("draw"):
-            annotated = rgb_bird.get().copy()
+            annotated = image.copy()
             for d in detections:
                 color = (0, 165, 255) if d.status == "lost" else (0, 220, 0)  # BGR
                 self._draw_detection(
@@ -233,6 +275,19 @@ class CardDetector:
 
         self._timer.frame_done()
         return annotated, detections
+
+    @property
+    def draw(self) -> bool:
+        """Draw boxes on the returned view. Default: CV_DEBUG. Set it to override."""
+        value = self.__dict__.get("_draw")
+        if value is None:
+            value = debug_enabled()
+            self.__dict__["_draw"] = value
+        return value
+
+    @draw.setter
+    def draw(self, value: bool) -> None:
+        self.__dict__["_draw"] = value
 
     def _detect_pytorch(self, image: cv2.UMat) -> list[CardDetection]:
         """Run detection using the PyTorch/ultralytics backend, then our ByteTrack."""
@@ -381,7 +436,7 @@ class CardDetector:
 
     @property
     def _timer(self) -> StageTimer:
-        """Per-stage timings (CV_PROFILE=1). Created lazily: some subclasses, such as
+        """Per-stage timings (CV_PROFILE). Created lazily: some subclasses, such as
         DmlCardDetector, do not call CardDetector.__init__."""
         timer = self.__dict__.get("_stage_timer")
         if timer is None:

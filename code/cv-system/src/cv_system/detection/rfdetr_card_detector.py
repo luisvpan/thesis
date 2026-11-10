@@ -77,11 +77,13 @@ class RFDETRCardDetector(CardDetector):
     def _detect_onnx(self, image: cv2.UMat) -> list[CardDetection]:
         """Run RF-DETR inference and decode (cx,cy,w,h) + logit outputs."""
         _, _, target_h, target_w = self._input_shape
-        orig_h, orig_w = image.get().shape[:2]
+        # CardDetector.detect passes a numpy image; accept a UMat too
+        image = image.get() if isinstance(image, cv2.UMat) else image
+        orig_h, orig_w = image.shape[:2]
 
         # --- Preprocess (same pipeline as YOLO) ---
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        resized = cv2.resize(rgb_image, (target_w, target_h)).get()
+        resized = cv2.resize(rgb_image, (target_w, target_h))
         normalized = resized.astype(np.float32) / 255.0
         batched = np.expand_dims(normalized.transpose(2, 0, 1), axis=0)
 

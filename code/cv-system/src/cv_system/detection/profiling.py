@@ -1,21 +1,22 @@
-"""Optional per-stage timing for the detectors, enabled with ``CV_PROFILE=1``.
+"""Optional per-stage timing, enabled with ``CV_PROFILE`` (see ``cv_system.flags``).
 
-Every ``CV_PROFILE_EVERY`` frames (default 60) it prints the average time of each
+Every N frames (``CV_PROFILE=1``: 60; ``CV_PROFILE=<N>``: N) it prints the average time of each
 stage and the real loop rate, so it is visible how much of a frame the detector
 takes and where (CPU stages vs the model on the GPU). Disabled, it costs nothing.
 """
 
 from __future__ import annotations
 
-import os
 import time
 from collections import defaultdict
 from collections.abc import Iterator
 from contextlib import contextmanager
 
+from cv_system.flags import DEFAULT_PROFILE_EVERY, profile_every
+
 
 def profiling_enabled() -> bool:
-    return os.getenv("CV_PROFILE", "").strip().lower() in ("1", "true", "yes", "on")
+    return profile_every() > 0
 
 
 class StageTimer:
@@ -29,7 +30,7 @@ class StageTimer:
         self.name = name
         self.scope = scope  # what the measured stages add up to, for the report
         self.enabled = profiling_enabled() if enabled is None else enabled
-        self.every = every or int(os.getenv("CV_PROFILE_EVERY", "60"))
+        self.every = every or profile_every() or DEFAULT_PROFILE_EVERY
         self._totals: dict[str, float] = defaultdict(float)
         self._frames = 0
         self._window_start = time.perf_counter()

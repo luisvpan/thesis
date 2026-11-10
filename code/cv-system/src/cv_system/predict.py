@@ -44,11 +44,8 @@ Estructura de salida (con --save):
 """
 
 import argparse
-import json
 import os
-import queue
 import sys
-import threading
 import time
 import traceback
 from datetime import datetime
@@ -67,134 +64,19 @@ from cv_system.detection import (
     RFDETRCardDetector,
 )
 from cv_system.hardware import HardwareError, HardwareManager, PyKinect2HardwareManager
+from cv_system.recording import (
+    RECORD_OUTPUT_DIR,
+    SessionRecorder,
+    detector_manifest,
+    finish_manifest,
+    new_session_id,
+    scene_changed,
+    scene_signature,
+    write_session_manifest,
+)
 from cv_system.transform.rgb_image_transformer import RgbImageTransformer
 
-PREDICT_OUTPUT_DIR = os.getenv("PREDICT_OUTPUT_DIR", "images/annotated")
-
-
-def new_session_id() -> str:
-    """ID de sesión legible y ordenable: YYYYMMDD_HHMMSS."""
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
-
-
-def scene_signature(frame: np.ndarray) -> np.ndarray:
-    """Huella barata de la escena: gris a baja resolución, para detectar cambios."""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    return cv2.resize(gray, (160, 90), interpolation=cv2.INTER_AREA).astype(np.float32)
-
-
-def scene_changed(
-    previous: np.ndarray | None, current: np.ndarray, threshold: float
-) -> bool:
-    """True si la diferencia media absoluta (0-255) supera el umbral. threshold<=0 la desactiva."""
-    if previous is None or threshold <= 0:
-        return True
-    return float(np.mean(np.abs(current - previous))) >= threshold
-
-
-def detection_to_dict(d: CardDetection) -> dict:
-    """Detección serializable para el registro por frame."""
-    return {
-        "class_id": d.class_id,
-        "label": d.label,
-        "confidence": round(d.confidence, 4),
-        "bbox_xyxy": [round(d.x1, 1), round(d.y1, 1), round(d.x2, 1), round(d.y2, 1)],
-        "track_id": d.track_id,
-        "status": d.status,
-    }
-
-
-class SessionRecorder:
-    """Graba el bird view crudo (mp4) y las detecciones de cada frame (jsonl).
-
-    El video sirve para reproducir sesiones reales offline con cualquier modelo;
-    el jsonl permite medir el comportamiento del modelo en vivo (continuidad,
-    cambios de ID) sin volver a correr nada.
-
-    La codificación del mp4 corre en un hilo aparte: codificar 1080p en el hilo
-    del loop le quitaba ~40 ms por frame (de ~17 a ~10 fps), y eso cambia lo que
-    se quiere medir (el tracker se comporta distinto a otros fps). La cola es
-    acotada y bloqueante: si el codificador se atrasa, el loop espera en vez de
-    descartar frames, así el frame N del mp4 siempre es la línea N del jsonl.
-    El jsonl se escribe en el hilo del loop, con el tiempo real de cada frame.
-    """
-
-    QUEUE_FRAMES = 60  # ~180 MB de 1080p BGR como máximo en memoria
-
-    def __init__(self, videos_dir: Path, session_id: str, fps: float) -> None:
-        self.video_path = videos_dir / f"{session_id}.mp4"
-        self.log_path = videos_dir / f"{session_id}.jsonl"
-        self._fps = fps
-        self._queue: queue.Queue[np.ndarray | None] = queue.Queue(self.QUEUE_FRAMES)
-        self._thread: threading.Thread | None = None
-        self._error: BaseException | None = None
-        # Vive toda la sesión; se cierra en close()
-        self._log = open(self.log_path, "w", encoding="utf-8")  # noqa: SIM115
-        self._t0 = time.monotonic()
-        self._last_t = 0.0
-        self.frames = 0
-        self.waits = 0  # veces que el loop esperó al codificador (cola llena)
-
-    def _encode(self, size: tuple[int, int]) -> None:
-        writer = cv2.VideoWriter(
-            str(self.video_path), cv2.VideoWriter_fourcc(*"mp4v"), self._fps, size
-        )
-        try:
-            if not writer.isOpened():
-                raise RuntimeError(f"No se pudo abrir el VideoWriter: {self.video_path}")
-            while (frame := self._queue.get()) is not None:
-                writer.write(frame)
-        except BaseException as e:  # se re-lanza en el hilo del loop
-            self._error = e
-            while self._queue.get() is not None:  # vaciar para no bloquear al loop
-                pass
-        finally:
-            writer.release()
-
-    def write(self, frame: np.ndarray, detections: list[CardDetection]) -> None:
-        if self._error is not None:
-            raise RuntimeError(f"Falló la grabación del video: {self._error}")
-        if self._thread is None:
-            h, w = frame.shape[:2]
-            self._thread = threading.Thread(
-                target=self._encode, args=((w, h),), name="VideoEncoder", daemon=True
-            )
-            self._thread.start()
-        # El frame no se copia: cada iteración del loop crea un bird_np nuevo y
-        # nadie lo modifica después.
-        try:
-            self._queue.put_nowait(frame)
-        except queue.Full:
-            self.waits += 1
-            self._queue.put(frame)
-        self._last_t = time.monotonic() - self._t0
-        record = {
-            "frame": self.frames,
-            "t": round(self._last_t, 4),
-            "detections": [detection_to_dict(d) for d in detections],
-        }
-        self._log.write(json.dumps(record) + "\n")
-        self.frames += 1
-
-    @property
-    def effective_fps(self) -> float:
-        """Frames por segundo reales del loop (el mp4 dice ``fps`` nominal)."""
-        return self.frames / self._last_t if self._last_t > 0 else 0.0
-
-    def close(self) -> None:
-        if self._thread is not None:
-            self._queue.put(None)
-            self._thread.join()
-        self._log.close()
-        if self._error is not None:
-            print(f"ERROR en la grabación del video: {self._error}", flush=True)
-
-
-def write_session_manifest(path: Path, manifest: dict) -> None:
-    """Escribe el manifiesto de la sesión (se reescribe al terminar con los conteos)."""
-    path.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+PREDICT_OUTPUT_DIR = os.getenv("PREDICT_OUTPUT_DIR", RECORD_OUTPUT_DIR)
 
 
 def detection_to_yolo_line(d: CardDetection, img_w: int, img_h: int) -> str:
@@ -440,6 +322,7 @@ def main():
         hw.shutdown()
         pause_before_exit()
         sys.exit(1)
+    detector.draw = True  # predict always shows the annotated view
 
     try:
         # Cada sesión numera desde 0: el ID de sesión ya hace único el nombre
@@ -451,12 +334,9 @@ def main():
         manifest = {
             "session_id": session_id,
             "started_at": datetime.now().isoformat(timespec="seconds"),
-            "model_path": str(model_path),
-            "detector": DetectorClass.__name__,
+            "source": "predict",
+            **detector_manifest(detector, model_path),  # conf: CLI > model card > 0.25
             "hardware": args.hardware,
-            "conf_threshold": detector._conf_threshold,  # effective: CLI > model card > 0.25
-            "model_card": str(detector._card.source) if detector._card.source else None,
-            "input_resize": detector._card.resize,
             "dml_device_id": os.getenv("DML_DEVICE_ID", "0"),  # ONNX/DirectML adapter
             "save": args.save,
             "interval_s": args.interval,
@@ -557,20 +437,12 @@ def main():
                 flush=True,
             )
         if output_dir is not None:
-            manifest_path = output_dir / "sessions" / f"{session_id}.json"
-            if manifest_path.exists():
-                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-                manifest["ended_at"] = datetime.now().isoformat(timespec="seconds")
-                manifest["images_saved"] = saved
-                manifest["video_frames"] = (
-                    recorder.frames if recorder is not None else 0
-                )
-                if recorder is not None:
-                    # El mp4 lleva --video-fps (nominal); el tiempo real está en el jsonl
-                    manifest["video_fps_nominal"] = args.video_fps
-                    manifest["effective_fps"] = round(recorder.effective_fps, 2)
-                    manifest["encoder_waits"] = recorder.waits
-                write_session_manifest(manifest_path, manifest)
+            finish_manifest(
+                output_dir / "sessions" / f"{session_id}.json",
+                recorder,
+                args.video_fps,
+                images_saved=saved,
+            )
         if hw is not None:
             try:
                 hw.shutdown()

@@ -13,6 +13,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 #TODO: add ONNX_GPU_ID to .env and use it in card_detector to select GPU (Fix 5: GPU selection)
@@ -21,18 +22,15 @@ load_dotenv()
 import cv2
 import numpy as np
 
-from cv_system.bridge import WebSocketBridge, TouchEvent
+from cv_system.bridge import TouchEvent, WebSocketBridge
 from cv_system.bridge.vision_ingest import post_card_batch_async
-from cv_system.config import load_config
 from cv_system.calibration.calibrator import Calibrator
 from cv_system.calibration.result import CalibrationResult
-from cv_system.detection import CARD_DETECTORS, detect_card_method, TouchMethod
-from cv_system.detection.profiling import StageTimer
-from cv_system.detection.touch_detector import TouchDetector
-from cv_system.detection.touch_detector_dml import DmlTouchDetector
-from cv_system.detection.espol_touch_detector import ESPOLTouchDetector
+from cv_system.config import load_config
+from cv_system.detection import CARD_DETECTORS, TouchMethod, detect_card_method
 from cv_system.detection.depth_only_touch_detector import DepthOnlyTouchDetector
 from cv_system.detection.direct_touch_detector import DIRECTTouchDetector
+from cv_system.detection.espol_touch_detector import ESPOLTouchDetector
 from cv_system.detection.farout_touch_detector import FarOutTouchDetector
 from cv_system.detection.mediapipe_direct_hybrid_touch_detector import (
     MediapipeDIRECTHybridTouchDetector,
@@ -40,12 +38,24 @@ from cv_system.detection.mediapipe_direct_hybrid_touch_detector import (
 from cv_system.detection.mediapipe_direct_hybrid_touch_detector_dml import (
     MediapipeDIRECTHybridTouchDetectorDml,
 )
+from cv_system.detection.profiling import StageTimer
+from cv_system.detection.touch_detector import TouchDetector
+from cv_system.detection.touch_detector_dml import DmlTouchDetector
+from cv_system.flags import debug_enabled
 from cv_system.hardware import HardwareError, HardwareManager, PyKinect2HardwareManager
+from cv_system.recording import (
+    RECORD_OUTPUT_DIR,
+    SessionRecorder,
+    detector_manifest,
+    finish_manifest,
+    new_session_id,
+    write_session_manifest,
+)
 from cv_system.transform import (
-    RgbImageTransformer,
     DepthCoordinateTransformer,
-    ResolutionMapper,
     PyKinect2ResolutionMapper,
+    ResolutionMapper,
+    RgbImageTransformer,
 )
 
 # Configure logging level from env var (DEBUG, INFO, WARNING, ERROR)
@@ -97,9 +107,15 @@ def get_touch_detector_type() -> TouchMethod:
 
 
 def debug_windows_enabled() -> bool:
-    """Show debug windows (cv2.imshow). Off by default; set CV_DEBUG_WINDOWS=1 to enable."""
-    v = os.getenv("CV_DEBUG_WINDOWS", "0").strip().lower()
-    return v in ("1", "true", "yes", "on")
+    """Show debug windows (cv2.imshow). Off by default; CV_DEBUG=1 (cv_system.flags)."""
+    return debug_enabled()
+
+
+def recording_enabled() -> bool:
+    """CV_RECORD=1: record the session (bird view mp4 + per-frame detections + manifest)
+    into images/annotated, as `predict --record-video` does. This is the recording to
+    use for evaluation: it is the real system (GPU warp, touch running, real fps)."""
+    return os.getenv("CV_RECORD", "0").strip().lower() in ("1", "true", "yes", "on")
 
 
 def run_websocket_client(bridge: WebSocketBridge) -> None:
@@ -163,6 +179,9 @@ def main() -> None:
     touch_executor = None
     card_executor = None
     frame_executor = None
+    recorder: SessionRecorder | None = None
+    record_manifest_path: Path | None = None
+    RECORD_VIDEO_FPS = 30.0  # nominal; the real rate goes to the manifest
     frame_count = 0
     start_time = time.time()
 
@@ -352,6 +371,30 @@ def main() -> None:
         card_detector = DetectorClass(rgb_image_transformer, model_path)
         print(f"  Card detector ({card_method}) initialized: {model_path}")
 
+        if recording_enabled():
+            session_id = new_session_id()
+            out = Path(RECORD_OUTPUT_DIR)
+            (out / "sessions").mkdir(parents=True, exist_ok=True)
+            (out / "videos").mkdir(parents=True, exist_ok=True)
+            record_manifest_path = out / "sessions" / f"{session_id}.json"
+            write_session_manifest(
+                record_manifest_path,
+                {
+                    "session_id": session_id,
+                    "source": "cv-system",
+                    "started_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    **detector_manifest(card_detector, model_path),
+                    "card_method": card_method,
+                    "hardware": type(hardware).__name__,
+                    "touch": touch_type if enable_touch else None,
+                    "dml_device_id": os.getenv("DML_DEVICE_ID", "0"),
+                    "debug": debug_windows_enabled(),
+                    "record_video": True,
+                },
+            )
+            recorder = SessionRecorder(out / "videos", session_id, RECORD_VIDEO_FPS)
+            print(f"  Recording session {session_id}: {recorder.video_path}")
+
         vision_cards_url = os.getenv(
             "VISION_CARDS_INGEST_URL",
             "http://127.0.0.1:8765/api/v1/vision/cards",
@@ -398,7 +441,7 @@ def main() -> None:
 
         start_time = time.time()
 
-        # Debug windows (controlled by CV_DEBUG_WINDOWS env var)
+        # Debug windows (controlled by CV_DEBUG env var)
         show_debug_windows = debug_windows_enabled()
         # Check if we have IR frame support (only PyKinect2HardwareManager)
         has_ir_support = isinstance(hardware, PyKinect2HardwareManager)
@@ -414,9 +457,9 @@ def main() -> None:
             if has_ir_support:
                 logger.info("IR frame support enabled (PyKinect2)")
 
-            logger.info("Debug windows enabled (CV_DEBUG_WINDOWS=1)")
+            logger.info("Debug windows enabled (CV_DEBUG=1)")
         else:
-            logger.info("Debug windows disabled (set CV_DEBUG_WINDOWS=1 to enable)")
+            logger.info("Debug windows disabled (set CV_DEBUG=1 to enable)")
 
         # Pre-allocate buffers for debug views (reused each frame)
         touch_debug_buffer = np.zeros((PROJ_H, PROJ_W, 3), dtype=np.uint8)
@@ -434,12 +477,30 @@ def main() -> None:
         def acquire_frames():
             return hardware.get_depth_frame(), hardware.get_rgb_frame()
 
+        def touch_job(depth, rgb, ir):
+            """Touch thread. The color-to-depth mapping is only used by touch, so it
+            runs here, in parallel with card detection, not before both."""
+            if isinstance(resolution_mapper, PyKinect2ResolutionMapper):
+                resolution_mapper.update_mapping(depth)
+            return detector.detect(depth, rgb, ir)
+
+        def card_job(bird):
+            """Card thread. When recording, download the bird view once and give the
+            same numpy frame to the detector and to the recorder."""
+            if recorder is None:
+                return card_detector.detect(bird)
+            frame = bird.get() if isinstance(bird, cv2.UMat) else bird
+            view, dets = card_detector.detect(frame)
+            recorder.write(frame, dets)
+            return view, dets
+
         # Initial frame acquisition
         depth_frame, rgb_frame = acquire_frames()
 
-        # CV_PROFILE=1: where the main thread spends each frame. Touch and card run in
-        # parallel threads, so "touch_wait" is the time until touch finished and
-        # "card_wait" is the extra time card detection needed after that.
+        # CV_PROFILE: where the main thread spends each frame. Touch and card run in
+        # parallel threads, so "touch_wait" is the time until touch finished
+        # (color-to-depth mapping included) and "card_wait" is the extra time card
+        # detection needed after that.
         loop_timer = StageTimer("main loop", scope="measured")
 
         while True:
@@ -450,11 +511,6 @@ def main() -> None:
                 next_frame_future = frame_executor.submit(acquire_frames)
 
                 t1 = time.perf_counter()
-
-                # Update color-to-depth mapping for PyKinect2 (must be done per-frame)
-                with loop_timer.stage("mapping"):
-                    if isinstance(resolution_mapper, PyKinect2ResolutionMapper):
-                        resolution_mapper.update_mapping(depth_frame)
 
                 # Fix 1: Do warp ONCE and share with both detectors (UMat stays on GPU).
                 # With OpenCL this only queues the warp; it runs when the card thread
@@ -475,13 +531,13 @@ def main() -> None:
                 if enable_touch and touch_executor is not None and detector is not None:
                     # TouchDetector uses depth frame + raw RGB + optional IR for correction
                     touch_future = touch_executor.submit(
-                        detector.detect, depth_frame, rgb_frame, ir_frame
+                        touch_job, depth_frame, rgb_frame, ir_frame
                     )
 
                 card_future = None
                 t_card_submit = t2  # For timing card from submission
                 
-                card_future = card_executor.submit(card_detector.detect, rgb_bird)
+                card_future = card_executor.submit(card_job, rgb_bird)
                 t_card_submit = time.perf_counter()
 
                 # Now wait for results (they run in parallel)
@@ -646,6 +702,17 @@ def main() -> None:
             if ws_thread is not None:
                 ws_thread.join(timeout=12)
             print("  WebSocket stopped")
+
+        if recorder is not None:
+            if card_executor is not None:
+                card_executor.shutdown(wait=True)  # last frame written before closing
+            recorder.close()
+            if record_manifest_path is not None:
+                finish_manifest(record_manifest_path, recorder, RECORD_VIDEO_FPS)
+            print(
+                f"  Recording saved: {recorder.video_path} ({recorder.frames} frames, "
+                f"{recorder.effective_fps:.1f} fps, encoder waits: {recorder.waits})"
+            )
 
         if hardware is not None:
             hardware.shutdown()
