@@ -1,6 +1,6 @@
 """Pick frames from session recordings for labeling (`vm-extract`).
 
-Frames are chosen the way ``predict --save`` chose them live: at most one every
+Frames are chosen the way the old ``predict --save`` chose them: at most one every
 ``--interval`` seconds (recording time, from the log), and only if the scene
 changed by at least ``--min-change`` (mean absolute difference, 0-255, on a
 160x90 grayscale thumbnail) since the last frame kept. Each frame gets the
@@ -78,7 +78,7 @@ def class_names(frames: list[FrameLog]) -> dict[int, str]:
 
 
 def scene_signature(frame_bgr: np.ndarray) -> np.ndarray:
-    """Cheap scene fingerprint; same as cv-system's predict."""
+    """Cheap scene fingerprint: grayscale thumbnail."""
     import cv2
 
     gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)

@@ -1,4 +1,4 @@
-"""Video-level metrics from a cv-system session log (``predict --record-video``).
+"""Video-level metrics from a cv-system session log (``CV_RECORD=1``).
 
 The ``.jsonl`` log has one line per frame with the detections the LIVE model
 produced. These metrics describe how that model behaved over time, which
@@ -90,7 +90,7 @@ def compute(frames: list[dict], expected: dict[str, int] | None = None) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Video-level metrics from a session log")
-    parser.add_argument("log", type=Path, help="<session>.jsonl from predict --record-video")
+    parser.add_argument("log", type=Path, help="<session>.jsonl recorded by the cv-system (CV_RECORD=1)")
     parser.add_argument(
         "--expected",
         type=str,

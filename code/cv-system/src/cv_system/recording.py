@@ -1,4 +1,4 @@
-"""Session recording, shared by the cv-system (``CV_RECORD=1``) and ``predict``.
+"""Session recording of the cv-system (``CV_RECORD=1``).
 
 A session writes, under an output directory (``images/annotated`` by default)::
 
@@ -7,7 +7,8 @@ A session writes, under an output directory (``images/annotated`` by default)::
     sessions/<session>.json   manifest: model, threshold, effective fps, ...
 
 vision-model copies these to ``data/recordings`` and picks frames with
-``vm-extract``. Frame N of the mp4 is always line N of the jsonl.
+``vm-extract``. Frame N of the mp4 is always line N of the jsonl, and each is
+one new camera frame (repeated color frames are not recorded; see main.py).
 """
 
 from __future__ import annotations
@@ -32,21 +33,6 @@ RECORD_OUTPUT_DIR = "images/annotated"
 def new_session_id() -> str:
     """ID de sesión legible y ordenable: YYYYMMDD_HHMMSS."""
     return datetime.now().strftime("%Y%m%d_%H%M%S")
-
-
-def scene_signature(frame: np.ndarray) -> np.ndarray:
-    """Huella barata de la escena: gris a baja resolución, para detectar cambios."""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    return cv2.resize(gray, (160, 90), interpolation=cv2.INTER_AREA).astype(np.float32)
-
-
-def scene_changed(
-    previous: np.ndarray | None, current: np.ndarray, threshold: float
-) -> bool:
-    """True si la diferencia media absoluta (0-255) supera el umbral. threshold<=0 la desactiva."""
-    if previous is None or threshold <= 0:
-        return True
-    return float(np.mean(np.abs(current - previous))) >= threshold
 
 
 def detection_to_dict(d: CardDetection) -> dict:

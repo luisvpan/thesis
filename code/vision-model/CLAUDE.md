@@ -72,9 +72,10 @@ tests/
 
 ## Contract with cv-system
 
-- cv-system writes session data: `predict --save` (images + pre-labels named
-  `predict_<YYYYMMDD_HHMMSS>_<index>`), `predict --record-video`
-  (`videos/<session>.mp4` + `.jsonl`), `sessions/<session>.json` manifests.
+- cv-system writes session data with `CV_RECORD=1`: `videos/<session>.mp4` +
+  `.jsonl` (one line per new camera frame) and `sessions/<session>.json`
+  manifests. The old `predict` tool is gone; its `predict_<YYYYMMDD_HHMMSS>_<index>`
+  images remain in old data.
 - vision-model delivers `models/export/` (`model.onnx`, `model.pt`,
   `model_card.json`). `model_card.json` is the interface: class names, input
   size, preprocessing, `conf_threshold`. Changing its schema is a breaking

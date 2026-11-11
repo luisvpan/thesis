@@ -14,6 +14,7 @@ import cv2
 import numpy as np
 
 from cv_system.config import CameraConfig
+from cv_system.hardware.frame_clock import FrameClock
 from cv_system.hardware.manager import HardwareError
 
 # Add pykinect2 fork to path if not already installed
@@ -40,6 +41,7 @@ class PyKinect2HardwareManager:
         self._last_depth: np.ndarray | None = None
         self._last_color: np.ndarray | None = None
         self._last_ir: np.ndarray | None = None
+        self._color_clock = FrameClock()
 
     def initialize(self, config: CameraConfig) -> None:
         """
@@ -105,6 +107,16 @@ class PyKinect2HardwareManager:
 
         raise HardwareError("Timeout waiting for initial depth frame")
 
+    @property
+    def rgb_frame_index(self) -> int:
+        """+1 per new color frame from the camera (see hardware/frame_clock.py)."""
+        return self._color_clock.index
+
+    @property
+    def rgb_frame_age_s(self) -> float:
+        """Seconds since the last new color frame (inf before the first)."""
+        return self._color_clock.age_s
+
     def get_rgb_frame(self) -> cv2.UMat:
         """
         Capture and return an RGB frame.
@@ -126,6 +138,7 @@ class PyKinect2HardwareManager:
                 color = frame.reshape((1080, 1920, 4))
                 color = cv2.cvtColor(color, cv2.COLOR_BGRA2BGR)
                 self._last_color = cv2.flip(color, 0)
+                self._color_clock.tick()
 
         # If we have a cached frame, return it as UMat
         if self._last_color is not None:
@@ -141,6 +154,7 @@ class PyKinect2HardwareManager:
                     color = frame.reshape((1080, 1920, 4))
                     color = cv2.cvtColor(color, cv2.COLOR_BGRA2BGR)
                     self._last_color = cv2.flip(color, 0)
+                    self._color_clock.tick()
                     return cv2.UMat(self._last_color)
             time.sleep(0.001)
 

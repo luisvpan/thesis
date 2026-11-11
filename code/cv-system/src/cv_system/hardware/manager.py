@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 
 from cv_system.config import CameraConfig
+from cv_system.hardware.frame_clock import FrameClock
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ class HardwareManager:
         self.rgb_stream: Optional[VideoStream] = None
         self.camera_config: Optional[CameraConfig] = None
         self._initialized: bool = False
+        self._color_clock = FrameClock()
 
     def initialize(self, config: CameraConfig) -> None:
         """
@@ -197,6 +199,16 @@ class HardwareManager:
         except Exception as e:
             raise HardwareError(f"Failed to capture depth frame: {e}") from e
 
+    @property
+    def rgb_frame_index(self) -> int:
+        """+1 per new color frame from the camera (see hardware/frame_clock.py)."""
+        return self._color_clock.index
+
+    @property
+    def rgb_frame_age_s(self) -> float:
+        """Seconds since the last new color frame (inf before the first)."""
+        return self._color_clock.age_s
+
     def get_rgb_frame(self) -> cv2.UMat:
         """Capture and return an RGB frame as UMat (GPU memory).
 
@@ -229,6 +241,8 @@ class HardwareManager:
             # rgb_umat = cv2.flip(rgb_umat, 0) # flip vertically
             rgb_umat = cv2.cvtColor(rgb_umat, cv2.COLOR_RGB2BGR)
 
+            # read_frame() blocks until a new frame: every read is a new one
+            self._color_clock.tick()
             return rgb_umat
         except Exception as e:
             raise HardwareError(f"Failed to capture RGB frame: {e}") from e

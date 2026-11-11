@@ -182,6 +182,9 @@ def main() -> None:
     recorder: SessionRecorder | None = None
     record_manifest_path: Path | None = None
     RECORD_VIDEO_FPS = 30.0  # nominal; the real rate goes to the manifest
+    COLOR_STALL_S = 1.0  # warn when the camera sends no new color frame for this long
+    repeated_color_frames = 0  # loop iterations whose color frame was not new
+    max_color_gap_s = 0.0
     frame_count = 0
     start_time = time.time()
 
@@ -475,7 +478,11 @@ def main() -> None:
 
         # Helper for frame acquisition (Fix 2: pipeline)
         def acquire_frames():
-            return hardware.get_depth_frame(), hardware.get_rgb_frame()
+            """Depth, color and the color frame's index (+1 per new camera frame;
+            see hardware/frame_clock.py). Read in the same thread as the frame, so
+            the index belongs to it."""
+            depth, rgb = hardware.get_depth_frame(), hardware.get_rgb_frame()
+            return depth, rgb, getattr(hardware, "rgb_frame_index", None)
 
         def touch_job(depth, rgb, ir):
             """Touch thread. The color-to-depth mapping is only used by touch, so it
@@ -495,7 +502,14 @@ def main() -> None:
             return view, dets
 
         # Initial frame acquisition
-        depth_frame, rgb_frame = acquire_frames()
+        depth_frame, rgb_frame, rgb_index = acquire_frames()
+        # Index of the last color frame given to card detection. The camera can be
+        # slower than the loop (Kinect: 30 fps, 15 in low light) or stall; then
+        # get_rgb_frame() repeats the last frame, and a repeated frame must not
+        # reach the tracker (it would count as another frame of evidence) nor the
+        # recording (one video frame = one camera frame).
+        last_card_rgb_index: int | None = None
+        color_stall_warned = False
 
         # CV_PROFILE: where the main thread spends each frame. Touch and card run in
         # parallel threads, so "touch_wait" is the time until touch finished
@@ -537,8 +551,26 @@ def main() -> None:
                 card_future = None
                 t_card_submit = t2  # For timing card from submission
                 
-                card_future = card_executor.submit(card_job, rgb_bird)
+                color_is_new = rgb_index is None or rgb_index != last_card_rgb_index
+                if color_is_new:
+                    card_future = card_executor.submit(card_job, rgb_bird)
+                    last_card_rgb_index = rgb_index
+                else:
+                    repeated_color_frames += 1
                 t_card_submit = time.perf_counter()
+
+                color_gap = getattr(hardware, "rgb_frame_age_s", 0.0)
+                if color_gap != float("inf"):
+                    max_color_gap_s = max(max_color_gap_s, color_gap)
+                if color_gap > COLOR_STALL_S and not color_stall_warned:
+                    logger.warning(
+                        f"No new color frame from the camera for {color_gap:.1f}s: "
+                        "the color stream stalled (cards are not being updated)"
+                    )
+                    color_stall_warned = True
+                elif color_gap <= COLOR_STALL_S and color_stall_warned:
+                    logger.warning("Color frames are arriving again")
+                    color_stall_warned = False
 
                 # Now wait for results (they run in parallel)
                 if touch_future is not None:
@@ -664,7 +696,7 @@ def main() -> None:
                 # Fix 2: Get next frame (should be ready by now)
                 t5 = time.perf_counter()
                 with loop_timer.stage("acquire_wait"):
-                    depth_frame, rgb_frame = next_frame_future.result()
+                    depth_frame, rgb_frame, rgb_index = next_frame_future.result()
                 t6 = time.perf_counter()
                 loop_timer.frame_done()
                 logger.debug(f"[FPS: {frame_count / elapsed:.1f}] submit={1000*(t1-t0):.1f}ms warp={1000*(t2-t1):.1f}ms touch={1000*(t_touch-t2):.1f}ms card={card_time_ms:.1f}ms(wait={card_wait_ms:.1f}ms) acq={1000*(t6-t5):.1f}ms")
@@ -708,7 +740,14 @@ def main() -> None:
                 card_executor.shutdown(wait=True)  # last frame written before closing
             recorder.close()
             if record_manifest_path is not None:
-                finish_manifest(record_manifest_path, recorder, RECORD_VIDEO_FPS)
+                finish_manifest(
+                    record_manifest_path,
+                    recorder,
+                    RECORD_VIDEO_FPS,
+                    # Loop iterations without a new camera frame (not recorded)
+                    repeated_frames=repeated_color_frames,
+                    max_color_gap_s=round(max_color_gap_s, 2),
+                )
             print(
                 f"  Recording saved: {recorder.video_path} ({recorder.frames} frames, "
                 f"{recorder.effective_fps:.1f} fps, encoder waits: {recorder.waits})"

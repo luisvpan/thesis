@@ -170,7 +170,7 @@ Image level (`reports/metrics.json`, `reports/per_class.csv`):
 - **operating_conf**: the confidence that maximizes mean F1 **on val**. This is
   the threshold the cv-system must use. It is never tuned on test.
 
-Video level (`vm-live-metrics`, from `predict --record-video` logs):
+Video level (`vm-live-metrics`, from the session logs of `CV_RECORD=1`):
 
 - **continuity**: in a static scene with known contents, fraction of frames in
   which each object is detected. 1.0 = no flicker.
@@ -207,7 +207,8 @@ Record a session with the cv-system, then pick frames from the recording:
 
 ```bash
 # in code/cv-system: raw bird view (mp4) + per-frame detections (jsonl) + manifest (json)
-uv run --no-sync predict --record-video
+# from the real system (GPU warp, touch on, real fps). Stop it with Ctrl+C.
+$env:CV_RECORD=1; uv run cv-stack       # or CV_RECORD=1 in .env
 
 # copy videos/<session>.mp4, videos/<session>.jsonl and sessions/<session>.json
 # to code/vision-model/data/recordings/, then:
@@ -248,5 +249,5 @@ model that it is background.
 - [ ] Roboflow: review the `predict_*` pre-labels (missing boxes), label the
       unannotated images, tag the 2026-05-28 bulk upload by session if possible.
 - [ ] Ground truth for moving-object clips (track IDs) to compute IDF1/HOTA.
-- [ ] Hard-example capture in `predict`: also save frames with low confidence
+- [ ] Hard-example selection in `vm-extract`: also pick frames with low confidence
       or lost tracks.

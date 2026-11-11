@@ -258,8 +258,8 @@ class CardDetector:
         else:
             detections = self._detect_pytorch(image)
 
-        # Boxes are drawn only when someone looks at them (CV_DEBUG=1, or predict,
-        # which sets draw=True); otherwise the plain frame is returned.
+        # Boxes are drawn only when someone looks at them (CV_DEBUG=1, or a caller
+        # that sets draw=True); otherwise the plain frame is returned.
         if not self.draw:
             self._timer.frame_done()
             return image, detections

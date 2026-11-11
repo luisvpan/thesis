@@ -33,8 +33,6 @@ cv-system = "cv_system.main:main"
 cv-ide-relay = "cv_system.bridge.ide_relay_server:run"
 cv-stack = "cv_system.launch_stack:main"
 capture = "cv_system.capture:main"
-predict = "cv_system.predict:main"
-upload-roboflow = "cv_system.upload_to_roboflow:main"
 
 [project.optional-dependencies]
 # AMD/Intel/NVIDIA on Windows via DirectX 12 (pip install torch-directml torchvision)

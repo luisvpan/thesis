@@ -1,6 +1,6 @@
 """Where session recordings and extracted frames live.
 
-A recording is what ``predict --record-video`` writes for one capture session,
+A recording is what the cv-system writes with ``CV_RECORD=1`` for one session,
 copied flat into ``data/recordings`` (DVC-tracked)::
 
     data/recordings/<session>.mp4            raw bird view, one frame per loop iteration
