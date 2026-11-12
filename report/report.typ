@@ -778,12 +778,6 @@ Persisten, sin embargo, tres clases de errores. Los errores de disposición pert
 
 Los errores, además, son locales: un error afecta solo a las salidas que dependen de la carta que lo causa, y el resto del programa sigue evaluándose y mostrando sus resultados. Así, un programa a medio construir avanza hasta donde es posible. En la @soft-failure-figure, la suma muestra su resultado, mientras que la resta, a la que le falta una carta, señala el error en su salida.
 
-#figure(
-  image("images/soft-failure.jpg", width: 80%),
-  caption: [
-    Error local: la suma conserva su resultado mientras la resta, incompleta, señala el error en su salida.
-  ],
-) <soft-failure-figure>
 
 ==== Dominio de valores
 
@@ -993,26 +987,62 @@ Con este prototipo, revisado con el tutor, se obtuvo por primera vez una experie
 
 La primera evolución se centró en la detección de toques. Hasta entonces se había explorado la detección basada únicamente en la imagen de profundidad, en la línea de #cite(<wilson2010>, form: "prose"). Se incorporó entonces un detector híbrido que combina el algoritmo DIRECT #cite(<xiao2016>), que decide si existe un toque a partir de la imagen de profundidad y de la imagen infrarroja del sensor, mediante relleno por inundación, zonas e histéresis, con el modelo de detección de manos Hand Landmarker de MediaPipe #cite(<lugaresi2019>), que aporta la posición precisa de la punta del dedo índice cuando DIRECT detecta un contacto. Esta combinación separa la decisión de si existe un toque de la estimación de dónde ocurre, aprovechando la robustez del sensor de profundidad y la precisión de la estimación visual de la mano. En esta evolución se regresó, además, de forma definitiva al Kinect v2, el sensor que emplea la versión final del ambiente. Se creó también una bifurcación (_fork_) de PyKinect2, modificada para hacerla compatible con Python 3.8 o superior, y se probó como alternativa a OpenNI2 para acceder al sensor mediante el Kinect for Windows SDK 2.0. En las pruebas se percibió que el ambiente funcionaba de forma más fluida, por lo que se mantuvo PyKinect2 como forma de acceso al sensor.
 //TODO: el esqueleto anotaba que la detección se hizo "más eficiente" y mencionaba un "<segundo vídeo>" asociado a la primera valoración positiva del tutor. La mejora de eficiencia no está cuantificada en el repositorio (no hay _benchmarks_ ni mediciones de latencia versionadas) y no existe rastro del material audiovisual ni del _feedback_ del tutor; añadir y respaldar a mano.
+// TODO: agregar figura de la evolución 1 (detector híbrido de toques). Pendiente de imagen.
 
 ==== Evolución 2
 
-La segunda evolución comprendió dos mejoras. En la calibración, se generalizó la homografía de cuatro puntos a una de nueve, dispuestos en una rejilla de tres por tres y resuelta por mínimos cuadrados mediante `cv2.findHomography` #cite(<hartley2003>), con el fin de mejorar la precisión del mapeo entre la cámara y la superficie proyectada. Las coordenadas de la cámara de color se llevan al espacio de la imagen de profundidad mediante el mapeo de coordenadas del Kinect for Windows SDK 2.0, que constituye una fuente adicional de error de la calibración. En cuanto a las piezas físicas, se amplió el repertorio del mazo más allá de las cartas, incorporando tapas, paletas y cubos como piezas tangibles adicionales reconocibles por el subsistema de visión, enriqueciendo la experiencia del usuario al interactuar con el enfoque concreto-pictórico-abstracto de forma más directa, con representaciones más fieles a lo propuesto por #cite(<bruner1966>, form: "prose"). Para reconocerlas, el modelo de detección se reentrenó con estas piezas.
+La segunda evolución comprendió dos mejoras. En la calibración, se generalizó la homografía de cuatro puntos a una de nueve, dispuestos en una rejilla de tres por tres y resuelta por mínimos cuadrados mediante `cv2.findHomography` #cite(<hartley2003>), con el fin de mejorar la precisión del mapeo entre la cámara y la superficie proyectada. Las coordenadas de la cámara de color se llevan al espacio de la imagen de profundidad mediante el mapeo de coordenadas del Kinect for Windows SDK 2.0, que constituye una fuente adicional de error de la calibración. En cuanto a las piezas físicas, se amplió el repertorio del mazo más allá de las cartas, incorporando tapas, paletas y cubos como piezas tangibles adicionales reconocibles por el subsistema de visión, enriqueciendo la experiencia del usuario al interactuar con el enfoque concreto-pictórico-abstracto de forma más directa, con representaciones más fieles a lo propuesto por #cite(<bruner1966>, form: "prose"). Para reconocerlas, el modelo de detección se reentrenó con estas piezas. La @second-evolution-figure muestra ambas mejoras.
 //TODO: el cambio a nueve puntos está respaldado por la configuración del código (rejilla 3×3 por defecto en `config.py`), pero la mejora de precisión no está medida cuantitativamente.
+
+#figure(
+  grid(
+    columns: 2,
+    column-gutter: 1em,
+    row-gutter: 0.4em,
+    align: center + bottom,
+    image("images/um-calibracion.jpg", width: 100%), image("images/um-mazo-1.jpg", width: 100%),
+    [(a)], [(b)],
+  ),
+  caption: [
+    Evolución 2: rejilla de nueve marcadores proyectada durante la calibración (a) y objetos concretos incorporados al mazo: tapas, cubos y paletas (b).
+  ],
+) <second-evolution-figure>
 
 ==== Evolución 3
 
-La tercera evolución consistió en una extensión del lenguaje, reflejada en la especificación formal presentada en el #link(<appendix-spec>)[Apéndice B]. Se incorporaron cartas de grupos, que agrupan varios objetos en una sola colección; cartas de manipulación de grupos —primero (`first`), último (`last`) y contar (`count`)—; y la operación de comparación (`compare`). Asimismo, las operaciones de filtrado y ordenamiento, ya presentes en versiones anteriores del lenguaje, se reforzaron con un sistema de criterios que permite filtrar y ordenar las colecciones según propiedades como el color, el tamaño o la forma de los objetos.
+La tercera evolución consistió en una extensión del lenguaje, reflejada en la especificación formal presentada en el #link(<appendix-spec>)[Apéndice B]. Se incorporaron cartas de grupos, que agrupan varios objetos en una sola colección; cartas de manipulación de grupos —primero (`first`), último (`last`) y contar (`count`)—; y la operación de comparación (`compare`). Asimismo, las operaciones de filtrado y ordenamiento, ya presentes en versiones anteriores del lenguaje, se reforzaron con un sistema de criterios que permite filtrar y ordenar las colecciones según propiedades como el color, el tamaño o la forma de los objetos. La @third-evolution-figure muestra un grupo y un criterio en uso.
 //TODO: precisar, de ser necesario, que las operaciones de filtrado (`filter`) y ordenamiento (`order_asc`/`order_desc`) ya existían en el lenguaje desde prototipos anteriores; lo introducido en esta evolución es el sistema de criterios (gramática v4.0.0) y las operaciones `first`/`last`/`count`/`compare` (gramática v4.1.0).
+
+#figure(
+  image("images/um-ejemplo-b.jpg", width: 80%),
+  caption: [
+    Evolución 3: un grupo de comidas, delimitado por las cartas de apertura y cierre, conectado a la operación de filtrado con el criterio de color rojo.
+  ],
+) <third-evolution-figure>
 
 ==== Evolución 4
 
 La cuarta evolución reconstruyó el lenguaje sobre una especificación formal. La especificación, que hasta entonces se limitaba a la gramática, pasó a definir también la semántica, y el modelo de datos basado en objetos CPA con cantidades se formalizó como un modelo de bolsas: colecciones que conservan cada objeto colocado sobre la mesa y que denotan un vector de cantidades racionales. El intérprete se reescribió para ajustarse a esa especificación, que desde entonces es la referencia del comportamiento del lenguaje y que, en su versión 1.0.0, se presenta en el #link(<appendix-spec>)[Apéndice B].
 
-Con esta reconstrucción se fijaron también dos reglas. Un error estático afecta solo a las salidas en cuyo camino se encuentra la carta culpable, de modo que un programa a medio construir sigue mostrando los resultados que sí puede calcular. Y las operaciones que ordenan, comparan con un umbral o escalan dejan de agrupar los números, lo que permite, por ejemplo, ordenar varias cartas de dígitos en lugar de sumarlas.
+Con esta reconstrucción se fijaron también dos reglas. Un error estático afecta solo a las salidas en cuyo camino se encuentra la carta culpable, de modo que un programa a medio construir sigue mostrando los resultados que sí puede calcular. Y las operaciones que ordenan, comparan con un umbral o escalan dejan de agrupar los números, lo que permite, por ejemplo, ordenar varias cartas de dígitos en lugar de sumarlas. La @soft-failure-figure muestra esta regla en funcionamiento.
+
+#figure(
+  image("images/soft-failure.jpg", width: 80%),
+  caption: [
+    Evolución 4, error local: la suma conserva su resultado mientras la resta, incompleta, señala el error en su salida.
+  ],
+) <soft-failure-figure>
 
 ==== Evolución 5
 
-La quinta evolución, posterior a la valoración del experto en medios didácticos, se centró en la retroalimentación, uno de los aspectos que este señaló como mejorables. Los mensajes de error pasaron a mostrarse en la carta de salida afectada, a nombrar la carta que causa el error y a indicar qué hacer para corregirlo, mientras el lienzo señala esa carta y su ubicación. Las cantidades fraccionarias comenzaron a dibujarse como objetos incompletos, por ejemplo media manzana, y los resultados se redactan con concordancia gramatical, de modo que tanto el texto como la lectura en voz alta dicen "3 manzanas rojas" y no "3 manzanas rojo". La síntesis de voz, además, pasó a ejecutarse localmente en el navegador. La retroalimentación sonora, sin embargo, sigue siendo parcial, pues aún faltan las señales de reconocimiento, advertencia y error.
+La quinta evolución, posterior a la valoración del experto en medios didácticos, se centró en la retroalimentación, uno de los aspectos que este señaló como mejorables. Los mensajes de error pasaron a mostrarse en la carta de salida afectada, a nombrar la carta que causa el error y a indicar qué hacer para corregirlo, mientras el lienzo señala esa carta y su ubicación. Las cantidades fraccionarias comenzaron a dibujarse como objetos incompletos, por ejemplo media manzana, y los resultados se redactan con concordancia gramatical, de modo que tanto el texto como la lectura en voz alta dicen "3 manzanas rojas" y no "3 manzanas rojo". La síntesis de voz, además, pasó a ejecutarse localmente en el navegador. La retroalimentación sonora, sin embargo, sigue siendo parcial, pues aún faltan las señales de reconocimiento, advertencia y error. La @fifth-evolution-figure muestra un error presentado de esta forma.
+
+#figure(
+  image("images/um-error-distintivo.jpg", width: 80%),
+  caption: [
+    Evolución 5: al dividir entre cero, el lienzo señala la carta que causa el error y la carta de salida explica qué ocurrió.
+  ],
+) <fifth-evolution-figure>
 
 == Validar el Ambiente de Programación Tangible con Realidad Aumentada Espacial Orientado a Niños entre 6 y 9 años Construido
 
@@ -2415,17 +2445,94 @@ Este manual está dirigido a quien instale, mantenga o extienda el ambiente de p
 
 == 1. Descripción general
 
-// TODO: propósito del ambiente y sus componentes físicos y lógicos, en pocas líneas; remitir al Capítulo IV para el diseño.
+El ambiente de programación tangible con realidad aumentada espacial permite construir programas del lenguaje ERAE disponiendo piezas físicas sobre una mesa y enlazándolas mediante toques sobre la superficie, mientras un proyector muestra sobre esa misma mesa el programa reconocido y sus resultados. Físicamente, se compone de la mesa, un proyector y un sensor Kinect v2 montados en posición cenital sobre ella, un computador y el conjunto de piezas (objetos concretos y cartas). Lógicamente, se compone de tres subsistemas: el subsistema de visión por computador, escrito en Python, que reconoce las piezas y los toques; el servidor de relevo, también en Python, que reenvía esas detecciones al navegador; y la interfaz web, escrita en TypeScript, que representa el programa como un grafo y lo ejecuta con el intérprete del lenguaje ERAE embebido en ella. El diseño de cada subsistema y las decisiones que lo motivaron se describen en el Capítulo IV.
+
+Todo el código fuente se encuentra en un único repositorio, organizado como se muestra en la @repo-structure-table.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, 1fr),
+      align: (left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(2), [*Directorio*], [*Contenido*]),
+      [`code/cv-system`], [Subsistema de visión por computador y servidor de relevo (Python, gestionado con uv). Incluye la configuración de la sesión (`config/session.json`), las pruebas (`tests/`) y los registros de decisiones de arquitectura (`docs/adr/`).],
+      [`code/pykinect2`], [Bifurcación propia de PyKinect2, adaptada a las versiones recientes de Python, que da acceso al Kinect v2 a través del Kinect for Windows SDK 2.0.],
+      [`code/dataflow-execution-environment`], [Espacio de trabajo de Bun con dos paquetes: `packages/interpreter`, el intérprete del lenguaje ERAE, y `packages/frontend`, la interfaz web. Incluye la especificación del lenguaje (`specs/`).],
+      [`code/models`], [Modelos de detección de cartas entrenados (`.pt` y `.onnx`).],
+      [`code/model-training`], [Cuadernos de Google Colab para entrenar los modelos de detección.],
+      [`docs/architecture`], [Fuentes de los diagramas de arquitectura del modelo C4.],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Estructura del repositorio del ambiente.],
+) <repo-structure-table>
 
 == 2. Herramientas utilizadas
 
-// TODO: tabla herramienta / versión / uso / justificación. Python, uv, Ultralytics (YOLO), OpenCV, MediaPipe, ONNX Runtime con DirectML, FastAPI, PyKinect2 (bifurcación propia) y Kinect for Windows SDK 2.0; Bun, TypeScript, React 19, @xyflow/react 12, Vite. Las justificaciones pueden apoyarse en los ADR del repositorio.
+La @tools-vision-table recoge las herramientas del subsistema de visión y del servidor de relevo, y la @tools-runtime-table, las del intérprete y la interfaz. Las versiones son las mínimas declaradas en los archivos de dependencias del repositorio (`pyproject.toml` y `package.json`); las versiones exactas instaladas quedan fijadas en los archivos de bloqueo (`uv.lock` y `bun.lock`).
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr, 1.3fr),
+      align: (left + horizon, center + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(4), [*Herramienta*], [*Versión*], [*Uso*], [*Justificación*]),
+      [Python], [≥ 3.12], [Lenguaje del subsistema de visión y del servidor de relevo], [Ecosistema maduro de visión por computador, código heredado de Magicboard escrito en Python y experiencia previa del equipo],
+      [uv], [≥ 0.11], [Gestión de dependencias y del entorno virtual], [Resolución rápida y reproducible mediante archivo de bloqueo; admite la bifurcación local de PyKinect2 como dependencia editable],
+      [Kinect for Windows SDK 2.0], [2.0], [Controlador del sensor Kinect v2], [Controlador oficial del sensor, requerido por PyKinect2],
+      [PyKinect2 (bifurcación propia)], [0.1.0], [Lectura de las imágenes de color, profundidad e infrarroja del sensor], [La versión original fallaba con las versiones recientes de Python; la bifurcación corrige esa incompatibilidad],
+      [OpenCV], [≥ 4.0], [Procesamiento de imágenes, cálculo de homografías y ventanas de calibración], [Biblioteca de referencia en visión por computador, con operaciones costosas implementadas en C++],
+      [NumPy y SciPy], [≥ 2.0 y ≥ 1.17], [Cálculo numérico sobre las imágenes y estimación del mapa de fondo], [Base numérica sobre la que operan OpenCV y los detectores],
+      [Ultralytics (YOLO)], [≥ 8.0], [Inferencia de los modelos de detección de cartas], [Modelos de detección de objetos en tiempo real y herramientas de entrenamiento y exportación],
+      [ONNX Runtime con DirectML], [≥ 1.24], [Inferencia acelerada por la tarjeta gráfica], [Permite usar una tarjeta gráfica AMD en Windows sin depender de CUDA],
+      [Supervision], [≥ 0.27], [Seguimiento de las cartas entre cuadros (ByteTrack)], [Mantiene la identidad de una carta aunque la mano la oculte por momentos],
+      [MediaPipe], [≥ 0.10], [Detección de los puntos de referencia de la mano], [Complementa la profundidad en el detector híbrido de toques, al ubicar la punta del dedo],
+      [FastAPI y Uvicorn], [≥ 0.115 y ≥ 0.32], [Servidor de relevo HTTP y WebSocket], [Mismo lenguaje que el subsistema de visión y mínimo esfuerzo de implementación],
+      [Pydantic], [≥ 2.0], [Validación de la configuración y de los mensajes], [Detecta valores de configuración inválidos al iniciar, con mensajes claros],
+      [Ruff], [≥ 0.15], [Análisis estático y formato del código Python], [Una sola herramienta reemplaza al linter, al formateador y al ordenador de importaciones],
+      [pytest], [≥ 9.0], [Pruebas unitarias del subsistema de visión], [Marco de pruebas estándar de Python],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Herramientas del subsistema de visión y del servidor de relevo.],
+) <tools-vision-table>
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr, 1.3fr),
+      align: (left + horizon, center + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(4), [*Herramienta*], [*Versión*], [*Uso*], [*Justificación*]),
+      [TypeScript], [5.9], [Lenguaje del intérprete y de la interfaz], [Tipado estático, que hace explícitas las estructuras del lenguaje y de la interfaz],
+      [Bun], [≥ 1.3], [Gestión de paquetes, espacio de trabajo y ejecución de pruebas], [Integra en una sola herramienta el gestor de paquetes, el ejecutor de TypeScript y el marco de pruebas],
+      [Chevrotain], [12], [Analizador sintáctico de la representación textual del lenguaje], [Escrito en TypeScript, sin paso de generación de código y con buen rendimiento frente a ANTLR y Nearley],
+      [fraction.js], [5.3], [Aritmética racional exacta], [Las cantidades de las bolsas son números racionales; evita los errores de redondeo de la coma flotante],
+      [React], [19], [Construcción de la interfaz], [Biblioteca de componentes de amplio uso, con la que el equipo tenía experiencia],
+      [React Flow (`@xyflow/react`)], [12], [Lienzo del grafo de piezas y conexiones], [Ofrece nodos, puertos y conexiones personalizables, adecuados para un lenguaje de flujo de datos],
+      [Vite], [7], [Servidor de desarrollo y empaquetado de la interfaz], [Arranque rápido y redirección (_proxy_) de las rutas `/api` y `/ws` hacia el servidor de relevo],
+      [Tailwind CSS], [4], [Estilos de la interfaz], [Estilos declarados junto a cada componente],
+      [Motion], [12], [Animaciones de las piezas proyectadas], [Animaciones declarativas integradas con React],
+      [Piper TTS (`@mintplex-labs/piper-tts-web`)], [1.0], [Síntesis de voz de los resultados], [Funciona dentro del navegador, sin servicios de red],
+      [Roboflow y Google Colab], [—], [Anotación del conjunto de imágenes y entrenamiento de los modelos], [Anotación colaborativa y acceso a tarjetas gráficas para entrenar],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Herramientas del intérprete del lenguaje ERAE y de la interfaz.],
+) <tools-runtime-table>
+
+Las razones de las decisiones principales se documentan con más detalle en los registros de decisiones de arquitectura del repositorio (`code/cv-system/docs/adr/`): el uso de Python para la visión (ADR-001), de uv (ADR-002), de la homografía para la calibración (ADR-003), de la arquitectura modular por capas (ADR-004) y de Ruff (ADR-008); y en el análisis de generadores de analizadores sintácticos del entorno de ejecución (`docs/PARSER_GENERATOR_ANALYSIS.md`).
 
 == 3. Arquitectura
 
 === 3.1 Subsistemas y flujo de datos
 
-// TODO: los tres subsistemas (visión por computador, interfaz y entorno de ejecución del lenguaje) y el flujo de datos entre ellos: sensor → subsistema de visión → servidor de relevo (FastAPI, WebSocket) → interfaz (grafo visual) → intérprete ERAE embebido → proyección.
+El ambiente se ejecuta en un solo computador y comprende tres subsistemas. El subsistema de visión por computador lee las imágenes del Kinect v2, reconoce las cartas y los objetos con un modelo de detección y detecta los toques sobre la mesa; tras la calibración, expresa ambas detecciones en coordenadas del proyector. El servidor de relevo recibe esas detecciones —las cartas por HTTP y los toques por WebSocket— y las reenvía a la interfaz por dos canales WebSocket. La interfaz, que se abre en un navegador y se proyecta a pantalla completa sobre la mesa, representa las piezas y sus conexiones como un grafo, lo traduce a un programa y lo ejecuta con el intérprete del lenguaje ERAE, que funciona como una librería dentro de la propia interfaz; los resultados se proyectan de vuelta sobre la mesa, junto a las piezas que los producen. El flujo de datos es, por tanto: sensor → subsistema de visión → servidor de relevo → interfaz → intérprete → proyección.
 
 La arquitectura se documenta siguiendo el modelo C4 #cite(<brown2018>), que describe un sistema en niveles sucesivos de detalle. El primero delimita el sistema frente a quienes lo usan y al hardware con el que interactúa, como muestra la @c4-contexto-figure.
 
@@ -2447,7 +2554,35 @@ El segundo nivel abre ese límite y muestra las piezas ejecutables que lo compon
 
 === 3.2 Estructura e interrelación de los módulos
 
-// TODO: módulos del subsistema de visión (`hardware`, `calibration`, `detection`, `transform`, `bridge`) y paquetes del entorno de ejecución (`interpreter`, `frontend`); qué hace cada uno y cómo se comunican.
+La @modules-table describe los módulos de cada subsistema y la relación entre ellos. En el subsistema de visión, cada módulo depende solo de los que están por debajo de él: si cambia el sensor, solo cambia `hardware`; si mejora la calibración, solo cambia `calibration`. En el entorno de ejecución, el intérprete no conoce la interfaz: recibe un programa y devuelve resultados y errores, de modo que puede probarse y reutilizarse por separado.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, 1fr, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Módulo*], [*Responsabilidad*], [*Se comunica con*]),
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Subsistema de visión (`code/cv-system/src/cv_system`)_],
+      [`hardware`], [Inicializa el Kinect v2 y entrega las imágenes de color, profundidad e infrarroja como matrices], [Lo usan `calibration` y el bucle principal],
+      [`calibration`], [Proyecta una rejilla de marcadores, los detecta en la imagen de color, calcula las homografías y estima el mapa de fondo de la mesa; produce un `CalibrationResult`], [`hardware`; su resultado alimenta a `transform` y a `detection`],
+      [`transform`], [Convierte puntos e imágenes entre el espacio de la cámara y el del proyector], [Lo usan los detectores],
+      [`detection`], [Detecta las cartas (YOLO y ByteTrack) y los toques (detector híbrido DIRECT y MediaPipe)], [`transform`; entrega sus resultados a `bridge`],
+      [`bridge`], [Envía las cartas por HTTP y los toques por WebSocket; contiene además el servidor de relevo], [Servidor de relevo e interfaz],
+      [`main` y `launch_stack`], [Orquestan el arranque, la calibración y el bucle de detección], [Todos los anteriores],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Entorno de ejecución (`code/dataflow-execution-environment/packages`)_],
+      [`frontend`], [Recibe las detecciones, mantiene el grafo de piezas y conexiones, lo traduce a un programa (`flowToProgram`) y muestra los resultados, con síntesis de voz], [Servidor de relevo por WebSocket; usa `interpreter` como librería],
+      [`interpreter/analyzer`], [Analiza la sintaxis de la representación textual y verifica estáticamente la aridad y la categoría de los valores], [`runtime`],
+      [`interpreter/runtime`], [Construye el grafo de dependencias, detecta los cambios entre ejecuciones y evalúa bajo demanda solo lo que cambió], [`analyzer`, `operations`],
+      [`interpreter/operations`], [Define las firmas y la semántica de las operaciones del lenguaje], [`runtime`],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Módulos del ambiente, su responsabilidad y su relación con los demás.],
+) <modules-table>
 
 El tercer nivel del modelo C4 detalla los módulos internos de cada contenedor. La @c4-componentes-vision-figure corresponde al subsistema de visión y la @c4-componentes-interfaz-figure a la interfaz junto con el intérprete.
 
@@ -2467,7 +2602,41 @@ El tercer nivel del modelo C4 detalla los módulos internos de cada contenedor. 
 
 === 3.3 Diagramas de modelado
 
-// TODO: diagrama de casos de uso (docente y niños) y diagrama de clases de los módulos principales.
+El diagrama de casos de uso de la @use-cases-figure recoge lo que el docente y los niños hacen con el ambiente. El docente monta, calibra y configura la visualización; tanto el docente como los niños construyen el programa, observan su resultado y lo corrigen, ya que el docente puede actuar como constructor principal o como guía de los niños.
+
+#figure(
+  image("images/casos-uso.svg", width: 90%),
+  caption: [
+    Diagrama de casos de uso del ambiente.
+  ],
+) <use-cases-figure>
+
+La @vision-classes-figure muestra las clases principales del subsistema de visión. El `Calibrator` usa el sensor, el proyector de marcadores y el detector de marcadores para producir un `CalibrationResult` inmutable, del que se construyen los transformadores de coordenadas; los detectores usan esos transformadores y producen los toques (`TrackedTouch`) y las cartas (`CardDetection`) que el módulo `bridge` serializa y envía.
+
+#figure(
+  image("images/clases-vision.svg", width: 100%),
+  caption: [
+    Diagrama de clases del subsistema de visión.
+  ],
+) <vision-classes-figure>
+
+La @interpreter-classes-figure muestra las clases principales del intérprete. La interfaz entrega un `Program` al `Interpreter`, que lo procesa en cinco pasos numerados en el diagrama: análisis sintáctico, construcción del grafo de dependencias, análisis estático, invalidación de los nodos que cambiaron respecto de la ejecución anterior y evaluación bajo demanda. La evaluación produce valores de tres formas —bolsa, criterio y booleano— y errores (`DataflowError`) situados en el nodo que los causa.
+
+#figure(
+  image("images/clases-interprete.svg", width: 100%),
+  caption: [
+    Diagrama de clases del intérprete del lenguaje ERAE.
+  ],
+) <interpreter-classes-figure>
+
+El diagrama de flujo de la @vision-flow-figure describe el funcionamiento del subsistema de visión desde que se inicia hasta que se detiene: arranca el servidor de relevo, inicializa el sensor, calibra o carga una calibración guardada y entra en un bucle que, en cada cuadro, detecta las cartas y los toques y los envía a la interfaz.
+
+#figure(
+  image("images/flujo-vision.svg", width: 55%),
+  caption: [
+    Diagrama de flujo del subsistema de visión.
+  ],
+) <vision-flow-figure>
 
 El ciclo que recorre el sistema cada vez que cambia la disposición sobre la mesa se recoge en la @c4-secuencia-figure.
 
@@ -2484,62 +2653,369 @@ El ciclo que recorre el sistema cada vez que cambia la disposición sobre la mes
 
 === 4.1 Persistencia
 
-// TODO: indicar que el ambiente no emplea base de datos (la guía pide diseño lógico y físico de la base de datos); precisar qué se guarda en archivos, como la calibración y la configuración.
+El ambiente no emplea una base de datos, por lo que no aplica un diseño lógico ni físico de base de datos. El programa existe mientras las piezas están sobre la mesa: se reconstruye a partir de lo que el sensor ve en cada momento, y la interfaz no guarda programas ni datos de los usuarios. Los únicos datos persistentes son archivos locales, recogidos en la @files-table.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr),
+      align: (left + horizon, center + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Archivo*], [*Formato*], [*Contenido*]),
+      [`code/cv-system/config/session.json`], [JSON], [Parámetros de la sesión: resoluciones del sensor y del proyector, calibración y detección (sección 8.1)],
+      [Archivo de calibración (ruta en `CALIBRATION_PATH`)], [JSON], [Calibración guardada, para no recalibrar en cada inicio; es opcional (@calibration-file-table)],
+      [`code/cv-system/.env`], [Texto], [Variables de entorno de la sesión (@env-vars-table)],
+      [`code/models/*.pt`, `*.onnx`], [PyTorch, ONNX], [Modelos de detección de cartas entrenados],
+      [`code/cv-system/hand_landmarker.task`], [MediaPipe], [Modelo de puntos de referencia de la mano que usa el detector de toques],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Archivos que conserva el ambiente entre sesiones.],
+) <files-table>
 
 === 4.2 Diccionario de datos
 
-// TODO: estructuras intercambiadas entre subsistemas: mensajes del servidor de relevo (detecciones de piezas y toques), nodos y conexiones del grafo visual y su traducción a la representación textual (remitir al Apéndice B para el lenguaje).
+Los subsistemas intercambian datos en formato JSON a través de las rutas del servidor de relevo, recogidas en la @relay-routes-table. Las coordenadas de las cartas se expresan normalizadas entre 0 y 1 respecto del área proyectada, y las de los toques, en píxeles del proyector.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Ruta*], [*Emisor → receptor*], [*Mensaje*]),
+      [`GET /api/v1/health`], [Lanzador → relevo], [Estado del servidor (`status`, `version`, `uptime`)],
+      [`GET /api/v1/vision/projector-resolution`], [Interfaz → relevo], [Resolución del proyector leída de `session.json`],
+      [`POST /api/v1/vision/cards`], [Visión → relevo], [Lote de cartas detectadas en un cuadro (@card-table)],
+      [`WS /live`], [Visión → relevo], [Eventos de toque (@touch-table)],
+      [`WS /ws/vision`], [Relevo → interfaz], [Lotes de cartas, con tipo `cardDetections`],
+      [`WS /ws/touch`], [Relevo → interfaz], [Eventos de toque, con su tipo original],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Rutas del servidor de relevo y mensajes que transportan.],
+) <relay-routes-table>
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Campo*], [*Tipo*], [*Descripción*]),
+      [`type`], [Texto], [Siempre `cardDetections` en el canal `/ws/vision`],
+      [`t`], [Entero], [Marca de tiempo del lote, en milisegundos],
+      [`cards[].classId`], [Entero], [Índice de la clase en el modelo de detección],
+      [`cards[].label`], [Texto], [Nombre de la clase, por ejemplo `apple` o `add`],
+      [`cards[].confidence`], [Real (0–1)], [Confianza de la detección],
+      [`cards[].trackId`], [Entero, opcional], [Identificador de seguimiento; se mantiene mientras la carta sigue sobre la mesa],
+      [`cards[].status`], [Texto], [`active` si se detecta en el cuadro; `lost` si el seguimiento la conserva aunque esté oculta],
+      [`cards[].position`], [`{x, y}`, reales (0–1)], [Centro de la carta en el área proyectada],
+      [`cards[].bbox`], [`{x1, y1, x2, y2}`, reales (0–1)], [Rectángulo que contiene la carta],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Diccionario de datos del lote de cartas detectadas.],
+) <card-table>
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Campo*], [*Tipo*], [*Descripción*]),
+      [`type`], [Texto], [`touch_down` (inicio), `touch_move` (movimiento) o `touch_up` (fin del toque)],
+      [`touch_id`], [Entero], [Identificador que sigue al mismo toque entre eventos],
+      [`position`], [`{x, y}`, reales], [Posición en píxeles del proyector (0–1920 × 0–1080)],
+      [`timestamp`], [Texto (ISO 8601)], [Momento en que se detectó el toque],
+      [`t`], [Entero], [Marca de tiempo en milisegundos que añade el servidor de relevo],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Diccionario de datos del evento de toque.],
+) <touch-table>
+
+En la interfaz, cada pieza reconocida es un nodo del grafo, de tipo fuente (objeto, número, criterio o grupo), operación o salida, y cada conexión es una arista entre un puerto de salida y uno de entrada. La función `flowToProgram` traduce ese grafo a un `Program`: una secuencia de declaraciones `source`, `transform` y `sink` cuyos valores se describen en la @interpreter-data-table; la sintaxis y la semántica completas del lenguaje se presentan en el #link(<appendix-spec>)[Apéndice B].
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Estructura.campo*], [*Tipo*], [*Descripción*]),
+      [`SourceStatement.identifier`], [Texto], [Nombre del nodo fuente],
+      [`SourceStatement.value`], [Literal], [Bolsa o criterio que la pieza aporta],
+      [`TransformStatement.operation`], [Texto], [Nombre de la operación, por ejemplo `sum` o `filter`],
+      [`TransformStatement.arguments`], [Lista de nombres], [Nodos conectados a los puertos de entrada, en orden],
+      [`SinkStatement.sourceIdentifier`], [Texto], [Nodo cuyo valor muestra la salida],
+      [`Entry.category`], [Texto], [Nivel CPA: `concreto`, `pictorico` o `abstracto`],
+      [`Entry.type`, `Entry.subtype`], [Texto], [Clase de objeto, por ejemplo `food` y `apple`],
+      [`Entry.attributes`], [Pares texto–texto], [Propiedades del objeto, como el color o el tamaño],
+      [`Entry.quantity`], [Racional], [Cantidad de objetos con esa identidad],
+      [`Bag.entries`], [Lista de `Entry`], [Contenido de una bolsa],
+      [`Criterion.subtype`], [Texto], [`filter` (filtrar) u `order` (ordenar)],
+      [`Criterion.properties`, `Criterion.values`], [Lista y pares], [Propiedades evaluadas y valores buscados],
+      [`DataflowError.code`, `DataflowError.phase`], [Texto], [Código del error y fase en que ocurre: sintaxis, estática o ejecución],
+      [`DataflowError.nodeId`, `DataflowError.causeNodeId`], [Texto], [Nodo donde se manifiesta el error y nodo que lo causa],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Diccionario de datos de las estructuras del intérprete.],
+) <interpreter-data-table>
+
+Por último, el archivo de calibración guarda los datos de la @calibration-file-table.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Campo*], [*Tipo*], [*Descripción*]),
+      [`version`, `timestamp`], [Texto], [Versión del formato y fecha de la calibración],
+      [`depth_H`], [Matriz 3 × 3], [Homografía de la imagen de profundidad al proyector],
+      [`rgb_H`], [Matriz 3 × 3], [Homografía de la imagen de color al proyector],
+      [`dmax_map`], [Matriz de enteros (mm)], [Profundidad de la mesa vacía en cada píxel; la usan los detectores de toques basados solo en profundidad, no el detector híbrido],
+      [`depth_corners`, `rgb_corners`], [Listas de puntos], [Esquinas detectadas en cada imagen],
+      [`metadata`], [Objeto], [Número de cuadros capturados, método y estadísticas del mapa de fondo],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Diccionario de datos del archivo de calibración.],
+) <calibration-file-table>
 
 == 5. Requisitos
 
 === 5.1 Hardware
 
-// TODO: tabla de hardware. Datos disponibles:
-// - Computador: Windows 11 Home; AMD Ryzen 5 9600X; AMD Radeon RX 9600 XT de 16 GB; 32 GB de RAM DDR5 a 6000 MHz (2 × 16 GB); SSD NVMe M.2 de 1 TB. No requiere CUDA (la inferencia usa ONNX Runtime con DirectML).
-// - Sensor: Kinect v2 (color, profundidad e infrarrojo). Indicar el adaptador para Windows si aplica.
-// - Proyector: proveído por la universidad. TODO: modelo exacto.
-// - Superficie de trabajo: tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, con un área de proyección de 70 × 110 cm; cuatro patas de metal de 65 cm de largo y 5 cm de diámetro (ver la @table-setup-figure).
+La @hardware-table recoge el equipo con el que se construyó y probó el ambiente. Se indica como referencia: el ambiente no requiere una tarjeta gráfica NVIDIA, pues la inferencia acelerada usa DirectML.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, 1fr),
+      align: (left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(2), [*Componente*], [*Especificación*]),
+      [Computador], [Procesador AMD Ryzen 5 9600X; tarjeta gráfica AMD Radeon RX 9600 XT de 16 GB; 32 GB de RAM DDR5 a 6000 MHz; unidad SSD NVMe de 1 TB],
+      [Sensor], [Microsoft Kinect v2 (cámara de color de 1920 × 1080, cámara de profundidad e infrarroja de 512 × 424, 30 cuadros por segundo), con su adaptador para Windows y un puerto USB 3.0],
+      [Proyector], [Resolución de 1920 × 1080, conectado como segunda pantalla del computador],
+      [Superficie de trabajo], [Mesa con tablero en forma de riñón de 145 × 110,1 cm y 2,5 cm de espesor, con un área de proyección de 70 × 110 cm (@table-setup-figure)],
+      [Montaje], [Proyector y sensor en posición cenital sobre la mesa],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Requisitos de hardware del ambiente.],
+) <hardware-table>
+
+// TODO: modelo exacto del proyector, alturas proyector–mesa y sensor–mesa, y confirmar el adaptador del Kinect y el puerto USB 3.0.
 
 === 5.2 Software
 
-// TODO: Windows 11; Kinect for Windows SDK 2.0 (controlador del sensor, empleado por PyKinect2); Python 3.12 o superior con uv; Bun; navegador.
+El ambiente requiere el siguiente software en el computador:
+
+- Windows 10 u 11, sistema en el que funciona el Kinect for Windows SDK 2.0; el ambiente se probó en Windows 11 Home.
+- Kinect for Windows SDK 2.0, que instala el controlador del sensor.
+- Python 3.12 o superior y uv.
+- Bun 1.3 o superior.
+- Git, para obtener el repositorio.
+- Un navegador web moderno, como Google Chrome o Microsoft Edge.
+
+// TODO: confirmar el navegador con el que se proyecta la interfaz.
 
 == 6. Instalación
 
 === 6.1 Subsistema de visión por computador
 
-// TODO: clonar el repositorio; `uv sync` en `code/cv-system`; bifurcación local de PyKinect2 (`code/pykinect2`), instalada como dependencia editable; ubicación del modelo de detección (`code/models`).
++ Instalar el Kinect for Windows SDK 2.0, conectar el sensor y comprobar con la aplicación _Kinect Configuration Verifier_ del SDK que el sistema lo reconoce.
++ Instalar Python 3.12 o superior, uv y Git.
++ Clonar el repositorio:
+  ```
+  git clone <URL del repositorio> thesis
+  ```
++ Instalar las dependencias del subsistema de visión. uv crea el entorno virtual e instala también la bifurcación local de PyKinect2 (`code/pykinect2`) como dependencia editable:
+  ```
+  cd thesis/code/cv-system
+  uv sync
+  ```
++ Copiar el archivo de ejemplo de variables de entorno y ajustarlo según la @env-vars-table:
+  ```
+  copy .env.example .env
+  ```
++ Comprobar que el modelo de detección esté en `code/models` (por ejemplo, `yolo_11s_ultra.pt`) y que su ruta coincida con la variable `YOLO_MODEL_PATH`.
+
+// TODO: URL del repositorio que se entrega.
 
 === 6.2 Entorno de ejecución e interfaz
 
-// TODO: `bun install` en `code/dataflow-execution-environment`; paquetes `interpreter` y `frontend`.
++ Instalar Bun.
++ Instalar las dependencias del espacio de trabajo, que incluye el intérprete y la interfaz:
+  ```
+  cd thesis/code/dataflow-execution-environment
+  bun install
+  ```
++ Opcionalmente, comprobar la instalación ejecutando las pruebas y la verificación de tipos:
+  ```
+  bun run test
+  bun run typecheck
+  ```
 
 == 7. Puesta en marcha
 
-// TODO: orden de arranque: `cv-stack` (inicia el servidor de relevo y, cuando responde, el subsistema de visión); `bun run dev` para la interfaz; abrir la interfaz en el navegador y enviarla al proyector a pantalla completa. Variables de entorno relevantes (IDE_RELAY_HOST, IDE_RELAY_PORT, etc.).
+La puesta en marcha requiere dos terminales:
+
++ En la primera, iniciar el subsistema de visión junto con el servidor de relevo. El comando `cv-stack` inicia el servidor de relevo, espera a que responda en `/api/v1/health` y luego inicia el subsistema de visión, que calibra la superficie si no encuentra una calibración guardada:
+  ```
+  cd thesis/code/cv-system
+  uv run cv-stack
+  ```
++ En la segunda, iniciar la interfaz:
+  ```
+  cd thesis/code/dataflow-execution-environment
+  bun run dev
+  ```
++ Abrir en el navegador la dirección que indica Vite (por defecto, `http://localhost:5173`), mover la ventana a la pantalla del proyector y ponerla en pantalla completa.
+
+Para detener el ambiente, se pulsa `Ctrl+C` en ambas terminales. El orden de arranque no es estricto: la interfaz se reconecta al servidor de relevo cuando este queda disponible. El subsistema de visión y el servidor de relevo también pueden iniciarse por separado, con `uv run cv-system` y `uv run cv-ide-relay`, respectivamente. La @env-vars-table recoge las variables de entorno que controlan la puesta en marcha.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (30%, 30%, 40%),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Variable*], [*Valor por defecto*], [*Efecto*]),
+      [`HARDWARE_MANAGER`], [`openni2`], [Controlador del sensor: `pykinect2` para el Kinect v2 u `openni2`],
+      [`CONFIG_PATH`], [`config/session.json`], [Archivo de configuración de la sesión],
+      [`CALIBRATION_PATH`], [Sin definir], [Archivo de calibración: si existe, se carga; si no, se calibra y se guarda en esa ruta],
+      [`YOLO_MODEL_PATH`], [`models/yolo_11s_cards.pt`], [Modelo de detección de cartas],
+      [`CV_CARD_DETECTOR`], [Automático], [`dml` usa la tarjeta gráfica mediante DirectML],
+      [`CV_TOUCH_DETECTOR`], [`0`], [`1` activa la detección de toques],
+      [`CV_TOUCH_DETECTOR_TYPE`], [`mediapipe`], [Algoritmo de toques; el ambiente final usa el detector híbrido (`hybrid` o `hybrid_dml`)],
+      [`CV_DEBUG_WINDOWS`], [`0`], [`1` muestra ventanas de depuración de la detección],
+      [`IDE_RELAY_HOST` \ `IDE_RELAY_PORT`], [`127.0.0.1` \ `8765`], [Dirección del servidor de relevo],
+      [`LANGUAGE_RUNTIME_WS_URL`], [`ws://localhost:8765/live`], [Canal por el que la visión envía los toques],
+      [`VISION_CARDS_INGEST_URL`], [`http://127.0.0.1:8765` \ `/api/v1/vision/cards`], [Ruta a la que la visión envía las cartas],
+      [`VITE_VISION_WS_URL` \ `VITE_TOUCH_WS_URL`], [Mismo origen de la interfaz], [Canales WebSocket de la interfaz, si el relevo está en otra dirección],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Variables de entorno del ambiente.],
+) <env-vars-table>
+
+// TODO: confirmar los valores que se usan en el ambiente final (HARDWARE_MANAGER=pykinect2, CV_TOUCH_DETECTOR=1, CV_TOUCH_DETECTOR_TYPE, YOLO_MODEL_PATH, CV_CARD_DETECTOR y CALIBRATION_PATH) y escribirlos como un ejemplo de archivo .env.
 
 == 8. Configuración
 
 === 8.1 Subsistema de visión
 
-// TODO: parámetros principales de `config.py` y del archivo `.env`: umbrales de detección, selección del detector de toques, etc.
+Los parámetros de la sesión se leen al iniciar desde `config/session.json` y se validan; si un valor es inválido, el sistema se detiene con un mensaje que indica el campo. La @session-config-table recoge los parámetros principales; los que no figuran en el archivo toman su valor por defecto.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, auto, 1fr),
+      align: (left + horizon, center + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Parámetro*], [*Por defecto*], [*Efecto*]),
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Cámara (`camera`)_],
+      [`depth_resolution`, `rgb_resolution`], [424 × 512, 1080 × 1920], [Resoluciones de las imágenes del sensor (alto × ancho)],
+      [`projector_resolution`], [1080 × 1920], [Resolución del proyector],
+      [`fps`], [30], [Cuadros por segundo],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Calibración (`calibration`)_],
+      [`calibration_grid`], [3 × 3], [Puntos de la rejilla de marcadores; más puntos dan una homografía más precisa],
+      [`calibration_margin`], [100 px], [Distancia de los marcadores a los bordes de la proyección],
+      [`dsurface_num_frames`], [500], [Cuadros de profundidad con que se estima el mapa de fondo al calibrar; más cuadros dan un mapa más estable, pero alargan la calibración. No afecta al detector híbrido, que actualiza su propio fondo],
+      [`surface_offset`], [2 mm], [Margen sobre la mesa que no se considera toque],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Detección (`detection`)_],
+      [`touch_threshold`], [20 mm], [Diferencia de profundidad a partir de la cual algo se considera sobre la mesa],
+      [`min_touch_size`, `max_touch_size`], [50 y 5000 px], [Área mínima y máxima de un toque; filtran el ruido y la mano completa],
+      [`ring_buffer_size`], [5], [Cuadros que se promedian para filtrar el ruido del sensor],
+      [`touch_history_size`], [3], [Cuadros consecutivos necesarios para confirmar un toque],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Parámetros principales de la configuración de la sesión.],
+) <session-config-table>
 
 === 8.2 Modelo de detección
 
-// TODO: modelo en uso (`yolo_11s_ultra.pt`), clases que reconoce (remitir al catálogo de piezas del Apéndice D) y cómo reemplazarlo.
+El ambiente usa el modelo `yolo_11s_ultra.pt`, basado en YOLO11s, que reconoce las clases de cartas y objetos descritas en el catálogo de piezas del manual de usuario (#link(<appendix-user>)[Apéndice D]). Para reemplazarlo, basta copiar el nuevo modelo a `code/models` y apuntar a él la variable `YOLO_MODEL_PATH`. El sistema elige el método de inferencia según la extensión: un modelo `.pt` se ejecuta con Ultralytics y un modelo `.onnx`, con ONNX Runtime y DirectML. Si el nuevo modelo añade o renombra clases, deben actualizarse también en el catálogo de la interfaz (sección 9).
+
+// TODO: confirmar si en el ambiente final se usa el modelo .pt o su exportación .onnx.
 
 === 8.3 Calibración
 
-// TODO: calibración por homografía con rejilla de nueve puntos; cuándo repetirla (al mover el sensor, el proyector o la mesa).
-// TODO: figura del proceso de calibración.
+La calibración relaciona lo que ve el sensor con lo que muestra el proyector, para ubicar cada pieza y cada toque en su lugar del lienzo. El sistema proyecta una rejilla de nueve marcadores morados sobre fondo negro, los detecta en la imagen de color del sensor y calcula dos homografías, una para la imagen de color y otra para la de profundidad. Después captura varios cientos de cuadros de profundidad de la mesa vacía y estima, para cada píxel, la profundidad de la superficie (`dmax_map`); este mapa lo usan los detectores de toques basados solo en profundidad.
+
+La detección de toques del ambiente final no depende de ese mapa. El detector híbrido mantiene su propio modelo del fondo de la mesa, que actualiza en cada cuadro mientras el ambiente funciona: un promedio móvil exponencial de la profundidad de cada píxel, equivalente a una ventana de unos cien cuadros, que se considera estable a partir de los treinta primeros. Así, la referencia para distinguir un dedo que toca la mesa se ajusta por sí sola a pequeños cambios de la superficie, sin recalibrar.
+
+Durante la calibración la mesa debe estar vacía y sin manos sobre ella, para que los marcadores se vean completos. La calibración debe repetirse cada vez que se mueve el sensor, el proyector o la mesa, o cuando cambia mucho la iluminación, porque en esos casos cambian las homografías. Si se definió `CALIBRATION_PATH`, para forzar una nueva calibración basta borrar o renombrar el archivo guardado.
+
+La @calibration-figure muestra la rejilla de marcadores proyectada sobre la mesa durante la calibración, vista por la cámara de color del sensor.
+
+#figure(
+  image("images/um-calibracion.jpg", width: 85%),
+  caption: [Rejilla de nueve marcadores proyectada sobre la mesa durante la calibración.],
+) <calibration-figure>
 
 == 9. Extensión del ambiente
 
-// TODO: cómo añadir una carta nueva: capturar y etiquetar imágenes, reentrenar el modelo, actualizar `data.yaml`, registrarla en el catálogo de la interfaz (`yoloDeckCatalog.ts`) y, si introduce una operación, extender el lenguaje según el Apéndice A.
+Para añadir una carta o un objeto nuevo al ambiente se siguen estos pasos:
+
++ *Capturar imágenes.* Con el ambiente calibrado y la pieza sobre la mesa, en distintas posiciones y junto a otras piezas, capturar imágenes con `uv run predict --save`, que guarda cada imagen con las detecciones del modelo actual como etiquetas preliminares, o con `uv run capture`, que solo guarda imágenes.
++ *Etiquetar.* Subir las imágenes al proyecto de Roboflow con `uv run upload-roboflow` y corregir o completar allí las etiquetas, añadiendo la nueva clase.
++ *Entrenar.* Ejecutar en Google Colab el cuaderno `code/model-training/yolo_colab_cards_training.ipynb`, que descarga el conjunto de datos de Roboflow, lo divide en entrenamiento, validación y prueba, aplica aumentación de datos, entrena el modelo y lo exporta.
++ *Instalar el modelo.* Copiar el modelo resultante a `code/models` y actualizar `YOLO_MODEL_PATH` (sección 8.2).
++ *Registrar la pieza en la interfaz.* Añadir la nueva clase al catálogo `packages/frontend/src/data/yoloDeckCatalog.ts`, que indica qué nodo crea la interfaz para cada clase reconocida, y, si corresponde, su representación visual.
++ *Extender el lenguaje, si la pieza es una operación nueva.* Definir su firma y su semántica en `packages/interpreter/src/operations`, añadirla a la especificación del lenguaje (#link(<appendix-spec>)[Apéndice B]) y escribir sus pruebas.
+
+Si la pieza nueva es solo otro objeto de un tipo existente, por ejemplo otra fruta, no es necesario modificar el intérprete.
 
 == 10. Pruebas realizadas
 
-// TODO: organizadas por tipo, como pide la guía: unitarias (intérprete, interfaz y subsistema de visión: `bun run test`, `pytest`), de integración (visión ↔ relevo ↔ interfaz), funcionales (matriz de verificación de requerimientos, Capítulo IV) y de aceptación (juicio de expertos, Capítulo IV).
+Las pruebas realizadas se organizan por tipo en la @tests-table.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, 1fr, 1fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Tipo*], [*Qué se probó*], [*Resultado*]),
+      [Unitarias del intérprete], [Analizador sintáctico, análisis estático, operaciones, bolsas, evaluador, errores y serialización (18 archivos, `bun test`)], [212 pruebas superadas, ninguna fallida],
+      [Unitarias de la interfaz], [Traducción del grafo a programa, reglas de conexión, geometría de grupos y de fracciones, unión de dígitos tocados, síntesis de voz y gramática de los mensajes (15 archivos, `bun test`)], [100 pruebas superadas, ninguna fallida],
+      [Unitarias del subsistema de visión], [Configuración, homografía, calibración, mapa de fondo, detector de marcadores, detector de toques, eventos de toque, transformadores y cliente WebSocket (13 archivos, `pytest`)], [—],
+      [De integración, automatizadas], [Cadena programa textual → analizador sintáctico → análisis estático → evaluador (`integration.test.ts`), y cadena grafo de la interfaz → programa → intérprete (pruebas de `flowToProgram`)], [Superadas; incluidas en los totales anteriores],
+      [De integración, manuales], [Cadena completa sensor → subsistema de visión → servidor de relevo → interfaz → proyección, sobre el ambiente montado, durante la construcción de los prototipos (Capítulo IV)], [Las piezas y los toques llegan a la interfaz y el programa se evalúa y se proyecta],
+      [De regresión], [Reejecución de las pruebas unitarias y de integración del intérprete y de la interfaz sobre la versión entregada], [312 pruebas superadas, ninguna fallida],
+      [Funcionales], [Verificación de los requerimientos frente a las funcionalidades construidas (@requirements-to-functionalities-matrix)], [Requerimientos funcionales satisfechos; no funcionales parcialmente],
+      [De aceptación], [Juicio de expertos en interacción humano-computador y en medios didácticos (@expert-judgment-table)], [Valoración favorable con observaciones de mejora],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Pruebas realizadas, por tipo.],
+) <tests-table>
+
+Las pruebas del intérprete y de la interfaz se ejecutan con `bun run test` desde `code/dataflow-execution-environment`, y las del subsistema de visión, con `uv run pytest` desde `code/cv-system`.
+
+// TODO: las pruebas del subsistema de visión están desactualizadas respecto del código: al ejecutarlas, 51 pasan, 73 fallan y 29 dan error, por cambios de firma (por ejemplo, CalibrationResult), funciones eliminadas y un error de sintaxis en test_calibrator.py. Decidir si se actualizan antes de la entrega o si se informan así.
+// TODO: completar el resultado de las pruebas unitarias del subsistema de visión cuando se decida qué hacer con ellas.
 ]
 
 #pagebreak(weak: true)
@@ -2553,77 +3029,327 @@ Este manual está dirigido al docente que conduce las actividades con el ambient
 
 == 1. Descripción del ambiente
 
-// TODO: qué es el ambiente y para qué sirve, en lenguaje no técnico; el docente como conductor o guía.
+El ambiente es una mesa sobre la que niños y docente construyen programas con piezas físicas. Cada pieza —un objeto, una figura, un número o una operación— se coloca sobre la mesa; una cámara la reconoce y un proyector dibuja sobre ella su representación. Las piezas se enlazan tocando con el dedo los puntos de conexión que se proyectan junto a cada una, y el resultado del programa aparece proyectado en la misma mesa y puede escucharse en voz alta. No hace falta escribir ni usar un teclado: todo ocurre sobre la superficie.
+
+El ambiente está pensado para usarse en grupo y bajo la conducción del docente. Es un recurso didáctico: no impone una secuencia de actividades, sino que el docente lo adapta a su propia estrategia pedagógica, dentro de las restricciones del sistema (sección 9). Él decide la actividad, prepara las piezas y define cómo participan los niños (sección 8).
 
 == 2. Componentes
 
-// TODO: mesa, proyector, sensor Kinect v2, computador y piezas; qué hace cada uno.
+El ambiente se compone de los elementos de la @um-components-table, dispuestos como muestra la @table-setup-figure.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, 1fr),
+      align: (left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(2), [*Componente*], [*Función*]),
+      [Mesa], [Superficie de trabajo. Sobre su área de proyección se colocan las piezas y se proyecta la interfaz],
+      [Proyector], [Dibuja la interfaz sobre la mesa: las piezas reconocidas, sus conexiones y los resultados],
+      [Sensor Kinect v2], [Cámara que ve la mesa desde arriba: reconoce las piezas con su cámara de color y los toques con su cámara de profundidad],
+      [Computador], [Ejecuta el programa del ambiente y muestra la interfaz que se envía al proyector],
+      [Piezas], [Objetos y cartas con que se construyen los programas (sección 5)],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Componentes del ambiente.],
+) <um-components-table>
 
 == 3. Montaje y encendido
 
-// TODO: disposición del proyector y del sensor sobre la mesa. TODO: alturas y distancias sensor-mesa y proyector-mesa. Disposición: ver la @table-setup-figure.
-// TODO: orden de encendido y cómo abrir la interfaz (remitir al Apéndice C para la instalación).
+El proyector y el sensor quedan montados de forma fija en posición cenital sobre la mesa (@table-setup-figure), por lo que no hace falta armarlos en cada sesión. Antes de cada sesión basta comprobar que:
+
++ La mesa no se haya movido de su lugar bajo el proyector y el sensor.
++ El proyector esté conectado al computador como segunda pantalla y el sensor, a un puerto USB 3.0 del computador.
++ La mesa esté despejada y la iluminación del salón sea la habitual: ni sol directo sobre la mesa ni oscuridad total.
+
+// TODO: alturas del proyector y del sensor respecto de la mesa.
+
+Para encender el ambiente:
+
++ Encender el proyector y el computador.
++ Iniciar el programa del ambiente según el manual del sistema (#link(<appendix-system>)[Apéndice C], sección 7). Al iniciar, el ambiente calibra la mesa (sección 4).
++ Abrir la interfaz en el navegador, moverla a la pantalla del proyector y ponerla en pantalla completa.
++ En la pantalla de inicio de WonderFlow, tocar *Jugar* (@um-navigation-figure). Se abre el *Modo libre*: el área de trabajo, vacía, lista para colocar piezas. El botón *¿Cómo se juega?* de la misma pantalla muestra un resumen de cuatro pasos que puede servir para presentar el ambiente a los niños.
++ Hacer un clic o pulsar una tecla en el computador una vez. El navegador solo permite reproducir sonido después de una acción directa sobre el computador, así que sin este paso la voz no se escucha.
+
+#figure(
+  grid(
+    columns: 2,
+    column-gutter: 1em,
+    image("images/um-inicio.png", width: 100%), image("images/um-modo-libre.png", width: 100%),
+  ),
+  caption: [Navegación hasta el área de trabajo: pantalla de inicio (izquierda) y área de trabajo del modo libre, vacía (derecha).],
+) <um-navigation-figure>
+
+Para apagar el ambiente se cierra el navegador, se detiene el programa según el manual del sistema y se apagan el proyector y el computador.
 
 == 4. Calibración
 
-// TODO: pasos de la calibración desde el punto de vista del docente y cómo saber que quedó bien.
-// TODO: figura de la calibración.
+La calibración ajusta lo que ve la cámara con lo que dibuja el proyector, para que cada pieza se proyecte justo encima de sí misma y cada toque caiga donde se tocó. Se realiza al iniciar el ambiente:
+
++ Dejar la mesa vacía y sin manos ni brazos sobre ella.
++ Esperar mientras se proyecta sobre la mesa una rejilla de nueve cuadros morados sobre fondo negro (@um-calibration-figure). El ambiente los localiza y, con ellos, calcula dónde va cada cosa sobre la mesa.
++ Comprobar el resultado: al colocar una carta, su representación debe proyectarse encima de ella, y al tocar un punto de conexión, debe reaccionar el punto tocado.
+
+La detección de toques no necesita este paso: el ambiente aprende por sí solo cómo es la mesa vacía y lo actualiza continuamente mientras funciona. Por eso, al empezar, conviene esperar un par de segundos antes del primer toque y no dejar la mano apoyada mucho tiempo en un mismo lugar.
+
+Si la proyección queda desplazada respecto de las piezas, o los toques reaccionan en otro lugar, hay que calibrar de nuevo. También hay que hacerlo cada vez que se mueve la mesa, el proyector o el sensor, o cuando cambia mucho la luz del salón. El procedimiento para forzar una nueva calibración se describe en el manual del sistema (#link(<appendix-system>)[Apéndice C], sección 8.3).
+
+#figure(
+  image("images/um-calibracion.jpg", width: 85%),
+  caption: [Rejilla de calibración: nueve cuadros morados proyectados sobre la mesa vacía.],
+) <um-calibration-figure>
 
 == 5. Catálogo de piezas
 
-// TODO: tabla por clase de pieza (objetos concretos, cartas pictóricas, cartas abstractas, cartas de operación, cartas de criterio, cartas de grupo y carta de salida): pieza, qué representa y qué hace.
-// TODO: figura del mazo final.
-// Clases que reconoce el modelo de detección (yolo_11s_ultra.pt), para armar la tabla: tapas (cap_blue, cap_white), cubos (cube_blue, cube_red, cube_yellow), paletas (stick_cyan, stick_orange, stick_red, stick_wooden); alimentos (apple, burger, grapes, pear; orange puede ser la fruta o el color, verificar); figuras (lg/md/sm × circle, square, triangle); dígitos (zero a nine); operaciones (add, subtract, multiply, division, filter, compare, count, first, last); criterios (color, size, figure, blue, green, purple, red, yellow, small, medium, large, ascending, descending, smallest_to_largest, largest_to_smallest); grupo (open, close); salida (sink). Verificar contra el mazo impreso antes de publicar.
+Las piezas se organizan según el nivel de representación que trabajan —concreto, pictórico o abstracto— y según su papel en el programa: las piezas de datos aportan objetos o números; las de operación los transforman; las de criterio indican a una operación qué buscar; las de grupo reúnen varias piezas en una sola colección; y la carta de salida muestra el resultado. La @um-catalog-table las recoge todas y la @um-deck-figure muestra el mazo completo.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (auto, 1fr, 1.2fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Pieza*], [*Qué representa*], [*Qué hace*]),
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Datos concretos (objetos físicos)_],
+      [Cubos Montessori], [Cubos azul, rojo y amarillo], [Aporta un objeto concreto del color del cubo],
+      [Tapas], [Tapas azul y blanca], [Aporta un objeto concreto],
+      [Paletas], [Paletas azul, naranja y roja], [Aporta un objeto concreto],
+      [Comidas], [Manzana, hamburguesa, pera y uvas], [Aporta un objeto concreto con su color natural; por ejemplo, la manzana es roja y la pera, verde],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Datos pictóricos_],
+      [Figuras], [Círculo, cuadrado y triángulo, en tamaño pequeño, mediano y grande], [Aporta una figura con su forma y su tamaño],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Datos abstractos_],
+      [Números], [Dígitos del 0 al 9], [Aporta un número. Dos o más cartas de número que se tocan forman un número de varias cifras, leído de izquierda a derecha],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Operaciones_],
+      [Suma (+)], [Suma], [Junta lo que recibe en sus dos entradas],
+      [Resta (−)], [Resta], [Quita de la primera entrada lo que recibe en la segunda],
+      [Multiplicación (\*)], [Multiplicación], [Repite la primera entrada tantas veces como indica el número de la segunda],
+      [División (%)], [División], [Reparte la primera entrada entre el número de la segunda],
+      [Filtrar], [Filtro], [Deja pasar de un grupo solo lo que cumple el criterio conectado en la segunda entrada],
+      [Menor a Mayor y Mayor a Menor (con números)], [Orden por cantidad], [Ordena un grupo de menor a mayor o de mayor a menor cantidad],
+      [Menor a Mayor y Mayor a Menor (con figuras)], [Orden por tamaño], [Ordena un grupo de figuras de pequeño a grande o de grande a pequeño],
+      [Comparar], [Comparación], [Dice si lo que recibe en sus dos entradas es igual (sí o no)],
+      [Primero y Último], [Primero y último], [Toma el primer o el último elemento de un grupo],
+      [Contar], [Conteo], [Cuenta cuántos objetos hay en lo que recibe],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Criterios (para filtrar)_],
+      [Tamaño], [Pequeño (P), mediano (M) y grande (G)], [Indica a Filtrar el tamaño buscado],
+      [Color], [Amarillo, azul, naranja, púrpura, rojo y verde], [Indica a Filtrar el color buscado],
+      [Forma], [Círculo, cuadrado y triángulo], [Indica a Filtrar la forma buscada],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Grupos y salida_],
+      [Abrir Grupo y Cerrar Grupo], [Inicio y fin de un grupo], [Las piezas de datos colocadas entre ambas cartas forman una sola colección (sección 6.3)],
+      [Salida], [Carta de salida], [Muestra el resultado de lo que tiene conectado y permite escucharlo],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Catálogo de piezas del ambiente.],
+) <um-catalog-table>
+
+// TODO: para qué sirven las clases color, figure y size que reconoce el modelo (la interfaz las ignora).
+
+#figure(
+  grid(
+    columns: 2,
+    row-gutter: 0.4em,
+    column-gutter: 0.8em,
+    align: center + bottom,
+    image("images/um-mazo-1.jpg", width: 100%), image("images/um-mazo-2.jpg", width: 100%),
+    [(a)], [(b)],
+    image("images/um-mazo-3.jpg", width: 100%), image("images/um-mazo-4.jpg", width: 100%),
+    [(c)], [(d)],
+    image("images/um-mazo-5.jpg", width: 100%), image("images/um-mazo-6.jpg", width: 100%),
+    [(e)], [(f)],
+  ),
+  caption: [Mazo completo de piezas del ambiente: objetos concretos —tapas, cubos y paletas— (a); cartas de criterio de tamaño, forma y color (b); figuras y comidas (c); números (d); operaciones (e); y cartas Abrir Grupo, Cerrar Grupo y Salida (f).],
+) <um-deck-figure>
 
 == 6. Uso de la interfaz
 
-// TODO: figura de la interfaz con sus elementos señalados.
+El área de trabajo (@um-interface-figure) ocupa casi toda la mesa. En la franja superior se encuentran los controles. A la izquierda, la flecha regresa a la pantalla de inicio. En el centro, los botones *Concreto*, *Pictórico* y *Abstracto* cambian el modo de visualización (sección 6.5). A la derecha hay tres botones: el ojo muestra u oculta los resultados intermedios (sección 6.4); el parlante abre un reproductor de música de fondo; y el botón de señal indica el estado de la conexión con el sistema de visión, con un punto verde si está conectado y rojo si no lo está, y al tocarlo muestra el detalle. Los controles se pueden pulsar con un toque sobre la mesa o con el ratón del computador.
+
+#figure(
+  image("images/um-ejemplo-c.jpg", width: 85%),
+  caption: [Área de trabajo del ambiente, con el programa del ejemplo de uso (sección 7).],
+) <um-interface-figure>
 
 === 6.1 Colocar las piezas
 
-// TODO: cómo se colocan las piezas y cómo indica la interfaz que fueron reconocidas.
+Las piezas se colocan dentro del área de proyección, con la cara impresa hacia arriba y sin superponerse. Cuando el ambiente reconoce una pieza, dibuja sobre ella su representación, con uno o más puntos de conexión a los lados: los de entrada a la izquierda y el de salida a la derecha. La pieza debe quedar quieta en su lugar: tras un instante, su representación se fija y ya no sigue a la carta si esta se mueve. Para cambiar una pieza de lugar, se retira de la mesa, se espera a que desaparezca su representación y se vuelve a colocar en el nuevo sitio.
+
+Para quitar una pieza basta retirarla de la mesa; su representación desaparece a los pocos segundos, junto con sus conexiones. Si una mano tapa una pieza por un momento, su representación se atenúa pero se conserva, con sus conexiones, hasta que la pieza vuelve a verse.
 
 === 6.2 Conectar las piezas
 
-// TODO: conexión mediante toques sobre los puertos; qué ocurre si la conexión no es válida.
+Las conexiones se hacen con toques:
+
++ Tocar con un dedo el punto de salida de una pieza y levantar el dedo. El punto queda seleccionado y los demás puntos cambian de color: en verde, aquellos con los que puede conectarse, y en rojo, aquellos con los que la conexión no está permitida.
++ Tocar el punto de entrada de la pieza de destino. Si la conexión es válida, aparece una flecha entre ambas piezas.
+
+Un toque debe ser breve y sin arrastrar el dedo. Para cancelar una selección, se vuelve a tocar el punto seleccionado. Si se toca un punto en rojo, la conexión no se hace: el punto se agita y la selección se cancela. Cada punto admite una sola conexión: un punto conectado se ve en azul, y al tocarlo se elimina su conexión, lo que permite corregir una flecha mal puesta. Las reglas que deciden qué puntos quedan en verde y cuáles en rojo son:
+
+- Una pieza de datos se conecta a una operación, no directamente a la carta Salida.
+- Suma, Resta, Multiplicación, División, Filtrar y Comparar tienen dos entradas; las cartas de orden (Menor a Mayor y Mayor a Menor), Primero, Último y Contar tienen una sola.
+- Las cartas de orden solo aceptan un grupo o el resultado de otra operación, no una pieza suelta.
+- La salida de una operación puede conectarse a otra operación o a la carta Salida, y la salida de la carta Salida puede seguir hacia otra operación.
 
 === 6.3 Formar grupos y números de varias cifras
 
-// TODO: cartas de apertura y cierre de grupo; dígitos contiguos.
+Para formar un grupo se colocan en fila la carta *Abrir*, las piezas de datos que lo componen y la carta *Cerrar*, y luego se conecta el punto de salida de Abrir con el punto de entrada de Cerrar. Todas las piezas que quedan entre las dos cartas forman una sola colección, cuya salida es el punto de salida de Cerrar. Un grupo sin piezas no produce error: su valor es vacío hasta que se le colocan piezas.
 
-=== 6.4 Ver los resultados
+Para formar un número de varias cifras se colocan las cartas de número una junto a otra, tocándose. El ambiente las lee como una sola cifra, de izquierda a derecha: 1 y 2 forman el 12. Solo la carta de la derecha conserva el punto de salida.
 
-// TODO: _walkers_, opción "Mostrar resultados", carta de salida y síntesis de voz.
+=== 6.4 Ver y escuchar los resultados
+
+Mientras se construye el programa, unas pequeñas figuras animadas recorren las flechas e indican qué dato circula por cada conexión. El resultado final aparece en la carta *Salida*. Al tocar el botón del parlante que aparece junto a ella (_Escuchar el resultado_), el ambiente lo lee en voz alta. Con el ojo de la franja superior activado, cada operación muestra además su resultado parcial, lo que permite seguir el programa paso a paso.
+
+El programa se recalcula solo cada vez que cambia algo sobre la mesa: no hay un botón de ejecutar. Si el programa está incompleto, por ejemplo con una operación a la que le falta una entrada, la Salida se queda sin valor hasta que se completa.
 
 === 6.5 Cambiar el modo de visualización
 
-// TODO: modos concreto, pictórico y abstracto; cambian la apariencia y no el significado.
+Los botones *Concreto*, *Pictórico* y *Abstracto* cambian cómo se dibujan los resultados: como objetos, como dibujos o como números, respectivamente. Cambiar de modo no cambia el programa ni su resultado, solo su representación, de modo que un mismo programa puede mirarse en los tres niveles (@um-modes-figure).
+
+#figure(
+  grid(
+    columns: 1,
+    row-gutter: 0.4em,
+    align: center,
+    image("images/um-modo-c.jpg", width: 62%), [(a)],
+    image("images/um-modo-p.jpg", width: 62%), [(b)],
+    image("images/um-modo-a.jpg", width: 62%), [(c)],
+  ),
+  caption: [Un programa que suma dos grupos, en modo concreto (a), pictórico (b) y abstracto (c). En (a) y (c) se suman tres cubos y un cubo, y el resultado aparece como cuatro cubos o como el número 4; en (b), una suma de dos manzanas y una manzana aparece como tres manzanas dibujadas.],
+) <um-modes-figure>
 
 === 6.6 Interpretar las señales de error
 
-// TODO: insignia de error en la pieza, puerto que se agita, resultados nulos de programas incompletos.
+El ambiente señala los problemas sobre las propias piezas (@um-errors-figure):
+
+- *Distintivo rojo con un signo de interrogación:* marca la pieza que causó el error. Al tocarlo, explica qué pasó y cómo arreglarlo.
+- *Distintivo amarillo:* marca la operación donde se manifestó el error o la carta Salida que se quedó sin valor por su causa. Esa carta Salida muestra además, debajo, el mensaje del error.
+- *Piezas atenuadas:* el resto del camino afectado por el error. Las demás salidas del programa siguen funcionando.
+- *Puntos en rojo al seleccionar:* con esos puntos la conexión no está permitida; si se toca uno, se agita y la selección se cancela (sección 6.2).
+- *Pieza atenuada sin distintivo:* la cámara dejó de verla, normalmente porque una mano la tapa.
+
+Los mensajes de error están escritos para que los niños puedan leerlos con ayuda del docente; la @um-errors-table recoge cada uno con su causa y su solución.
+
+#figure(
+  grid(
+    columns: 1,
+    row-gutter: 0.4em,
+    align: center,
+    image("images/um-error-distintivo.jpg", width: 70%), [(a)],
+    image("images/um-puntos-verde-rojo.jpg", width: 70%), [(b)],
+  ),
+  caption: [Señales de error. (a) Al dividir 6 entre 0, la carta 0 lleva el distintivo rojo, la división y la salida llevan el distintivo amarillo, y la salida muestra el mensaje «No se puede dividir entre cero». (b) Con la salida del 7 seleccionada, las entradas de Filtrar se ven en rojo, porque un número no puede conectarse a esa operación.],
+) <um-errors-figure>
 
 == 7. Ejemplo de uso
 
-// TODO: recorrido real de principio a fin con un programa sencillo (por ejemplo, filtrar las manzanas de un grupo de frutas y contarlas): piezas que se colocan, conexiones, resultado proyectado y lectura por voz, con capturas en cada paso.
+Este ejemplo separa las manzanas de un grupo de comidas, filtrándolas por su color. Usa las cartas Abrir y Cerrar, cuatro comidas, Filtrar, la carta de criterio Rojo y Salida.
+
++ *Formar el grupo.* Colocar en fila la carta Abrir, las cartas manzana, hamburguesa, manzana y pera, y la carta Cerrar. Conectar la salida de Abrir con la entrada de Cerrar (@um-example-figure, a).
++ *Filtrar.* Colocar la carta Filtrar debajo del grupo y, a su izquierda, la carta de criterio Rojo. Conectar la salida de Cerrar con la primera entrada de Filtrar, y la salida de Rojo con su segunda entrada (b). Como cada comida tiene su color natural, Filtrar deja pasar solo las manzanas.
++ *Ver el resultado.* Colocar la carta Salida a la derecha de Filtrar y conectar la salida de Filtrar con su entrada. La Salida muestra las dos manzanas; al tocar el botón del parlante junto a ella, el ambiente lo dice en voz alta (c).
++ *Explorar.* Cambiar el criterio Rojo por Verde y observar que ahora pasa la pera, o pasar a los modos concreto, pictórico y abstracto para ver el mismo resultado como objetos, dibujos o números.
+
+#figure(
+  grid(
+    columns: 1,
+    row-gutter: 0.4em,
+    align: center,
+    image("images/um-ejemplo-a.jpg", width: 75%), [(a)],
+    image("images/um-ejemplo-b.jpg", width: 75%), [(b)],
+    image("images/um-ejemplo-c.jpg", width: 75%), [(c)],
+  ),
+  caption: [Ejemplo de uso paso a paso: separar las manzanas de un grupo de comidas filtrándolas por color.],
+) <um-example-figure>
+
 
 == 8. El docente y los niños durante la actividad
 
 === 8.1 El papel del docente
 
-// TODO: el docente como constructor principal (plantea el problema, dispone las piezas y pide la colaboración de los niños) o como guía (los niños construyen y el docente orienta).
+El ambiente se concibe como un recurso del docente: no trae actividades fijas ni un orden obligatorio, y el docente es libre de adaptarlo a su estrategia pedagógica, a los contenidos que esté trabajando y a su grupo, siempre dentro de las restricciones del sistema (sección 9). Puede usarlo, por ejemplo, para introducir un concepto, para practicarlo o para evaluar lo aprendido.
+
+Dos formas de conducir la actividad sirven de referencia, y pueden combinarse. Como *constructor principal*, el docente plantea el problema, dispone las piezas y construye el programa en voz alta, pidiendo a los niños que elijan la siguiente pieza, que hagan una conexión o que anticipen el resultado. Como *guía*, el docente plantea el problema y entrega las piezas, y son los niños quienes construyen el programa mientras él orienta, pregunta y ayuda a interpretar los resultados y los errores.
+
+Antes de conducir una actividad, conviene que el docente arme por su cuenta el programa que planteará, para conocer las piezas que necesita, el resultado esperado y las restricciones del ambiente (sección 9). Durante la actividad, conviene dejar sobre la mesa solo las piezas que se usarán, para que el área de trabajo se mantenga despejada.
 
 === 8.2 Lo que hacen los niños
 
-// TODO: dirigido al docente: qué se espera que haga el niño (elegir y colocar piezas, conectarlas con toques, formar grupos, observar el resultado y corregir), cómo pueden participar varios niños a la vez y qué señales conviene explicarles.
+Durante la actividad se espera que los niños:
+
+- Elijan las piezas que necesita el problema y las coloquen sobre la mesa, dentro del área de proyección.
+- Conecten las piezas tocando sus puntos de conexión, un toque breve en el punto de salida y otro en el de entrada.
+- Formen grupos con las cartas Abrir y Cerrar y números de varias cifras juntando cartas de número.
+- Observen el resultado, lo escuchen y lo comparen con lo que esperaban.
+- Ante un error, busquen la pieza marcada, lean su mensaje con ayuda del docente y corrijan el programa.
+
+Alrededor de la mesa trabajan hasta cuatro niños junto con el docente. Varios niños pueden actuar a la vez, cada uno con sus piezas, siempre que no se tapen unos a otros las piezas con las manos ni toquen la mesa al mismo tiempo en el mismo lugar. Conviene explicarles al principio tres señales: el punto verde (se puede conectar), el punto rojo (esa conexión no vale) y el distintivo rojo (aquí hay un error que hay que leer).
 
 == 9. Restricciones del sistema
 
-// TODO: operaciones sin carta en el mazo (menor que, mayor que), ausencia de repetición y condicionales, condiciones de iluminación y de disposición que afectan la detección, entre otras.
+Antes de planear una actividad, el docente debe conocer los límites del ambiente:
+
+- *Contenido.* El lenguaje no tiene repetición ni condicionales: trabaja con datos, operaciones, comparaciones, filtros y orden. Las operaciones «menor que» y «mayor que» existen en el lenguaje, pero no tienen carta en el mazo.
+- *Conexiones.* Cada punto de conexión admite una sola flecha. Para sumar más de dos cosas se encadenan varias sumas o se forma un grupo. Una pieza de datos no puede conectarse directamente a Salida, y las cartas de orden solo aceptan grupos o resultados de otras operaciones.
+- *Carta de contar.* El modelo de detección actual todavía no reconoce la carta Contar, por lo que esa operación no puede usarse sobre la mesa.
+- *Filtros.* Solo se puede filtrar por tamaño, color o forma. Las comidas, los cubos, las tapas y las paletas se filtran por su color; no hay criterio para elegir un tipo de comida directamente.
+- *Piezas reconocidas.* Solo se reconocen las piezas del catálogo (sección 5). Las cartas deben estar planas, sin superponerse, sin dobleces ni reflejos fuertes, y dentro del área de proyección.
+- *Iluminación.* La luz solar directa o una iluminación muy distinta de la de la calibración reducen el reconocimiento de piezas y toques.
+- *Toques.* Se reconocen toques breves con la punta del dedo; arrastrar el dedo, apoyar la palma o tocar con un objeto no se reconoce como toque.
+- *Posición de las piezas.* Una pieza colocada no debe moverse; si hay que cambiarla de lugar, se retira y se vuelve a colocar.
+- *Calibración.* Si se mueve la mesa, el proyector o el sensor, hay que calibrar de nuevo.
+- *Sonido.* La voz solo funciona después de una acción directa sobre el computador (sección 3).
+- *Tamaño del grupo.* La mesa está pensada para hasta cuatro niños y un docente a la vez.
 
 == 10. Posibles errores y su solución
 
-// TODO: tabla error / causa probable / solución (la guía pide los posibles errores, sus causas y la forma de solventarlos): pieza no reconocida, toque no detectado, proyección desalineada, sensor no detectado, etc.
+La @um-errors-table recoge los problemas que pueden presentarse durante el uso del ambiente, su causa probable y su solución. Los mensajes entre comillas son los que muestra el ambiente sobre la pieza afectada.
+
+#figure(
+  [
+    #set text(size: 10pt)
+    #table(
+      columns: (1fr, 1fr, 1.2fr),
+      align: (left + horizon, left + horizon, left + horizon),
+      inset: 4pt,
+      table.header(continuacion(3), [*Error o síntoma*], [*Causa probable*], [*Solución*]),
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Reconocimiento y toques_],
+      [Una pieza no se proyecta], [Está fuera del área de proyección, tapada, inclinada o con reflejos, o no pertenece al catálogo], [Colocarla plana dentro del área, retirar las manos y esperar un momento; si persiste, revisar la iluminación],
+      [Una pieza se reconoce como otra], [Iluminación inadecuada o carta dañada], [Retirarla y volver a colocarla; mejorar la iluminación o reemplazar la carta],
+      [Una pieza se ve atenuada], [Una mano o un objeto la tapa], [Retirar la mano; la pieza se recupera con sus conexiones],
+      [Un toque no hace nada], [El toque fue muy largo o se arrastró el dedo], [Tocar de nuevo, breve y sin arrastrar],
+      [Desapareció una flecha al tocar un punto], [Se tocó un punto ya conectado, lo que elimina su conexión], [Volver a hacer la conexión (sección 6.2)],
+      [La proyección no coincide con las piezas o los toques reaccionan en otro lugar], [Se movió la mesa, el proyector o el sensor, o cambió la luz], [Calibrar de nuevo (sección 4)],
+      [No se reconoce ninguna pieza ni ningún toque], [El programa del ambiente no está en marcha o el sensor no está conectado], [Revisar la conexión del sensor y reiniciar el ambiente según el manual del sistema (#link(<appendix-system>)[Apéndice C])],
+      [El resultado no se escucha], [No se ha hecho la acción inicial sobre el computador, o el volumen está apagado], [Hacer un clic o pulsar una tecla en el computador y revisar el volumen],
+      table.hline(stroke: 0.4pt),
+      table.cell(colspan: 3)[_Conexiones y programa_],
+      [El punto tocado se agita y la selección se cancela], [Se tocó un punto en rojo: esa conexión no está permitida], [Revisar las reglas de conexión (sección 6.2) y conectar a un punto en verde],
+      [La Salida no muestra nada], [El programa está incompleto o el grupo está vacío], [Completar las conexiones o colocar piezas en el grupo],
+      [«A esta operación le faltan o le sobran cartas.»], [La operación no tiene conectadas las entradas que necesita], [Conectarle las piezas que le faltan],
+      [«Esa carta no va en ese lugar.»], [La pieza conectada no es del tipo que espera esa entrada], [Conectar otra pieza; por ejemplo, un criterio en la segunda entrada de Filtrar],
+      [«Ese criterio no sirve para esta operación.»], [Se usó un criterio que no corresponde a la operación], [Usar cartas de criterio de tamaño, color o forma con Filtrar],
+      [«Aquí hace falta un número.»], [Multiplicar o dividir recibió en la segunda entrada algo que no es un número], [Conectar una carta de número en la segunda entrada],
+      [«No se puede dividir entre cero.»], [El divisor es cero], [Cambiar el cero por otro número],
+      [«Las cartas se apuntan en círculo y no se puede empezar.»], [Las conexiones forman un círculo], [Quitar una de las flechas del círculo],
+      [«Hay dos cartas con el mismo nombre.»], [El ambiente confundió dos piezas], [Retirar una de las dos y volver a colocarla],
+      [«A esta carta le falta decir qué es.»], [La cámara no leyó bien la pieza], [Retirarla y volver a colocarla],
+      table.hline(stroke: 0.8pt),
+    )
+  ],
+  caption: [Posibles errores durante el uso del ambiente, su causa y su solución.],
+) <um-errors-table>
 ]
 
 #pagebreak(weak: true)
