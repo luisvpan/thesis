@@ -1,38 +1,45 @@
 {
   "val": {
-    "map50": 0.9879335204305827,
-    "map50_95": 0.8399610732935122,
-    "precision": 0.9481504104867219,
-    "recall": 0.9722832172976099
+    "map50": 0.9174133464937426,
+    "map50_95": 0.7930757854272019,
+    "precision": 0.9308413879282295,
+    "recall": 0.8919329389213277
   },
-  "test": null,
-  "operating_conf": 0.7737737737737738,
-  "detail_split": "val",
-  "classes_evaluated": 37,
+  "cv": {
+    "headline": {
+      "map50": {
+        "mean": 0.9174133464937426,
+        "std": 0.13141428735860303,
+        "n": 5
+      },
+      "map50_95": {
+        "mean": 0.7930757854272019,
+        "std": 0.13570230714472636,
+        "n": 5
+      },
+      "precision": {
+        "mean": 0.9308413879282295,
+        "std": 0.05754342527661743,
+        "n": 5
+      },
+      "recall": {
+        "mean": 0.8919329389213277,
+        "std": 0.138848496345157,
+        "n": 5
+      }
+    },
+    "folds_run": 5,
+    "epochs": 26
+  },
+  "test": {
+    "map50": 0.9699470564158825,
+    "map50_95": 0.9320631130739685,
+    "precision": 0.963716719151602,
+    "recall": 0.9581247337544355
+  },
+  "operating_conf": 0.4396396396396397,
+  "detail_split": "test",
+  "classes_evaluated": 60,
   "classes_total": 60,
-  "classes_not_evaluated": [
-    "blue",
-    "cap_blue",
-    "cap_white",
-    "circle",
-    "close",
-    "cube_blue",
-    "cube_red",
-    "cube_yellow",
-    "large",
-    "lg_triangle",
-    "md_triangle",
-    "medium",
-    "open",
-    "sink",
-    "sm_triangle",
-    "small",
-    "square",
-    "stick_cyan",
-    "stick_orange",
-    "stick_red",
-    "stick_wooden",
-    "triangle",
-    "yellow"
-  ]
+  "classes_not_evaluated": []
 }
