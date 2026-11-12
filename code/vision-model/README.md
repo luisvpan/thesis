@@ -8,10 +8,34 @@ it, measures it and versions it.
 Pipeline (orchestrated by [DVC](https://dvc.org), configured by `params.yaml`):
 
 ```
-data/raw ──prepare──▶ data/prepared ──train──▶ dvclive/ ──evaluate──▶ reports/ ──export──▶ models/export/
-(Roboflow export)     (split by session)       (metrics, plots,       (test metrics,        (release bundle:
-                                                best.pt)               operating conf)       onnx + model_card)
+data/raw ──prepare──▶ data/prepared ──cv──▶ reports/cv/ ──train──▶ dvclive/ ──evaluate──▶ reports/ ──export──▶ models/export/
+(Roboflow export)     (folds by session)    (k-fold:        (final model:   (test metrics)        (onnx +
+                                             metrics ± std,  all but test,                         model_card)
+                                             epochs, conf)   fixed epochs)
 ```
+
+### Group k-fold cross-validation
+
+Sessions are few and each looks different, so a single val session would make
+every decision (threshold, epochs, which experiment wins) depend on that one
+session. Instead (`split.folds` in `params.yaml`, `folds.py`):
+
+1. **`cv`** trains one model per fold: fold *k* validates on its sessions and
+   trains on all the others except test. Metrics come out as **mean ± std
+   across folds** (`reports/cv/summary.json`, `reports/cv/per_class.csv`).
+2. From the folds come the **number of epochs** (mean best epoch) and the
+   **operating confidence** (mean F1-optimal confidence).
+3. **`train`** trains the final model on every session except test, for that
+   number of epochs, without validation; its last weights are the model.
+4. **`evaluate`** measures it on the frozen test sessions.
+
+A full run is folds + 1 trainings. `remote/exp.py` trains the folds **in
+parallel**, one Modal GPU each, and passes their results to the `cv` stage
+(`VM_CV_FOLD_RESULTS`; each result is fingerprinted with its fold's image lists
+and params, and the stage rejects mismatches). Wall time is about two
+trainings (~25 min on L4); cost is still folds + 1. `--sequential` trains the
+folds inside the stage instead. For a quick experiment, `--set cv.max_folds=1`
+runs only the first fold.
 
 ## Why it is built this way
 
@@ -87,13 +111,15 @@ on the bucket.
    how session information assigned in Roboflow reaches the pipeline. The
    export's own train/valid/test split is ignored.
 3. Track it: `dvc add data/raw && git add data/raw.dvc .gitignore`.
-4. List the sessions and choose val/test:
+4. List the sessions and assign them:
    ```bash
    uv run --no-sync vm-sessions
    ```
-   Put whole sessions in `split.val_sessions` / `split.test_sessions` in
-   `params.yaml` (quoted: YAML reads `20260508_1502` as an integer). A good test
-   session contains every class and looks like real use (interface on, hands,
+   In `params.yaml`, `split.folds` lists the sessions each fold validates on
+   (`rest` = every other session) and `split.test_sessions` the test sessions
+   (quoted: YAML reads `20260508_1502` as an integer). A fold session must be
+   labeled as carefully as test: it is validated on. A good test session
+   contains every class and looks like real use (interface on, hands,
    rotations). **Once chosen, the test set is frozen.**
 
 ### How an image gets its session
@@ -120,11 +146,12 @@ dvc plots diff                    # compare curves between experiments
 dvc exp apply <exp> && git commit # promote the winner to a commit
 ```
 
-`dvclive/` is written by Ultralytics' built-in DVCLive callback: per-epoch
-metrics (`plots/metrics/*.tsv`), final metrics (`metrics.json`), Ultralytics'
-plots (`plots/images/`), the confusion matrix (`plots/sklearn/cf.json`) and the
-best weights (`artifacts/best.pt`). Small text files are versioned in git;
-weights and images go to the DVC remote.
+`dvclive/` is written by Ultralytics' built-in DVCLive callback during the
+final training: per-epoch losses (`plots/metrics/*.tsv`), Ultralytics' plots
+(`plots/images/`) and the weights (`artifacts/model.pt`, the last epoch; the
+`best.pt` the callback also copies there is chosen on training data and is not
+used). Small text files are versioned in git; weights and images go to the DVC
+remote.
 
 ### On a cloud GPU (Modal)
 
@@ -167,8 +194,11 @@ Image level (`reports/metrics.json`, `reports/per_class.csv`):
 - **AP** (per class): area under the precision–recall curve as the confidence
   threshold sweeps 0→1. **mAP50** averages AP over classes with a match defined as
   IoU ≥ 0.5; **mAP50-95** averages over IoU 0.5…0.95 (also rewards tight boxes).
-- **operating_conf**: the confidence that maximizes mean F1 **on val**. This is
-  the threshold the cv-system must use. It is never tuned on test.
+- **operating_conf**: the confidence that maximizes mean F1 on each fold's val,
+  averaged over folds. This is the threshold the cv-system must use. It is
+  never tuned on test.
+- **cv** (`reports/cv/summary.json`): every metric as mean ± std over folds.
+  A large std means the model behaves very differently between sessions.
 
 Video level (`vm-live-metrics`, from the session logs of `CV_RECORD=1`):
 

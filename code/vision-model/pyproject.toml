@@ -39,6 +39,7 @@ rocm = [
 [project.scripts]
 vm-sessions = "vision_model.sessions:main"
 vm-prepare = "vision_model.prepare:main"
+vm-cv = "vision_model.cv:main"
 vm-train = "vision_model.train:main"
 vm-evaluate = "vision_model.evaluate:main"
 vm-export = "vision_model.export:main"

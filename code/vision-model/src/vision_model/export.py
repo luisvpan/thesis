@@ -18,7 +18,7 @@ import yaml
 
 from vision_model.evaluate import REPORTS
 from vision_model.params import PROJECT_ROOT, load_params
-from vision_model.train import BEST_WEIGHTS
+from vision_model.train import FINAL_WEIGHTS
 
 EXPORT_DIR = Path("models/export")
 
@@ -64,7 +64,7 @@ def main() -> None:
     # Export from a copy: Ultralytics writes the exported file next to the weights,
     # and dvclive/artifacts is the train stage's output, which must stay untouched.
     weights = EXPORT_DIR / "model.pt"
-    shutil.copy2(BEST_WEIGHTS, weights)
+    shutil.copy2(FINAL_WEIGHTS, weights)
     model = YOLO(str(weights))
     exported = Path(
         model.export(
@@ -95,7 +95,9 @@ def main() -> None:
         },
         "conf_threshold": metrics.get("operating_conf"),
         "metrics": {
+            # "val": mean over the cross-validation folds (see reports/cv/summary.json)
             "val": metrics["val"],
+            "cv": metrics.get("cv"),
             "test": metrics["test"],  # null while there is no test set (see params.yaml)
             "classes_evaluated": metrics.get("classes_evaluated"),
             "classes_total": metrics.get("classes_total"),

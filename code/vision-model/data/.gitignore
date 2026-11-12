@@ -3,3 +3,10 @@
 /recordings
 # vm-extract output: regenerable from data/recordings + <session>.extract.json
 /extracted
+# local leftovers of the v13 swap (old export is in the DVC cache); safe to delete
+/raw_old
+/raw_v13.zip
+/raw_v13
+/raw_v14.zip
+# contact sheets used to pick frames by eye; safe to delete
+/sheet*_tmp.jpg

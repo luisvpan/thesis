@@ -9,26 +9,38 @@ data:
   drop_classes: []             # classes to remove (e.g. typos Roboflow keeps with 0 objects)
 
 split:
-  # Whole sessions per split. Run `uv run vm-sessions` to list them.
+  # Whole sessions only. Run `uv run --no-sync vm-sessions` to list them.
   # Always QUOTE session ids: YAML reads 20260508_1502 as the integer 202605081502.
-  # Freeze test once chosen: changing it invalidates every comparison.
-  # PROVISIONAL (2026-11): existing sessions are topical (each covers a few
-  # classes) and several classes exist in only one session, which must then stay
-  # in train. No honest test set can be built from them: test stays EMPTY until a
-  # dedicated all-class capture exists. Val evaluates only part of the classes.
-  val_sessions:
-    - "20260423_1552"
-    - "rf_20260611"
-  test_sessions: []
-  untimed_to: train            # images with no session (predict_NNNNNN before Nov 2026)
+  #
+  # Test: frozen once chosen, never in any fold, never used to tune anything.
+  # 20261110_131211: real use of the system (interface on, hands), all classes;
+  # 125 frames chosen in labeling/2026-11-12-defense.json, reviewed by hand.
+  # 20261112_141201: 5-min real-use session recorded for the two classes the
+  # first one lacks (stick_wooden, smallest_to_largest); 20 frames picked by eye.
+  test_sessions: ["20261110_131211", "20261112_141201"]
+  untimed_to: train            # images with no session (predict_NNNNNN): always train
+  # Group k-fold, k = 5 (see src/vision_model/folds.py): fold k validates on its
+  # sessions and trains on all the others except test. Groups balanced by image
+  # count (2026-11-12): ~45-80 images each. "untimed" (173 old images from
+  # unknown sessions) is never validated on: it may share capture days with
+  # the named sessions.
+  folds:
+    - ["20260423_1414"]                                       # 80 images, 31 classes
+    - ["20261109_184859"]                                     # 75 images, real use
+    - ["rf_20260604"]                                         # 61 images, 22 classes
+    - ["20260515_1958", "20260423_1552", "20260423_1637"]     # 56 images
+    - ["20260508_1502", "rf_20260611"]                        # 45 images
+
+cv:
+  max_folds: null              # null = all folds; 1 = only fold 1 (quick experiments)
 
 train:
   # Baseline = Ultralytics defaults except flips (they turn digits and arrows
   # into other symbols without changing the label).
   model: yolo11s.pt
   imgsz: 1280                  # symbols are small in the 1920x1080 bird view
-  epochs: 150
-  patience: 30
+  epochs: 150                  # max per fold; the final model uses the folds' mean best epoch
+  patience: 30                 # early stopping on each fold's val
   batch: 8
   seed: 42
   deterministic: true

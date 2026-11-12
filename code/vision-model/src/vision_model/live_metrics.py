@@ -90,7 +90,9 @@ def compute(frames: list[dict], expected: dict[str, int] | None = None) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Video-level metrics from a session log")
-    parser.add_argument("log", type=Path, help="<session>.jsonl recorded by the cv-system (CV_RECORD=1)")
+    parser.add_argument(
+        "log", type=Path, help="<session>.jsonl recorded by the cv-system (CV_RECORD=1)"
+    )
     parser.add_argument(
         "--expected",
         type=str,

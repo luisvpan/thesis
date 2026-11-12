@@ -8,7 +8,7 @@ Read `README.md` for the why; this file is the operating manual.
 ```bash
 uv sync --extra <rocm|cpu>     # deps + PyTorch build for this machine (see README)
 uv run --no-sync vm-sessions             # list capture sessions in data/raw
-dvc repro                      # full pipeline: prepare -> train -> evaluate -> export
+dvc repro                      # full pipeline: prepare -> cv -> train -> evaluate -> export
 dvc exp run -S <key>=<value>   # one experiment = one changed param
 dvc exp show                   # compare experiments
 uv run --no-sync vm-live-metrics <session>.jsonl --expected '{"one": 2}'
@@ -37,9 +37,12 @@ src/vision_model/
   params.py              # load params.yaml
   raw.py                 # read the raw Roboflow COCO export
   sessions.py            # image -> capture session; `vm-sessions`
-  prepare.py             # raw COCO export -> data/prepared (YOLO) split by session
-  train.py               # Ultralytics fine-tune, logs to dvclive/
-  evaluate.py            # operating conf on val, metrics on test -> reports/
+  folds.py               # group k-fold: split.folds -> val sessions per fold
+  prepare.py             # raw COCO export -> data/prepared (YOLO) + fold/final/test lists
+  cv.py                  # `vm-cv`: one training per fold -> reports/cv/ (mean ± std)
+  train.py               # final model on all but test, epochs from cv, logs to dvclive/
+  metrics.py             # read Ultralytics validation results
+  evaluate.py            # test metrics + cv numbers -> reports/
   export.py              # ONNX + model_card.json -> models/export/
   live_metrics.py        # video metrics from cv-system session logs
   recordings.py          # data/recordings + data/extracted layout
@@ -55,7 +58,12 @@ tests/
   splits or reuse Roboflow's train/valid/test folders.
 - **Test is frozen.** Never change `split.test_sessions` to make numbers look
   better; never tune anything (threshold, params, epochs) on test. The operating
-  confidence is chosen on val.
+  confidence and the epochs come from the folds.
+- **Folds are made of whole sessions.** A session is in at most one fold's val,
+  never in test; `untimed` images are always train. Do not pick folds by their
+  results (that is tuning on val with extra steps).
+- **The final model is the last epoch.** It trains on everything except test
+  for the folds' mean best epoch, with no val set; never select its "best" epoch.
 - **All configuration lives in `params.yaml`.** No hyperparameters hardcoded in
   `src/`. A new knob = a new key in params.yaml + listed under the stage's
   `params:` in dvc.yaml.

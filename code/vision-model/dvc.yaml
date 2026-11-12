@@ -3,6 +3,7 @@ stages:
     cmd: uv run --no-sync vm-prepare
     deps:
       - data/raw
+      - src/vision_model/folds.py
       - src/vision_model/prepare.py
       - src/vision_model/raw.py
       - src/vision_model/sessions.py
@@ -12,16 +13,38 @@ stages:
     outs:
       - data/prepared
 
+  cv:
+    cmd: uv run --no-sync vm-cv
+    deps:
+      - data/prepared
+      - src/vision_model/cv.py
+      - src/vision_model/metrics.py
+      - src/vision_model/train.py
+    params:
+      - train
+      - runtime
+      - cv
+    metrics:
+      - reports/cv/summary.json:
+          cache: false
+    plots:
+      - reports/cv/per_class.csv:
+          cache: false
+          template: bar_horizontal
+          x: ap50_95
+          y: class
+
   train:
     cmd: uv run --no-sync vm-train
     deps:
       - data/prepared
+      - reports/cv/summary.json  # number of epochs
       - src/vision_model/train.py
     params:
       - train
       - runtime
     outs:
-      - dvclive/artifacts        # best.pt, DVC-cached (not in git)
+      - dvclive/artifacts        # model.pt, DVC-cached (not in git)
       - dvclive/plots/images     # Ultralytics PNGs, DVC-cached
     metrics:
       - dvclive/metrics.json:
@@ -30,18 +53,15 @@ stages:
       - dvclive/plots/metrics:
           cache: false           # per-epoch curves (.tsv), versioned in git
           x: step
-      - dvclive/plots/sklearn/cf.json:
-          cache: false
-          template: confusion_normalized
-          x: actual
-          y: predicted
 
   evaluate:
     cmd: uv run --no-sync vm-evaluate
     deps:
       - dvclive/artifacts
       - data/prepared
+      - reports/cv/summary.json
       - src/vision_model/evaluate.py
+      - src/vision_model/metrics.py
     params:
       - train.imgsz
     metrics:

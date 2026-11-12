@@ -1,13 +1,20 @@
-"""Fine-tune a pretrained YOLO checkpoint on the prepared dataset.
+"""Train the final model on every session except test (`vm-train`).
 
-Every hyperparameter comes from ``params.yaml`` -> ``train``; the keys besides
-``model`` are passed verbatim to ``YOLO.train``. Metrics and plots are logged
-by Ultralytics' built-in DVCLive callback into ``dvclive/``; the best weights
-end up in ``dvclive/artifacts/best.pt`` (a DVC-tracked output).
+It runs after the cross-validation (``cv.py``), which decides how long to train:
+the final model trains for ``reports/cv/summary.json`` -> ``epochs`` (the mean
+best epoch of the folds) with no validation set and no early stopping, and its
+LAST weights are the model. Picking "best" epochs would need a val set, and
+every non-test session is already in training.
+
+Every other hyperparameter comes from ``params.yaml`` -> ``train``; the keys
+besides ``model`` are passed verbatim to ``YOLO.train``. Losses and plots are
+logged by Ultralytics' DVCLive callback into ``dvclive/``; the weights end up in
+``dvclive/artifacts/model.pt`` (a DVC-tracked output).
 """
 
 from __future__ import annotations
 
+import json
 import shutil
 import time
 import types
@@ -16,7 +23,8 @@ from pathlib import Path
 
 from vision_model.params import RUNS_DIR, load_params
 
-BEST_WEIGHTS = Path("dvclive/artifacts/best.pt")
+FINAL_WEIGHTS = Path("dvclive/artifacts/model.pt")
+CV_SUMMARY = Path("reports/cv/summary.json")
 
 
 def keep_dvclive_out_of_dvc_yaml() -> None:
@@ -78,6 +86,16 @@ def log_epoch_time(model) -> None:
     model.add_callback("on_train_epoch_end", on_end)
 
 
+def train_kwargs(params: dict) -> tuple[str, dict]:
+    """Base checkpoint and ``YOLO.train`` keyword arguments from params.yaml; also
+    applies the ``runtime`` workarounds. Shared by the folds and the final model."""
+    if params.get("runtime", {}).get("native_batchnorm", False):
+        use_native_batchnorm()
+        print("runtime.native_batchnorm: BatchNorm uses PyTorch kernels (MIOpen/cuDNN off)")
+    kwargs = dict(params["train"])
+    return kwargs.pop("model"), kwargs
+
+
 def main() -> None:
     from ultralytics import YOLO, settings
 
@@ -85,12 +103,14 @@ def main() -> None:
     keep_dvclive_out_of_dvc_yaml()
 
     params = load_params()
-    if params.get("runtime", {}).get("native_batchnorm", False):
-        use_native_batchnorm()
-        print("runtime.native_batchnorm: BatchNorm uses PyTorch kernels (MIOpen/cuDNN off)")
-    train_cfg = dict(params["train"])
-    checkpoint = train_cfg.pop("model")
-    data_yaml = (Path(params["data"]["prepared_dir"]) / "data.yaml").resolve()
+    checkpoint, kwargs = train_kwargs(params)
+    cv = json.loads(CV_SUMMARY.read_text(encoding="utf-8"))
+    kwargs.update(
+        epochs=cv["epochs"],
+        patience=0,  # 0 = never stop early: the number of epochs comes from the folds
+        val=False,  # no held-out set (Ultralytics still validates once at the end, on train)
+    )
+    data_yaml = (Path(params["data"]["prepared_dir"]) / "final.yaml").resolve()
 
     model = YOLO(checkpoint)
     log_epoch_time(model)
@@ -100,16 +120,15 @@ def main() -> None:
         name="train",
         exist_ok=True,
         plots=True,
-        **train_cfg,
+        **kwargs,
     )
 
-    # The DVCLive callback copies best.pt into dvclive/artifacts/. If dvclive is
-    # missing or the callback did not run, copy it ourselves so the stage output exists.
-    trained = Path(model.trainer.best)
-    if not BEST_WEIGHTS.exists():
-        BEST_WEIGHTS.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(trained, BEST_WEIGHTS)
-    print(f"Best weights: {BEST_WEIGHTS}")
+    # The last epoch is the model (see the module docstring). The DVCLive callback
+    # also copies a best.pt into dvclive/artifacts; it is chosen on training data
+    # and must not be used.
+    FINAL_WEIGHTS.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(Path(model.trainer.last), FINAL_WEIGHTS)
+    print(f"Final weights ({cv['epochs']} epochs): {FINAL_WEIGHTS}")
 
 
 if __name__ == "__main__":

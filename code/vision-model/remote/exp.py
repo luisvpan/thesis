@@ -3,7 +3,12 @@
     uv run --no-sync modal run remote/exp.py --name smoke --set train.epochs=3 --gpu L4
     uv run --no-sync modal run remote/exp.py --name imgsz960 --set "train.imgsz=960,train.batch=16" --gpu L40S
 
-What happens:
+What happens (the cross-validation folds run in parallel, one GPU each):
+
+0. On Modal, one container per fold (in parallel): clone at HEAD, apply the
+   ``--set`` overrides, ``vm-prepare`` and ``vm-cv --fold k``. Each returns its
+   fold's result (metrics, best epoch, threshold). ``--sequential`` skips this
+   and lets the ``cv`` stage train the folds one after another instead.
 
 1. Locally: checks that ``code/vision-model`` has no uncommitted changes and that
    HEAD is pushed (the repository is public, so the container clones it without
@@ -24,11 +29,13 @@ the R2 token (DVC's S3 remote reads them; the endpoint is in ``.dvc/config``).
 
 from __future__ import annotations
 
+import json
 import subprocess
 import tempfile
 from pathlib import Path
 
 import modal
+import yaml
 
 PROJECT_SUBDIR = "code/vision-model"
 GPUS = ("T4", "L4", "A10", "L40S", "A100-40GB", "A100-80GB", "H100")
@@ -42,7 +49,7 @@ VENV = "/opt/venv"
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("git", "libgl1", "libglib2.0-0")  # git for DVC; GL/GLib for OpenCV
-    .pip_install("uv")
+    .pip_install("uv", "pyyaml")  # pyyaml: train_fold edits params.yaml
     .env({"UV_PROJECT_ENVIRONMENT": VENV, "UV_PYTHON_PREFERENCE": "only-system"})
     .add_local_file(PROJECT_DIR / "pyproject.toml", "/deps/pyproject.toml", copy=True)
     .add_local_file(PROJECT_DIR / "uv.lock", "/deps/uv.lock", copy=True)
@@ -66,6 +73,35 @@ def out(cmd: list[str], cwd: str | Path | None = None) -> str:
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
 
 
+def set_param(params: dict, override: str) -> None:
+    """Apply one ``key.sub=value`` override like ``dvc exp run -S`` (value parsed as YAML)."""
+    key, _, raw = override.partition("=")
+    *parents, leaf = key.strip().split(".")
+    node = params
+    for part in parents:
+        node = node.setdefault(part, {})
+    node[leaf] = yaml.safe_load(raw)
+
+
+def fold_ids(params: dict) -> list[int]:
+    """Folds the cv stage will use (split.folds, limited by cv.max_folds)."""
+    ids = list(range(1, len(params["split"]["folds"]) + 1))
+    max_folds = (params.get("cv") or {}).get("max_folds")
+    return ids[: int(max_folds)] if max_folds else ids
+
+
+def checkout(repo_url: str, commit: str) -> tuple[Path, Path]:
+    """Clone the repo at ``commit`` and install the project; returns (root, project)."""
+    root = Path("/work/repo")
+    project = root / PROJECT_SUBDIR
+    sh(["git", "clone", "--filter=blob:none", repo_url, str(root)])
+    sh(["git", "checkout", "--detach", commit], cwd=root)
+    sh(["uv", "sync", "--frozen"], cwd=project)  # deps already in the image venv
+    sh(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv"])
+    sh(["uv", "run", "--no-sync", "dvc", "pull", "data/raw.dvc"], cwd=project)
+    return root, project
+
+
 def experiment_ref(name: str, cwd: str | Path | None = None) -> str:
     """Git ref DVC created for experiment ``name`` (refs/exps/<baseline>/<name>)."""
     refs = out(["git", "for-each-ref", "--format=%(refname)", "refs/exps"], cwd=cwd).splitlines()
@@ -82,23 +118,29 @@ def experiment_ref(name: str, cwd: str | Path | None = None) -> str:
     timeout=6 * 60 * 60,
     secrets=[modal.Secret.from_name("vision-model-r2")],
 )
-def run_experiment(repo_url: str, commit: str, name: str, overrides: list[str]) -> dict:
-    root = Path("/work/repo")
-    project = root / PROJECT_SUBDIR
+def run_experiment(
+    repo_url: str, commit: str, name: str, overrides: list[str], fold_results: dict | None
+) -> dict:
+    import os
 
-    sh(["git", "clone", "--filter=blob:none", repo_url, str(root)])
-    sh(["git", "checkout", "--detach", commit], cwd=root)
+    root, project = checkout(repo_url, commit)
     sh(["git", "config", "user.name", "vision-model (Modal)"], cwd=root)
     sh(["git", "config", "user.email", "vision-model@modal.invalid"], cwd=root)
 
-    sh(["uv", "sync", "--frozen"], cwd=project)  # deps already in the image venv
-    sh(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv"])
-    sh(["uv", "run", "--no-sync", "dvc", "pull", "data/raw.dvc"], cwd=project)
+    env = dict(os.environ)
+    if fold_results:
+        # The cv stage aggregates these instead of training (it checks they match)
+        folds_dir = Path("/work/cv_folds")
+        folds_dir.mkdir()
+        for k, result in fold_results.items():
+            (folds_dir / f"fold{k}.json").write_text(result, encoding="utf-8")
+        env["VM_CV_FOLD_RESULTS"] = str(folds_dir)
 
     cmd = ["uv", "run", "--no-sync", "dvc", "exp", "run", "-n", name]
     for override in overrides:
         cmd += ["-S", override]
-    sh(cmd, cwd=project)
+    print(f"$ {' '.join(cmd)}", flush=True)
+    subprocess.run(cmd, cwd=project, env=env, check=True)
 
     # Data (weights, images) to R2 now; the git part goes home as a bundle.
     sh(["uv", "run", "--no-sync", "dvc", "push"], cwd=project)
@@ -114,9 +156,30 @@ def run_experiment(repo_url: str, commit: str, name: str, overrides: list[str]) 
     }
 
 
+@app.function(
+    gpu="L4",
+    cpu=8,
+    memory=32 * 1024,
+    timeout=6 * 60 * 60,
+    secrets=[modal.Secret.from_name("vision-model-r2")],
+)
+def train_fold(repo_url: str, commit: str, overrides: list[str], k: int) -> str:
+    """Train and evaluate one cross-validation fold; returns its result (JSON text)."""
+    _, project = checkout(repo_url, commit)
+    params_path = project / "params.yaml"
+    params = yaml.safe_load(params_path.read_text(encoding="utf-8"))
+    for override in overrides:
+        set_param(params, override)
+    params_path.write_text(yaml.safe_dump(params, sort_keys=False), encoding="utf-8")
+    sh(["uv", "run", "--no-sync", "vm-prepare"], cwd=project)
+    out = Path(f"/work/fold{k}.json")
+    sh(["uv", "run", "--no-sync", "vm-cv", "--fold", str(k), "--out", str(out)], cwd=project)
+    return out.read_text(encoding="utf-8")
+
+
 @app.local_entrypoint()
 def main(
-    name: str, set: str = "", gpu: str = "L4", no_push: bool = False
+    name: str, set: str = "", gpu: str = "L4", no_push: bool = False, sequential: bool = False
 ) -> None:  # `set` gives --set
     if gpu not in GPUS:
         raise SystemExit(f"--gpu must be one of {', '.join(GPUS)}")
@@ -143,7 +206,23 @@ def main(
     overrides = [s.strip() for s in set.split(",") if s.strip()]
 
     print(f"Experiment '{name}' at {commit[:7]} on {gpu}, overrides: {overrides or 'none'}")
-    result = run_experiment.with_options(gpu=gpu).remote(repo_url, commit, name, overrides)
+    fold_results = None
+    if not sequential:
+        params = yaml.safe_load((project / "params.yaml").read_text(encoding="utf-8"))
+        for override in overrides:
+            set_param(params, override)
+        ids = fold_ids(params)
+        print(f"Training folds {ids} in parallel ({len(ids)} x {gpu})...")
+        results = train_fold.with_options(gpu=gpu).starmap(
+            [(repo_url, commit, overrides, k) for k in ids]
+        )
+        fold_results = dict(zip(ids, results, strict=True))
+        for k, r in fold_results.items():
+            h = json.loads(r)["headline"]
+            print(f"  fold {k}: mAP50={h['map50']:.3f} mAP50-95={h['map50_95']:.3f}")
+    result = run_experiment.with_options(gpu=gpu).remote(
+        repo_url, commit, name, overrides, fold_results
+    )
 
     with tempfile.TemporaryDirectory() as tmp:
         bundle = Path(tmp) / "exp.bundle"

@@ -1,12 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from vision_model.prepare import (
-    build_class_list,
-    prepared_stem,
-    split_for_session,
-    unique_stem,
-)
+from vision_model.prepare import build_class_list, prepared_stem, unique_stem
 from vision_model.raw import RawImage
 from vision_model.sessions import UNTIMED_SESSION, assign_sessions, parse_name
 
@@ -61,14 +56,6 @@ def test_roboflow_session_overrides_filename():
     assert sessions[by_meta.path] == "rf_20260604"
     assert sessions[by_tag.path] == "rf_20260611"
     assert sessions[meta_wins.path] == "from_meta"
-
-
-def test_split_assignment():
-    cfg = {"val_sessions": ["v"], "test_sessions": ["t"], "untimed_to": "train"}
-    assert split_for_session("t", cfg) == "test"
-    assert split_for_session("v", cfg) == "val"
-    assert split_for_session("other", cfg) == "train"
-    assert split_for_session(UNTIMED_SESSION, cfg) == "train"
 
 
 def test_class_list_drops_keeping_order():
