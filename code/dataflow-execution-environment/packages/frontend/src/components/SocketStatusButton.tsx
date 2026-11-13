@@ -13,21 +13,22 @@ function getTouchWebSocketUrl(): string {
 }
 
 /**
- * FAB inferior derecha: estado de WebSockets (visión + toque) en el IDE.
+ * Botón de la cabecera del IDE: estado de WebSockets (visión + toque).
+ * El punto indica si el WebSocket de toque está conectado.
  */
-export function SocketInfoFab() {
+export function SocketStatusButton({ className = '' }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const { connected: touchConnected } = useTouch();
   const visionWsUrl = getVisionWebSocketUrl();
   const touchWsUrl = getTouchWebSocketUrl();
 
   return (
-    <div className="fixed bottom-6 right-6 z-[300] flex flex-col items-end gap-2 pointer-events-auto">
+    <div className="relative">
       {open && (
         <div
           role="dialog"
           aria-label="Estado de WebSockets"
-          className="mb-2 w-[min(100vw-3rem,22rem)] max-h-[min(70vh,28rem)] overflow-y-auto rounded-2xl border border-slate-600 bg-slate-900/98 shadow-2xl shadow-black/60 backdrop-blur-md"
+          className="absolute right-0 top-full z-[300] mt-4 w-[min(100vw-3rem,22rem)] max-h-[min(70vh,28rem)] overflow-y-auto rounded-2xl border border-slate-600 bg-slate-900/98 shadow-2xl shadow-black/60 backdrop-blur-md"
         >
           <div className="border-b border-slate-700 px-4 py-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
@@ -58,12 +59,18 @@ export function SocketInfoFab() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-indigo-400/80 bg-indigo-600 text-white shadow-xl shadow-black/40 transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/50"
+        className={`relative flex items-center justify-center border-indigo-400/50 bg-indigo-950 text-indigo-200 transition-colors hover:bg-indigo-900 hover:text-white ${className}`}
         aria-expanded={open}
         aria-haspopup="dialog"
         title={open ? 'Cerrar información de WebSockets' : 'WebSockets: visión y toque'}
       >
-        <Radio className="h-8 w-8" strokeWidth={2} aria-hidden />
+        <Radio className="h-12 w-12 pointer-events-none" strokeWidth={2} aria-hidden />
+        <span
+          aria-hidden
+          className={`absolute right-3 top-3 h-4 w-4 rounded-full ring-2 ring-slate-900 ${
+            touchConnected ? 'bg-emerald-400' : 'bg-rose-500'
+          }`}
+        />
       </button>
     </div>
   );

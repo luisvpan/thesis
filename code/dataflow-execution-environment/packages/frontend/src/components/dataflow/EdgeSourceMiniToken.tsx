@@ -5,7 +5,7 @@ import type { OperatorFlowNodeData } from './OperatorFlowNode';
 import type { ProgramOutputFlowNodeData } from './ProgramOutputFlowNode';
 import { ResultArrayVisual } from './ResultArrayVisual';
 import type { SourceFlowNodeData } from './SourceFlowNode';
-import type { ResultViewMode } from './dataflowResultCpa';
+import { formatFractionText, type ResultViewMode } from './dataflowResultCpa';
 import { CapGlyph, MontessoriCubeGlyph, StickGlyph } from './CpaGlyphs';
 import { MiniShapeGlyph } from './MiniShapeGlyph';
 import { foodEmoji } from '@/data/foodEmoji';
@@ -17,6 +17,23 @@ import { numericValueOf } from '@/utils/resultValueDisplay';
 
 const ARRAY_STRIP_SHELL =
   'flex max-w-[min(28rem,85vw)] items-center gap-1 px-1.5 py-1 shadow-lg pointer-events-none';
+const ARRAY_BRACKET_CLASS = 'shrink-0 font-mono text-sm font-black text-teal-400';
+const ARRAY_MEMBER_CLASS = 'flex h-9 min-w-9 shrink-0 items-center justify-center';
+
+/** Serie numérica entre corchetes: el glyph de un arreglo en la conexión. */
+function ArrayStrip({ children, empty }: { children: React.ReactNode; empty: boolean }) {
+  return (
+    <div className={ARRAY_STRIP_SHELL}>
+      <span className={ARRAY_BRACKET_CLASS} aria-hidden>
+        [
+      </span>
+      {empty ? <span className="px-1 text-xs italic text-slate-500">vacío</span> : children}
+      <span className={ARRAY_BRACKET_CLASS} aria-hidden>
+        ]
+      </span>
+    </div>
+  );
+}
 
 function SourceMiniContent({
   data,
@@ -84,6 +101,18 @@ function EvalResultMiniToken({ result }: { result: ResultValue }) {
     );
   }
 
+  if (result.kind === 'numberArray') {
+    return (
+      <ArrayStrip empty={result.values.length === 0}>
+        {result.values.map((item, i) => (
+          <span key={i} className={`${ARRAY_MEMBER_CLASS} text-xl font-bold tabular-nums text-teal-300`}>
+            {formatFractionText(item.numerator, item.denominator)}
+          </span>
+        ))}
+      </ArrayStrip>
+    );
+  }
+
   const value = numericValueOf(result);
   if (value === undefined) return null;
 
@@ -132,26 +161,13 @@ function ArrayCloseMiniToken({
   const members = getOrderedArrayZoneMembers(closeNodeId, nodes, edges);
 
   return (
-    <div className={ARRAY_STRIP_SHELL}>
-      <span className="shrink-0 font-mono text-sm font-black text-teal-400" aria-hidden>
-        [
-      </span>
-      {members.length === 0 ? (
-        <span className="px-1 text-xs italic text-slate-500">vacío</span>
-      ) : (
-        members.map((member) => (
-          <div
-            key={member.id}
-            className="flex h-9 w-9 shrink-0 items-center justify-center"
-          >
-            <NodeMiniVisual node={member} viewMode={viewMode} evalResults={evalResults} />
-          </div>
-        ))
-      )}
-      <span className="shrink-0 font-mono text-sm font-black text-teal-400" aria-hidden>
-        ]
-      </span>
-    </div>
+    <ArrayStrip empty={members.length === 0}>
+      {members.map((member) => (
+        <div key={member.id} className={ARRAY_MEMBER_CLASS}>
+          <NodeMiniVisual node={member} viewMode={viewMode} evalResults={evalResults} />
+        </div>
+      ))}
+    </ArrayStrip>
   );
 }
 
@@ -177,7 +193,7 @@ export function EdgeSourceMiniToken({ node, viewMode }: EdgeSourceMiniTokenProps
   if (node.type === 'diceZone') {
     const data = node.data as { value?: number };
     return (
-      <div className="scale-50 origin-center">
+      <div className="scale-50 origin-center opacity-70">
         <DiceFace value={data.value} />
       </div>
     );

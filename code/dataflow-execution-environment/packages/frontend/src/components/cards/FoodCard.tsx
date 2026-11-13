@@ -14,7 +14,7 @@ const foodNames: Record<FoodType, string> = {
   hamburguesa: 'Hamburguesa',
   uvas: 'Uvas',
   pasta: 'Pasta',
-  peras: 'Peras',
+  pera: 'Pera',
   naranja: 'Naranja',
 };
 

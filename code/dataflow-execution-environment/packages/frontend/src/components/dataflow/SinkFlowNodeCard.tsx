@@ -33,9 +33,9 @@ export function SinkFlowNodeCard({
       <div className="ml-36 flex w-full items-end gap-3 text-md font-semibold leading-snug text-teal-200">
         {actionButton}
       </div>
-      <div className="w-full space-y-4">
+      <div className="mt-2 w-full space-y-4">
         <div className="min-w-0 flex-1">{headerRight}</div>
-        {resultVisual}
+        {resultVisual ? <div className="opacity-75">{resultVisual}</div> : null}
       </div>
     </div>
   );

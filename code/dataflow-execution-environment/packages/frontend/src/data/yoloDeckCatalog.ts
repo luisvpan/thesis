@@ -292,7 +292,7 @@ export function spawnActionForYoloClass(raw: string): DeckSpawnAction | null {
   const food: Record<string, FoodType> = {
     apple: 'manzana',
     burger: 'hamburguesa',
-    pear: 'peras',
+    pear: 'pera',
     grapes: 'uvas',
   };
   if (x in food) return { kind: 'food', yoloClass: x, food: food[x] };

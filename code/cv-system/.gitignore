@@ -1,5 +1,6 @@
 config/calibration.json
 images/
+models/
 
 # --- Local Config & Secrets ---
 .env

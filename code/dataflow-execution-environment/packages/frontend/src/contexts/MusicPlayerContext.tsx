@@ -9,6 +9,10 @@ import {
   type ReactNode,
 } from 'react';
 import { PLAYLIST, type Track } from '@/data/musicPlaylist';
+import { subscribeSpeechActive } from '@/utils/speakSpanish';
+
+/** Fracción del volumen de la música mientras habla la voz de resultados. */
+const SPEECH_DUCK_FACTOR = 0.2;
 
 const MAX_VOLUME_LEVEL = 5;
 const DEFAULT_VOLUME_LEVEL = 3;
@@ -90,12 +94,17 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     return () => audio.removeEventListener('ended', next);
   }, [next]);
 
-  // Volumen/silencio.
+  // Mientras la voz lee un resultado, bajamos la música para que se entienda bien.
+  const [speechActive, setSpeechActive] = useState(false);
+  useEffect(() => subscribeSpeechActive(setSpeechActive), []);
+
+  // Volumen/silencio (con "ducking" mientras habla la voz).
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.volume = muted ? 0 : levelToGain(volumeLevel);
-  }, [volumeLevel, muted]);
+    const gain = muted ? 0 : levelToGain(volumeLevel);
+    audio.volume = speechActive ? gain * SPEECH_DUCK_FACTOR : gain;
+  }, [volumeLevel, muted, speechActive]);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;

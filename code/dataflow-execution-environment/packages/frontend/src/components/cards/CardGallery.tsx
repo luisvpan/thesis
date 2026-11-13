@@ -37,7 +37,7 @@ export function CardGallery({ cardSize = 'medium' }: CardGalleryProps) {
 
   const animals: AnimalType[] = ['gato', 'perro', 'tortuga', 'elefante', 'jirafa'];
 
-  const foods: FoodType[] = ['manzana', 'hamburguesa', 'uvas', 'pasta', 'peras'];
+  const foods: FoodType[] = ['manzana', 'hamburguesa', 'uvas', 'pasta', 'pera'];
 
   const carColors: CarColor[] = ['rojo', 'negro', 'amarillo', 'azul-oscuro', 'gris'];
 

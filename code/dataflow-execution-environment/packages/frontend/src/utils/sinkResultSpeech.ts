@@ -4,11 +4,10 @@ import type { SingleCpaObjectMeta } from '@/services/executeProgram';
 import { numberToSpanishWords, replaceDigitsWithSpanishWords } from './spanishNumberWords';
 import { describeCountedNoun } from './spanishGrammar';
 
+// Siempre en palabras: si le pasamos dígitos a la voz neuronal, los lee mal
+// (p. ej. «540» sonaba «nientos cuarenta»).
 function spokenNumber(value: number): string {
-  if (Number.isInteger(value) && value >= 0 && value <= 99) {
-    return numberToSpanishWords(value);
-  }
-  return String(value);
+  return numberToSpanishWords(value);
 }
 
 // Para montessori/cap/stick el sustantivo real es el tipo (cubo/tapa/paleta),

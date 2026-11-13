@@ -20,7 +20,7 @@ const CAP_WRAPPER = 'relative h-30 w-34 -translate-x-[35%] -translate-y-[50%]';
 
 const MONTESORI_WRAPPER = 'relative h-30 w-34 -translate-x-[35%] -translate-y-[50%]';
 
-const CRITERIA_WRAPPER = 'relative h-40 w-40 -translate-x-[40%] -translate-y-[50%]';
+const CRITERIA_WRAPPER = 'relative h-40 w-40 -translate-x-[25%] -translate-y-[50%]';
 
 export const SOURCE_NODE_WRAPPER_CLASS: Record<SourceCardCategory, string> = {
   number: NUMBER_WRAPPER,

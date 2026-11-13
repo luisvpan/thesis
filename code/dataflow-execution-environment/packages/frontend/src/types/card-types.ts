@@ -67,7 +67,7 @@ export function isSingleInputOperatorType(op: OperatorType): boolean {
 
 export type AnimalType = 'gato' | 'perro' | 'tortuga' | 'elefante' | 'jirafa';
 
-export type FoodType = 'manzana' | 'hamburguesa' | 'uvas' | 'pasta' | 'peras' | 'naranja';
+export type FoodType = 'manzana' | 'hamburguesa' | 'uvas' | 'pasta' | 'pera' | 'naranja';
 
 export type PersonAge = 'bebe' | 'niño' | 'joven' | 'adulto';
 

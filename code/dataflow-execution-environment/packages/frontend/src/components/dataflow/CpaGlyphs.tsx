@@ -42,7 +42,6 @@ export const FOOD_DOT_COLORS: Record<string, string> = {
 
 // Generic (teal) palette for pictorico mode
 const GENERIC_PALETTE = 'bg-teal-400 shadow-teal-900/50';
-const GENERIC_DOT = 'bg-teal-400';
 const FALLBACK_PALETTE = 'bg-slate-500 shadow-slate-900/50';
 
 // =============================================================================
@@ -154,35 +153,20 @@ export function FormaGlyph({
 export function ComidaGlyph({
   subtype,
   color,
-  generic = false,
   large = false,
 }: { subtype: string; color: string } & GlyphProps) {
+  // La comida se ve igual en pictórico que en concreto: su propio ícono, no el
+  // disco teal genérico.
   const sizeClass = large ? 'h-12 w-12' : 'h-7 w-7';
-  if (!generic) {
-    const textClass = large ? 'text-3xl' : 'text-xl';
-    return (
-      <span
-        className={`inline-flex ${sizeClass} shrink-0 items-center justify-center ${textClass} leading-none`}
-        role="img"
-        aria-label={subtype}
-        title={`${subtype} ${color}`}
-      >
-        {foodEmoji(subtype as FoodType)}
-      </span>
-    );
-  }
-
-  const dot = GENERIC_DOT;
-  const bgClass = 'bg-teal-700';
-  const dotClass = large ? 'bottom-1.5 h-3 w-3' : 'bottom-1 h-2 w-2';
-  const labelClass = large ? 'text-sm' : 'text-[9px]';
+  const textClass = large ? 'text-3xl' : 'text-xl';
   return (
     <span
-      title={subtype}
-      className={`relative inline-flex ${sizeClass} shrink-0 items-center justify-center rounded-full ${bgClass} ring-1 ring-white/20`}
+      className={`inline-flex ${sizeClass} shrink-0 items-center justify-center ${textClass} leading-none`}
+      role="img"
+      aria-label={subtype}
+      title={`${subtype} ${color}`}
     >
-      <span className={`absolute ${dotClass} rounded-full ${dot}`} />
-      <span className={`${labelClass} font-semibold text-white/90`}>{subtype.slice(0, 1)}</span>
+      {foodEmoji(subtype as FoodType)}
     </span>
   );
 }

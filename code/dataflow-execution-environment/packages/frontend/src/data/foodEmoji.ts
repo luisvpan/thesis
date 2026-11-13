@@ -5,7 +5,7 @@ export const FOOD_EMOJI: Record<FoodType, string> = {
   hamburguesa: '🍔',
   uvas: '🍇',
   pasta: '🍝',
-  peras: '🍐',
+  pera: '🍐',
   naranja: '🍊',
 };
 

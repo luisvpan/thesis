@@ -201,7 +201,7 @@ function buildSinkBody(
       );
       return {
         headerRight: (
-          <span className="text-2xl font-black tabular-nums text-white">
+          <span className="text-5xl font-black tabular-nums text-white">
             [{formatted.join(', ')}]
           </span>
         ),
@@ -296,7 +296,7 @@ export function ProgramOutputFlowNode({
       onClick={() => {
         if (speechText) void speakSpanish(speechText, setSpeechStatus);
       }}
-      className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} w-24 h-24 relative z-30 flex shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-teal-600 bg-teal-800 px-2 py-2 text-sm font-semibold text-teal-50 shadow transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60`}
+      className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} mt-4 w-24 h-24 relative z-30 flex shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-teal-600 bg-teal-800 px-2 py-2 text-sm font-semibold text-teal-50 shadow transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60`}
       title={
         speechText
           ? speechStatus === 'loading'

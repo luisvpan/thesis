@@ -25,6 +25,12 @@ from cv_system.calibration.marker_projector import MarkerProjector
 from cv_system.calibration.result import CalibrationResult
 from cv_system.config import SessionConfig
 from cv_system.hardware.manager import HardwareManager, HardwareError
+from cv_system.snapshot import (
+    save_snapshot,
+    snapshot_dir,
+    snapshot_requested_from_console,
+    wait_key_with_snapshots,
+)
 from cv_system.transform import ResolutionMapper
 
 logger = logging.getLogger(__name__)
@@ -196,7 +202,13 @@ class Calibrator:
             logger.info(f"Projecting {len(projector_points)} markers at grid positions")
             self.marker_projector.project_markers(projector_points)
             logger.info("Marker projection complete")
-            cv2.waitKey()
+            print(
+                "  Press SPACE to take a photo (saved to "
+                f"{snapshot_dir()}), any other key to capture markers"
+            )
+            wait_key_with_snapshots(
+                lambda: self.hardware_manager.get_rgb_frame(), tag="calib_markers"
+            )
             # Step 2: Capture RGB frame
             logger.info("Capturing RGB frame for marker detection")
             rgb_frame = self.hardware_manager.get_rgb_frame().get()
@@ -207,7 +219,8 @@ class Calibrator:
             # Show rgb frame captured
             cv2.namedWindow("Captured RGB Frame", cv2.WINDOW_NORMAL)
             cv2.imshow("Captured RGB Frame", rgb_frame)
-            cv2.waitKey()
+            print("  Press SPACE to save this frame, any other key to continue")
+            wait_key_with_snapshots(lambda: rgb_frame, tag="calib_captured")
 
             # Step 3: Detect markers in RGB frame
             logger.info("Detecting markers in RGB frame")
@@ -286,8 +299,12 @@ class Calibrator:
         calibration = self.config.calibration
 
         # Create capture function that delegates to hardware manager
+        print(f"  Press SPACE in the console to take a photo (saved to {snapshot_dir()})")
+
         def capture_frame() -> "np.ndarray":
             try:
+                if snapshot_requested_from_console():
+                    save_snapshot(self.hardware_manager.get_rgb_frame(), tag="calib_dmax")
                 depth_frame = self.hardware_manager.get_depth_frame()
 
                 return depth_frame

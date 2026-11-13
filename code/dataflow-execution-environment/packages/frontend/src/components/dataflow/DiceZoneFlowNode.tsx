@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import type { VisionNodeMeta } from '@/contexts/node/visionNodeMeta';
@@ -6,6 +6,7 @@ import { DiceFace } from './source-flow/DiceFace';
 import { ClickableHandle } from './ClickableHandle';
 import { useNode } from '@/contexts/NodeContext';
 import { useFlowNodeShellClass } from './useFlowNodeShellClass';
+import { FLOW_NODE_INTERACTIVE_CLASS } from './flowNodeChrome';
 
 export type DiceZoneFlowNodeData = VisionNodeMeta & {
   /** Discriminante del nodo dentro de la unión de tipos del lienzo. */
@@ -15,62 +16,88 @@ export type DiceZoneFlowNodeData = VisionNodeMeta & {
 
 export type DiceZoneFlowNode = Node<DiceZoneFlowNodeData, 'diceZone'>;
 
+/** Cuánto gira el dado antes de quedarse en una cara. */
+const ROLL_MS = 700;
+/** Cada cuánto cambia la cara mientras gira. */
+const ROLL_TICK_MS = 90;
+
 function randomDiceFace(): number {
   return Math.floor(Math.random() * 6) + 1;
 }
 
-// The circle is 520px diameter. The vision position offset is VISION_NODE_HALF_W=48, VISION_NODE_HALF_H=40.
-// To center the circle on the physical card: translate = -(260 - 48, 260 - 40) = (-212, -220).
-const ZONE_SIZE = 520;
-
-/** The dice area — a large circle that persists while connected or while the physical card is present. */
+/**
+ * El dado es una carta más: el nodo ocupa lo mismo que la carta física
+ * (VISION_NODE_HALF_W/H) y el dado, con su botón para tirarlo, flota encima.
+ */
 export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNode>) {
   const { setNodes } = useReactFlow();
   const { registerPortKind, unregisterPortKinds } = useNode();
   const shellClass = useFlowNodeShellClass();
   const prevVisionStatusRef = useRef<string | undefined>(undefined);
+  const timersRef = useRef<{ tick?: number; stop?: number }>({});
+  // Cara que se ve mientras gira; solo el valor final llega a los datos del nodo,
+  // para no reejecutar el programa en cada vuelta.
+  const [rollingFace, setRollingFace] = useState<number | null>(null);
 
   useEffect(() => {
     registerPortKind(id, 'out', { produces: 'rational' });
     return () => unregisterPortKinds(id);
   }, [id, registerPortKind, unregisterPortKinds]);
 
-  // Assign a new value the moment the physical dice card enters (or re-enters) the area.
+  const clearTimers = useCallback(() => {
+    window.clearInterval(timersRef.current.tick);
+    window.clearTimeout(timersRef.current.stop);
+    timersRef.current = {};
+  }, []);
+
+  useEffect(() => clearTimers, [clearTimers]);
+
+  const roll = useCallback(() => {
+    clearTimers();
+    setRollingFace(randomDiceFace());
+    timersRef.current.tick = window.setInterval(
+      () => setRollingFace(randomDiceFace()),
+      ROLL_TICK_MS
+    );
+    timersRef.current.stop = window.setTimeout(() => {
+      clearTimers();
+      setRollingFace(null);
+      const value = randomDiceFace();
+      setNodes((nds) =>
+        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, value } } : n))
+      );
+    }, ROLL_MS);
+  }, [clearTimers, id, setNodes]);
+
+  // Se tira solo en cuanto la carta aparece (o vuelve a aparecer).
   useEffect(() => {
     const prevStatus = prevVisionStatusRef.current;
     const curStatus = data.visionStatus;
-    const entered = curStatus === 'active' && prevStatus !== 'active';
-
-    if (entered) {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === id ? { ...n, data: { ...n.data, value: randomDiceFace() } } : n
-        )
-      );
-    }
-
+    if (curStatus === 'active' && prevStatus !== 'active') roll();
     prevVisionStatusRef.current = curStatus;
-  }, [data.visionStatus, id, setNodes]);
+  }, [data.visionStatus, roll]);
 
-  const dicePresent =
-    data.visionStatus === 'active' || data.visionStatus === undefined;
+  const rolling = rollingFace !== null;
 
   return (
-    <div
-      className={`relative -translate-x-53 -translate-y-55 ${shellClass}`}
-      style={{ width: ZONE_SIZE, height: ZONE_SIZE }}
-    >
-      {/* Circle border */}
-      <div className="absolute inset-0 rounded-full border-4 border-amber-400/60 bg-amber-500/10 opacity-70" />
+    <div className={`relative h-20 w-24 ${shellClass}`}>
+      <div className="absolute bottom-full left-1/2 mb-10 flex -translate-x-1/2 flex-col items-center gap-4 opacity-40">
+        {/* scale no ocupa espacio en el layout: la caja fija reserva lo que mide el dado escalado */}
+        <div className="flex h-36 w-36 items-center justify-center">
+          <div key={rolling ? 'rolling' : data.value} className="scale-[2.2] animate-dice-pop">
+            <DiceFace value={rollingFace ?? data.value} spinning={rolling} />
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={rolling}
+          onClick={roll}
+          className={`nodrag nopan ${FLOW_NODE_INTERACTIVE_CLASS} rounded-lg border-2 border-amber-600 bg-amber-500 px-5 py-2 text-lg font-bold text-white shadow transition-colors hover:bg-amber-600 disabled:cursor-not-allowed`}
+        >
+          Tirar
+        </button>
+      </div>
 
-      {/* Dice card — visible when physical card is inside the area */}
-      {dicePresent ? (
-        <DiceCard value={data.value} />
-      ) : (
-        <EmptyHint />
-      )}
-
-      {/* Output handle — always visible, at the right edge of the circle */}
       <ClickableHandle
         type="source"
         position={Position.Right}
@@ -79,31 +106,6 @@ export function DiceZoneFlowNodeComponent({ id, data }: NodeProps<DiceZoneFlowNo
         handleVariant="input-out"
         produces="rational"
       />
-    </div>
-  );
-}
-
-function DiceCard({ value }: { value?: number }) {
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none -translate-y-40">
-      {/* key=value remounts DiceFace on each new value, triggering the pop animation */}
-      <div key={value} className="scale-[1.8] origin-center animate-dice-pop">
-        <DiceFace value={value} />
-      </div>
-     
-    </div>
-  );
-}
-
-function EmptyHint() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div className="rounded-2xl border-2 border-dashed border-amber-500/25 px-8 py-6 text-center">
-        <p className="text-5xl opacity-20">🎲</p>
-        <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-amber-500/35">
-          Coloca el dado
-        </p>
-      </div>
     </div>
   );
 }

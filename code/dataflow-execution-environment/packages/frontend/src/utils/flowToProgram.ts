@@ -12,6 +12,7 @@ import {
 import type { Edge } from "@xyflow/react";
 import type { SourceFlowNodeData, OperatorFlowNodeData } from "../components/dataflow";
 import { isOrderOperatorType, isSingleInputOperatorType, resolveStickColor } from "../types/card-types";
+import type { FoodType } from "../types/card-types";
 import { isPictorialColorYoloClass } from "../data/pictorialColors";
 import type { DataflowNode } from "../contexts/node/types";
 import type { OrderCriterio } from "../data/yoloDeckCatalog";
@@ -96,11 +97,12 @@ export function normalizeSize(size: string | undefined): string {
   return SIZE_MAP[size] ?? size;
 }
 
-// Mapeo de tipo de comida a su color natural
-const FOOD_COLOR_MAP: Record<string, string> = {
+// Mapeo de tipo de comida a su color natural. Las claves son las de `FoodType`
+// (en plural: "uvas"; la pera en singular); las que falten caen en verde.
+const FOOD_COLOR_MAP: Partial<Record<FoodType, string>> = {
   manzana: "rojo",
   pera: "verde",
-  uva: "morado",
+  uvas: "morado",
   hamburguesa: "naranja",
 };
 

@@ -55,13 +55,13 @@ function getEffectiveKind(
 function highlightColorClass(state: PortHighlightState): string {
   switch (state) {
     case "connected":
-      return "!bg-blue-600/50 !border-blue-400/50";
+      return "!bg-blue-600/20 !border-blue-400/20";
     case "selected":
-      return "!bg-green-700/50 !border-green-500/50";
+      return "!bg-green-700/40 !border-green-500/40";
     case "compatible":
-      return "!bg-green-500/50 !border-green-400/50 ring-2 ring-green-400/50";
+      return "!bg-green-500/40 !border-green-400/40 ring-2 ring-green-400/40";
     case "incompatible":
-      return "!bg-red-500/80 !border-red-400/80";
+      return "!bg-red-500/40 !border-red-400/40";
     case "idle":
     default:
       return "!bg-slate-600/50 !border-slate-500/50";

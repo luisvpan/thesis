@@ -234,3 +234,41 @@ describe("los errores van a la salida que apagan", () => {
     expect(result.results.get("outSano")).toMatchObject({ value: 13 });
   });
 });
+
+describe("filtrar un grupo de cartas", () => {
+  test("el texto cuenta todas las que pasan, no solo una", async () => {
+    const foods = ["manzana", "manzana", "pera"];
+    const nodes = [
+      { id: "abrir", type: "arrayOpen", position: { x: 0, y: 0 }, data: {} },
+      ...foods.map((food, i) => ({
+        id: `comida_${i}`,
+        type: "source",
+        position: { x: 300 + i * 260, y: 0 },
+        data: { variant: "food", food },
+      })),
+      { id: "cerrar", type: "arrayClose", position: { x: 1400, y: 0 }, data: {} },
+      // Lejos de la zona, o el criterio entraría en la bolsa.
+      {
+        id: "criterio",
+        type: "source",
+        position: { x: 0, y: 900 },
+        data: { variant: "criteria", properties: ["subtype"], values: { subtype: "manzana" } },
+      },
+      { id: "filtro", type: "operator", position: { x: 2000, y: 900 }, data: { operator: "filtrar-comidas" } },
+      { id: "out", type: "programOutput", position: { x: 2600, y: 900 }, data: {} },
+    ] as DataflowNode[];
+
+    const edges: Edge[] = [
+      { id: "z", source: "abrir", target: "cerrar", sourceHandle: "zone-out", targetHandle: "zone-in" },
+      { id: "a", source: "cerrar", target: "filtro", sourceHandle: "out", targetHandle: "a" },
+      { id: "b", source: "criterio", target: "filtro", sourceHandle: "out", targetHandle: "b" },
+      { id: "c", source: "filtro", target: "out", sourceHandle: "out", targetHandle: "in" },
+    ];
+
+    const result = await createProgramExecutor().execute(nodes, edges);
+    const value = result.results.get("out");
+    if (value?.kind !== "semantic") throw new Error(`se esperaba un resultado CPA, y llegó ${value?.kind}`);
+    expect(value.result.description).toBe("2 manzanas rojas");
+    expect(value.result.visualStrip).toHaveLength(2);
+  });
+});

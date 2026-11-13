@@ -652,10 +652,11 @@ function describeSubtype(typeKey: string, sub: SubtypeGroup): string {
 
   if (uniform) {
     const [item] = sub.items;
-    return describeCountedNoun(nounKey, sub.totalAmount, {
+    const phrase = describeCountedNoun(nounKey, sub.totalAmount, {
       size: item?.size,
       color: item?.color ?? groupColor,
     });
+    return `${sub.totalAmount} ${phrase}`;
   }
 
   const itemDescs = sub.items.map((item) => {

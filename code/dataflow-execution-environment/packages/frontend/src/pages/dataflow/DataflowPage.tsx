@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ReactFlow,
   Background,
@@ -20,12 +20,8 @@ import {
 } from '@/components/dataflow';
 import { NodeProvider, useNode } from '@/contexts/NodeContext';
 import { ResultCardUiProvider } from '@/contexts/ResultCardUiContext';
-import { SocketInfoFab } from '@/components/SocketInfoFab';
-import { getLevelConfig } from '@/data/levelConfig';
-import { DECK_SECTION_ITEMS } from '@/data/yoloDeckCatalog';
-import { ModelDeckSidebar } from '@/components/ModelDeckSidebar';
-import { ArrowLeft, Eye, Volume2 } from 'lucide-react';
-import { useDataflowPage } from './useDataflowPage';
+import { SocketStatusButton } from '@/components/SocketStatusButton';
+import { ArrowLeft, Box, Eye, Shapes, Volume2 } from 'lucide-react';
 import { MusicPlayerModal } from '@/components/MusicPlayerModal';
 
 const nodeTypes: NodeTypes = {
@@ -42,15 +38,17 @@ const edgeTypes: EdgeTypes = {
   arrayZoneEdge: ArrayZoneEdge,
 };
 
-export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerRef, showSocketFab = true, rootClassName = 'h-screen w-screen flex flex-col bg-slate-900', extraAsideSections, enableDeveloperTools = false }: {
-  isSandbox: boolean;
-  levelConfig: ReturnType<typeof getLevelConfig>;
-  backTo: string;
+const VIEW_MODES: { id: ResultViewMode; label: string; icon: React.ReactNode }[] = [
+  { id: 'concreto', label: 'Concreto', icon: <Box className="h-12 w-12 pointer-events-none" strokeWidth={2} aria-hidden /> },
+  { id: 'pictorico', label: 'Pictórico', icon: <Shapes className="h-12 w-12 pointer-events-none" strokeWidth={2} aria-hidden /> },
+  { id: 'abstracto', label: 'Abstracto', icon: <span className="text-4xl font-bold leading-none" aria-hidden>123</span> },
+];
+
+const PILL = 'flex items-center gap-2 rounded-[2.25rem] border border-slate-700/80 bg-slate-900/90 p-3 shadow-lg shadow-black/40';
+const ICON_BTN = 'flex h-24 w-24 items-center justify-center rounded-3xl border-2 transition-colors';
+
+export function DataflowContent({ flowContainerRef }: {
   flowContainerRef: React.RefObject<HTMLDivElement | null>;
-  showSocketFab?: boolean;
-  rootClassName?: string;
-  extraAsideSections?: ReactNode;
-  enableDeveloperTools?: boolean;
 }) {
   const {
     nodes,
@@ -58,9 +56,6 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
     onNodesChange,
     onEdgesChange,
     nodesDraggable,
-    spawnDeckYoloClass,
-    addArrayOpenNode,
-    addArrayCloseNode,
     clearSelection,
   } = useNode();
 
@@ -72,118 +67,64 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
   const [showOperatorResults, setShowOperatorResults] = useState(false);
   const [showMusicModal, setShowMusicModal] = useState(false);
 
-  const spawnAllCards = () => {
-    Object.values(DECK_SECTION_ITEMS).flat().forEach((yoloClass) => {
-      spawnDeckYoloClass(yoloClass);
-    });
-  };
-
   return (
-    <div className={rootClassName}>
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0 gap-4">
-        <Link
-          to={backTo}
-          className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors shrink-0 text-2xl font-semibold px-5 py-4 rounded-xl hover:bg-slate-700/50"
-        >
-          <ArrowLeft className="w-10 h-10 shrink-0 pointer-events-none" />
-          Volver
-        </Link>
-
-        <div className="flex-1 flex flex-col items-center justify-center min-w-0">
-          <h1 className="text-2xl font-bold text-white text-center truncate max-w-full">
-            {levelConfig.title}
-          </h1>
-          <p className="text-lg text-slate-400 text-center truncate max-w-full">
-            {levelConfig.subtitle}
-          </p>
+    <div className="h-screen w-screen flex flex-col bg-black font-display">
+      <header className="flex shrink-0 items-center justify-between gap-4 bg-black px-6 pt-6 pb-4">
+        <div className={`${PILL} pr-6`}>
+          <Link
+            to="/"
+            className={`${ICON_BTN} border-slate-600/70 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white`}
+            title="Volver al inicio"
+          >
+            <ArrowLeft className="h-12 w-12 pointer-events-none" strokeWidth={2.5} />
+          </Link>
+          <div className="min-w-0 pl-2">
+            <h1 className="truncate text-4xl font-bold leading-tight text-white">Modo libre</h1>
+         </div>
         </div>
 
-        <div className="flex gap-6 items-center shrink-0 flex-wrap justify-end">
+        <div className={PILL} role="group" aria-label="Modo de visualización">
+          {VIEW_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setViewMode(mode.id)}
+              aria-pressed={viewMode === mode.id}
+              className={`flex h-24 items-center gap-4 rounded-3xl border-2 px-10 text-4xl font-semibold transition-colors ${
+                viewMode === mode.id ? 'border-teal-400/70 bg-teal-700 text-white' : 'border-slate-600/70 text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              {mode.icon}
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={PILL}>
           <button
             type="button"
             onClick={() => setShowOperatorResults((v) => !v)}
             aria-pressed={showOperatorResults}
-            className={`flex items-center gap-3 px-5 py-4 min-h-[6rem] rounded-xl text-2xl font-semibold transition-colors border-2 shadow-lg ${
-              showOperatorResults ? 'bg-teal-800 hover:bg-teal-700 border-teal-500 text-teal-50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-100'
+            className={`${ICON_BTN} ${
+              showOperatorResults ? 'border-teal-400/70 bg-teal-700 text-white' : 'border-slate-600/70 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white'
             }`}
+            title={showOperatorResults ? 'Ocultar resultados' : 'Mostrar resultados'}
           >
-            <Eye className="w-9 h-9 shrink-0 pointer-events-none" strokeWidth={2} aria-hidden />
-            Mostrar resultados
+            <Eye className="h-12 w-12 pointer-events-none" strokeWidth={2} aria-hidden />
           </button>
-          <div className=" flex overflow-hidden rounded-xl border-2 border-slate-600 shadow-lg" role="group" aria-label="Modo de visualización">
-            <button type="button" onClick={() => setViewMode('concreto')} className={`p-5 flex min-h-[6rem] min-w-[6rem] items-center justify-center text-4xl font-black ${viewMode === 'concreto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>C</button>
-            <button type="button" onClick={() => setViewMode('pictorico')} className={`p-5 flex min-h-[6rem] min-w-[6rem] items-center justify-center border-l-2 border-slate-600 text-4xl font-black ${viewMode === 'pictorico' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>P</button>
-            <button type="button" onClick={() => setViewMode('abstracto')} className={`p-5 flex min-h-[6rem] min-w-[6rem] items-center justify-center border-l-2 border-slate-600 text-4xl font-black ${viewMode === 'abstracto' ? 'bg-teal-700 text-white' : 'bg-slate-700 text-slate-100'}`}>A</button>
-          </div>
           <button
             type="button"
             onClick={() => setShowMusicModal(true)}
-            className="p-5 min-h-[6rem] min-w-[6rem] rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-colors border-2 border-slate-600 flex items-center justify-center shadow-lg"
+            className={`${ICON_BTN} border-slate-600/70 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white`}
             title="Música"
           >
-            <Volume2 className="w-12 h-12 pointer-events-none" strokeWidth={2} />
+            <Volume2 className="h-12 w-12 pointer-events-none" strokeWidth={2} />
           </button>
+          <SocketStatusButton className={ICON_BTN} />
         </div>
       </header>
 
       <div className="flex-1 flex min-h-0">
-        {!isSandbox && (
-          <aside className="w-64 shrink-0 flex flex-col bg-slate-800 border-r border-slate-700 overflow-y-auto">
-            <section className="p-3 border-b border-slate-700">
-              <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                Mochila
-              </h2>
-              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-                Mochila por CPA: Concreto (comidas, Montessori, filtrar), Pictórico (figuras, tamaños, filtrar), Abstracto
-                (números, ×÷, orden; sin filtrar), Común (salida, abrir/cerrar arreglo).
-              </p>
-              <ModelDeckSidebar />
-            </section>
-            <section className="p-3 flex-1">
-              <h2 className="text-base font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                Reglas para el lenguaje
-              </h2>
-              <p className="text-slate-400 text-base leading-relaxed">
-                {levelConfig.rule}
-              </p>
-            </section>
-            {enableDeveloperTools ? (
-              <section className="border-t border-slate-700 p-3">
-                <h2 className="mb-2 text-base font-semibold uppercase tracking-wider text-slate-400">
-                  Modo desarrollador
-                </h2>
-                <button
-                  type="button"
-                  onClick={spawnAllCards}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-600"
-                >
-                  Agregar todas las cartas
-                </button>
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={addArrayOpenNode}
-                    className="flex-1 rounded-lg border border-teal-700 bg-teal-900/50 px-3 py-2 text-sm font-black text-teal-300 hover:bg-teal-800/60 font-mono"
-                    title="Abrir arreglo"
-                  >
-                    [
-                  </button>
-                  <button
-                    type="button"
-                    onClick={addArrayCloseNode}
-                    className="flex-1 rounded-lg border border-teal-700 bg-teal-900/50 px-3 py-2 text-sm font-black text-teal-300 hover:bg-teal-800/60 font-mono"
-                    title="Cerrar arreglo"
-                  >
-                    ]
-                  </button>
-                </div>
-              </section>
-            ) : null}
-            {extraAsideSections}
-          </aside>
-        )}
-
         {/* Canvas ReactFlow */}
         <div ref={flowContainerRef} className="flex-1 relative min-w-0 bg-black">
           <ResultCardUiProvider
@@ -216,32 +157,18 @@ export function DataflowContent({ isSandbox, levelConfig, backTo, flowContainerR
         </div>
       </div>
 
-      {showSocketFab ? <SocketInfoFab /> : null}
       {showMusicModal ? <MusicPlayerModal onClose={() => setShowMusicModal(false)} /> : null}
     </div>
   );
 }
 
 // Main component that provides NodeContext
-export default function DataflowPage({ isSandbox }: { isSandbox: boolean }) {
-  const [searchParams] = useSearchParams();
-  const isDevMode = searchParams.get('dev') === '1';
-  const { levelConfig, backTo, flowContainerRef } = useDataflowPage(isSandbox);
+export default function DataflowPage() {
+  const flowContainerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <NodeProvider
-      flowContainerRef={flowContainerRef}
-      visionSyncEnabled={!isDevMode}
-      nodesDraggable={isDevMode}
-    >
-      <DataflowContent
-        isSandbox={isSandbox}
-        levelConfig={levelConfig}
-        backTo={backTo}
-        flowContainerRef={flowContainerRef}
-        showSocketFab={!isDevMode}
-        enableDeveloperTools={isDevMode}
-      />
+    <NodeProvider flowContainerRef={flowContainerRef}>
+      <DataflowContent flowContainerRef={flowContainerRef} />
     </NodeProvider>
   );
 }

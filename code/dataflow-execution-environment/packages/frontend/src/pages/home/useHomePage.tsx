@@ -1,55 +1,44 @@
-import { Bug, Gamepad2, Settings } from 'lucide-react';
+import { useState } from 'react';
 
 export const homeContainerMotion = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 },
   },
 };
 
 export const homeItemMotion = {
-  hidden: { opacity: 0, y: 32 },
+  hidden: { opacity: 0, y: 24 },
   show: { opacity: 1, y: 0 },
 };
 
-const SECTIONS = [
-  {
-    id: 'juego',
-    title: 'Juego',
-    description: 'Mundos 1, 2 y 3 con niveles · Sandbox',
-    to: '/juego',
-    icon: Gamepad2,
-    gradient: 'from-teal-500 to-cyan-600',
-    border: 'border-teal-400/30',
-    shadow: 'shadow-teal-500/25',
-  },
-  {
-    id: 'configuracion',
-    title: 'Configuración',
-    description: 'Desbloquear niveles y borrar datos',
-    to: '/configuracion',
-    icon: Settings,
-    gradient: 'from-amber-500 to-orange-600',
-    border: 'border-amber-400/30',
-    shadow: 'shadow-amber-500/25',
-  },
-  {
-    id: 'dev-mode',
-    title: 'Modo Dev',
-    description: 'Herramientas de desarrollo para poblar el IDE',
-    to: '/dev',
-    icon: Bug,
-    gradient: 'from-violet-500 to-fuchsia-600',
-    border: 'border-violet-400/30',
-    shadow: 'shadow-violet-500/25',
-  },
+/** Cubos de neón sobre el título (color del borde y del brillo). */
+export const homeCubes = [
+  { id: 'yellow', size: 'h-20 w-20', color: '#facc15', rotate: -8, y: 12 },
+  { id: 'blue', size: 'h-24 w-24', color: '#38bdf8', rotate: 0, y: 0 },
+  { id: 'pink', size: 'h-20 w-20', color: '#fb7185', rotate: 8, y: 12 },
+] as const;
+
+export const howToPlaySteps = [
+  'Coloca tus cubos y cartas sobre la mesa: aparecerán en la pantalla.',
+  'Junta números con una carta de suma o resta para formar una operación.',
+  'Cambia entre Concreto, Pictórico y Abstracto para ver los números de otra forma.',
+  'Toca el ojo para ver como los datos fluyen.',
 ] as const;
 
 export function useHomePage() {
+  const [showMusicModal, setShowMusicModal] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
   return {
-    sections: SECTIONS,
     containerMotion: homeContainerMotion,
     itemMotion: homeItemMotion,
+    showMusicModal,
+    openMusicModal: () => setShowMusicModal(true),
+    closeMusicModal: () => setShowMusicModal(false),
+    showHowToPlay,
+    openHowToPlay: () => setShowHowToPlay(true),
+    closeHowToPlay: () => setShowHowToPlay(false),
   };
 }
